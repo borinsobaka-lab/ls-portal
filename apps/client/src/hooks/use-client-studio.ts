@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { untypedDb } from "@/lib/untyped-db";
 import { useAuth } from "@/hooks/use-auth";
 import { isNotMemberError, markSignInRefused } from "@/lib/sign-in-refused";
 
@@ -37,9 +38,7 @@ async function fetchStudioId(userId: string): Promise<string | null> {
   // Карточки по user_id нет — сервер привязывает свободную карточку с той же
   // почтой (её могли завести на портале позже учётной записи). Нет и такой —
   // человек не член клуба: выходим, экран входа покажет причину.
-  const { data: ensured, error: ensureError } = await (supabase as any).rpc(
-    "ensure_client_profile",
-  );
+  const { data: ensured, error: ensureError } = await untypedDb.rpc("ensure_client_profile");
   if (isNotMemberError(ensureError)) {
     markSignInRefused();
     // Только эта вкладка: сотрудника без карточки клиента не выкидываем из

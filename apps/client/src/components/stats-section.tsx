@@ -369,7 +369,7 @@ export function StatsSection() {
       // Только посещения (attended): отменённые, пропуски и записи без отметки
       // администратора в статистику — и в серию недель — не идут.
       const [logs, mvRes, profile, compareRes, diagnostics] = await Promise.all([
-        (supabase as unknown as { from: (t: string) => any })
+        untypedDb
           .from("bookings_log")
           .select(
             "entry_id,starts_at,duration_min,calories,workout_id,workout_name,workout_type,studio_id",
@@ -381,7 +381,7 @@ export function StatsSection() {
         // Матвью закрыта для клиентов (RLS на материализованных вью не
         // работает, а select был выдан всем вошедшим). Свою строку получаем
         // через SECURITY DEFINER-функцию my_stats_30d.
-        (supabase as unknown as { rpc: (fn: string) => any }).rpc("my_stats_30d").maybeSingle(),
+        untypedDb.rpc("my_stats_30d").maybeSingle(),
         supabase.from("member_profiles").select("weight_kg").eq("user_id", userId!).maybeSingle(),
         IS_PACKAGES
           ? untypedDb.rpc("my_studio_visit_stats")

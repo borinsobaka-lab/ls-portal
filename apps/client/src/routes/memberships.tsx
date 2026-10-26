@@ -32,6 +32,7 @@ import {
 import { toast } from "sonner";
 import confetti from "canvas-confetti";
 import { supabase } from "@/integrations/supabase/client";
+import { untypedDb } from "@/lib/untyped-db";
 import { useAuth } from "@/hooks/use-auth";
 import { mediaUrl } from "@/lib/media";
 import { MembershipCardsSkeleton } from "@/components/content-skeletons";
@@ -125,9 +126,7 @@ type ActiveMembership = {
 };
 
 const COLORS = ["#0ea5e9", "#8b5cf6", "#f43f5e", "#10b981", "#f59e0b", "#ec4899"];
-const db = supabase as unknown as {
-  from: (table: string) => any;
-};
+const db = untypedDb;
 
 // Действующий абонемент клиента. Не maybeSingle() по статусу: при двух
 // строках active/frozen (переход на новый тариф, заморозка) PostgREST
@@ -285,18 +284,19 @@ function MembershipsPage() {
       setLoading(true);
       setError(null);
       try {
-        let { data: c, error: cErr } = await db
+        const own = await db
           .from("clients")
           .select("id, studio_id")
           .eq("user_id", user.id)
           .maybeSingle();
-        if (cErr) throw cErr;
+        if (own.error) throw own.error;
+        let c = own.data;
 
         // Нет карточки — не тупик: заводим её на сервере и продолжаем.
         // Раньше здесь показывалось «обратитесь к администратору», хотя
         // студия одна и привязать клиента можно автоматически.
         if (!c || !c.studio_id) {
-          const { data: ensured } = await (db as any).rpc("ensure_client_profile");
+          const { data: ensured } = await db.rpc("ensure_client_profile");
           const row = Array.isArray(ensured) ? ensured[0] : ensured;
           if (row?.studio_id) c = { id: row.id, studio_id: row.studio_id };
         }
@@ -348,9 +348,9 @@ function MembershipsPage() {
 
         if (cancelled) return;
         setMemberships(membershipRows);
-        setActive((act as ActiveMembership) ?? null);
-      } catch (e: any) {
-        if (!cancelled) setError(e?.message ?? t("Не удалось загрузить абонементы"));
+        setActive((act as unknown as ActiveMembership | null) ?? null);
+      } catch (e) {
+        if (!cancelled) setError((e as Error)?.message ?? t("Не удалось загрузить абонементы"));
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -365,7 +365,7 @@ function MembershipsPage() {
     const { data: act, error: actErr } = await fetchActiveMembership(client.id);
     // При ошибке не обнуляем абонемент: баннер «нет абонемента» был бы враньём.
     if (actErr) return;
-    setActive((act as ActiveMembership) ?? null);
+    setActive((act as unknown as ActiveMembership | null) ?? null);
   };
 
   // Сумма к оплате приходит из чека: там применяется промокод. Без неё в
@@ -416,8 +416,8 @@ function MembershipsPage() {
       );
       setSelected(null);
       setConfirmSwitchOpen(false);
-    } catch (e: any) {
-      toast.error(e?.message ?? t("Не удалось оформить абонемент"));
+    } catch (e) {
+      toast.error((e as Error)?.message ?? t("Не удалось оформить абонемент"));
     } finally {
       setPurchasing(false);
     }
@@ -428,7 +428,7 @@ function MembershipsPage() {
     if (!active) return false;
     setCancellingRenew(true);
     try {
-      const { error: rpcErr } = await (supabase as any).rpc("cancel_membership_autorenew", {
+      const { error: rpcErr } = await db.rpc("cancel_membership_autorenew", {
         _client_membership_id: active.id,
         _source: "mobile",
         _reason: "self",
@@ -437,8 +437,8 @@ function MembershipsPage() {
       await refreshActive();
       toast.success(t("Автопродление отключено"));
       return true;
-    } catch (e: any) {
-      toast.error(e?.message ?? t("Не удалось отключить автопродление"));
+    } catch (e) {
+      toast.error((e as Error)?.message ?? t("Не удалось отключить автопродление"));
       return false;
     } finally {
       setCancellingRenew(false);

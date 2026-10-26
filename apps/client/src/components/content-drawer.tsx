@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Drawer as DrawerPrimitive } from "vaul";
 
 import { supabase } from "@/integrations/supabase/client";
+import { untypedDb } from "@/lib/untyped-db";
 import { mediaUrl } from "@/lib/media";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -56,8 +57,8 @@ export function ContentDrawer({
     if (!itemId) return;
     let cancelled = false;
     setImgLoaded(false);
-    // services нет в сгенерированных types.ts — общий запрос идёт через any.
-    (supabase as any)
+    // services нет в сгенерированных types.ts — общий запрос без типов.
+    untypedDb
       .from(table)
       .select(
         "id,title,description,image_url,banner_url,full_title,full_text,button_text,button_url,translations",

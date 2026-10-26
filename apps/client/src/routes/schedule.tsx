@@ -6,6 +6,7 @@ import { Refresh, Fire, CloseCircle } from "@solar-icons/react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
+import { untypedDb } from "@/lib/untyped-db";
 import { settlePackageMemberships } from "@/lib/packages-memberships";
 import { PageShell } from "@/components/page-shell";
 import { WorkoutDrawer, type WorkoutDrawerData } from "@/components/workout-drawer";
@@ -174,7 +175,7 @@ function SchedulePage() {
       // types.ts ещё без 'waitlist' в enum брони (регенерация ждёт токен) —
       // приводим клиент к any для этого запроса, как в остальном коде репозитория.
       const bookingsQuery = user
-        ? (supabase as any)
+        ? untypedDb
             .from("schedule_bookings")
             .select("entry_id, status, schedule_entries!inner(starts_at)")
             .eq("user_id", user.id)

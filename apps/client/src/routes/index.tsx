@@ -189,7 +189,7 @@ function HomePage() {
   async function cancelBooking(entryId: string) {
     if (pendingId) return;
     setPendingId(entryId);
-    const { data, error } = await (supabase as any).rpc("cancel_schedule_booking", {
+    const { data, error } = await untypedDb.rpc("cancel_schedule_booking", {
       p_entry_id: entryId,
       // Причину не спрашиваем (2026-10-21); p_reason — явно, как раньше:
       // вызов остаётся на той же перегрузке функции в базе.
