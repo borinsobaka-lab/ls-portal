@@ -6,7 +6,7 @@
  * (scripts/bump-version.ts переписывает строку ниже). Показывается в рейке
  * под «Выходом» (components/rail-account.tsx).
  */
-export const ADMIN_VERSION = "1.7";
+export const ADMIN_VERSION = "1.8";
 
 /** Следующая версия: 1.0 → 1.1, 1.9 → 1.10, 1.99 → 2.0. */
 export function nextAdminVersion(version: string): string {
