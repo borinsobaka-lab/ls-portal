@@ -18,16 +18,16 @@ Base40, AGENT_TASKS.md) с решениями владельца от 2026-10-26
 
 ## Что где
 
-| Что                    | Значение                                                         |
-| ---------------------- | ---------------------------------------------------------------- |
-| Домен                  | `lady-stretching.ru`, DNS на reg.ru (`ns1.reg.ru`, `ns2.reg.ru`) |
-| Портал                 | `https://portal.lady-stretching.ru`                              |
-| API Supabase и Studio  | `https://api.lady-stretching.ru`                                 |
-| Coolify                | `https://coolify.lady-stretching.ru`                             |
-| Сервер                 | Selectel, облачный Standard 4 vCPU / 8 ГБ / 80 ГБ «Универсальный SSD v2», Москва, Ubuntu 24.04, публичный IP |
-| Бэкапы                 | S3 Selectel, холодный класс, Санкт-Петербург (`ru-1`), бакет `ls-portal-backups` |
-| Почта с кодом          | `noreply@lady-stretching.ru`, почтовый хостинг reg.ru, SMTP `mail.hosting.reg.ru:465` (SSL) |
-| Репозиторий            | `github.com/borinsobaka-lab/ls-portal`, ветка `main`              |
+| Что                   | Значение                                                                                                     |
+| --------------------- | ------------------------------------------------------------------------------------------------------------ |
+| Домен                 | `lady-stretching.ru`, DNS на reg.ru (`ns1.reg.ru`, `ns2.reg.ru`)                                             |
+| Портал                | `https://portal.lady-stretching.ru`                                                                          |
+| API Supabase и Studio | `https://api.lady-stretching.ru`                                                                             |
+| Coolify               | `https://coolify.lady-stretching.ru`                                                                         |
+| Сервер                | Selectel, облачный Standard 4 vCPU / 8 ГБ / 80 ГБ «Универсальный SSD v2», Москва, Ubuntu 24.04, публичный IP |
+| Бэкапы                | S3 Selectel, холодный класс, Санкт-Петербург (`ru-1`), бакет `ls-portal-backups`                             |
+| Почта с кодом         | `noreply@lady-stretching.ru`, почтовый хостинг reg.ru, SMTP `mail.hosting.reg.ru:465` (SSL)                  |
+| Репозиторий           | `github.com/borinsobaka-lab/ls-portal`, ветка `main`                                                         |
 
 **Заняты, не трогать:** записи `@`, `www`, `analytics`, `inbox`, `quiz`,
 `test.analytics` и **MX** (`emx.mail.ru` — входящая почта домена остаётся
@@ -102,16 +102,16 @@ Coolify → + New → Service → **Supabase**.
    Postgres по внутренней сети Docker, порт 5432 наружу не открывается.
 3. Переменные сервиса **auth** (GoTrue) — задать или проверить:
 
-   | Переменная                        | Значение                                                  |
-   | --------------------------------- | --------------------------------------------------------- |
-   | `GOTRUE_SITE_URL`                 | `https://portal.lady-stretching.ru`                       |
-   | `GOTRUE_URI_ALLOW_LIST`           | `https://portal.lady-stretching.ru/**`                    |
-   | `GOTRUE_EXTERNAL_EMAIL_ENABLED`   | `true`                                                    |
-   | `GOTRUE_DISABLE_SIGNUP`           | `true` (сотрудников заводит портал; клиентского приложения на первом этапе нет) |
-   | `GOTRUE_MAILER_OTP_LENGTH`        | `6`                                                       |
-   | `GOTRUE_MAILER_OTP_EXP`           | `3600`                                                    |
-   | `GOTRUE_RATE_LIMIT_EMAIL_SENT`    | `300` (писем в час; лимит ящика reg.ru — 3000 в сутки)    |
-   | `GOTRUE_HOOK_SEND_EMAIL_*`        | **не задавать до шага 9**                                 |
+   | Переменная                      | Значение                                                                        |
+   | ------------------------------- | ------------------------------------------------------------------------------- |
+   | `GOTRUE_SITE_URL`               | `https://portal.lady-stretching.ru`                                             |
+   | `GOTRUE_URI_ALLOW_LIST`         | `https://portal.lady-stretching.ru/**`                                          |
+   | `GOTRUE_EXTERNAL_EMAIL_ENABLED` | `true`                                                                          |
+   | `GOTRUE_DISABLE_SIGNUP`         | `true` (сотрудников заводит портал; клиентского приложения на первом этапе нет) |
+   | `GOTRUE_MAILER_OTP_LENGTH`      | `6`                                                                             |
+   | `GOTRUE_MAILER_OTP_EXP`         | `3600`                                                                          |
+   | `GOTRUE_RATE_LIMIT_EMAIL_SENT`  | `300` (писем в час; лимит ящика reg.ru — 3000 в сутки)                          |
+   | `GOTRUE_HOOK_SEND_EMAIL_*`      | **не задавать до шага 9**                                                       |
 
 4. Deploy, дождаться: все контейнеры «healthy».
 5. В менеджер паролей (это **новые** ключи копии): anon-ключ
@@ -139,31 +139,32 @@ Coolify → + New → Service → **Supabase**.
 
 1. Coolify → Sources → + Add → GitHub App, доступ **только к
    `borinsobaka-lab/ls-portal`** (`club-40-hub` не выбирать).
-2. + New → Private Repository (GitHub App) → `ls-portal`, ветка `main`.
-   Build Pack — Dockerfile, Base Directory `/`, Dockerfile
-   `/apps/admin/Dockerfile`, порт `3000`, домен
-   `https://portal.lady-stretching.ru`, Watch Paths `apps/admin/**` и
-   `db/**`.
+2. - New → Private Repository (GitHub App) → `ls-portal`, ветка `main`.
+     Build Pack — Dockerfile, Base Directory `/`, Dockerfile
+     `/apps/admin/Dockerfile`, порт `3000`, домен
+     `https://portal.lady-stretching.ru`, Watch Paths `apps/admin/**` и
+     `db/**`.
 3. Переменные (значения — из шагов 6 и 7; секрет хука сгенерировать:
    `echo "v1,whsec_$(openssl rand -base64 32)"`, в менеджер паролей):
 
-   | Переменная                      | Тип           | Значение                                              |
-   | ------------------------------- | ------------- | ----------------------------------------------------- |
-   | `VITE_SUPABASE_URL`             | Build Variable | `https://api.lady-stretching.ru`                     |
-   | `VITE_SUPABASE_PUBLISHABLE_KEY` | Build Variable | anon-ключ                                            |
-   | `APP_SUPABASE_SERVICE_KEY`      | секрет        | service_role-ключ                                     |
-   | `DATABASE_URL`                  | секрет        | `postgres://postgres:<пароль Postgres>@<db-host>:5432/postgres` |
-   | `ADMIN_APP_URL`                 |               | `https://portal.lady-stretching.ru`                   |
-   | `SEND_EMAIL_HOOK_SECRET`        | секрет        | `v1,whsec_…`                                          |
-   | `SMTP_HOST`                     |               | `mail.hosting.reg.ru`                                 |
-   | `SMTP_PORT`                     |               | `465` (если не соединяется — `587`)                   |
-   | `SMTP_USER`                     |               | `noreply@lady-stretching.ru`                          |
-   | `SMTP_PASS`                     | секрет        | пароль ящика                                          |
-   | `MAIL_FROM`                     |               | `noreply@lady-stretching.ru`                          |
-   | `MAIL_FROM_NAME`                |               | `Lady Stretch`                                        |
+   | Переменная                      | Тип            | Значение                                                        |
+   | ------------------------------- | -------------- | --------------------------------------------------------------- |
+   | `VITE_SUPABASE_URL`             | Build Variable | `https://api.lady-stretching.ru`                                |
+   | `VITE_SUPABASE_PUBLISHABLE_KEY` | Build Variable | anon-ключ                                                       |
+   | `APP_SUPABASE_SERVICE_KEY`      | секрет         | service_role-ключ                                               |
+   | `DATABASE_URL`                  | секрет         | `postgres://postgres:<пароль Postgres>@<db-host>:5432/postgres` |
+   | `ADMIN_APP_URL`                 |                | `https://portal.lady-stretching.ru`                             |
+   | `SEND_EMAIL_HOOK_SECRET`        | секрет         | `v1,whsec_…`                                                    |
+   | `SMTP_HOST`                     |                | `mail.hosting.reg.ru`                                           |
+   | `SMTP_PORT`                     |                | `465` (если не соединяется — `587`)                             |
+   | `SMTP_USER`                     |                | `noreply@lady-stretching.ru`                                    |
+   | `SMTP_PASS`                     | секрет         | пароль ящика                                                    |
+   | `MAIL_FROM`                     |                | `noreply@lady-stretching.ru`                                    |
+   | `MAIL_FROM_NAME`                |                | `Lady Stretch`                                                  |
 
    Больше ничего не задавать (полный список с пояснениями —
    `apps/admin/.env.example`).
+
 4. Deploy. При первом старте на пустой базе мигратор сам собирает схему
    (в логе: «пустая база — собираю старую схему», три прохода, затем
    миграции, «выполнено: N»), потом стартует сервер. Дождаться «healthy».
@@ -202,8 +203,8 @@ GOTRUE_HOOK_SEND_EMAIL_SECRETS=<тот же v1,whsec_… из шага 8>
    ```
 
    Скрипт: `mkdir -p /opt/ls-portal && curl -fsSL
-   https://raw.githubusercontent.com/borinsobaka-lab/ls-portal/main/deploy/backup-storage.sh
-   -o /opt/ls-portal/backup-storage.sh && chmod +x /opt/ls-portal/backup-storage.sh`.
+https://raw.githubusercontent.com/borinsobaka-lab/ls-portal/main/deploy/backup-storage.sh
+-o /opt/ls-portal/backup-storage.sh && chmod +x /opt/ls-portal/backup-storage.sh`.
    Папка файлов — `/data/coolify/services/<uuid сервиса Supabase>/volumes/storage`.
    Запустить вручную один раз, проверить файл в бакете (`storage/`), затем
    `crontab -e`:
@@ -248,7 +249,7 @@ UptimeRobot (бесплатно): `https://portal.lady-stretching.ru` и
    сотрудников `@loadtest.invalid`, база и курс «Нагрузочный тест»): в
    конце — `500`.
 2. На сервере, в папке с клоном репозитория (`git clone
-   https://github.com/borinsobaka-lab/ls-portal`):
+https://github.com/borinsobaka-lab/ls-portal`):
 
    ```
    docker run --rm -i --network host -v "$PWD/deploy/load:/load" grafana/k6:1.3.0 run \
@@ -258,8 +259,9 @@ UptimeRobot (бесплатно): `https://portal.lady-stretching.ru` и
 
    (Docker Hub недоступен — образ `mirror.gcr.io/grafana/k6:1.3.0`.) Около
    16 минут: разгон до 100, до 500, 10 минут на 500.
+
 3. Во время прогона в соседнем окне раз в минуту: `docker stats
-   --no-stream`, `free -h`, `uptime`.
+--no-stream`, `free -h`, `uptime`.
 4. Итог k6 (таблица THRESHOLDS и TOTAL RESULTS) и цифры из п. 3 —
    владельцу и Claude.
 5. Studio → SQL Editor → `deploy/load/cleanup.sql`: в конце — `0`.
