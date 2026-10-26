@@ -187,7 +187,11 @@ function RoleEditor({ role, source }: { role: AccessRole | null; source: AccessR
           </div>
         </section>
 
+        {/* «Кому выдана» — над длинным списком прав (замечание тестирования 2026-10-27). */}
+        {role && <RoleAssignments role={role} canAssign={hasRight(access, "users.manage")} />}
+
         {problem && <InfoNote variant="warning">{problem}</InfoNote>}
+        <h2 className="pt-2 font-semibold">Права роли</h2>
         <RoleMatrix
           catalog={catalog ?? []}
           value={perms}
@@ -195,8 +199,6 @@ function RoleEditor({ role, source }: { role: AccessRole | null; source: AccessR
           disabled={readOnly || permsLocked}
           canSuperadmin={isAdmin}
         />
-
-        {role && <RoleAssignments role={role} canAssign={hasRight(access, "users.manage")} />}
       </div>
       {!readOnly && (
         <FloatingActions>
@@ -274,7 +276,7 @@ function RoleAssignments({ role, canAssign }: { role: AccessRole; canAssign: boo
   return (
     <AccessSection
       title="Кому выдана"
-      hint={`Сейчас действует у ${role.users} чел. Новый сотрудник подразделения или должности получает роль сам.`}
+      hint={`Сейчас действует у ${role.users} чел. Новый сотрудник подразделения или должности получает роль сам. Снять назначение подразделения или должности — роль пропадёт у всех, кто получал её через него.`}
       action={
         canAssign ? (
           <Button size="sm" onClick={() => setAssign({ open: true, existing: null })}>

@@ -16,14 +16,36 @@ export const DEFAULT_PAGE_SIZE = 25;
 /**
  * Клиентская пагинация. `resetKey` — сортировка или фильтр строкой: при его
  * смене — сразу (в том же рендере) 1-я страница, как в useServerTable.
+ * `storageKey` — помнить «Строк на странице» в браузере (localStorage
+ * `page_size:<ключ>`): читается после монтирования, чтобы SSR и первая
+ * отрисовка совпали.
  */
 export function usePagination<T>(
   items: T[],
   defaultPageSize: number = DEFAULT_PAGE_SIZE,
   resetKey = "",
+  storageKey?: string,
 ) {
   const [pageState, setPageState] = useState({ resetKey, page: 1 });
-  const [pageSize, setPageSize] = useState(defaultPageSize);
+  const [pageSize, setPageSizeState] = useState(defaultPageSize);
+  useEffect(() => {
+    if (!storageKey) return;
+    try {
+      const saved = Number(window.localStorage.getItem(`page_size:${storageKey}`));
+      if ((PAGE_SIZE_OPTIONS as readonly number[]).includes(saved)) setPageSizeState(saved);
+    } catch {
+      // Хранилище закрыто (приватный режим) — остаётся по умолчанию.
+    }
+  }, [storageKey]);
+  const setPageSize = (s: number) => {
+    setPageSizeState(s);
+    if (!storageKey) return;
+    try {
+      window.localStorage.setItem(`page_size:${storageKey}`, String(s));
+    } catch {
+      // Не запомнили — не страшно.
+    }
+  };
   const page = pageState.resetKey === resetKey ? pageState.page : 1;
   const setPage = useCallback((p: number) => setPageState({ resetKey, page: p }), [resetKey]);
 

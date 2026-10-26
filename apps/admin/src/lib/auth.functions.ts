@@ -6,6 +6,7 @@ import {
   getSupabaseAdmin,
   hasSupabaseAdmin,
 } from "@/integrations/supabase/client.server";
+import { isPlaceholderEmail } from "@/lib/access/logic";
 import { hasStaffRole } from "@/lib/roles";
 
 /**
@@ -35,6 +36,8 @@ export const requestStaffLoginCode = createServerFn({ method: "POST" })
       .parse(data),
   )
   .handler(async ({ data }) => {
+    // Служебный адрес человека без почты (lib/access/logic.ts) — писем нет.
+    if (isPlaceholderEmail(data.email)) return { ok: true };
     // Без сервис-ключа роль не проверить. Чтобы не запереть всех снаружи,
     // шлём код как есть: не-сотрудника всё равно не пустит guard
     // (_authenticated/route.tsx), теряется лишь «письма только сотрудникам».

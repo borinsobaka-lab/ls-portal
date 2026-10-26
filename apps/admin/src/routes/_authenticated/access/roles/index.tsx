@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Lock, Plus } from "lucide-react";
 
 import { AdminShell } from "@/components/admin-shell";
-import { RoleChip } from "@/components/access/parts";
+import { PageIntro, RoleChip } from "@/components/access/parts";
 import { AccessRolesPageSkeleton } from "@/components/page-skeletons";
 import { TableSkeletonRows } from "@/components/skeletons";
 import { Button } from "@/components/ui/button";
@@ -59,11 +59,13 @@ function AccessRolesPage() {
       }
     >
       <div className="space-y-3">
-        <InfoNote>
-          Права человека — сумма его ролей и личных прав. Роль выдаётся человеку, подразделению (с
-          подразделениями ниже) или должности — в выбранных клубах, клубах бренда или во всех, можно
-          со сроком.
-        </InfoNote>
+        <PageIntro id="roles">
+          Роль — набор прав; права человека складываются из всех его ролей. Роль выдаётся человеку,
+          подразделению (можно вместе с нижними) или должности. Действует во всей сети, в клубах
+          бренда, в выбранных клубах или в клубах, где человек собственник. Роль, полученную через
+          подразделение или должность, снимают там (убрать из подразделения, сменить должность) или
+          на странице роли — тогда она пропадёт у всех.
+        </PageIntro>
         {error && !roles ? (
           <InfoNote variant="warning">{error.message}</InfoNote>
         ) : (

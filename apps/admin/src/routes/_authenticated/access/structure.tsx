@@ -7,7 +7,8 @@ import { toast } from "sonner";
 import { AdminShell } from "@/components/admin-shell";
 import { AssignDialog, type AssignSubject } from "@/components/access/assign-dialog";
 import { MultiPick } from "@/components/access/club-owners";
-import { AccessSection, PersonLine, RoleChip } from "@/components/access/parts";
+import { AccessSection, PageIntro, PersonLine, RoleChip } from "@/components/access/parts";
+import { SearchableCombobox } from "@/components/searchable-combobox";
 import { useConfirm } from "@/components/confirm-dialog";
 import { AccessStructurePageSkeleton } from "@/components/page-skeletons";
 import { DeleteStudioForm } from "@/components/studio-delete-form";
@@ -57,7 +58,7 @@ import {
   orgUnitsQuery,
   studioOwnersQuery,
 } from "@/lib/access/data";
-import { MEMBER_ROLE_LABEL, scopeText, unitSubtree, unitTree } from "@/lib/access/logic";
+import { MEMBER_ROLE_LABEL, realEmail, scopeText, unitSubtree, unitTree } from "@/lib/access/logic";
 import type {
   Assignment,
   MemberRole,
@@ -80,6 +81,16 @@ const TIPS = {
 };
 
 type Tab = "units" | "positions" | "network";
+
+/** Тексты-инструкции вкладок (замечание тестирования 2026-10-27). */
+const INTRO: Record<Tab, string> = {
+  units:
+    "Дерево управляющей компании: руководители, заместители, сотрудники. Один человек может состоять в нескольких подразделениях. Роль, выданная подразделению «и ниже», действует во всех вложенных. Партнёров здесь нет — они в «Сети клубов».",
+  positions:
+    "Должность — подпись в карточке и способ выдать права всем, у кого она стоит. У человека одна должность.",
+  network:
+    "Бренды и клубы: тип (свой или франшиза), город, собственники. Собственник — единственная связь человека с клубом: роли с областью «Клубы собственника» действуют только в его клубах. Удаление клуба безвозвратно стирает все его данные.",
+};
 const TABS: { value: Tab; label: string }[] = [
   { value: "units", label: "Подразделения" },
   { value: "positions", label: "Должности" },
@@ -141,6 +152,9 @@ function StructurePage() {
             ))}
           </TabsList>
         </Tabs>
+        <PageIntro key={tab} id={`structure-${tab}`}>
+          {INTRO[tab]}
+        </PageIntro>
         {!canEdit && (
           <InfoNote>
             Менять структуру может тот, у кого есть право «Оргструктура и сеть». Вам — просмотр.
@@ -164,9 +178,12 @@ function UnitsTab({ canEdit }: { canEdit: boolean }) {
   const { data: units } = useQuery(orgUnitsQuery);
   const { data: members } = useQuery(orgMembersQuery);
   const names = useAccessNames();
-  const [editing, setEditing] = useState<{ unit: OrgUnit | null; parentId: string | null } | null>(
-    null,
-  );
+  const [editing, setEditing] = useState<{
+    unit: OrgUnit | null;
+    parentId: string | null;
+    /** Новое создаётся счётчиком: «Сохранить и добавить ещё» открывает чистую форму. */
+    seq?: number;
+  } | null>(null);
   const tree = unitTree(units ?? []);
   const selected = (units ?? []).find((u) => u.id === selectedId) ?? null;
   const select = (id: string) => void navigate({ search: (s) => ({ ...s, unit: id }) });
@@ -240,6 +257,9 @@ function UnitsTab({ canEdit }: { canEdit: boolean }) {
         units={units ?? []}
         onClose={() => setEditing(null)}
         onSaved={(id) => select(id)}
+        onSavedAndNext={(parentId) =>
+          setEditing((s) => ({ unit: null, parentId, seq: (s?.seq ?? 0) + 1 }))
+        }
       />
     </div>
   );
@@ -367,7 +387,7 @@ function UnitPanel({
                   >
                     <PersonLine
                       name={u?.full_name ?? names.user.get(m.user_id) ?? null}
-                      email={u?.email}
+                      email={realEmail(u?.email)}
                       avatar={u?.avatar_url ?? null}
                     />
                   </Link>
@@ -409,23 +429,24 @@ function UnitPanel({
         )}
         {canEdit && (
           <div className="flex flex-wrap items-center gap-2 border-t pt-3">
-            <Select
-              value={adding.user}
-              onValueChange={(user) => setAdding((s) => ({ ...s, user }))}
-            >
-              <SelectTrigger aria-label="Сотрудник" className="min-w-48 flex-1">
-                <SelectValue placeholder="Добавить сотрудника" />
-              </SelectTrigger>
-              <SelectContent>
-                {(users ?? [])
+            {/* С поиском: людей в портале — сотни. */}
+            <div className="min-w-48 flex-1">
+              <SearchableCombobox
+                value={adding.user}
+                onChange={(user) => setAdding((s) => ({ ...s, user }))}
+                placeholder="Добавить сотрудника"
+                searchPlaceholder="Фамилия, имя или почта"
+                emptyText="Никого не нашлось"
+                options={(users ?? [])
                   .filter((u) => !own.some((m) => m.user_id === u.user_id))
-                  .map((u) => (
-                    <SelectItem key={u.user_id} value={u.user_id}>
-                      {u.full_name || u.email}
-                    </SelectItem>
-                  ))}
-              </SelectContent>
-            </Select>
+                  .map((u) => ({
+                    value: u.user_id,
+                    label: u.full_name || realEmail(u.email) || "Без имени",
+                    hint: realEmail(u.email) ?? undefined,
+                    searchText: `${u.full_name ?? ""} ${realEmail(u.email) ?? ""} ${u.phone ?? ""}`,
+                  }))}
+              />
+            </div>
             <Select
               value={adding.role}
               onValueChange={(v) => setAdding((s) => ({ ...s, role: v as MemberRole }))}
@@ -550,18 +571,21 @@ function UnitDialog({
   units,
   onClose,
   onSaved,
+  onSavedAndNext,
 }: {
-  state: { unit: OrgUnit | null; parentId: string | null } | null;
+  state: { unit: OrgUnit | null; parentId: string | null; seq?: number } | null;
   units: OrgUnit[];
   onClose: () => void;
   onSaved: (id: string) => void;
+  /** Новое сохранено — сразу следующее под тем же родителем (выбор не перескакивает). */
+  onSavedAndNext: (parentId: string | null) => void;
 }) {
   return (
     <Dialog open={!!state} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-md">
         {state && (
           <UnitForm
-            key={state.unit?.id ?? `new-${state.parentId}`}
+            key={state.unit?.id ?? `new-${state.parentId}-${state.seq ?? 0}`}
             unit={state.unit}
             parentId={state.parentId}
             units={units}
@@ -569,6 +593,7 @@ function UnitDialog({
               onClose();
               if (id) onSaved(id);
             }}
+            onNext={onSavedAndNext}
           />
         )}
       </DialogContent>
@@ -583,11 +608,13 @@ function UnitForm({
   parentId,
   units,
   onDone,
+  onNext,
 }: {
   unit: OrgUnit | null;
   parentId: string | null;
   units: OrgUnit[];
   onDone: (id: string | null) => void;
+  onNext: (parentId: string | null) => void;
 }) {
   const qc = useQueryClient();
   const [name, setName] = useState(unit?.name ?? "");
@@ -596,7 +623,7 @@ function UnitForm({
   const [saving, setSaving] = useState(false);
   // Внутрь себя и своей ветки перенести нельзя.
   const blocked = unit ? unitSubtree(units, unit.id) : new Set<string>();
-  const save = async () => {
+  const save = async (next = false) => {
     if (!name.trim()) {
       toast.error("Укажите название");
       return;
@@ -612,7 +639,10 @@ function UnitForm({
         },
       });
       await invalidateAccess(qc);
-      onDone(id);
+      if (next) {
+        toast.success(`«${name.trim()}» сохранено — следующее`);
+        onNext(parent === ROOT ? null : parent);
+      } else onDone(id);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Не удалось сохранить");
     } finally {
@@ -624,7 +654,7 @@ function UnitForm({
       <DialogHeader>
         <DialogTitle>{unit ? "Подразделение" : "Новое подразделение"}</DialogTitle>
       </DialogHeader>
-      <DialogForm onSubmit={save}>
+      <DialogForm onSubmit={() => save()}>
         <DialogBody>
           <div className="space-y-3">
             <FormField label="Название" required>
@@ -662,6 +692,11 @@ function UnitForm({
           <Button variant="outline" onClick={() => onDone(null)} disabled={saving}>
             Отмена
           </Button>
+          {!unit && (
+            <Button variant="outline" onClick={() => void save(true)} disabled={saving}>
+              Сохранить и добавить ещё
+            </Button>
+          )}
           <Button type="submit" disabled={saving}>
             {saving && <Loader2 className="animate-spin" />}
             Сохранить
@@ -1162,8 +1197,8 @@ function ClubForm({
     () =>
       (users ?? []).map((u) => ({
         id: u.user_id,
-        label: u.full_name || u.email || "—",
-        sub: u.full_name ? u.email : null,
+        label: u.full_name || realEmail(u.email) || "—",
+        sub: u.full_name ? realEmail(u.email) : null,
       })),
     [users],
   );

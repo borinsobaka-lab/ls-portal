@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
+import { Route as ApiVersionRouteImport } from './routes/api/version'
 import { Route as ApiTranscribeRouteImport } from './routes/api/transcribe'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as ApiAuthEmailRouteImport } from './routes/api/auth-email'
@@ -103,6 +104,11 @@ const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const ApiVersionRoute = ApiVersionRouteImport.update({
+  id: '/api/version',
+  path: '/api/version',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiTranscribeRoute = ApiTranscribeRouteImport.update({
   id: '/api/transcribe',
@@ -576,6 +582,7 @@ export interface FileRoutesByFullPath {
   '/api/auth-email': typeof ApiAuthEmailRoute
   '/api/chat': typeof ApiChatRoute
   '/api/transcribe': typeof ApiTranscribeRoute
+  '/api/version': typeof ApiVersionRoute
   '/academy/report': typeof AuthenticatedAcademyReportRoute
   '/academy/settings': typeof AuthenticatedAcademySettingsRoute
   '/access/log': typeof AuthenticatedAccessLogRoute
@@ -656,6 +663,7 @@ export interface FileRoutesByTo {
   '/api/auth-email': typeof ApiAuthEmailRoute
   '/api/chat': typeof ApiChatRoute
   '/api/transcribe': typeof ApiTranscribeRoute
+  '/api/version': typeof ApiVersionRoute
   '/': typeof AuthenticatedIndexRoute
   '/academy/report': typeof AuthenticatedAcademyReportRoute
   '/academy/settings': typeof AuthenticatedAcademySettingsRoute
@@ -739,6 +747,7 @@ export interface FileRoutesById {
   '/api/auth-email': typeof ApiAuthEmailRoute
   '/api/chat': typeof ApiChatRoute
   '/api/transcribe': typeof ApiTranscribeRoute
+  '/api/version': typeof ApiVersionRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/academy/report': typeof AuthenticatedAcademyReportRoute
   '/_authenticated/academy/settings': typeof AuthenticatedAcademySettingsRoute
@@ -823,6 +832,7 @@ export interface FileRouteTypes {
     | '/api/auth-email'
     | '/api/chat'
     | '/api/transcribe'
+    | '/api/version'
     | '/academy/report'
     | '/academy/settings'
     | '/access/log'
@@ -903,6 +913,7 @@ export interface FileRouteTypes {
     | '/api/auth-email'
     | '/api/chat'
     | '/api/transcribe'
+    | '/api/version'
     | '/'
     | '/academy/report'
     | '/academy/settings'
@@ -985,6 +996,7 @@ export interface FileRouteTypes {
     | '/api/auth-email'
     | '/api/chat'
     | '/api/transcribe'
+    | '/api/version'
     | '/_authenticated/'
     | '/_authenticated/academy/report'
     | '/_authenticated/academy/settings'
@@ -1037,6 +1049,7 @@ export interface RootRouteChildren {
   ApiAuthEmailRoute: typeof ApiAuthEmailRoute
   ApiChatRoute: typeof ApiChatRoute
   ApiTranscribeRoute: typeof ApiTranscribeRoute
+  ApiVersionRoute: typeof ApiVersionRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -1061,6 +1074,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof AuthenticatedIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/api/version': {
+      id: '/api/version'
+      path: '/api/version'
+      fullPath: '/api/version'
+      preLoaderRoute: typeof ApiVersionRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/transcribe': {
       id: '/api/transcribe'
@@ -1776,6 +1796,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAuthEmailRoute: ApiAuthEmailRoute,
   ApiChatRoute: ApiChatRoute,
   ApiTranscribeRoute: ApiTranscribeRoute,
+  ApiVersionRoute: ApiVersionRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

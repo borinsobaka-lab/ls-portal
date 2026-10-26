@@ -1,3 +1,6 @@
+import { useEffect, useState } from "react";
+import { HelpCircle, X } from "lucide-react";
+
 import { StaffAvatar } from "@/components/employee-photo";
 import { StatusChip } from "@/components/ui/status-chip";
 import { cn } from "@/lib/utils";
@@ -85,5 +88,57 @@ export function AccessSection({
       </div>
       {children}
     </section>
+  );
+}
+
+/**
+ * Текст-инструкция раздела над содержимым (замечание тестирования
+ * 2026-10-27: как устроены роли и подразделения, нигде не объяснялось).
+ * Скрыть — запоминается в браузере (`access_intro_hidden:<id>`), вернуть —
+ * «Как это устроено?».
+ */
+export function PageIntro({ id, children }: { id: string; children: React.ReactNode }) {
+  const key = `access_intro_hidden:${id}`;
+  const [hidden, setHidden] = useState(false);
+  useEffect(() => {
+    try {
+      setHidden(window.localStorage.getItem(key) === "1");
+    } catch {
+      // Хранилище закрыто — текст просто виден.
+    }
+  }, [key]);
+  const set = (v: boolean) => {
+    setHidden(v);
+    try {
+      if (v) window.localStorage.setItem(key, "1");
+      else window.localStorage.removeItem(key);
+    } catch {
+      // Не запомнили — не страшно.
+    }
+  };
+  if (hidden) {
+    return (
+      <button
+        type="button"
+        onClick={() => set(false)}
+        className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+      >
+        <HelpCircle className="size-3.5" /> Как это устроено?
+      </button>
+    );
+  }
+  return (
+    <div className="flex items-start gap-2 rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-950 dark:border-blue-400/25 dark:bg-blue-400/10 dark:text-blue-100">
+      <HelpCircle className="mt-0.5 size-4 shrink-0" />
+      <div className="min-w-0 flex-1 space-y-1">{children}</div>
+      <button
+        type="button"
+        aria-label="Скрыть подсказку"
+        onClick={() => set(true)}
+        className="shrink-0 rounded-full p-0.5 opacity-60 hover:opacity-100"
+      >
+        <X className="size-4" />
+      </button>
+    </div>
   );
 }

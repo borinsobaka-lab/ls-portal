@@ -136,7 +136,7 @@ describe.skipIf(!SHOW_CLUBS)("пользователи и роли — логи�
       position: new Map([["p1", "Эксперт ОР"]]),
       user: new Map([["x", "Соня"]]),
     };
-    expect(scopeText({ scope_type: "all", scope_ids: [] }, names)).toBe("Все клубы");
+    expect(scopeText({ scope_type: "all", scope_ids: [] }, names)).toBe("Вся сеть");
     expect(scopeText({ scope_type: "brands", scope_ids: ["b1"] }, names)).toBe(
       "Бренд Lady Stretch",
     );

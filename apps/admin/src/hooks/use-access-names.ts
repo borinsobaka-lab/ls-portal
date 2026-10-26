@@ -11,7 +11,7 @@ import {
   orgUnitsQuery,
 } from "@/lib/access/data";
 import { isHiddenPermission } from "@/lib/launch";
-import type { Names } from "@/lib/access/logic";
+import { realEmail, type Names } from "@/lib/access/logic";
 
 /** Имена клубов, брендов, подразделений, должностей и людей — для подписей. */
 export function useAccessNames(withUsers = true): Names & {
@@ -32,7 +32,9 @@ export function useAccessNames(withUsers = true): Names & {
       brand: new Map((brands ?? []).map((b) => [b.id, b.name])),
       unit: new Map((units ?? []).map((u) => [u.id, u.name])),
       position: new Map((positions ?? []).map((p) => [p.id, p.name])),
-      user: new Map((users ?? []).map((u) => [u.user_id, u.full_name || u.email || "—"])),
+      user: new Map(
+        (users ?? []).map((u) => [u.user_id, u.full_name || realEmail(u.email) || "—"]),
+      ),
       role: new Map(
         (roles ?? []).map((r) => [
           r.id,

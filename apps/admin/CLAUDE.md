@@ -350,8 +350,12 @@ GoTrue и видит только хук писем — в браузер он �
   `lib/access/logic.ts` (+ тест: статусы, матрица, области, дерево
   подразделений, разница прав для журнала), имена — `hooks/use-access-names.ts`,
   компоненты — `components/access/` (`role-matrix.tsx`, `scope-picker.tsx`,
-  `assign-dialog.tsx` — «Кому» выбирается в окне, если не передан;
-  `user-dialogs.tsx`, `log-list.tsx`, `parts.tsx`), роуты —
+  `assign-dialog.tsx` — «Кому» выбирается в окне с поиском, если не передан,
+  `bulkUsers` — сразу нескольким; `bulk-actions.tsx` — действия над
+  отмеченными в «Пользователях»; `import-users-dialog.tsx` — импорт из
+  таблицы, разбор — `lib/access/import.ts` + тест; `user-dialogs.tsx`,
+  `log-list.tsx`, `parts.tsx` — там же `PageIntro`, текст-инструкция
+  раздела), роуты —
   `routes/_authenticated/access/`. Учётная запись GoTrue (создать, почта,
   аватарка, удалить) — `lib/access.functions.ts` (`createPortalUser`,
   `updatePortalUserAccount`, `removePortalUser`): права проверяет база от
@@ -731,6 +735,12 @@ kb`. Доступ — ролями «Пользователей и ролей» 
   `AdminShell`) — не в шапке, а плавающими кнопками в правом нижнем углу
   (`FloatingActions`, вид — `.fab-actions` в styles.css); подробно —
   `.interface-design/system.md`.
+- Новая версия (2026-10-27): после выкатки открытая вкладка показывает
+  плашку «Вышла новая версия — Обновить» (`components/update-banner.tsx` в
+  `__root.tsx`: `/api/version` — `ADMIN_VERSION` сервера, раз в 5 минут и
+  при возврате во вкладку; `vite:preloadError` и ошибка загрузки куска —
+  `lib/update-check.ts` + тест — сами перезагружают страницу не чаще раза в
+  минуту; `ErrorComponent` на такой ошибке предлагает «Обновить»).
 - Мобильная вёрстка (2026-10-10) — `.interface-design/system.md`, раздел
   «Мобильная вёрстка»: таблицы до md сами становятся карточками (подписи из
   заголовков колонок — колонке с данными нужен заголовок), диалоги до sm —

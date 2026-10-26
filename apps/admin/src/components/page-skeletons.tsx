@@ -1641,14 +1641,31 @@ export function AccessUsersPageSkeleton() {
       title="Пользователи"
       toolbar={{
         search: true,
-        controls: CLUBS_HIDDEN ? ["w-44", "w-44"] : ["w-44", "w-44", "w-44"],
+        controls: CLUBS_HIDDEN
+          ? ["w-44", "w-44", "w-44", "w-44", "w-44"]
+          : ["w-44", "w-44", "w-44", "w-44", "w-44", "w-44"],
       }}
       pagination={false}
       rows={8}
       headers={
         CLUBS_HIDDEN
-          ? ["Пользователь", "Должность", "Роли", "Статус", "Последний вход"]
-          : ["Пользователь", "Должность", "Роли", "Клубы", "Статус", "Последний вход"]
+          ? [
+              "Пользователь",
+              "Должность и подразделение",
+              "Клубы собственника",
+              "Роли",
+              "Статус",
+              "Последний вход",
+            ]
+          : [
+              "Пользователь",
+              "Должность и подразделение",
+              "Клубы собственника",
+              "Роли",
+              "Клубы",
+              "Статус",
+              "Последний вход",
+            ]
       }
     />
   );
@@ -1713,6 +1730,11 @@ export function AccessRolePageSkeleton() {
         <section className="space-y-3 rounded-lg border bg-background p-4">
           <FieldSkeleton />
           <FieldSkeleton control="h-16" />
+        </section>
+        <section className="space-y-3 rounded-lg border bg-background p-4">
+          <h2 className="font-semibold">Кому выдана</h2>
+          <Skeleton className="h-4 w-2/3" />
+          <Skeleton className="h-4 w-1/2" />
         </section>
         {Array.from({ length: 3 }, (_, i) => (
           <section key={i} className="space-y-3 rounded-lg border p-4">

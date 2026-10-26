@@ -1,10 +1,12 @@
-import { useState } from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { useMemo, useState } from "react";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Loader2, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 
+import { MultiPick } from "@/components/access/club-owners";
+import { useClubPickItems } from "@/hooks/use-club-pick-items";
 import { RoleChip } from "@/components/access/parts";
 import { ScopePicker, type Scope } from "@/components/access/scope-picker";
 import { StaffAvatar } from "@/components/employee-photo";
@@ -37,17 +39,32 @@ import {
   accessCatalogQuery,
   accessRolesQuery,
   accessRpc,
+  accessUsersQuery,
   invalidateAccess,
   orgPositionsQuery,
+  orgUnitsQuery,
 } from "@/lib/access/data";
-import { hasStudioPerms, splitFullName, USER_TYPE_LABEL, USER_TYPES } from "@/lib/access/logic";
-import type { PortalUserCard, UserType } from "@/lib/access/types";
+import {
+  findDuplicates,
+  hasStudioPerms,
+  MEMBER_ROLE_LABEL,
+  realEmail,
+  splitFullName,
+  unitTree,
+  USER_TYPE_LABEL,
+  USER_TYPES,
+} from "@/lib/access/logic";
+import type { MemberRole, PortalUserCard, UserType } from "@/lib/access/types";
 import { squareImage } from "@/lib/storage";
 
 const NONE = "none";
 
 const TIPS = {
-  email: "Логин: при каждом входе на эту почту приходит 6-значный код, пароля нет.",
+  email:
+    "Логин: при каждом входе на эту почту приходит 6-значный код, пароля нет. Нет почты — оставьте пустым: человек будет в портале (подразделения, курсы, собственник клубов), но войти не сможет, пока почту не впишут.",
+  unit: "Подразделение управляющей компании. Роли, выданные подразделению, человек получит сам.",
+  clubs:
+    "Клубы, где человек собственник. Роли с областью «Клубы собственника» действуют у него в этих клубах.",
   type: "Для фильтров и отчётов: сотрудник УК, партнёр-франчайзи, сотрудник клуба, подрядчик. На права не влияет.",
   position:
     "Справочник должностей — в «Оргструктуре». Роль, выданная должности, действует на всех, у кого она стоит.",
@@ -171,11 +188,64 @@ function ProfileInputs({
   );
 }
 
-function checkProfile(v: ProfileFields, email: string): string | null {
+function checkProfile(v: ProfileFields, email: string, emailRequired: boolean): string | null {
   if (!v.last_name.trim()) return "Укажите фамилию";
   if (!v.first_name.trim()) return "Укажите имя";
+  if (!email.trim()) return emailRequired ? "Укажите email — почту нельзя убрать" : null;
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) return "Укажите корректный email";
   return null;
+}
+
+/**
+ * Похожие люди уже в портале — предупреждение до сохранения (не запрет:
+ * однофамильцы бывают). Ссылка открывает карточку.
+ */
+function DuplicatesNote({
+  profile,
+  email,
+  exceptId,
+}: {
+  profile: ProfileFields;
+  email: string;
+  exceptId?: string;
+}) {
+  // Список людей — тем, кто управляет пользователями (DuplicatesNote не
+  // рисуется, когда человек правит сам себя).
+  const { data: users } = useQuery(accessUsersQuery);
+  const found = useMemo(
+    () =>
+      findDuplicates(
+        users ?? [],
+        {
+          full_name: `${profile.last_name} ${profile.first_name}`,
+          email,
+          phone: profile.phone,
+        },
+        exceptId,
+      ),
+    [users, profile.last_name, profile.first_name, profile.phone, email, exceptId],
+  );
+  if (found.length === 0) return null;
+  const why = { email: "та же почта", phone: "тот же телефон", name: "те же фамилия и имя" };
+  return (
+    <InfoNote variant="warning">
+      Похоже, этот человек уже есть в портале:{" "}
+      {found.slice(0, 3).map(({ user, reason }, i) => (
+        <span key={user.user_id}>
+          {i > 0 && ", "}
+          <Link
+            to="/access/users/$userId"
+            params={{ userId: user.user_id }}
+            className="font-medium underline"
+          >
+            {user.full_name || realEmail(user.email) || "без имени"}
+          </Link>{" "}
+          ({why[reason]})
+        </span>
+      ))}
+      {found.length > 3 && ` и ещё ${found.length - 3}`}. Проверьте, чтобы не завести второго.
+    </InfoNote>
+  );
 }
 
 type DraftRole = { key: number; role_id: string; scope: Scope };
@@ -217,7 +287,13 @@ function NewUserForm({ onDone }: { onDone: () => void }) {
     note: "",
   });
   const [drafts, setDrafts] = useState<DraftRole[]>([]);
+  const [unitId, setUnitId] = useState(NONE);
+  const [unitRole, setUnitRole] = useState<MemberRole>("member");
+  const [clubs, setClubs] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+  const canStructure = hasRight(access, "structure.manage");
+  const { data: units } = useQuery({ ...orgUnitsQuery, enabled: canStructure });
+  const clubItems = useClubPickItems();
 
   const addDraft = () =>
     setDrafts((d) => [
@@ -232,7 +308,7 @@ function NewUserForm({ onDone }: { onDone: () => void }) {
     ]);
 
   const save = async () => {
-    const problem = checkProfile(profile, email);
+    const problem = checkProfile(profile, email, false);
     if (problem) {
       toast.error(problem);
       return;
@@ -258,7 +334,7 @@ function NewUserForm({ onDone }: { onDone: () => void }) {
         data: {
           first_name: profile.first_name.trim(),
           last_name: profile.last_name.trim(),
-          email: email.trim(),
+          email: email.trim() || null,
           phone: profile.phone.trim() || undefined,
           user_type: profile.user_type,
           position_id: profile.position_id,
@@ -275,11 +351,30 @@ function NewUserForm({ onDone }: { onDone: () => void }) {
           }),
         },
       });
+      // Подразделение и клубы собственника — сразу после создания (права —
+      // «Оргструктура и сеть»); сбой не отменяет добавление: дописать в карточке.
+      const extra: string[] = [];
+      if (canStructure && unitId !== NONE) {
+        await accessRpc("org_member_set", {
+          p_unit: unitId,
+          p_user: res.user_id,
+          p_role: unitRole,
+        }).catch(() => extra.push("подразделение"));
+      }
+      if (canStructure && clubs.length > 0) {
+        await accessRpc("org_user_studios_set", { p_user: res.user_id, p_studios: clubs }).catch(
+          () => extra.push("клубы собственника"),
+        );
+      }
       toast.success(
         res.existing
           ? "Добавлен в портал. У человека уже была учётная запись — вход по коду на ту же почту"
-          : "Добавлен. Вход — по коду, который придёт на указанную почту",
+          : email.trim()
+            ? "Добавлен. Вход — по коду, который придёт на указанную почту"
+            : "Добавлен без почты: войти он не сможет, пока почту не впишут в карточке",
       );
+      if (extra.length)
+        toast.error(`Не удалось сохранить: ${extra.join(", ")} — допишите в карточке`);
       await invalidateAccess(qc);
       onDone();
       void navigate({ to: "/access/users/$userId", params: { userId: res.user_id } });
@@ -328,14 +423,66 @@ function NewUserForm({ onDone }: { onDone: () => void }) {
               />
             </FormField>
             <ProfileInputs value={profile} onChange={setProfile} disabled={saving} canClassify />
-            <FormField label="Email" tip={TIPS.email} required>
+            <FormField label="Email" tip={TIPS.email} optional>
               <Input
                 type="email"
                 autoComplete="off"
                 value={email}
+                placeholder="Нет почты — оставьте пустым"
                 onChange={(e) => setEmail(e.target.value)}
               />
             </FormField>
+            {!email.trim() && (
+              <p className="-mt-2 text-xs text-muted-foreground">
+                Без почты человек не войдёт в портал — почту можно вписать потом в карточке.
+              </p>
+            )}
+            <DuplicatesNote profile={profile} email={email} />
+            {canStructure && (
+              <FormField label="Подразделение" tip={TIPS.unit} htmlFor={null} optional>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_11rem]">
+                  <Select value={unitId} onValueChange={setUnitId}>
+                    <SelectTrigger aria-label="Подразделение">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={NONE}>Не состоит</SelectItem>
+                      {unitTree(units ?? []).map(({ unit, depth }) => (
+                        <SelectItem key={unit.id} value={unit.id}>
+                          {"\u00A0\u00A0".repeat(depth)}
+                          {unit.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {unitId !== NONE && (
+                    <Select value={unitRole} onValueChange={(v) => setUnitRole(v as MemberRole)}>
+                      <SelectTrigger aria-label="Роль в подразделении">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(Object.keys(MEMBER_ROLE_LABEL) as MemberRole[]).map((r) => (
+                          <SelectItem key={r} value={r}>
+                            {MEMBER_ROLE_LABEL[r]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+              </FormField>
+            )}
+            {canStructure && clubItems.length > 0 && (
+              <FormField label="Собственник клубов" tip={TIPS.clubs} htmlFor={null} optional>
+                <MultiPick
+                  items={clubItems}
+                  value={clubs}
+                  onChange={setClubs}
+                  empty="Ничего не нашлось"
+                  searchPlaceholder="Найти клуб или город"
+                />
+              </FormField>
+            )}
             <FormField label="Роли" tip={TIPS.roles} htmlFor={null} optional>
               <div className="space-y-2">
                 {drafts.map((d) => {
@@ -444,7 +591,9 @@ function EditUserForm({
   const access = useAdminAccess();
   const updateAccount = useServerFn(updatePortalUserAccount);
   const canClassify = !isSelf || hasRight(access, "portal.admin");
-  const [email, setEmail] = useState(user.email ?? "");
+  // У человека без почты служебный адрес не показываем: поле пустое.
+  const shownEmail = realEmail(user.email);
+  const [email, setEmail] = useState(shownEmail ?? "");
   const [avatar, setAvatar] = useState<string | null>(user.avatar_url);
   const [profile, setProfile] = useState<ProfileFields>({
     ...splitFullName(user.full_name),
@@ -455,10 +604,11 @@ function EditUserForm({
     note: user.note ?? "",
   });
   const [saving, setSaving] = useState(false);
-  const emailChanged = !!user.email && email.trim().toLowerCase() !== user.email.toLowerCase();
+  const emailChanged =
+    !!email.trim() && email.trim().toLowerCase() !== (shownEmail ?? "").toLowerCase();
 
   const save = async () => {
-    const problem = checkProfile(profile, email);
+    const problem = checkProfile(profile, email, !!shownEmail);
     if (problem) {
       toast.error(problem);
       return;
@@ -483,7 +633,11 @@ function EditUserForm({
       });
       if (emailChanged || avatar !== user.avatar_url) {
         await updateAccount({
-          data: { user_id: user.user_id, email: email.trim(), avatar_url: avatar },
+          data: {
+            user_id: user.user_id,
+            email: emailChanged ? email.trim() : null,
+            avatar_url: avatar,
+          },
         });
       }
       toast.success("Сохранено");
@@ -501,7 +655,7 @@ function EditUserForm({
     <>
       <DialogHeader>
         <DialogTitle>Данные пользователя</DialogTitle>
-        <DialogDescription>{user.full_name ?? user.email}</DialogDescription>
+        <DialogDescription>{user.full_name ?? realEmail(user.email)}</DialogDescription>
       </DialogHeader>
       <DialogForm onSubmit={save}>
         <DialogBody>
@@ -529,15 +683,28 @@ function EditUserForm({
               disabled={saving}
               canClassify={canClassify}
             />
-            <FormField label="Email" tip={TIPS.email} required>
+            <FormField
+              label="Email"
+              tip={TIPS.email}
+              required={!!shownEmail}
+              optional={!shownEmail}
+            >
               <Input
                 type="email"
                 autoComplete="off"
                 value={email}
+                placeholder={shownEmail ? undefined : "Нет почты — войти не может"}
                 onChange={(e) => setEmail(e.target.value)}
               />
             </FormField>
-            {emailChanged && (
+            {!shownEmail && emailChanged && (
+              <InfoNote>
+                Почта — логин: после сохранения человек сможет входить по коду на неё (если у него
+                есть роли).
+              </InfoNote>
+            )}
+            {!isSelf && <DuplicatesNote profile={profile} email={email} exceptId={user.user_id} />}
+            {!!shownEmail && emailChanged && (
               <InfoNote>
                 Почта — это логин: коды входа будут приходить на новую почту, на старую войти больше
                 нельзя. Если человек — ещё и клиент приложения, там он тоже входит по новой почте.

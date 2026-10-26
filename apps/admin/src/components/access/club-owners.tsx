@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Pencil } from "lucide-react";
 import { toast } from "sonner";
@@ -17,15 +17,8 @@ import {
 } from "@/components/ui/dialog";
 import { CheckboxOption, InfoNote } from "@/components/ui/form-field";
 import { SearchInput } from "@/components/ui/search-input";
-import {
-  accessRpc,
-  invalidateAccess,
-  networkStudiosQuery,
-  orgBrandsQuery,
-  studioOwnersQuery,
-} from "@/lib/access/data";
-
-type PickItem = { id: string; label: string; sub?: string | null };
+import { useClubPickItems, type PickItem } from "@/hooks/use-club-pick-items";
+import { accessRpc, invalidateAccess, studioOwnersQuery } from "@/lib/access/data";
 
 /**
  * Выбор нескольких из списка с поиском: собственники клуба (пользователи
@@ -75,20 +68,6 @@ export function MultiPick({
       </div>
     </div>
   );
-}
-
-/** Клубы сети для выбора: название, бренд и город. */
-function useClubPickItems(): PickItem[] {
-  const { data: studios } = useQuery(networkStudiosQuery);
-  const { data: brands } = useQuery(orgBrandsQuery);
-  return useMemo(() => {
-    const brand = new Map((brands ?? []).map((b) => [b.id, b.short_name || b.name]));
-    return (studios ?? []).map((s) => ({
-      id: s.id,
-      label: s.name,
-      sub: [s.brand_id ? brand.get(s.brand_id) : null, s.city].filter(Boolean).join(", ") || null,
-    }));
-  }, [studios, brands]);
 }
 
 /**

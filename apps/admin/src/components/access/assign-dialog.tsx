@@ -4,6 +4,7 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { RoleChip } from "@/components/access/parts";
+import { SearchableCombobox } from "@/components/searchable-combobox";
 import { ScopePicker, type Scope } from "@/components/access/scope-picker";
 import { Button } from "@/components/ui/button";
 import {
@@ -34,11 +35,14 @@ import {
   accessRpc,
   accessUsersQuery,
   invalidateAccess,
+  orgMembersQuery,
   orgPositionsQuery,
   orgUnitsQuery,
 } from "@/lib/access/data";
 import {
+  assignmentReach,
   hasStudioPerms,
+  realEmail,
   isoToLocalInput,
   localInputToIso,
   roleSummary,
@@ -55,7 +59,8 @@ const TIPS = {
   until:
     "Временный или демо-доступ: после этого момента роль перестаёт действовать сама. Пусто — бессрочно.",
   heads: "Только руководители и заместители подразделения — например, кураторам их отделов.",
-  subunits: "Роль получат и сотрудники подразделений ниже по дереву — в том числе будущие.",
+  subunits:
+    "Роль получат и сотрудники подразделений ниже по дереву — в том числе будущие. Для администраторских ролей включайте осознанно: доступ расширяется тихо.",
 };
 
 /**
@@ -70,6 +75,7 @@ export function AssignDialog({
   subject,
   existing,
   defaultRoleId,
+  bulkUsers,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -77,6 +83,8 @@ export function AssignDialog({
   subject: AssignSubject | null;
   existing?: Assignment | null;
   defaultRoleId?: string;
+  /** Выдать роль сразу нескольким людям (выбранные в списке пользователей). */
+  bulkUsers?: { id: string; label: string }[];
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -87,6 +95,7 @@ export function AssignDialog({
             fixedSubject={subject}
             existing={existing ?? null}
             defaultRoleId={defaultRoleId}
+            bulkUsers={bulkUsers}
             onDone={() => onOpenChange(false)}
           />
         )}
@@ -99,20 +108,26 @@ function AssignForm({
   fixedSubject,
   existing,
   defaultRoleId,
+  bulkUsers,
   onDone,
 }: {
   fixedSubject: AssignSubject | null;
   existing: Assignment | null;
   defaultRoleId?: string;
+  bulkUsers?: { id: string; label: string }[];
   onDone: () => void;
 }) {
   const qc = useQueryClient();
   const access = useAdminAccess();
+  const bulk = bulkUsers && bulkUsers.length > 0 ? bulkUsers : null;
   const { data: roles } = useQuery(accessRolesQuery);
   const { data: catalog } = useQuery(accessCatalogQuery);
-  const { data: users } = useQuery({ ...accessUsersQuery, enabled: !fixedSubject });
-  const { data: units } = useQuery({ ...orgUnitsQuery, enabled: !fixedSubject });
+  // Люди, подразделения и должности — и для «Кому», и для подсчёта «Получат N чел.».
+  const { data: users } = useQuery(accessUsersQuery);
+  const { data: units } = useQuery(orgUnitsQuery);
+  const { data: members } = useQuery(orgMembersQuery);
   const { data: positions } = useQuery({ ...orgPositionsQuery, enabled: !fixedSubject });
+  const [progress, setProgress] = useState<string | null>(null);
   const restricted = !access?.manageAll && !hasRight(access, "portal.admin");
   const [subjectType, setSubjectType] = useState<SubjectType>("user");
   const [subjectId, setSubjectId] = useState("");
@@ -139,7 +154,9 @@ function AssignForm({
         : { scope_type: "all", scope_ids: [] },
   );
   const [heads, setHeads] = useState(existing?.unit_members === "heads");
-  const [subunits, setSubunits] = useState(existing?.with_subunits ?? true);
+  // По умолчанию — только само подразделение (замечание тестирования 2026-10-27:
+  // включённое «и ниже» тихо расширяло доступ администраторских ролей).
+  const [subunits, setSubunits] = useState(existing?.with_subunits ?? false);
   const [from, setFrom] = useState(isoToLocalInput(existing?.valid_from ?? null));
   const [until, setUntil] = useState(isoToLocalInput(existing?.valid_until ?? null));
   const [note, setNote] = useState(existing?.note ?? "");
@@ -147,9 +164,24 @@ function AssignForm({
 
   const role = roles?.find((r) => r.id === roleId) ?? null;
   const studioPerms = role ? hasStudioPerms(role.permissions, catalog ?? []) : false;
+  const reach =
+    subject && subject.type !== "user"
+      ? assignmentReach(
+          {
+            subject_type: subject.type,
+            unit_id: subject.type === "unit" ? subject.id : null,
+            position_id: subject.type === "position" ? subject.id : null,
+            with_subunits: subunits,
+            unit_members: heads ? "heads" : "all",
+          },
+          members ?? [],
+          units ?? [],
+          users ?? [],
+        )
+      : null;
 
   const save = async () => {
-    if (!subject) {
+    if (!subject && !bulk) {
       toast.error("Выберите, кому выдать роль");
       return;
     }
@@ -173,9 +205,46 @@ function AssignForm({
       return;
     }
     setSaving(true);
+    // Роль без прав «в клубе»: клубы не важны.
+    const finalScope: Scope = studioPerms ? scope : { scope_type: "all", scope_ids: [] };
+    if (bulk) {
+      // По одному: у каждого своя проверка прав, сбой одного не отменяет остальных.
+      const failed: string[] = [];
+      for (const [i, u] of bulk.entries()) {
+        setProgress(`${i + 1} из ${bulk.length}`);
+        try {
+          await accessRpc("access_assignment_save", {
+            p: {
+              id: null,
+              role_id: role.id,
+              subject_type: "user",
+              user_id: u.id,
+              scope_type: finalScope.scope_type,
+              scope_ids: finalScope.scope_ids,
+              valid_from: validFrom,
+              valid_until: validUntil,
+              note,
+            },
+          });
+        } catch (e) {
+          failed.push(`${u.label}: ${e instanceof Error ? e.message : "ошибка"}`);
+        }
+      }
+      setProgress(null);
+      setSaving(false);
+      await invalidateAccess(qc);
+      if (failed.length) {
+        toast.error(`Не выдано ${failed.length} из ${bulk.length}`, {
+          description: failed.slice(0, 5).join("\n"),
+        });
+      } else {
+        toast.success(`Роль выдана: ${bulk.length} чел.`);
+      }
+      onDone();
+      return;
+    }
+    if (!subject) return;
     try {
-      // Роль без прав «в клубе»: клубы не важны.
-      const finalScope: Scope = studioPerms ? scope : { scope_type: "all", scope_ids: [] };
       await accessRpc("access_assignment_save", {
         p: {
           id: existing?.id ?? null,
@@ -208,13 +277,20 @@ function AssignForm({
       <DialogHeader>
         <DialogTitle>{existing ? "Назначение роли" : "Назначить роль"}</DialogTitle>
         <DialogDescription>
-          {fixedSubject ? fixedSubject.label : "Человеку, подразделению или должности."}
+          {bulk
+            ? `Выбрано: ${bulk.length} чел. — ${bulk
+                .slice(0, 3)
+                .map((u) => u.label)
+                .join(", ")}${bulk.length > 3 ? ` и ещё ${bulk.length - 3}` : ""}`
+            : fixedSubject
+              ? fixedSubject.label
+              : "Человеку, подразделению или должности."}
         </DialogDescription>
       </DialogHeader>
       <DialogForm onSubmit={save}>
         <DialogBody>
           <div className="space-y-4">
-            {!fixedSubject && (
+            {!fixedSubject && !bulk && (
               <FormField label="Кому" htmlFor={null} required>
                 <div className="space-y-2">
                   <SegmentedControl
@@ -235,33 +311,43 @@ function AssignForm({
                           ]),
                     ]}
                   />
-                  <Select value={subjectId} onValueChange={setSubjectId}>
-                    <SelectTrigger aria-label="Кому">
-                      <SelectValue placeholder="Выберите" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {subjectType === "user"
+                  {/* С поиском: людей в портале — сотни. */}
+                  <SearchableCombobox
+                    key={subjectType}
+                    value={subjectId}
+                    onChange={setSubjectId}
+                    placeholder="Выберите"
+                    searchPlaceholder={
+                      subjectType === "user"
+                        ? "Фамилия, имя или почта"
+                        : subjectType === "unit"
+                          ? "Название подразделения"
+                          : "Название должности"
+                    }
+                    emptyText="Ничего не нашлось"
+                    options={
+                      subjectType === "user"
                         ? (users ?? [])
                             .filter((u) => u.can_manage)
-                            .map((u) => (
-                              <SelectItem key={u.user_id} value={u.user_id}>
-                                {u.full_name || u.email}
-                              </SelectItem>
-                            ))
+                            .map((u) => ({
+                              value: u.user_id,
+                              label: u.full_name || realEmail(u.email) || "Без имени",
+                              hint: realEmail(u.email) ?? undefined,
+                              searchText: `${u.full_name ?? ""} ${realEmail(u.email) ?? ""} ${u.phone ?? ""}`,
+                            }))
                         : subjectType === "unit"
-                          ? unitTree(units ?? []).map(({ unit, depth }) => (
-                              <SelectItem key={unit.id} value={unit.id}>
-                                {"\u00A0\u00A0".repeat(depth)}
-                                {unit.name}
-                              </SelectItem>
-                            ))
-                          : (positions ?? []).map((p) => (
-                              <SelectItem key={p.id} value={p.id}>
-                                {p.name}
-                              </SelectItem>
-                            ))}
-                    </SelectContent>
-                  </Select>
+                          ? unitTree(units ?? []).map(({ unit, depth }) => ({
+                              value: unit.id,
+                              label: `${"\u00A0\u00A0".repeat(depth)}${unit.name}`,
+                              searchText: unit.name,
+                            }))
+                          : (positions ?? []).map((p) => ({
+                              value: p.id,
+                              label: p.name,
+                              searchText: p.name,
+                            }))
+                    }
+                  />
                 </div>
               </FormField>
             )}
@@ -336,6 +422,13 @@ function AssignForm({
               <InfoNote>Права этой роли общие для сети — клубы выбирать не нужно.</InfoNote>
             ) : null}
 
+            {reach && (
+              <InfoNote variant={reach.size === 0 ? "warning" : "info"}>
+                {reach.size === 0
+                  ? "Сейчас роль не получит никто — сотрудников нет. Новые получат её сами."
+                  : `Роль получат: ${reach.size} чел. сейчас — и все, кто появится позже.`}
+              </InfoNote>
+            )}
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <FormField label="Действует с" optional>
                 <Input
@@ -368,7 +461,7 @@ function AssignForm({
           </Button>
           <Button type="submit" disabled={saving}>
             {saving && <Loader2 className="animate-spin" />}
-            {existing ? "Сохранить" : "Назначить"}
+            {existing ? "Сохранить" : progress ? `Выдаём… ${progress}` : "Назначить"}
           </Button>
         </DialogFooter>
       </DialogForm>

@@ -46,6 +46,7 @@ const MANUAL: Record<string, string> = {
   // нужны стрелки наружу и внутрь.
   Maximize: "ArrowExpandIcon",
   Minimize: "ArrowShrinkIcon",
+  Pencil: "PencilEdit02Icon", // псевдоним — карандаш остриём вниз, читался как вилка
   RefreshCwOff: "RefreshCwOffIcon", // псевдоним не перечёркнут, не отличить от RefreshCw
   Send: "SentIcon", // псевдоним — конверт, для кнопки отправки нужен самолётик
   UserArrowLeftRight: "UserArrowLeftRightIcon", // «Переоформить» абонемент; в lucide такой нет

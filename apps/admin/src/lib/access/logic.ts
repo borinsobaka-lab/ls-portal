@@ -80,7 +80,7 @@ export const LEVEL_LABEL: Record<string, string> = {
 };
 
 export const SCOPE_LABEL: Record<ScopeType, string> = {
-  all: "Во всех клубах — и в новых",
+  all: "Во всей сети — и в новых клубах",
   brands: "В клубах брендов — и в новых",
   studios: "В выбранных клубах",
   owned: "В клубах, где он собственник",
@@ -225,15 +225,16 @@ function listText(ids: string[], names: Map<string, string>, fallback: string) {
 
 /**
  * Где действует назначение — для строки и подсказки. studioScoped = false —
- * у роли нет прав «в клубе», клубы не важны: «Вся сеть».
+ * у роли нет прав «в клубе», клубы не важны. «Вся сеть» — одним словом и для
+ * роли «во всех клубах» (замечание тестирования 2026-10-27: «Все клубы» и
+ * «Вся сеть» читались как разное).
  */
 export function scopeText(
   a: Pick<Assignment, "scope_type" | "scope_ids">,
   names: Pick<Names, "studio" | "brand">,
   studioScoped = true,
 ): string {
-  if (!studioScoped) return "Вся сеть";
-  if (a.scope_type === "all") return "Все клубы";
+  if (!studioScoped || a.scope_type === "all") return "Вся сеть";
   if (a.scope_type === "owned") return "Клубы собственника";
   if (a.scope_type === "brands")
     return `${plural(a.scope_ids.length, ["Бренд", "Бренды", "Бренды"])} ${listText(a.scope_ids, names.brand, "бренд")}`;
@@ -320,6 +321,121 @@ export function unitPathText(units: UnitLike[], id: string): string {
     cur = cur.parent_id ? byId.get(cur.parent_id) : undefined;
   }
   return parts.join(" › ");
+}
+
+/**
+ * Как снять роль, полученную не лично (замечание тестирования 2026-10-27:
+ * в карточке была только строка «Через: …»). Подразделение — те
+ * подразделения человека, через которые роль доходит до него (само или
+ * ниже по дереву при «и ниже»); должность — сменить её.
+ */
+export function inheritedVia(
+  a: Pick<Assignment, "subject_type" | "unit_id" | "with_subunits" | "unit_members">,
+  user: { units: { unit_id: string; member_role: MemberRole }[] },
+  units: { id: string; path: string[] }[],
+): { kind: "unit"; unitIds: string[] } | { kind: "position" } | null {
+  if (a.subject_type === "position") return { kind: "position" };
+  if (a.subject_type !== "unit" || !a.unit_id) return null;
+  const byId = new Map(units.map((u) => [u.id, u]));
+  const unitIds = user.units
+    .filter((m) => a.unit_members === "all" || m.member_role !== "member")
+    .filter(
+      (m) =>
+        m.unit_id === a.unit_id ||
+        (a.with_subunits && (byId.get(m.unit_id)?.path ?? []).includes(a.unit_id!)),
+    )
+    .map((m) => m.unit_id);
+  return { kind: "unit", unitIds };
+}
+
+/**
+ * Кто получит роль назначением подразделению или должности — для подсказки
+ * «Получат N чел.» до нажатия «Назначить».
+ */
+export function assignmentReach(
+  a: Pick<
+    Assignment,
+    "subject_type" | "unit_id" | "position_id" | "with_subunits" | "unit_members"
+  >,
+  members: { unit_id: string; user_id: string; member_role: MemberRole }[],
+  units: UnitLike[],
+  users: { user_id: string; position_id: string | null }[],
+): Set<string> {
+  if (a.subject_type === "position")
+    return new Set(users.filter((u) => u.position_id === a.position_id).map((u) => u.user_id));
+  if (a.subject_type !== "unit" || !a.unit_id) return new Set();
+  const within = a.with_subunits ? unitSubtree(units, a.unit_id) : new Set([a.unit_id]);
+  return new Set(
+    members
+      .filter((m) => within.has(m.unit_id))
+      .filter((m) => a.unit_members === "all" || m.member_role !== "member")
+      .map((m) => m.user_id),
+  );
+}
+
+// --- Почта -----------------------------------------------------------------------
+
+/**
+ * Человек без почты (замечание тестирования 2026-10-27: людям без почты
+ * давали тестовые адреса). У GoTrue учётной записи нужна почта или телефон,
+ * поэтому такому человеку пишется служебный адрес в зарезервированном домене
+ * .invalid (RFC 2606: не существует, письма не уходят). Интерфейс его не
+ * показывает: «без почты — не входит», почту можно вписать потом.
+ */
+export const NO_EMAIL_DOMAIN = "no-email.invalid";
+
+export function isPlaceholderEmail(email: string | null | undefined): boolean {
+  return !!email && email.toLowerCase().endsWith(`@${NO_EMAIL_DOMAIN}`);
+}
+
+/** Почта для показа: служебный адрес — null. */
+export function realEmail(email: string | null | undefined): string | null {
+  return email && !isPlaceholderEmail(email) ? email : null;
+}
+
+// --- Поиск и дубли ----------------------------------------------------------------
+
+/** Нормализованное имя для сравнения: без регистра, ё = е, пробелы схлопнуты. */
+export function normalizeName(v: string | null | undefined): string {
+  return (v ?? "").toLowerCase().replace(/ё/g, "е").replace(/\s+/g, " ").trim();
+}
+
+/** Цифры телефона для сравнения (последние 10 — без кода страны). */
+export function phoneKey(v: string | null | undefined): string {
+  const digits = (v ?? "").replace(/\D/g, "");
+  return digits.length >= 10 ? digits.slice(-10) : "";
+}
+
+/**
+ * Похожие уже заведённые люди (замечание тестирования 2026-10-27: две
+ * Симоновы и две учётные записи в одном клубе): та же почта, тот же телефон
+ * или те же фамилия и имя.
+ */
+export function findDuplicates<
+  T extends {
+    user_id: string;
+    full_name: string | null;
+    email: string | null;
+    phone: string | null;
+  },
+>(
+  users: T[],
+  draft: { full_name: string; email: string; phone: string },
+  exceptId?: string,
+): { user: T; reason: "email" | "phone" | "name" }[] {
+  const email = draft.email.trim().toLowerCase();
+  const phone = phoneKey(draft.phone);
+  const name = normalizeName(draft.full_name);
+  const out: { user: T; reason: "email" | "phone" | "name" }[] = [];
+  for (const u of users) {
+    if (u.user_id === exceptId) continue;
+    if (email && realEmail(u.email)?.toLowerCase() === email)
+      out.push({ user: u, reason: "email" });
+    else if (phone && phoneKey(u.phone) === phone) out.push({ user: u, reason: "phone" });
+    else if (name.includes(" ") && normalizeName(u.full_name) === name)
+      out.push({ user: u, reason: "name" });
+  }
+  return out;
 }
 
 // --- Прочее --------------------------------------------------------------------

@@ -3,6 +3,7 @@ import { useState } from "react";
 
 import { AdminShell } from "@/components/admin-shell";
 import { AccessLogList, LOG_ACTION_LABEL } from "@/components/access/log-list";
+import { PageIntro } from "@/components/access/parts";
 import { AccessLogPageSkeleton } from "@/components/page-skeletons";
 import { TableToolbar, ToolbarReset, ToolbarSearch } from "@/components/table-toolbar";
 import {
@@ -59,6 +60,10 @@ function AccessLogPage() {
   return (
     <AdminShell title="Журнал доступа">
       <div className="space-y-3">
+        <PageIntro id="log">
+          Кто, кому и когда выдал или снял права, кого добавил и убрал. Сюда стоит смотреть, если
+          доступ неожиданно появился или пропал.
+        </PageIntro>
         <TableToolbar>
           <ToolbarSearch value={q} onChange={setQ} placeholder="Кто, кому, что" />
           <Select value={group} onValueChange={setGroup}>

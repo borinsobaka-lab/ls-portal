@@ -12,6 +12,8 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { Toaster } from "@/components/ui/sonner";
 import { Button } from "@/components/ui/button";
+import { UpdateBanner } from "@/components/update-banner";
+import { isStaleChunkError } from "@/lib/update-check";
 import { KB_THEME_BOOT } from "@/lib/kb/theme";
 import { supabase } from "@/integrations/supabase/client";
 import { PORTAL_NAME, PORTAL_TITLE } from "@/lib/brand";
@@ -38,6 +40,23 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   useEffect(() => {
     console.error(error);
   }, [error]);
+
+  // Кусок прежней сборки уже удалён с сервера — помогает только перезагрузка.
+  if (isStaleChunkError(error)) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background px-4">
+        <div className="max-w-md text-center">
+          <h1 className="text-xl font-semibold text-foreground">Вышла новая версия портала</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Обновите страницу — откроется новая версия.
+          </p>
+          <div className="mt-6">
+            <Button onClick={() => window.location.reload()}>Обновить</Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -159,6 +178,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
+      <UpdateBanner />
       <Toaster richColors position="top-right" />
     </QueryClientProvider>
   );

@@ -4,7 +4,7 @@ import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { getSupabaseAdmin } from "@/integrations/supabase/client.server";
-import { accessErrorText } from "@/lib/access/logic";
+import { accessErrorText, isPlaceholderEmail, NO_EMAIL_DOMAIN } from "@/lib/access/logic";
 import type { AccessMe } from "@/lib/access/types";
 import { STAFF_ROLES } from "@/lib/roles";
 
@@ -41,6 +41,14 @@ function authErrorText(message: string) {
   return message;
 }
 
+/** Почта входа: служебный адрес «без почты» вписать руками нельзя. */
+const loginEmail = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .email("Неверный адрес почты")
+  .refine((v) => !isPlaceholderEmail(v), "Неверный адрес почты");
+
 /** Только загруженная в форме картинка (папка staff/ бакета avatars). */
 const avatarSchema = z
   .string()
@@ -60,7 +68,8 @@ const createSchema = z
   .object({
     first_name: z.string().trim().min(1, "Укажите имя").max(100),
     last_name: z.string().trim().min(1, "Укажите фамилию").max(100),
-    email: z.string().trim().toLowerCase().email("Неверный адрес почты"),
+    /** null — без почты: учётная запись со служебным адресом, войти не сможет. */
+    email: loginEmail.nullable(),
     phone: z.string().trim().max(40).optional(),
     user_type: z.enum(["hq", "partner", "studio", "contractor", "service"]).nullable(),
     position_id: z.string().uuid().nullable(),
@@ -91,14 +100,17 @@ export const createPortalUser = createServerFn({ method: "POST" })
     const admin = getSupabaseAdmin();
     const fullName = `${data.last_name} ${data.first_name}`;
 
-    const pattern = data.email.replace(/[\\%_]/g, "\\$&");
-    const { data: found, error: findErr } = await admin
-      .from("profiles")
-      .select("id")
-      .ilike("email", pattern)
-      .limit(1);
-    if (findErr) throw new Error(findErr.message);
-    let userId = (found?.[0]?.id as string | undefined) ?? null;
+    let userId: string | null = null;
+    if (data.email) {
+      const pattern = data.email.replace(/[\\%_]/g, "\\$&");
+      const { data: found, error: findErr } = await admin
+        .from("profiles")
+        .select("id")
+        .ilike("email", pattern)
+        .limit(1);
+      if (findErr) throw new Error(findErr.message);
+      userId = (found?.[0]?.id as string | undefined) ?? null;
+    }
     let created = false;
 
     if (userId) {
@@ -135,8 +147,11 @@ export const createPortalUser = createServerFn({ method: "POST" })
       }
       if (!homeStudioId) throw new Error("Сначала заведите хотя бы один клуб");
 
+      // Без почты — служебный адрес в домене .invalid (lib/access/logic.ts):
+      // GoTrue без почты или телефона учётную запись не заводит.
+      const authEmail = data.email ?? `nomail-${crypto.randomUUID()}@${NO_EMAIL_DOMAIN}`;
       const { data: res, error } = await admin.auth.admin.createUser({
-        email: data.email,
+        email: authEmail,
         email_confirm: true,
         // studio_id читает handle_new_user; staff_account — не заводить
         // карточку клиента (db/migrations/…_staff_accounts.sql).
@@ -156,6 +171,7 @@ export const createPortalUser = createServerFn({ method: "POST" })
       const { error: profErr } = await admin
         .from("profiles")
         .upsert({ id: userId, studio_id: homeStudioId, full_name: fullName, email: data.email });
+      // profiles.email у человека без почты — пусто (handle_new_user мог вписать служебный).
       if (profErr) {
         await admin.auth.admin.deleteUser(userId);
         throw new Error(profErr.message);
@@ -235,7 +251,8 @@ export const updatePortalUserAccount = createServerFn({ method: "POST" })
       z
         .object({
           user_id: z.string().uuid(),
-          email: z.string().trim().toLowerCase().email("Неверный адрес почты"),
+          /** null — не менять почту (у человека без почты — оставить без неё). */
+          email: loginEmail.nullable(),
           avatar_url: avatarSchema,
         })
         .strict(),
@@ -254,7 +271,7 @@ export const updatePortalUserAccount = createServerFn({ method: "POST" })
     const admin = getSupabaseAdmin();
     const { data: current, error: curErr } = await admin.auth.admin.getUserById(data.user_id);
     if (curErr || !current.user) throw new Error(curErr?.message ?? "Учётная запись не найдена");
-    const emailChanged = (current.user.email ?? "").toLowerCase() !== data.email;
+    const emailChanged = !!data.email && (current.user.email ?? "").toLowerCase() !== data.email;
 
     if (emailChanged) {
       if (!me.manage_all) {
@@ -287,7 +304,7 @@ export const updatePortalUserAccount = createServerFn({ method: "POST" })
           );
         }
       }
-      const pattern = data.email.replace(/[\\%_]/g, "\\$&");
+      const pattern = (data.email ?? "").replace(/[\\%_]/g, "\\$&");
       const { data: taken, error: takenErr } = await admin
         .from("profiles")
         .select("id")
@@ -297,7 +314,7 @@ export const updatePortalUserAccount = createServerFn({ method: "POST" })
       if (takenErr) throw new Error(takenErr.message);
       if (taken?.length) throw new Error("Пользователь с такой почтой уже зарегистрирован");
       const { error: authErr } = await admin.auth.admin.updateUserById(data.user_id, {
-        email: data.email,
+        email: data.email ?? undefined,
         email_confirm: true,
       });
       if (authErr) throw new Error(authErrorText(authErr.message));
@@ -305,7 +322,10 @@ export const updatePortalUserAccount = createServerFn({ method: "POST" })
 
     const { error } = await admin
       .from("profiles")
-      .update({ email: data.email, avatar_url: data.avatar_url })
+      .update({
+        ...(emailChanged ? { email: data.email } : {}),
+        avatar_url: data.avatar_url,
+      })
       .eq("id", data.user_id);
     if (error) throw new Error(error.message);
     return { ok: true };

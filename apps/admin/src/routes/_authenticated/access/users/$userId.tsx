@@ -50,6 +50,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { hasRight } from "@/lib/admin-access";
 import { removePortalUser } from "@/lib/access.functions";
 import {
+  ACCESS_KEY,
   accessCatalogQuery,
   accessExplainQuery,
   accessRpc,
@@ -58,6 +59,7 @@ import {
   orgUnitsQuery,
 } from "@/lib/access/data";
 import {
+  inheritedVia,
   LEVEL_LABEL,
   lastSeenText,
   MEMBER_ROLE_LABEL,
@@ -68,6 +70,7 @@ import {
   unitTree,
   USER_TYPE_LABEL,
   userStatus,
+  realEmail,
   validityText,
 } from "@/lib/access/logic";
 import type {
@@ -80,6 +83,7 @@ import type {
 import { formatDate, formatDateTime, todayISO } from "@/lib/format";
 import { useAccessNames } from "@/hooks/use-access-names";
 import { CLUBS_HIDDEN, isHiddenPermission } from "@/lib/launch";
+import { unwrap } from "@/lib/query";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/access/users/$userId")({
@@ -131,7 +135,7 @@ function UserCard({ user }: { user: PortalUserCard }) {
   const removeUser = async () => {
     const ok = await confirm({
       title: "Убрать из портала?",
-      description: `${user.full_name ?? user.email} потеряет вход в портал, роли, подразделения и личные права. История останется в журнале. Если человек — клиент приложения, вход в приложение сохранится.`,
+      description: `${user.full_name ?? realEmail(user.email) ?? "Человек"} потеряет вход в портал, роли, подразделения и личные права. История останется в журнале. Если человек — клиент приложения, вход в приложение сохранится.`,
       confirmLabel: "Убрать",
     });
     if (!ok) return;
@@ -148,16 +152,7 @@ function UserCard({ user }: { user: PortalUserCard }) {
   };
 
   return (
-    <AdminShell
-      title={user.full_name ?? user.email ?? "Пользователь"}
-      actions={
-        canManage || isSelf ? (
-          <Button variant="outline" onClick={() => setEditing(true)}>
-            <Pencil /> Данные
-          </Button>
-        ) : null
-      }
-    >
+    <AdminShell title={user.full_name ?? realEmail(user.email) ?? "Пользователь"}>
       <div className="mx-auto max-w-5xl space-y-4">
         <Link
           to="/access"
@@ -169,16 +164,23 @@ function UserCard({ user }: { user: PortalUserCard }) {
         <section className="flex flex-wrap items-start gap-4 rounded-lg border bg-background p-4">
           <StaffAvatar
             value={user.avatar_url}
-            name={user.full_name ?? user.email ?? ""}
+            name={user.full_name ?? realEmail(user.email) ?? ""}
             className="size-16 text-base"
           />
           <div className="min-w-0 flex-1 space-y-1">
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="text-lg font-semibold">{user.full_name ?? "—"}</h2>
               <UserStatusChip status={status} />
+              {(canManage || isSelf) && (
+                <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
+                  <Pencil /> Изменить
+                </Button>
+              )}
             </div>
             <div className="text-sm text-muted-foreground">
-              {[user.email, user.phone].filter(Boolean).join(" · ")}
+              {[realEmail(user.email) ?? "без почты — войти не может", user.phone]
+                .filter(Boolean)
+                .join(" · ")}
             </div>
             <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
               <span>
@@ -235,7 +237,12 @@ function UserCard({ user }: { user: PortalUserCard }) {
           </InfoNote>
         )}
 
-        <RolesSection user={user} canManage={canManage && !isSelf} />
+        <RolesSection
+          user={user}
+          canManage={canManage && !isSelf}
+          canEditStructure={hasRight(access, "structure.manage")}
+          onChangePosition={() => setEditing(true)}
+        />
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <UnitsSection user={user} canEdit={hasRight(access, "structure.manage")} />
           <PersonalSection user={user} canManage={canManage && !isSelf} />
@@ -305,8 +312,9 @@ function BlockDialog({
         <DialogHeader>
           <DialogTitle>Заблокировать?</DialogTitle>
           <DialogDescription>
-            {user.full_name ?? user.email} сразу потеряет доступ к порталу во всех клубах. Роли,
-            подразделения и история сохранятся — разблокировать можно в любой момент.
+            {user.full_name ?? realEmail(user.email) ?? "Человек"} сразу потеряет доступ к порталу
+            во всех клубах. Роли, подразделения и история сохранятся — разблокировать можно в любой
+            момент.
           </DialogDescription>
         </DialogHeader>
         <DialogForm onSubmit={save}>
@@ -335,13 +343,28 @@ function BlockDialog({
   );
 }
 
-/** Назначения ролей: свои (можно менять) и полученные через подразделение и должность. */
-function RolesSection({ user, canManage }: { user: PortalUserCard; canManage: boolean }) {
+/**
+ * Назначения ролей: свои (можно менять) и полученные через подразделение и
+ * должность — у них подсказка, как снять, и кнопки туда (замечание
+ * тестирования 2026-10-27: снять унаследованную роль было неочевидно).
+ */
+function RolesSection({
+  user,
+  canManage,
+  canEditStructure,
+  onChangePosition,
+}: {
+  user: PortalUserCard;
+  canManage: boolean;
+  canEditStructure: boolean;
+  onChangePosition: () => void;
+}) {
   const qc = useQueryClient();
   const names = useAccessNames();
   const { confirm, confirmDialog } = useConfirm();
   const { data: explain } = useQuery(accessExplainQuery(user.user_id));
   const { data: catalog } = useQuery(accessCatalogQuery);
+  const { data: units } = useQuery(orgUnitsQuery);
   const [assign, setAssign] = useState<{ open: boolean; existing: Assignment | null }>({
     open: false,
     existing: null,
@@ -351,6 +374,32 @@ function RolesSection({ user, canManage }: { user: PortalUserCard; canManage: bo
     for (const r of explain ?? []) if (r.subject_type !== "user") seen.set(r.assignment_id, r);
     return [...seen.values()];
   }, [explain]);
+  // Назначения подразделений целиком (в access_explain только подпись «Через»).
+  const inheritedIds = inherited.map((r) => r.assignment_id);
+  const { data: groupAssignments } = useQuery({
+    queryKey: [ACCESS_KEY, "assignments-by-id", inheritedIds.join(",")],
+    queryFn: () =>
+      unwrap<Assignment[]>(supabase.from("access_assignments").select("*").in("id", inheritedIds)),
+    enabled: inheritedIds.length > 0,
+    meta: { errorMessage: "Не удалось загрузить роли подразделений" },
+  });
+  const leaveUnit = async (unitId: string) => {
+    const unitName = names.unit.get(unitId) ?? "подразделения";
+    const ok = await confirm({
+      title: `Убрать из «${unitName}»?`,
+      description:
+        "Пропадут все роли, которые человек получал через это подразделение (если не выданы иначе).",
+      confirmLabel: "Убрать",
+    });
+    if (!ok) return;
+    try {
+      await accessRpc("org_member_set", { p_unit: unitId, p_user: user.user_id, p_role: null });
+      toast.success("Убран из подразделения — права пересчитаны");
+      await invalidateAccess(qc);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Не удалось");
+    }
+  };
   const permsOf = (assignmentId: string): RolePerm[] =>
     (explain ?? [])
       .filter((r) => r.assignment_id === assignmentId && r.perm_key)
@@ -457,12 +506,18 @@ function RolesSection({ user, canManage }: { user: PortalUserCard; canManage: bo
                     </span>
                     {validity && <span className="text-xs text-muted-foreground">{validity}</span>}
                   </div>
-                  <div className="text-xs text-muted-foreground">
-                    Через: {r.via} ·{" "}
-                    <Link to="/access/structure" className="underline">
-                      оргструктура
-                    </Link>
-                  </div>
+                  <div className="text-xs text-muted-foreground">Через: {r.via}</div>
+                  <InheritedHint
+                    row={r}
+                    assignment={groupAssignments?.find((a) => a.id === r.assignment_id) ?? null}
+                    user={user}
+                    units={units ?? []}
+                    unitName={(id) => names.unit.get(id) ?? "подразделение"}
+                    canEditStructure={canEditStructure}
+                    canChangePosition={canManage}
+                    onLeaveUnit={(id) => void leaveUnit(id)}
+                    onChangePosition={onChangePosition}
+                  />
                 </div>
               </li>
             );
@@ -472,11 +527,92 @@ function RolesSection({ user, canManage }: { user: PortalUserCard; canManage: bo
       <AssignDialog
         open={assign.open}
         onOpenChange={(open) => setAssign((s) => ({ ...s, open }))}
-        subject={{ type: "user", id: user.user_id, label: user.full_name ?? user.email ?? "" }}
+        subject={{
+          type: "user",
+          id: user.user_id,
+          label: user.full_name ?? realEmail(user.email) ?? "",
+        }}
         existing={assign.existing}
       />
       {confirmDialog}
     </AccessSection>
+  );
+}
+
+/** Как снять роль, полученную через подразделение или должность. */
+function InheritedHint({
+  row,
+  assignment,
+  user,
+  units,
+  unitName,
+  canEditStructure,
+  canChangePosition,
+  onLeaveUnit,
+  onChangePosition,
+}: {
+  row: ExplainRow;
+  assignment: Assignment | null;
+  user: PortalUserCard;
+  units: { id: string; path: string[] }[];
+  unitName: (id: string) => string;
+  canEditStructure: boolean;
+  canChangePosition: boolean;
+  onLeaveUnit: (unitId: string) => void;
+  onChangePosition: () => void;
+}) {
+  const via = assignment ? inheritedVia(assignment, user, units) : null;
+  const roleLink = (
+    <Link to="/access/roles/$roleId" params={{ roleId: row.role_id }} className="underline">
+      на странице роли
+    </Link>
+  );
+  if (row.subject_type === "position" || via?.kind === "position") {
+    return (
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-md bg-muted/50 px-2 py-1.5 text-xs">
+        <span>
+          Снимается так: смените должность — или снимите назначение должности {roleLink} (роль
+          пропадёт у всех с этой должностью).
+        </span>
+        {canChangePosition && (
+          <Button size="sm" variant="outline" onClick={onChangePosition}>
+            Сменить должность
+          </Button>
+        )}
+      </div>
+    );
+  }
+  const unitIds = via?.kind === "unit" ? via.unitIds : [];
+  return (
+    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-md bg-muted/50 px-2 py-1.5 text-xs">
+      <span>
+        Снимается так: уберите человека из подразделения
+        {unitIds.length > 0 && (
+          <>
+            {" "}
+            {unitIds.map((id, i) => (
+              <span key={id}>
+                {i > 0 && ", "}
+                <Link
+                  to="/access/structure"
+                  search={{ unit: id }}
+                  className="font-medium underline"
+                >
+                  «{unitName(id)}»
+                </Link>
+              </span>
+            ))}
+          </>
+        )}{" "}
+        — или снимите назначение подразделения {roleLink} (роль пропадёт у всех в нём).
+      </span>
+      {canEditStructure &&
+        unitIds.map((id) => (
+          <Button key={id} size="sm" variant="outline" onClick={() => onLeaveUnit(id)}>
+            Убрать из «{unitName(id)}»
+          </Button>
+        ))}
+    </div>
   );
 }
 
@@ -655,7 +791,7 @@ function PersonalSection({ user, canManage }: { user: PortalUserCard; canManage:
         <DialogContent className="max-w-2xl" anchor="top">
           <DialogHeader>
             <DialogTitle>Личные права</DialogTitle>
-            <DialogDescription>{user.full_name ?? user.email}</DialogDescription>
+            <DialogDescription>{user.full_name ?? realEmail(user.email)}</DialogDescription>
           </DialogHeader>
           <DialogForm onSubmit={save}>
             <DialogBody>

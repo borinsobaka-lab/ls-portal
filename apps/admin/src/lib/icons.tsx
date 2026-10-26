@@ -32,6 +32,7 @@ import {
   BanIcon as BanArt,
   Banknote as BanknoteArt,
   Bold as BoldArt,
+  Briefcase as BriefcaseArt,
   Building2 as Building2Art,
   CalendarIcon as CalendarIconArt,
   CatIcon as CatArt,
@@ -108,7 +109,7 @@ import {
   Music as MusicArt,
   PanelLeft as PanelLeftArt,
   Paperclip as PaperclipArt,
-  Pencil as PencilArt,
+  PencilEdit02Icon as PencilArt,
   Phone as PhoneArt,
   Play as PlayArt,
   Plus as PlusArt,
@@ -131,6 +132,7 @@ import {
   Square as SquareArt,
   Star as StarArt,
   Sun as SunArt,
+  Tag as TagArt,
   Ticket as TicketArt,
   Trash2 as Trash2Art,
   TrendingDown as TrendingDownArt,
@@ -178,6 +180,7 @@ export const ArrowUpRight = icon(ArrowUpRightArt, "ArrowUpRight");
 export const Ban = icon(BanArt, "Ban");
 export const Banknote = icon(BanknoteArt, "Banknote");
 export const Bold = icon(BoldArt, "Bold");
+export const Briefcase = icon(BriefcaseArt, "Briefcase");
 export const Building2 = icon(Building2Art, "Building2");
 export const CalendarIcon = icon(CalendarIconArt, "CalendarIcon");
 export const Cat = icon(CatArt, "Cat");
@@ -277,6 +280,7 @@ export const Smile = icon(SmileArt, "Smile");
 export const Square = icon(SquareArt, "Square");
 export const Star = icon(StarArt, "Star");
 export const Sun = icon(SunArt, "Sun");
+export const Tag = icon(TagArt, "Tag");
 export const Ticket = icon(TicketArt, "Ticket");
 export const Trash2 = icon(Trash2Art, "Trash2");
 export const TrendingDown = icon(TrendingDownArt, "TrendingDown");
