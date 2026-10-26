@@ -1,0 +1,970 @@
+@import "tailwindcss" source(none);
+@source "../src";
+/* Редактор базы знаний (@blocknote/shadcn) размечен классами Tailwind —
+   без этой строки его меню и панели остались бы без стилей. */
+@source "../node_modules/@blocknote/shadcn/dist";
+@import "tw-animate-css";
+@plugin "@tailwindcss/typography";
+
+/* Roboto — корпоративный шрифт Base40. Самохостится из node_modules
+   (@fontsource/roboto), без обращений к Google Fonts: работает офлайн и не
+   утекает на сторонние домены. Подсеты (латиница/кириллица) браузер тянет по
+   unicode-range, лишнего не грузит.
+   400 — текст, 500 — подписи и кнопки, 600 — заголовки, 700 — акценты,
+   400 italic — редкие пояснения курсивом.
+   Начертания добавляем только под реальное использование: 900 и 900 italic
+   держали ради заголовка в шапке, но он перешёл на 600. Причём 900 italic был
+   не просто балластом — по правилам подбора шрифта браузер сопоставляет
+   начертание раньше веса, поэтому обычный курсив (400) брал единственное
+   доступное italic-начертание и рисовался чёрным. */
+@import "@fontsource/roboto/400.css";
+@import "@fontsource/roboto/400-italic.css";
+@import "@fontsource/roboto/500.css";
+@import "@fontsource/roboto/600.css";
+@import "@fontsource/roboto/700.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Design system definition.
+ *
+ * The @theme inline block maps CSS custom properties to Tailwind utility
+ * classes (e.g. --color-primary -> bg-primary, text-primary).
+ *
+ * The :root and .dark blocks define the actual color values using oklch.
+ * All colors MUST use oklch format.
+ *
+ * To add a new semantic color:
+ * 1. Add the variable to :root (light value) and .dark (dark value)
+ * 2. Register it in @theme inline as --color-<name>: var(--<name>)
+ */
+
+@theme inline {
+  /* Шрифт: Roboto везде, системные — только фолбэк на время загрузки. */
+  --font-sans:
+    Roboto, -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+
+  /* Типографическая шкала: база 14px (плотный рабочий инструмент),
+     коэффициент ~1.25 → 14 · 18 · 22 · 28 · 34 · 44.
+     xs/sm/base (12/14/16) не трогаем: на них держатся таблицы и чипы, а 11px
+     для статусов уже плохо читается. Меняется верх шкалы, где раньше была
+     каша 18/20/24 — теперь ступени различимы.
+     Крупный текст поджимаем по трекингу: чем больше кегль, тем теснее. */
+  --text-xl: 1.375rem; /* 22 (было 20) */
+  --text-xl--line-height: 1.3;
+  --text-xl--letter-spacing: -0.01em;
+
+  --text-2xl: 1.75rem; /* 28 (было 24) */
+  --text-2xl--line-height: 1.25;
+  --text-2xl--letter-spacing: -0.015em;
+
+  --text-3xl: 2.125rem; /* 34 (было 30) */
+  --text-3xl--line-height: 1.2;
+  --text-3xl--letter-spacing: -0.02em;
+
+  --text-4xl: 2.75rem; /* 44 (было 36) */
+  --text-4xl--line-height: 1.15;
+  --text-4xl--letter-spacing: -0.025em;
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
+  --animate-gradient-flow: gradient-flow 8s ease infinite;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-selected: var(--selected);
+  --color-selected-foreground: var(--selected-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-ring-offset-background: var(--background);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-brand: var(--brand);
+  --color-brand-on-dark: var(--brand-on-dark);
+  --color-brand-on-light: var(--brand-on-light);
+  --color-brand-foreground: var(--brand-foreground);
+  --color-link: var(--link);
+  --color-link-hover: var(--link-hover);
+  --color-rail: var(--rail);
+  --color-canvas: var(--canvas);
+  --color-field: var(--field);
+  --color-note: var(--note);
+  --color-note-soft: var(--note-soft);
+  --color-note-border: var(--note-border);
+  --color-note-foreground: var(--note-foreground);
+}
+
+:root {
+  --radius: 0.625rem;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.129 0.042 264.695);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.129 0.042 264.695);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.129 0.042 264.695);
+  /* Тёмные кнопки, активный таб — в цвет бокового меню (--sidebar), чтобы
+     перекликались с ним. */
+  --primary: #1a2027;
+  --primary-foreground: oklch(0.984 0.003 247.858);
+  /* Выбранное в табах и сегментах (плашка ActiveIndicator). В светлой теме —
+     как --primary; в тёмной базе знаний — своя, светлее дорожки. */
+  --selected: #1a2027;
+  --selected-foreground: oklch(0.984 0.003 247.858);
+  --secondary: oklch(0.968 0.007 247.896);
+  --secondary-foreground: oklch(0.208 0.042 265.755);
+  --muted: oklch(0.968 0.007 247.896);
+  /* Подписи и мета. Темнее slate-500 из shadcn (было 0.554): на канве
+     (--canvas) тот давал ~4,4:1 — ниже AA; теперь ≥ 4,5:1 и на канве. */
+  --muted-foreground: oklch(0.5 0.046 257.417);
+  --accent: oklch(0.968 0.007 247.896);
+  --accent-foreground: oklch(0.208 0.042 265.755);
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.984 0.003 247.858);
+  --border: oklch(0.929 0.013 255.508);
+  --input: oklch(0.929 0.013 255.508);
+  /* Кольцо фокуса с клавиатуры. Было slate-400 (~2,6:1 к белому) — фокус
+     в поле почти не читался; теперь slate-600, ≥ 3:1 и на белом, и на канве. */
+  --ring: oklch(0.446 0.043 257.281);
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+  --sidebar: #1a2027;
+  --sidebar-foreground: #ffffff;
+  --sidebar-primary: oklch(0.208 0.042 265.755);
+  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
+  --sidebar-accent: oklch(0.968 0.007 247.896);
+  --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
+  --sidebar-border: oklch(0.929 0.013 255.508);
+  --sidebar-ring: oklch(0.704 0.04 256.788);
+
+  /* Рейка разделов слева от меню (AppRail): на тон темнее --sidebar, чтобы
+     читалась отдельной колонкой. Ширина входит в --sidebar-width (ui/sidebar). */
+  --rail: #12161b;
+  --rail-width: 4rem;
+
+  /* Фирменный цвет: иконка активного пункта меню и её свечение, отметка
+     «сегодня» в расписании. Кнопки и ссылки — на --primary. */
+  --brand: #f763fc;
+  /* Производные для контраста (цвет клуба выбирает владелец — их пересчитывает
+     components/studio-branding.tsx): значок на тёмном меню (≥ 3:1), текст
+     цветом бренда на белом (≥ 4.5:1), текст на заливке брендом. Здесь — для
+     розового по умолчанию. */
+  --brand-on-dark: #f763fc;
+  --brand-on-light: #ad45b0;
+  --brand-foreground: var(--foreground);
+
+  /* Ссылка в тексте и таблицах: имя клиента (ClientNameLink), внешние ссылки.
+     Синий — «нейтрально-информационное» палитры статусов; розовый --brand
+     для ссылок не берём (он только у активного пункта меню и «сегодня»). */
+  --link: #2563eb;
+  --link-hover: #1d4ed8;
+
+  /* Подложка рабочей области справа от меню. Белые карточки, таблицы и шапка
+     лежат на ней и должны читаться как отдельные поверхности — с muted/30
+     (почти белый) всё сливалось в одно белое поле.
+     Тон — светлый серо-зелёный из гайда студии. Токен отдельный от --background: сменить тон подложки —
+     одна строка здесь, разметку трогать не нужно. */
+  --canvas: #eff1ee;
+
+  /* Заливка полей ввода — одна везде (решение владельца 2026-10-11): в
+     шапке, в плашке фильтров, в формах диалогов. Тон — muted на 40% поверх
+     белого, как был у поиска в шапке; непрозрачный, чтобы на белой плашке и
+     в белом диалоге выглядеть одинаково. В фокусе поле белеет (field-styles.ts). */
+  --field: color-mix(in oklab, var(--muted) 40%, white);
+
+  /* Заметки и комментарии — «бумажка» (решение владельца 2026-10-11): тёплый
+     тон бумаги, чтобы заметку было видно среди обычных полей. Тон близко к
+     белому — заметка не должна перетягивать на себя весь экран (правка
+     владельца 2026-10-11). Поле и заметка в окне — `--note` с рамкой и
+     лёгкой тенью (`Textarea note`, `noteCardClass`); в таблицах и списках —
+     ещё светлее, без рамки и тени (`--note-soft`, `noteChipClass`). */
+  --note: #fcf6e6;
+  --note-soft: #fdf9f0;
+  --note-border: #efe3c4;
+  --note-foreground: #3f382a;
+  --note-shadow: 0 1px 2px rgb(120 90 30 / 0.06), 0 4px 10px -6px rgb(120 90 30 / 0.16);
+}
+
+.dark {
+  --background: oklch(0.129 0.042 264.695);
+  --foreground: oklch(0.984 0.003 247.858);
+  --card: oklch(0.208 0.042 265.755);
+  --card-foreground: oklch(0.984 0.003 247.858);
+  --popover: oklch(0.208 0.042 265.755);
+  --popover-foreground: oklch(0.984 0.003 247.858);
+  --primary: oklch(0.929 0.013 255.508);
+  --primary-foreground: oklch(0.208 0.042 265.755);
+  --secondary: oklch(0.279 0.041 260.031);
+  --secondary-foreground: oklch(0.984 0.003 247.858);
+  --muted: oklch(0.279 0.041 260.031);
+  --muted-foreground: oklch(0.704 0.04 256.788);
+  --accent: oklch(0.279 0.041 260.031);
+  --accent-foreground: oklch(0.984 0.003 247.858);
+  --destructive: oklch(0.704 0.191 22.216);
+  --destructive-foreground: oklch(0.984 0.003 247.858);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.551 0.027 264.364);
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+  --sidebar: #1a2027;
+  --sidebar-foreground: #ffffff;
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
+  --sidebar-accent: oklch(0.279 0.041 260.031);
+  --sidebar-accent-foreground: oklch(0.984 0.003 247.858);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.551 0.027 264.364);
+  --rail: #12161b;
+  --rail-width: 4rem;
+  --brand: #f763fc;
+  /* Тёмной темы в приложении нет, но токен объявляем и здесь: иначе случайно
+     навешенный класс .dark оставил бы светлую подложку под тёмным контентом. */
+  --canvas: oklch(0.21 0.03 264);
+  --field: oklch(0.26 0.03 264);
+}
+
+/* Тёмная тема базы знаний (решение владельца 2026-10-25; lib/kb/theme.ts).
+   Класс .dark.kb-dark висит на <html>, пока открыта база и выбрана тёмная
+   тема, — поэтому темнеют и окна, и всплывающие меню (порталы в body), а
+   токены @theme пересчитываются на том же элементе.
+   Палитра — «графит» в тон меню (--sidebar #1a2027, --rail #12161b), а не
+   синевато-чёрная по умолчанию shadcn: страница чуть темнее меню, поднятые
+   поверхности — ступенями светлее (страница → карточка → окно), линии —
+   сплошные приглушённые, не белые полупрозрачные. Текст — не чистый белый
+   (меньше «свечения» на длинном чтении), второстепенный ≥ 7:1 к фону.
+   Акцент на тёмном — светлые кнопки; цвет клуба/базы — вариант для тёмного
+   фона (--brand-on-light пересчитывает StudioBranding).
+   `html.kb-dark .dark` — редактор BlockNote с theme="dark" сам вешает
+   .dark на свой контейнер, и без этого внутри статьи брались токены .dark
+   по умолчанию (синевато-чёрные). */
+html.dark.kb-dark,
+html.kb-dark .dark {
+  color-scheme: dark;
+  --background: #15191e;
+  --foreground: #e6e9ed;
+  --card: #1b2026;
+  --card-foreground: #e6e9ed;
+  --popover: #1f252c;
+  --popover-foreground: #e6e9ed;
+  --primary: #e6e9ed;
+  --primary-foreground: #15191e;
+  --selected: #353e48;
+  --selected-foreground: #ffffff;
+  --secondary: #232a32;
+  --secondary-foreground: #e6e9ed;
+  --muted: #222930;
+  --muted-foreground: #9ba5b0;
+  --accent: #262d36;
+  --accent-foreground: #e6e9ed;
+  --destructive: #f2777a;
+  --destructive-foreground: #15191e;
+  --border: #2a3139;
+  --input: #353d47;
+  --ring: #8d99a6;
+  --canvas: #15191e;
+  --field: #1b2026;
+  --link: #8ab4f8;
+  --link-hover: #aecbfa;
+  --brand-on-light: var(--brand-on-dark);
+  --note: #2a2518;
+  --note-soft: #231f15;
+  --note-border: #4a4026;
+  --note-foreground: #ece0bf;
+  --note-shadow: none;
+}
+/* Редактор BlockNote в тёмной теме — на палитре админки, а не на своей
+   серой (#1f1f1f / #cfcfcf). */
+html.dark.kb-dark .bn-container[data-color-scheme="dark"] {
+  --bn-colors-editor-text: var(--foreground);
+  --bn-colors-editor-background: transparent;
+  --bn-colors-menu-text: var(--popover-foreground);
+  --bn-colors-menu-background: var(--popover);
+  --bn-colors-tooltip-text: var(--popover-foreground);
+  --bn-colors-tooltip-background: var(--accent);
+  --bn-colors-hovered-text: var(--accent-foreground);
+  --bn-colors-hovered-background: var(--accent);
+  --bn-colors-selected-text: var(--accent-foreground);
+  --bn-colors-selected-background: var(--selected);
+  --bn-colors-disabled-text: var(--muted-foreground);
+  --bn-colors-disabled-background: var(--muted);
+  --bn-colors-shadow: rgb(0 0 0 / 0.4);
+  --bn-colors-border: var(--border);
+  --bn-colors-side-menu: var(--muted-foreground);
+  /* Цвета текста и подложек, выбранные автором: у BlockNote в тёмной теме
+     подложки насыщенные (розовая — #ad1a72), текст на них не читается, а
+     часть цветов текста — темнее фона. Здесь подложки — приглушённый тон
+     того же цвета, текст — светлый оттенок (≥ 4.5:1 и на фоне, и на своей
+     подложке). */
+  --bn-colors-highlights-gray-text: #b4bcc6;
+  --bn-colors-highlights-gray-background: #2e353e;
+  --bn-colors-highlights-brown-text: #d8b49a;
+  --bn-colors-highlights-brown-background: #3a2e27;
+  --bn-colors-highlights-red-text: #f5a3a0;
+  --bn-colors-highlights-red-background: #43262a;
+  --bn-colors-highlights-orange-text: #f6bf86;
+  --bn-colors-highlights-orange-background: #42301f;
+  --bn-colors-highlights-yellow-text: #ecd27a;
+  --bn-colors-highlights-yellow-background: #3d3720;
+  --bn-colors-highlights-green-text: #96d7a8;
+  --bn-colors-highlights-green-background: #213a2c;
+  --bn-colors-highlights-blue-text: #9cc2fb;
+  --bn-colors-highlights-blue-background: #1f3150;
+  --bn-colors-highlights-purple-text: #cdb4f7;
+  --bn-colors-highlights-purple-background: #33284d;
+  --bn-colors-highlights-pink-text: #f5a8cf;
+  --bn-colors-highlights-pink-background: #46263a;
+}
+/* Цитата: у BlockNote текст и черта — серые #7d797a, на тёмном (и тем более
+   на цветной подложке) не читаются. Ссылки — светло-синие, таблица — линии
+   палитры, а не белые #ddd. */
+html.dark.kb-dark .kb-document [data-content-type="quote"] blockquote {
+  color: #c9d0d8;
+  border-left-color: #5b6673;
+}
+html.dark.kb-dark .kb-document .bn-editor a:not(.kb-file a, .kb-pdf a) {
+  color: var(--link);
+}
+html.dark.kb-dark .kb-document [data-content-type="table"] th,
+html.dark.kb-dark .kb-document [data-content-type="table"] td {
+  border-color: var(--input);
+}
+/* Флажок своего чек-листа: заливка — светлый --primary, галочка — тёмная. */
+html.dark.kb-dark .kb-own-checks {
+  --kb-check-mark: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.5 8.5l3 3 6-7' fill='none' stroke='%2315191e' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  html {
+    /* Без этого macOS рендерит текст жирнее, чем задумано. */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+  }
+
+  /* Выделение текста и курсор ввода — из палитры, а не системные синие:
+     тёмный --primary (цвет меню) прозрачной подложкой. */
+  ::selection {
+    background-color: color-mix(in srgb, var(--color-primary) 18%, transparent);
+  }
+
+  input,
+  textarea {
+    caret-color: var(--color-primary);
+  }
+
+  /* Заголовки переносим сбалансированно, текст — без «висячих» слов. */
+  h1,
+  h2,
+  h3,
+  h4 {
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+}
+
+/* Поле заметки — «записка»: бумажный тон и тень, как у листка поверх
+   формы. Правило вне слоёв Tailwind — перебивает обычную заливку поля
+   (bg-field из field-styles.ts) и в фокусе. */
+textarea[data-note],
+textarea[data-note]:focus-visible {
+  background-color: var(--note);
+  border-color: var(--note-border);
+  color: var(--note-foreground);
+  box-shadow: var(--note-shadow);
+}
+textarea[data-note]::placeholder {
+  color: rgb(120 100 60 / 0.5);
+}
+
+/* Отменённое занятие в расписании — белая карточка в наклонную светло-серую
+   полоску (решение владельца 2026-10-11): видно, что занятие не состоится,
+   но оно остаётся на своём месте в сетке. */
+.schedule-cancelled {
+  background-image: repeating-linear-gradient(-45deg, #ffffff 0 4px, #ebedef 4px 8px);
+}
+
+/* Числовые поля без системных стрелок. Часть форм использует type="number",
+   часть — текстовое поле с inputMode="decimal": стрелки были только у первых,
+   и одинаковые по смыслу поля выглядели по-разному. Шаг ±1 для сумм в лари
+   и количеств всё равно бесполезен — значение вводят с клавиатуры. */
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* ── Мобильная вёрстка (до md, 768px) ─────────────────────────────────────
+
+   Таблицы → карточки. Таблица на 7–13 колонок на телефоне превращалась в
+   горизонтальную прокрутку, где имя клиента уезжало из виду. До md строка
+   становится карточкой: шапка скрыта, каждая ячейка — пара «подпись —
+   значение», подпись берётся из data-label (её ставит Table по тексту
+   заголовка колонки, см. ui/table.tsx). Первая ячейка — заголовок карточки,
+   без подписи. Ячейка на всю строку (пустое состояние) — по центру.
+   Правила вне слоёв Tailwind, поэтому перебивают классы ячеек (text-right,
+   whitespace-nowrap, truncate, max-w-*) без !important. Отказаться —
+   <Table mobileCards={false}>. */
+@media (width < 48rem) {
+  table[data-mobile-cards],
+  table[data-mobile-cards] > tbody {
+    display: block;
+  }
+  table[data-mobile-cards] > thead {
+    display: none;
+  }
+  table[data-mobile-cards] > tbody > tr {
+    display: block;
+    position: relative;
+    padding: 0.75rem;
+  }
+  table[data-mobile-cards] > tbody > tr > td {
+    display: block;
+    position: relative;
+    width: auto;
+    max-width: none;
+    min-height: 1.75rem;
+    padding: 0.25rem 0 0.25rem 7.75rem;
+    text-align: left;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  table[data-mobile-cards] > tbody > tr > td::before {
+    content: attr(data-label);
+    position: absolute;
+    left: 0;
+    top: 0.25rem;
+    width: 7rem;
+    overflow: hidden;
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+    font-weight: 400;
+    line-height: 1.25rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  /* Пустая ячейка («—» не пишут, ячейки нет смысла показывать). */
+  table[data-mobile-cards] > tbody > tr > td:empty {
+    display: none;
+  }
+  /* Колонка без заголовка (обложка, порядок) и заголовок карточки. */
+  table[data-mobile-cards] > tbody > tr > td[data-label=""],
+  table[data-mobile-cards] > tbody > tr > td:first-child {
+    padding-left: 0;
+  }
+  table[data-mobile-cards] > tbody > tr > td[data-label=""]::before,
+  table[data-mobile-cards] > tbody > tr > td:first-child::before {
+    display: none;
+  }
+  table[data-mobile-cards] > tbody > tr > td:first-child:not([data-full]) {
+    padding-right: 2rem;
+    padding-bottom: 0.375rem;
+    font-size: 0.9375rem;
+  }
+  table[data-mobile-cards] > tbody > tr > td[data-full] {
+    padding: 1.5rem 0;
+    text-align: center;
+  }
+
+  /* Строка с действиями: на телефоне правого клика нет — меню открывается
+     касанием строки (RowContextMenu), а «⋯» в углу карточки показывает,
+     что оно есть. Системное меню долгого нажатия iOS здесь мешает. */
+  tr[data-row-actions] {
+    -webkit-touch-callout: none;
+  }
+  table[data-mobile-cards] > tbody > tr[data-row-actions]::after {
+    content: "⋯";
+    position: absolute;
+    top: 0.5rem;
+    right: 0.75rem;
+    color: var(--muted-foreground);
+    font-size: 1.25rem;
+    line-height: 1.5rem;
+    pointer-events: none;
+  }
+}
+
+/* Плашка фильтров на телефоне: поиск во всю ширину, остальные контролы —
+   по два в строку поровну. Фиксированные w-40/w-48 у селектов здесь
+   снимаются (правило вне слоёв Tailwind перебивает утилиты). */
+@media (width < 40rem) {
+  .table-toolbar > * {
+    flex: 1 1 calc(50% - 0.25rem);
+    width: auto;
+    min-width: 0;
+    max-width: none;
+  }
+  .table-toolbar > .toolbar-search,
+  .table-toolbar > .toolbar-full,
+  .table-toolbar > [role="radiogroup"] {
+    flex-basis: 100%;
+  }
+  /* Фильтры за кнопкой (TableToolbar, data-collapsible): поиск и кнопка
+     «Фильтры» — одной строкой, остальное — по нажатию. Табы (toolbar-full)
+     видны всегда. */
+  .table-toolbar[data-collapsible] > .toolbar-search {
+    flex-basis: calc(100% - 3rem);
+  }
+  .table-toolbar[data-collapsible] > .toolbar-filters-toggle {
+    flex: 0 0 2.5rem;
+    width: 2.5rem;
+  }
+  .table-toolbar[data-collapsible]:not([data-open])
+    > :not(.toolbar-search, .toolbar-filters-toggle, .toolbar-full) {
+    display: none;
+  }
+  /* Сегменты (SegmentedControl) на всю строку делят её поровну. */
+  .table-toolbar > [role="radiogroup"] {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+  }
+}
+
+/* Действия страницы — плавающие кнопки в правом нижнем углу
+   (FloatingActions в admin-shell.tsx). Кнопки страницы приходят обычными
+   <Button> размера по умолчанию; здесь они получают размер `lg` и тень
+   (пилюлей кнопка уже сама). На месте размер не задаём. Без слоя —
+   перебивает утилиты h-10/px-4 из buttonVariants. */
+.fab-actions div {
+  gap: 0.75rem;
+}
+.fab-actions button {
+  height: 3rem;
+  padding-inline: 1.5rem;
+  font-size: 0.9375rem;
+  box-shadow:
+    0 10px 24px -6px rgb(0 0 0 / 0.28),
+    0 2px 6px -1px rgb(0 0 0 / 0.12);
+}
+.fab-actions button svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+/* Иконка без подписи (size="icon") — круг. */
+.fab-actions button.size-10 {
+  width: 3rem;
+  padding-inline: 0;
+}
+/* Полупрозрачная неактивная кнопка просвечивала бы таблицей под собой —
+   неактивную красим глухим приглушённым цветом. */
+.fab-actions button:disabled {
+  opacity: 1;
+  background-color: var(--muted);
+  color: var(--muted-foreground);
+  border-color: var(--border);
+}
+/* Запас снизу у рабочей области, пока на странице есть плавающие действия:
+   конец таблицы и пагинация прокручиваются из-под кнопок. */
+.admin-main:has(.fab-actions) {
+  padding-bottom: 6.5rem;
+}
+/* Стрелки пагинации — левее плавающих кнопок: пока таблица не докручена до
+   конца, кнопки лежали прямо на них. --fab-width ставит FloatingActions.
+   На телефоне пагинация — одна узкая строка, а кнопки переносятся: там
+   остаётся запас снизу. */
+@media (min-width: 640px) {
+  .admin-main:has(.fab-actions) .data-pagination {
+    padding-right: calc(var(--fab-width, 0px) + 1.25rem);
+  }
+}
+
+/* Полоса прокрутки бокового меню. Системная на тёмной панели выглядит как
+   светлый брусок во всю ширину жёлоба; здесь — узкая пилюля в тот же
+   полупрозрачный белый, что и подложка активного пункта (bg-white/10).
+   scrollbar-* понимают Firefox и свежие Chromium, ::-webkit-* — остальные
+   WebKit-браузеры; задаём оба, они не конфликтуют. */
+@utility sidebar-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(255 255 255 / 0.1) transparent;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background-color: rgb(255 255 255 / 0.1);
+    border-radius: 9999px;
+  }
+  &::-webkit-scrollbar-thumb:hover {
+    background-color: rgb(255 255 255 / 0.2);
+  }
+}
+
+/* Документ статьи базы знаний (BlockNote, components/kb/kb-document.tsx):
+   лежит на белой карточке статьи — свой фон и шрифт редактора не нужны;
+   вертикальное видео и большие картинки не выше экрана (боль брифа:
+   вертикальное видео занимало полстраницы). */
+.kb-document .bn-editor {
+  background: transparent;
+  font-family: inherit;
+}
+.kb-document .bn-container {
+  font-family: inherit;
+}
+.kb-document video.bn-visual-media,
+.kb-document img.bn-visual-media {
+  max-height: 75vh;
+  object-fit: contain;
+}
+.kb-document-read .bn-editor {
+  padding-bottom: 0;
+}
+/* На телефоне ручки блоков слева не помещаются — текст вровень с названием
+   статьи (обёртка документа сдвинута на -0.75rem, kb-node-page.tsx). */
+@media (max-width: 639px) {
+  .kb-document .bn-editor {
+    padding-inline: 0.75rem;
+  }
+}
+/* PDF и галерея — на всю ширину текста, а не по размеру превью файла. */
+.kb-document [data-content-type="pdf"] .bn-file-block-content-wrapper,
+.kb-document [data-content-type="gallery"] {
+  width: 100%;
+}
+/* Заголовки внутри статьи — мельче её названия (text-3xl в шапке):
+   BlockNote берёт размер из --level (у первого уровня было 3em). Ступени
+   различаются размером и насыщенностью, отбивка сверху — по
+   уровню (у BlockNote — 18px у всех, плюс наша — получалось 36px; замечания
+   тестирования 2026-10-25). Заголовок сразу под заголовком — почти без
+   отбивки. */
+.kb-document .bn-block-content[data-content-type="heading"],
+.kb-document .bn-block-content[data-content-type="heading"][data-level="1"] {
+  --level: 1.6em;
+  padding-top: 0.9em;
+}
+.kb-document .bn-block-content[data-content-type="heading"][data-level="2"] {
+  --level: 1.25em;
+  padding-top: 0.7em;
+}
+.kb-document .bn-block-content[data-content-type="heading"][data-level="3"] {
+  --level: 1.05em;
+  padding-top: 0.5em;
+}
+/* Заголовки статьи — цветом её названия (решение владельца 2026-10-25): у
+   BlockNote текст редактора светлее (#3f3f3f), заголовки выглядели серыми.
+   Цвет, выбранный автором у блока (data-text-color), не перебиваем. */
+.kb-document .bn-block-content[data-content-type="heading"]:not([data-text-color]) {
+  color: var(--foreground);
+}
+.kb-document .bn-block-content[data-content-type="heading"][data-level="2"] h2,
+.kb-document .bn-block-content[data-content-type="heading"][data-level="3"] h3 {
+  font-weight: 600;
+}
+.kb-document
+  .bn-block-outer:has(> .bn-block > [data-content-type="heading"])
+  + .bn-block-outer
+  > .bn-block
+  > .bn-block-content[data-content-type="heading"] {
+  padding-top: 0.2em;
+}
+/* Переход из оглавления: заголовок встаёт ниже плашки «Редактирование»,
+   а не под неё. */
+.kb-document .bn-block-outer {
+  scroll-margin-top: 1rem;
+}
+.kb-document:not(.kb-document-read) .bn-block-outer {
+  scroll-margin-top: 7.5rem;
+}
+/* Код в строке — на плашке, иначе его не отличить от текста. */
+.kb-document .bn-inline-content code {
+  border-radius: 0.25rem;
+  background: var(--muted);
+  padding: 0.1em 0.35em;
+  font-size: 0.9em;
+}
+/* Кнопки «Скачать» и «Открыть» в карточках файлов — не ссылки текста
+   (у BlockNote `.bn-shadcn .bn-editor a` — его стили грузятся позже). */
+.kb-document .bn-editor .kb-file a,
+.kb-document .bn-editor .kb-pdf a {
+  color: inherit;
+  text-decoration: none;
+}
+/* Колонки (components/kb/kb-document.tsx, блоки columns / column): колонки
+   ряда — сеткой рядом, без отступа вложенности; на телефоне — друг под
+   другом. Блок «Колонка» невидим, у ряда в правке — подпись. Свои блоки
+   BlockNote оборачивает в .react-renderer — отсюда звено в селекторах. */
+.kb-document
+  .bn-block:has(> .react-renderer > .bn-block-content[data-content-type="columns"])
+  > .bn-block-group {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  column-gap: 1.5rem;
+  margin-left: 0 !important;
+}
+.kb-document
+  .bn-block:has(> .react-renderer > .bn-block-content[data-content-type="column"])
+  > .bn-block-group {
+  margin-left: 0 !important;
+}
+.kb-document .bn-block-content[data-content-type="column"],
+.kb-document-read .bn-block-content[data-content-type="columns"] {
+  display: none;
+}
+.kb-document:not(.kb-document-read) .kb-columns-anchor {
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+  border-bottom: 1px dashed var(--border);
+  width: 100%;
+  padding-bottom: 0.125rem;
+}
+.kb-document:not(.kb-document-read)
+  .bn-block:has(> .react-renderer > .bn-block-content[data-content-type="column"])
+  > .bn-block-group {
+  border-left: 1px dashed var(--border);
+  padding-left: 0.25rem;
+}
+@media (max-width: 639px) {
+  .kb-document
+    .bn-block:has(> .react-renderer > .bn-block-content[data-content-type="columns"])
+    > .bn-block-group {
+    display: block;
+  }
+}
+/* Линии вложенности BlockNote у колонок не нужны: колонка — не отступ. */
+.kb-document
+  .bn-block:has(> .react-renderer > .bn-block-content[data-content-type="columns"])
+  .bn-block-outer::before {
+  display: none;
+}
+/* Упоминание сотрудника — плашкой цвета клуба. */
+.kb-document .kb-mention {
+  border-radius: 0.25rem;
+  background: color-mix(in oklab, var(--brand) 14%, transparent);
+  padding: 0 0.2em;
+  font-weight: 500;
+  white-space: nowrap;
+}
+/* Чек-лист у читателя (kb_checks): свой флажок вместо флажка документа —
+   отмечен он или нет, решает вставленный стиль с id отмеченных пунктов. */
+.kb-own-checks {
+  --kb-check-mark: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.5 8.5l3 3 6-7' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+.kb-own-checks [data-content-type="checkListItem"] > div:has(> input) {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+.kb-own-checks [data-content-type="checkListItem"] > div:has(> input) > input {
+  display: none;
+}
+.kb-own-checks [data-content-type="checkListItem"] > div:has(> input)::before {
+  content: "";
+  width: 16px;
+  height: 16px;
+  margin: 0 8px 0 2px;
+  border: 1.5px solid var(--muted-foreground);
+  border-radius: 4px;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 12px;
+}
+.kb-own-checks [data-content-type="checkListItem"][data-checked="true"] .bn-inline-content {
+  text-decoration: none;
+}
+/* Защита содержимого статьи (components/kb/protected-area.tsx): читателю —
+   без выделения, долгого нажатия «Сохранить картинку», перехода по
+   картинке галереи; печать — вместо статьи надпись. */
+.kb-no-copy,
+.kb-no-copy * {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+.kb-no-copy img,
+.kb-no-copy video {
+  -webkit-user-drag: none;
+}
+/* Картинки статьи у читателя открываются в окне (components/kb/image-lightbox.tsx). */
+.kb-document-read img.bn-visual-media,
+.kb-document-read .kb-gallery img {
+  cursor: zoom-in;
+}
+@media print {
+  .kb-no-copy,
+  body:has(.kb-no-copy) nav[aria-label="Оглавление"] {
+    display: none !important;
+  }
+  .kb-print-blocked {
+    display: flex !important;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 2rem;
+    font-size: 1.125rem;
+  }
+}
+/* Пустая панель форматирования (над галереей, PDF, файлом — блоками без
+   текста и без своих кнопок) — не показываем кружок без кнопок. */
+.bn-formatting-toolbar:empty {
+  display: none;
+}
+/* Узкий экран: панель форматирования переносится на вторую строку, а не
+   уходит за правый край. */
+.bn-formatting-toolbar {
+  max-width: calc(100vw - 2rem);
+  flex-wrap: wrap;
+}
+
+/* Пока тянут край меню базы знаний (KbSidebarResize) — без анимации
+   ширины, иначе панель отстаёт от мыши. */
+body[data-sidebar-resizing] .peer *,
+body[data-sidebar-resizing] .peer {
+  transition: none !important;
+}
+body[data-sidebar-resizing] {
+  cursor: col-resize;
+  user-select: none;
+}
+
+/* Уважаем системную настройку «меньше движения»: цвет и прозрачность
+   оставляем, перемещения и вращения — убираем. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@utility ai-gradient {
+  background-image: linear-gradient(
+    135deg,
+    #ec4899 0%,
+    #a855f7 25%,
+    #6366f1 50%,
+    #06b6d4 75%,
+    #ec4899 100%
+  );
+  background-size: 300% 300%;
+  animation: var(--animate-gradient-flow);
+}
+
+/* Разноцветное свечение за иконкой активного раздела в рейке (AppRail):
+   размытое пятно в палитре Kate (ai-gradient) плюс оранжевый. Пятно медленно
+   вращается — переливается; при «меньше движения» стоит на месте. */
+@utility rail-glow {
+  &::before {
+    content: "";
+    position: absolute;
+    inset: -6px;
+    z-index: -1;
+    border-radius: 9999px;
+    background: conic-gradient(#ec4899, #f97316, #a855f7, #6366f1, #06b6d4, #ec4899);
+    filter: blur(7px);
+    animation: rail-glow-spin 8s linear infinite;
+  }
+}
+
+@keyframes rail-glow-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes gradient-flow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes ai-glow-pulse {
+  0%,
+  100% {
+    opacity: 0.7;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+}
+
+@utility ai-thinking-glow {
+  position: relative;
+  isolation: isolate;
+  &::after {
+    content: "";
+    position: absolute;
+    inset: -6px;
+    border-radius: inherit;
+    background: linear-gradient(
+      135deg,
+      #ec4899 0%,
+      #a855f7 25%,
+      #6366f1 50%,
+      #06b6d4 75%,
+      #ec4899 100%
+    );
+    background-size: 300% 300%;
+    animation:
+      gradient-flow 2s ease infinite,
+      ai-glow-pulse 1.2s ease-in-out infinite;
+    filter: blur(28px);
+    opacity: 1;
+    pointer-events: none;
+    z-index: -1;
+  }
+}

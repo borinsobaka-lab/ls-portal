@@ -1,0 +1,18 @@
+# Контекст сборки обоих Dockerfile (apps/*/Dockerfile) — корень репозитория.
+# Шаблоны с **/ — чтобы исключать и вложенные apps/*/node_modules и т.п.
+.git
+**/node_modules
+**/.output
+**/.tanstack
+**/.nitro
+**/.vinxi
+**/dist
+**/logs
+**/*.log
+**/.env
+**/.env.*
+!**/.env.example
+**/.vscode
+**/.idea
+**/.DS_Store
+.claude

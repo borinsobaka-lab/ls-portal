@@ -1,0 +1,81 @@
+import type { Dictionary } from "../types";
+
+/** Раздел: абонементы подписочного приложения (routes/memberships.tsx: тарифы, оформление, автопродление). */
+const dict: Dictionary = {
+  Абонементы: "Memberships",
+  "Абонементы и пакеты занятий {brand}.": "{brand} memberships and class packages.",
+  "раз в месяц": "per month",
+  "раз в год": "per year",
+  "раз в {n} месяц|раз в {n} месяца|раз в {n} месяцев": "every {n} month|every {n} months",
+  "на {n} день|на {n} дня|на {n} дней": "for {n} day|for {n} days",
+  "Срок действия {n} день|Срок действия {n} дня|Срок действия {n} дней":
+    "Valid for {n} day|Valid for {n} days",
+  "Заморозка до {n} дня|Заморозка до {n} дней|Заморозка до {n} дней":
+    "Freeze up to {n} day|Freeze up to {n} days",
+  Безлимитные: "Unlimited",
+  "Пакеты тренировок": "Workout packages",
+  "Для двоих": "For two",
+  "Профиль клиента не привязан к студии. Обратитесь к администратору.":
+    "Your client profile isn't linked to a studio. Please contact an administrator.",
+  "Не удалось загрузить абонементы": "Couldn't load memberships",
+  "Вы перешли на «{name}»": "You've switched to “{name}”",
+  "Абонемент «{name}» оформлен!": "Membership “{name}” is now active!",
+  "Не удалось оформить абонемент": "Couldn't purchase the membership",
+  "Автопродление отключено": "Auto-renewal turned off",
+  "Не удалось отключить автопродление": "Couldn't turn off auto-renewal",
+  "Выберите подходящий пакет занятий": "Choose the plan that suits you",
+  Абонемент: "Membership",
+  "Действует до {date}": "Valid until {date}",
+  "Автопродление включено": "Auto-renewal on",
+  "Автопродление выключено": "Auto-renewal off",
+  "Войдите в аккаунт, чтобы увидеть абонементы.": "Log in to see memberships.",
+  "Пока нет доступных абонементов.": "No memberships available yet.",
+  "Пока нет доступных безлимитных абонементов.": "No unlimited memberships available yet.",
+  "Пока нет доступных пакетов тренировок.": "No workout packages available yet.",
+  "Пока нет доступных абонементов для двоих.": "No memberships for two available yet.",
+  "Перейти на этот абонемент?": "Switch to this membership?",
+  "У вас уже есть активный абонемент. При переходе текущий абонемент будет аннулирован, а вместо него подключится выбранный.":
+    "You already have an active membership. If you switch, your current membership will be cancelled and the selected one will replace it.",
+  Отмена: "Cancel",
+  "Переходим…": "Switching…",
+  Перейти: "Switch",
+  "Отключить автопродление?": "Turn off auto-renewal?",
+  "Абонемент останется активным до конца оплаченного периода, но не будет продлён автоматически.":
+    "Your membership stays active until the end of the paid period but won't renew automatically.",
+  Закрыть: "Close",
+  "Отключаем…": "Turning off…",
+  "Отключить автопродление": "Turn off auto-renewal",
+  "Безлимит посещений": "Unlimited visits",
+  "{n} занятие|{n} занятия|{n} занятий": "{n} class|{n} classes",
+  Выбрать: "Choose",
+  Преимущества: "Benefits",
+  "Промокод применён": "Promo code applied",
+  "Промокод не найден": "Promo code not found",
+  Оформление: "Checkout",
+  "подписка с автопродлением": "auto-renewing subscription",
+  "Банковская карта": "Bank card",
+  "MM/ГГ": "MM/YY",
+  "Имя на карте": "Name on card",
+  Промокод: "Promo code",
+  Применить: "Apply",
+  "Скидка −{sum} ₾": "Discount −{sum} ₾",
+  "Согласен с условиями оферты и политикой конфиденциальности":
+    "I agree to the terms of service and the privacy policy",
+  "Согласен с регулярными списаниями каждые {n} дн. Отменить можно в любой момент.":
+    "I agree to recurring charges every {n} days. You can cancel at any time.",
+  "К оплате": "Total",
+  "Оплачиваем…": "Processing payment…",
+  "Оплатить и перейти · {sum} ₾": "Pay and switch · {sum} ₾",
+  "Оплатить · {sum} ₾": "Pay · {sum} ₾",
+  "Защищённый платёж": "Secure payment",
+  "Персональных тренировок осталось: {n}": "Personal training sessions left: {n}",
+  "Осталось {left} из {total} занятий": "{left} of {total} classes left",
+  "Персональных тренировок: {n}": "Personal training sessions: {n}",
+  "Ваш абонемент": "Your membership",
+  "Автопродление включено. Следующее списание {date}": "Auto-renewal on. Next charge on {date}",
+  "Автопродление выключено. Абонемент закончится {date}":
+    "Auto-renewal off. Your membership ends on {date}",
+  Управление: "Manage",
+};
+
+export default dict;

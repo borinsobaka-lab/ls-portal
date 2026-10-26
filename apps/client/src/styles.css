@@ -1,0 +1,1100 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+/* Roboto — корпоративный шрифт Base40, общий с админкой. Самохостится из
+   node_modules (@fontsource/roboto), без обращений к Google Fonts: работает
+   офлайн и не утекает на сторонние домены. Подсеты (латиница/кириллица)
+   браузер тянет по unicode-range, лишнего не грузит.
+   400 — текст, 500/600 — подписи и кнопки, 700/900 — заголовки и акценты.
+
+   Раньше стек начинался с "Google Sans"/"Product Sans" — это проприетарные
+   шрифты Google, которых нет на устройствах пользователей, поэтому приложение
+   рендерилось системным шрифтом (San Francisco на iPhone), а не фирменным. */
+@import "@fontsource/roboto/400.css";
+@import "@fontsource/roboto/500.css";
+@import "@fontsource/roboto/600.css";
+@import "@fontsource/roboto/700.css";
+@import "@fontsource/roboto/900.css";
+
+@theme {
+  --font-sans:
+    Roboto, ui-sans-serif, system-ui, -apple-system, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+}
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Design system definition.
+ *
+ * The @theme inline block maps CSS custom properties to Tailwind utility
+ * classes (e.g. --color-primary -> bg-primary, text-primary).
+ *
+ * The :root and .dark blocks define the actual color values using oklch.
+ * All colors MUST use oklch format.
+ *
+ * To add a new semantic color:
+ * 1. Add the variable to :root (light value) and .dark (dark value)
+ * 2. Register it in @theme inline as --color-<name>: var(--<name>)
+ */
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-card-border: var(--card-border);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-field: var(--field);
+  --color-field-focus: var(--field-focus);
+  --color-field-placeholder: var(--field-placeholder);
+  --color-ring: var(--ring);
+  --color-ring-offset-background: var(--background);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+:root {
+  --radius: 0.625rem;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.129 0.042 264.695);
+  --card: oklch(0.967 0.001 286.375);
+  --card-foreground: oklch(0.129 0.042 264.695);
+  --card-border: oklch(0.9376 0.0027 285.6876);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.129 0.042 264.695);
+  /* Фирменный цвет приложения (кнопки, акценты, подсветки) зависит от
+     формата студий, для которого собрано приложение (src/lib/app-format.ts):
+     подписочное — жёлтый #FFD900 с тёмно-серым текстом на кнопках, пакетное —
+     розовый #F763FC с белым (решение владельца 2026-10-11). Формат приходит
+     атрибутом data-app-format на <html> (RootShell в __root.tsx). */
+  --brand: #ffd900;
+  --brand-foreground: #333333;
+  --primary: var(--brand);
+  --primary-foreground: var(--brand-foreground);
+  --secondary: oklch(0.968 0.007 247.896);
+  --secondary-foreground: oklch(0.208 0.042 265.755);
+  --muted: #f4f5f7;
+  --muted-foreground: oklch(0.554 0.046 257.417);
+  --accent: oklch(0.968 0.007 247.896);
+  --accent-foreground: oklch(0.208 0.042 265.755);
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.984 0.003 247.858);
+  --border: oklch(0.88 0.013 255.508);
+  --input: oklch(0.88 0.013 255.508);
+  /* Поля ввода (src/components/ui/input.tsx, решение владельца 2026-10-12):
+     без рамки и тени, чуть серее белого фона; в фокусе — на тон темнее;
+     подсказка светло-серая, введённый текст — тёмный (foreground). */
+  --field: #f2f2f5;
+  --field-focus: #e6e6eb;
+  --field-placeholder: #a3a3ab;
+  --ring: oklch(0.704 0.04 256.788);
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+  --sidebar: oklch(0.984 0.003 247.858);
+  --sidebar-foreground: oklch(0.129 0.042 264.695);
+  --sidebar-primary: oklch(0.208 0.042 265.755);
+  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
+  --sidebar-accent: oklch(0.968 0.007 247.896);
+  --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
+  --sidebar-border: oklch(0.929 0.013 255.508);
+  --sidebar-ring: oklch(0.704 0.04 256.788);
+}
+
+/* Пакетное приложение (app.lady-stretch.one, VITE_APP_FORMAT=packages). */
+:root[data-app-format="packages"] {
+  --brand: #f763fc;
+  --brand-foreground: #ffffff;
+}
+
+.dark {
+  --background: oklch(0.129 0.042 264.695);
+  --foreground: oklch(0.984 0.003 247.858);
+  --card: oklch(0.208 0.042 265.755);
+  --card-foreground: oklch(0.984 0.003 247.858);
+  --card-border: oklch(0.9376 0.0027 285.6876);
+  --popover: oklch(0.208 0.042 265.755);
+  --popover-foreground: oklch(0.984 0.003 247.858);
+  --primary: var(--brand);
+  --primary-foreground: var(--brand-foreground);
+  --secondary: oklch(0.279 0.041 260.031);
+  --secondary-foreground: oklch(0.984 0.003 247.858);
+  --muted: oklch(0.279 0.041 260.031);
+  --muted-foreground: oklch(0.704 0.04 256.788);
+  --accent: oklch(0.279 0.041 260.031);
+  --accent-foreground: oklch(0.984 0.003 247.858);
+  --destructive: oklch(0.704 0.191 22.216);
+  --destructive-foreground: oklch(0.984 0.003 247.858);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --field: oklch(1 0 0 / 8%);
+  --field-focus: oklch(1 0 0 / 14%);
+  --field-placeholder: oklch(1 0 0 / 40%);
+  --ring: oklch(0.551 0.027 264.364);
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+  --sidebar: oklch(0.208 0.042 265.755);
+  --sidebar-foreground: oklch(0.984 0.003 247.858);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
+  --sidebar-accent: oklch(0.279 0.041 260.031);
+  --sidebar-accent-foreground: oklch(0.984 0.003 247.858);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.551 0.027 264.364);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  html,
+  body {
+    font-family: var(--font-sans);
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+  }
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.glass-dark {
+  background: rgba(27, 28, 31, 0.42);
+  backdrop-filter: blur(34px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.24);
+}
+
+.glass-menu {
+  background: rgba(27, 28, 31, 0.78);
+  backdrop-filter: blur(34px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.24);
+}
+
+html body [data-sonner-toaster][data-sonner-theme="dark"] {
+  --normal-bg: rgba(27, 28, 31, 0.42);
+  --normal-border: rgba(255, 255, 255, 0.08);
+  --normal-text: #ffffff;
+}
+
+html body [data-sonner-toast][data-styled="true"] {
+  background: rgba(27, 28, 31, 0.62) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  backdrop-filter: blur(34px) saturate(140%);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.24) !important;
+  max-width: 28rem !important;
+  width: calc(100% - 1.5rem) !important;
+  min-width: auto !important;
+}
+
+html body [data-sonner-toast][data-type="success"] {
+  background: rgba(34, 197, 94, 0.55) !important;
+  border: 1px solid rgba(34, 197, 94, 0.45) !important;
+}
+
+html body [data-sonner-toast][data-type="error"] {
+  background: rgba(239, 68, 68, 0.55) !important;
+  border: 1px solid rgba(239, 68, 68, 0.45) !important;
+}
+
+html body [data-sonner-toast][data-type="warning"] {
+  background: rgba(234, 179, 8, 0.55) !important;
+  border: 1px solid rgba(234, 179, 8, 0.45) !important;
+}
+
+/* Animated brand gradient blobs for dark header zone. Оттенки — жёлтые,
+   в пакетном приложении — розовые (--blob ниже, раньше — hue-rotate).
+
+   Скорость (2026-10-12): без filter. Раньше у каждого огонька был
+   filter: blur(15–27px), а у слоя в пакетном — hue-rotate: телефон
+   пересчитывал размытие каждый кадр, бесконечно, и прокрутка дёргалась.
+   Теперь размытый огонёк нарисован сразу градиентом (::before шире огонька
+   на 3 радиуса размытия; стопы — численный профиль прежнего blur на ширине
+   390px, отличие — до 6/255), анимируется только transform — это делает
+   видеокарта без перерисовки. Если меняются размер или размытие огонька —
+   пересчитать стопы: свёртка профиля градиента с гауссом σ = blur. */
+.gradient-blobs {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.65;
+}
+.gradient-blobs > span {
+  position: absolute;
+  aspect-ratio: 1 / 1;
+}
+.gradient-blobs > span::before {
+  content: "";
+  position: absolute;
+}
+.gradient-blobs > span:nth-child(1) {
+  --blob: 253 224 71;
+  width: 31.2%;
+  opacity: 0.85;
+  animation: blob-drift-c 4s ease-in-out infinite alternate;
+}
+.gradient-blobs > span:nth-child(1)::before {
+  inset: -54.2%;
+  background: radial-gradient(
+    circle closest-side,
+    rgb(var(--blob) / 0.534) 0%,
+    rgb(var(--blob) / 0.516) 7.1%,
+    rgb(var(--blob) / 0.467) 14.3%,
+    rgb(var(--blob) / 0.393) 21.4%,
+    rgb(var(--blob) / 0.307) 28.6%,
+    rgb(var(--blob) / 0.221) 35.7%,
+    rgb(var(--blob) / 0.146) 42.9%,
+    rgb(var(--blob) / 0.087) 50%,
+    rgb(var(--blob) / 0.047) 57.1%,
+    rgb(var(--blob) / 0.022) 64.3%,
+    rgb(var(--blob) / 0.009) 71.4%,
+    rgb(var(--blob) / 0.004) 78.6%,
+    rgb(var(--blob) / 0.001) 85.7%,
+    rgb(var(--blob) / 0) 92.9%
+  );
+}
+.gradient-blobs > span:nth-child(2) {
+  --blob: 251 191 36;
+  width: 28.6%;
+  opacity: 0.8;
+  animation: blob-drift-d 5.5s ease-in-out infinite alternate;
+}
+.gradient-blobs > span:nth-child(2)::before {
+  inset: -53.8%;
+  background: radial-gradient(
+    circle closest-side,
+    rgb(var(--blob) / 0.538) 0%,
+    rgb(var(--blob) / 0.52) 7.1%,
+    rgb(var(--blob) / 0.47) 14.3%,
+    rgb(var(--blob) / 0.396) 21.4%,
+    rgb(var(--blob) / 0.309) 28.6%,
+    rgb(var(--blob) / 0.223) 35.7%,
+    rgb(var(--blob) / 0.147) 42.9%,
+    rgb(var(--blob) / 0.088) 50%,
+    rgb(var(--blob) / 0.047) 57.1%,
+    rgb(var(--blob) / 0.023) 64.3%,
+    rgb(var(--blob) / 0.01) 71.4%,
+    rgb(var(--blob) / 0.004) 78.6%,
+    rgb(var(--blob) / 0.001) 85.7%,
+    rgb(var(--blob) / 0) 92.9%
+  );
+}
+.gradient-blobs > span:nth-child(3) {
+  --blob: 255 200 60;
+  width: 26%;
+  opacity: 0.75;
+  animation: blob-drift-e 4.5s ease-in-out infinite alternate;
+}
+.gradient-blobs > span:nth-child(3)::before {
+  inset: -53.3%;
+  background: radial-gradient(
+    circle closest-side,
+    rgb(var(--blob) / 0.542) 0%,
+    rgb(var(--blob) / 0.524) 7.1%,
+    rgb(var(--blob) / 0.474) 14.3%,
+    rgb(var(--blob) / 0.399) 21.4%,
+    rgb(var(--blob) / 0.313) 28.6%,
+    rgb(var(--blob) / 0.226) 35.7%,
+    rgb(var(--blob) / 0.149) 42.9%,
+    rgb(var(--blob) / 0.089) 50%,
+    rgb(var(--blob) / 0.048) 57.1%,
+    rgb(var(--blob) / 0.023) 64.3%,
+    rgb(var(--blob) / 0.01) 71.4%,
+    rgb(var(--blob) / 0.004) 78.6%,
+    rgb(var(--blob) / 0.001) 85.7%,
+    rgb(var(--blob) / 0) 92.9%
+  );
+}
+.gradient-blobs > span:nth-child(4) {
+  --blob: 250 210 50;
+  width: 36.4%;
+  opacity: 0.88;
+  animation: blob-drift-f 6s ease-in-out infinite alternate;
+}
+.gradient-blobs > span:nth-child(4)::before {
+  inset: -50.7%;
+  background: radial-gradient(
+    circle closest-side,
+    rgb(var(--blob) / 0.562) 0%,
+    rgb(var(--blob) / 0.544) 7.1%,
+    rgb(var(--blob) / 0.493) 14.3%,
+    rgb(var(--blob) / 0.417) 21.4%,
+    rgb(var(--blob) / 0.328) 28.6%,
+    rgb(var(--blob) / 0.238) 35.7%,
+    rgb(var(--blob) / 0.158) 42.9%,
+    rgb(var(--blob) / 0.095) 50%,
+    rgb(var(--blob) / 0.051) 57.1%,
+    rgb(var(--blob) / 0.024) 64.3%,
+    rgb(var(--blob) / 0.01) 71.4%,
+    rgb(var(--blob) / 0.004) 78.6%,
+    rgb(var(--blob) / 0.001) 85.7%,
+    rgb(var(--blob) / 0) 92.9%
+  );
+}
+.gradient-blobs > span:nth-child(5) {
+  --blob: 254 240 138;
+  width: 23.4%;
+  opacity: 0.72;
+  animation: blob-drift-g 3s ease-in-out infinite alternate;
+}
+.gradient-blobs > span:nth-child(5)::before {
+  inset: -49.3%;
+  background: radial-gradient(
+    circle closest-side,
+    rgb(var(--blob) / 0.573) 0%,
+    rgb(var(--blob) / 0.555) 7.1%,
+    rgb(var(--blob) / 0.503) 14.3%,
+    rgb(var(--blob) / 0.427) 21.4%,
+    rgb(var(--blob) / 0.337) 28.6%,
+    rgb(var(--blob) / 0.245) 35.7%,
+    rgb(var(--blob) / 0.163) 42.9%,
+    rgb(var(--blob) / 0.098) 50%,
+    rgb(var(--blob) / 0.053) 57.1%,
+    rgb(var(--blob) / 0.025) 64.3%,
+    rgb(var(--blob) / 0.011) 71.4%,
+    rgb(var(--blob) / 0.004) 78.6%,
+    rgb(var(--blob) / 0.001) 85.7%,
+    rgb(var(--blob) / 0) 92.9%
+  );
+}
+.gradient-blobs > span:nth-child(6) {
+  --blob: 253 224 71;
+  width: 20.8%;
+  opacity: 0.78;
+  animation: blob-drift-h 2.5s ease-in-out infinite alternate;
+}
+.gradient-blobs > span:nth-child(6)::before {
+  inset: -66.6%;
+  background: radial-gradient(
+    circle closest-side,
+    rgb(var(--blob) / 0.444) 0%,
+    rgb(var(--blob) / 0.428) 7.1%,
+    rgb(var(--blob) / 0.384) 14.3%,
+    rgb(var(--blob) / 0.319) 21.4%,
+    rgb(var(--blob) / 0.246) 28.6%,
+    rgb(var(--blob) / 0.174) 35.7%,
+    rgb(var(--blob) / 0.113) 42.9%,
+    rgb(var(--blob) / 0.067) 50%,
+    rgb(var(--blob) / 0.036) 57.1%,
+    rgb(var(--blob) / 0.018) 64.3%,
+    rgb(var(--blob) / 0.008) 71.4%,
+    rgb(var(--blob) / 0.003) 78.6%,
+    rgb(var(--blob) / 0.001) 85.7%,
+    rgb(var(--blob) / 0) 92.9%
+  );
+}
+.gradient-blobs > span:nth-child(7) {
+  --blob: 255 170 50;
+  width: 24.7%;
+  opacity: 0.73;
+  animation: blob-drift-i 3.5s ease-in-out infinite alternate;
+}
+.gradient-blobs > span:nth-child(7)::before {
+  inset: -62.3%;
+  background: radial-gradient(
+    circle closest-side,
+    rgb(var(--blob) / 0.474) 0%,
+    rgb(var(--blob) / 0.457) 7.1%,
+    rgb(var(--blob) / 0.411) 14.3%,
+    rgb(var(--blob) / 0.343) 21.4%,
+    rgb(var(--blob) / 0.265) 28.6%,
+    rgb(var(--blob) / 0.189) 35.7%,
+    rgb(var(--blob) / 0.123) 42.9%,
+    rgb(var(--blob) / 0.073) 50%,
+    rgb(var(--blob) / 0.039) 57.1%,
+    rgb(var(--blob) / 0.019) 64.3%,
+    rgb(var(--blob) / 0.008) 71.4%,
+    rgb(var(--blob) / 0.003) 78.6%,
+    rgb(var(--blob) / 0.001) 85.7%,
+    rgb(var(--blob) / 0) 92.9%
+  );
+}
+.gradient-blobs > span:nth-child(8) {
+  --blob: 250 210 50;
+  width: 18.2%;
+  opacity: 0.65;
+  animation: blob-drift-j 2s ease-in-out infinite alternate;
+}
+.gradient-blobs > span:nth-child(8)::before {
+  inset: -63.4%;
+  background: radial-gradient(
+    circle closest-side,
+    rgb(var(--blob) / 0.466) 0%,
+    rgb(var(--blob) / 0.449) 7.1%,
+    rgb(var(--blob) / 0.404) 14.3%,
+    rgb(var(--blob) / 0.336) 21.4%,
+    rgb(var(--blob) / 0.26) 28.6%,
+    rgb(var(--blob) / 0.185) 35.7%,
+    rgb(var(--blob) / 0.12) 42.9%,
+    rgb(var(--blob) / 0.072) 50%,
+    rgb(var(--blob) / 0.038) 57.1%,
+    rgb(var(--blob) / 0.019) 64.3%,
+    rgb(var(--blob) / 0.008) 71.4%,
+    rgb(var(--blob) / 0.003) 78.6%,
+    rgb(var(--blob) / 0.001) 85.7%,
+    rgb(var(--blob) / 0) 92.9%
+  );
+}
+.gradient-blobs > span:nth-child(9) {
+  --blob: 251 191 36;
+  width: 27.3%;
+  opacity: 0.82;
+  animation: blob-drift-k 3s ease-in-out infinite alternate;
+}
+.gradient-blobs > span:nth-child(9)::before {
+  inset: -62%;
+  background: radial-gradient(
+    circle closest-side,
+    rgb(var(--blob) / 0.476) 0%,
+    rgb(var(--blob) / 0.459) 7.1%,
+    rgb(var(--blob) / 0.413) 14.3%,
+    rgb(var(--blob) / 0.345) 21.4%,
+    rgb(var(--blob) / 0.266) 28.6%,
+    rgb(var(--blob) / 0.19) 35.7%,
+    rgb(var(--blob) / 0.124) 42.9%,
+    rgb(var(--blob) / 0.074) 50%,
+    rgb(var(--blob) / 0.04) 57.1%,
+    rgb(var(--blob) / 0.019) 64.3%,
+    rgb(var(--blob) / 0.008) 71.4%,
+    rgb(var(--blob) / 0.003) 78.6%,
+    rgb(var(--blob) / 0.001) 85.7%,
+    rgb(var(--blob) / 0) 92.9%
+  );
+}
+.gradient-blobs > span:nth-child(10) {
+  --blob: 254 240 138;
+  width: 15.6%;
+  opacity: 0.58;
+  animation: blob-drift-l 2.5s ease-in-out infinite alternate;
+}
+.gradient-blobs > span:nth-child(10)::before {
+  inset: -118.3%;
+  background: radial-gradient(
+    circle closest-side,
+    rgb(var(--blob) / 0.206) 0%,
+    rgb(var(--blob) / 0.199) 7.1%,
+    rgb(var(--blob) / 0.178) 14.3%,
+    rgb(var(--blob) / 0.148) 21.4%,
+    rgb(var(--blob) / 0.114) 28.6%,
+    rgb(var(--blob) / 0.082) 35.7%,
+    rgb(var(--blob) / 0.054) 42.9%,
+    rgb(var(--blob) / 0.033) 50%,
+    rgb(var(--blob) / 0.019) 57.1%,
+    rgb(var(--blob) / 0.01) 64.3%,
+    rgb(var(--blob) / 0.005) 71.4%,
+    rgb(var(--blob) / 0.002) 78.6%,
+    rgb(var(--blob) / 0.001) 85.7%,
+    rgb(var(--blob) / 0) 92.9%
+  );
+}
+.gradient-blobs > span:nth-child(11) {
+  --blob: 255 200 50;
+  width: 33.8%;
+  opacity: 0.9;
+  animation: blob-drift-m 4s ease-in-out infinite alternate;
+}
+.gradient-blobs > span:nth-child(11)::before {
+  inset: -61.4%;
+  background: radial-gradient(
+    circle closest-side,
+    rgb(var(--blob) / 0.48) 0%,
+    rgb(var(--blob) / 0.463) 7.1%,
+    rgb(var(--blob) / 0.416) 14.3%,
+    rgb(var(--blob) / 0.348) 21.4%,
+    rgb(var(--blob) / 0.269) 28.6%,
+    rgb(var(--blob) / 0.192) 35.7%,
+    rgb(var(--blob) / 0.125) 42.9%,
+    rgb(var(--blob) / 0.074) 50%,
+    rgb(var(--blob) / 0.04) 57.1%,
+    rgb(var(--blob) / 0.019) 64.3%,
+    rgb(var(--blob) / 0.008) 71.4%,
+    rgb(var(--blob) / 0.003) 78.6%,
+    rgb(var(--blob) / 0.001) 85.7%,
+    rgb(var(--blob) / 0) 92.9%
+  );
+}
+.gradient-blobs > span:nth-child(12) {
+  --blob: 250 180 40;
+  width: 19.5%;
+  opacity: 0.7;
+  animation: blob-drift-n 2.4s ease-in-out infinite alternate;
+}
+.gradient-blobs > span:nth-child(12)::before {
+  inset: -71%;
+  background: radial-gradient(
+    circle closest-side,
+    rgb(var(--blob) / 0.414) 0%,
+    rgb(var(--blob) / 0.399) 7.1%,
+    rgb(var(--blob) / 0.357) 14.3%,
+    rgb(var(--blob) / 0.297) 21.4%,
+    rgb(var(--blob) / 0.228) 28.6%,
+    rgb(var(--blob) / 0.161) 35.7%,
+    rgb(var(--blob) / 0.105) 42.9%,
+    rgb(var(--blob) / 0.062) 50%,
+    rgb(var(--blob) / 0.034) 57.1%,
+    rgb(var(--blob) / 0.016) 64.3%,
+    rgb(var(--blob) / 0.007) 71.4%,
+    rgb(var(--blob) / 0.003) 78.6%,
+    rgb(var(--blob) / 0.001) 85.7%,
+    rgb(var(--blob) / 0) 92.9%
+  );
+}
+.gradient-blobs > span:nth-child(13) {
+  --blob: 254 230 100;
+  width: 26%;
+  opacity: 0.82;
+  animation: blob-drift-o 3.6s ease-in-out infinite alternate;
+}
+.gradient-blobs > span:nth-child(13)::before {
+  inset: -65.1%;
+  background: radial-gradient(
+    circle closest-side,
+    rgb(var(--blob) / 0.454) 0%,
+    rgb(var(--blob) / 0.438) 7.1%,
+    rgb(var(--blob) / 0.393) 14.3%,
+    rgb(var(--blob) / 0.327) 21.4%,
+    rgb(var(--blob) / 0.252) 28.6%,
+    rgb(var(--blob) / 0.179) 35.7%,
+    rgb(var(--blob) / 0.117) 42.9%,
+    rgb(var(--blob) / 0.069) 50%,
+    rgb(var(--blob) / 0.037) 57.1%,
+    rgb(var(--blob) / 0.018) 64.3%,
+    rgb(var(--blob) / 0.008) 71.4%,
+    rgb(var(--blob) / 0.003) 78.6%,
+    rgb(var(--blob) / 0.001) 85.7%,
+    rgb(var(--blob) / 0) 92.9%
+  );
+}
+.gradient-blobs > span:nth-child(14) {
+  --blob: 255 210 70;
+  width: 22.1%;
+  opacity: 0.76;
+  animation: blob-drift-p 2.8s ease-in-out infinite alternate;
+}
+.gradient-blobs > span:nth-child(14)::before {
+  inset: -69.6%;
+  background: radial-gradient(
+    circle closest-side,
+    rgb(var(--blob) / 0.423) 0%,
+    rgb(var(--blob) / 0.408) 7.1%,
+    rgb(var(--blob) / 0.365) 14.3%,
+    rgb(var(--blob) / 0.303) 21.4%,
+    rgb(var(--blob) / 0.233) 28.6%,
+    rgb(var(--blob) / 0.165) 35.7%,
+    rgb(var(--blob) / 0.107) 42.9%,
+    rgb(var(--blob) / 0.064) 50%,
+    rgb(var(--blob) / 0.034) 57.1%,
+    rgb(var(--blob) / 0.017) 64.3%,
+    rgb(var(--blob) / 0.007) 71.4%,
+    rgb(var(--blob) / 0.003) 78.6%,
+    rgb(var(--blob) / 0.001) 85.7%,
+    rgb(var(--blob) / 0) 92.9%
+  );
+}
+.gradient-blobs > span:nth-child(15) {
+  --blob: 253 200 60;
+  width: 29.9%;
+  opacity: 0.86;
+  animation: blob-drift-q 4.4s ease-in-out infinite alternate;
+}
+.gradient-blobs > span:nth-child(15)::before {
+  inset: -61.7%;
+  background: radial-gradient(
+    circle closest-side,
+    rgb(var(--blob) / 0.478) 0%,
+    rgb(var(--blob) / 0.461) 7.1%,
+    rgb(var(--blob) / 0.414) 14.3%,
+    rgb(var(--blob) / 0.346) 21.4%,
+    rgb(var(--blob) / 0.268) 28.6%,
+    rgb(var(--blob) / 0.191) 35.7%,
+    rgb(var(--blob) / 0.124) 42.9%,
+    rgb(var(--blob) / 0.074) 50%,
+    rgb(var(--blob) / 0.04) 57.1%,
+    rgb(var(--blob) / 0.019) 64.3%,
+    rgb(var(--blob) / 0.008) 71.4%,
+    rgb(var(--blob) / 0.003) 78.6%,
+    rgb(var(--blob) / 0.001) 85.7%,
+    rgb(var(--blob) / 0) 92.9%
+  );
+}
+.gradient-blobs > span:nth-child(16) {
+  --blob: 250 220 80;
+  width: 16.9%;
+  opacity: 0.68;
+  animation: blob-drift-r 2.2s ease-in-out infinite alternate;
+}
+.gradient-blobs > span:nth-child(16)::before {
+  inset: -68.3%;
+  background: radial-gradient(
+    circle closest-side,
+    rgb(var(--blob) / 0.432) 0%,
+    rgb(var(--blob) / 0.417) 7.1%,
+    rgb(var(--blob) / 0.373) 14.3%,
+    rgb(var(--blob) / 0.31) 21.4%,
+    rgb(var(--blob) / 0.239) 28.6%,
+    rgb(var(--blob) / 0.169) 35.7%,
+    rgb(var(--blob) / 0.11) 42.9%,
+    rgb(var(--blob) / 0.065) 50%,
+    rgb(var(--blob) / 0.035) 57.1%,
+    rgb(var(--blob) / 0.017) 64.3%,
+    rgb(var(--blob) / 0.008) 71.4%,
+    rgb(var(--blob) / 0.003) 78.6%,
+    rgb(var(--blob) / 0.001) 85.7%,
+    rgb(var(--blob) / 0) 92.9%
+  );
+}
+.gradient-blobs > span:nth-child(17) {
+  --blob: 255 190 45;
+  width: 24.7%;
+  opacity: 0.8;
+  animation: blob-drift-s 3.2s ease-in-out infinite alternate;
+}
+.gradient-blobs > span:nth-child(17)::before {
+  inset: -65.4%;
+  background: radial-gradient(
+    circle closest-side,
+    rgb(var(--blob) / 0.452) 0%,
+    rgb(var(--blob) / 0.436) 7.1%,
+    rgb(var(--blob) / 0.391) 14.3%,
+    rgb(var(--blob) / 0.325) 21.4%,
+    rgb(var(--blob) / 0.251) 28.6%,
+    rgb(var(--blob) / 0.178) 35.7%,
+    rgb(var(--blob) / 0.116) 42.9%,
+    rgb(var(--blob) / 0.069) 50%,
+    rgb(var(--blob) / 0.037) 57.1%,
+    rgb(var(--blob) / 0.018) 64.3%,
+    rgb(var(--blob) / 0.008) 71.4%,
+    rgb(var(--blob) / 0.003) 78.6%,
+    rgb(var(--blob) / 0.001) 85.7%,
+    rgb(var(--blob) / 0) 92.9%
+  );
+}
+.gradient-blobs > span:nth-child(18) {
+  --blob: 252 215 90;
+  width: 20.8%;
+  opacity: 0.74;
+  animation: blob-drift-t 2.6s ease-in-out infinite alternate;
+}
+.gradient-blobs > span:nth-child(18)::before {
+  inset: -66.6%;
+  background: radial-gradient(
+    circle closest-side,
+    rgb(var(--blob) / 0.444) 0%,
+    rgb(var(--blob) / 0.428) 7.1%,
+    rgb(var(--blob) / 0.384) 14.3%,
+    rgb(var(--blob) / 0.319) 21.4%,
+    rgb(var(--blob) / 0.246) 28.6%,
+    rgb(var(--blob) / 0.174) 35.7%,
+    rgb(var(--blob) / 0.113) 42.9%,
+    rgb(var(--blob) / 0.067) 50%,
+    rgb(var(--blob) / 0.036) 57.1%,
+    rgb(var(--blob) / 0.018) 64.3%,
+    rgb(var(--blob) / 0.008) 71.4%,
+    rgb(var(--blob) / 0.003) 78.6%,
+    rgb(var(--blob) / 0.001) 85.7%,
+    rgb(var(--blob) / 0) 92.9%
+  );
+}
+
+@keyframes blob-drift-a {
+  0% {
+    transform: translate(0%, 0%) scale(1);
+  }
+  100% {
+    transform: translate(40%, 30%) scale(1.12);
+  }
+}
+@keyframes blob-drift-b {
+  0% {
+    transform: translate(0%, 0%) scale(1);
+  }
+  100% {
+    transform: translate(-35%, -25%) scale(1.18);
+  }
+}
+@keyframes blob-drift-c {
+  0% {
+    transform: translate(0%, 0%) scale(1);
+  }
+  100% {
+    transform: translate(-30%, 40%) scale(0.95);
+  }
+}
+@keyframes blob-drift-d {
+  0% {
+    transform: translate(0%, 0%) scale(1);
+  }
+  100% {
+    transform: translate(25%, -35%) scale(1.08);
+  }
+}
+@keyframes blob-drift-e {
+  0% {
+    transform: translate(0%, 0%) scale(1);
+  }
+  100% {
+    transform: translate(-20%, 30%) scale(0.9);
+  }
+}
+@keyframes blob-drift-f {
+  0% {
+    transform: translate(0%, 0%) scale(1);
+  }
+  100% {
+    transform: translate(12%, -25%) scale(1.12);
+  }
+}
+@keyframes blob-drift-g {
+  0% {
+    transform: translate(0%, 0%) scale(1);
+  }
+  100% {
+    transform: translate(-25%, -20%) scale(0.95);
+  }
+}
+@keyframes blob-drift-h {
+  0% {
+    transform: translate(0%, 0%) scale(1);
+  }
+  100% {
+    transform: translate(-22%, 28%) scale(1.1);
+  }
+}
+@keyframes blob-drift-i {
+  0% {
+    transform: translate(0%, 0%) scale(1);
+  }
+  100% {
+    transform: translate(18%, -22%) scale(0.92);
+  }
+}
+@keyframes blob-drift-j {
+  0% {
+    transform: translate(0%, 0%) scale(1);
+  }
+  100% {
+    transform: translate(-28%, 15%) scale(1.08);
+  }
+}
+@keyframes blob-drift-k {
+  0% {
+    transform: translate(0%, 0%) scale(1);
+  }
+  100% {
+    transform: translate(12%, 32%) scale(0.9);
+  }
+}
+@keyframes blob-drift-l {
+  0% {
+    transform: translate(0%, 0%) scale(1);
+  }
+  100% {
+    transform: translate(-15%, -25%) scale(1.15);
+  }
+}
+
+@keyframes blob-drift-m {
+  0% {
+    transform: translate(0%, 0%) scale(1);
+  }
+  100% {
+    transform: translate(30%, -20%) scale(1.1);
+  }
+}
+@keyframes blob-drift-n {
+  0% {
+    transform: translate(0%, 0%) scale(1);
+  }
+  100% {
+    transform: translate(-18%, 25%) scale(0.95);
+  }
+}
+@keyframes blob-drift-o {
+  0% {
+    transform: translate(0%, 0%) scale(1);
+  }
+  100% {
+    transform: translate(-22%, -18%) scale(1.12);
+  }
+}
+@keyframes blob-drift-p {
+  0% {
+    transform: translate(0%, 0%) scale(1);
+  }
+  100% {
+    transform: translate(15%, 20%) scale(0.92);
+  }
+}
+@keyframes blob-drift-q {
+  0% {
+    transform: translate(0%, 0%) scale(1);
+  }
+  100% {
+    transform: translate(-28%, 10%) scale(1.08);
+  }
+}
+@keyframes blob-drift-r {
+  0% {
+    transform: translate(0%, 0%) scale(1);
+  }
+  100% {
+    transform: translate(20%, -15%) scale(1.05);
+  }
+}
+@keyframes blob-drift-s {
+  0% {
+    transform: translate(0%, 0%) scale(1);
+  }
+  100% {
+    transform: translate(-10%, 30%) scale(0.9);
+  }
+}
+@keyframes blob-drift-t {
+  0% {
+    transform: translate(0%, 0%) scale(1);
+  }
+  100% {
+    transform: translate(25%, -12%) scale(1.15);
+  }
+}
+
+/* Floating brand glow for AI assistant button — single bright orb */
+.assistant-glow {
+  position: relative;
+  overflow: hidden;
+}
+.assistant-glow > .glow-orb {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 40px;
+  height: 40px;
+  margin: -20px 0 0 -20px;
+  border-radius: 9999px;
+  filter: blur(5px);
+  pointer-events: none;
+  will-change: transform;
+  background: radial-gradient(
+    circle,
+    rgba(255, 230, 40, 1),
+    rgba(255, 200, 0, 0.6) 45%,
+    rgba(255, 180, 0, 0) 75%
+  );
+  animation: assistant-orb 7.6s cubic-bezier(0.45, 0, 0.15, 1) infinite;
+}
+@keyframes assistant-orb {
+  0% {
+    transform: translate(-13px, -9px) scale(1);
+  }
+  16% {
+    transform: translate(11px, 8px) scale(1.18);
+  }
+  31% {
+    transform: translate(4px, -14px) scale(0.92);
+  }
+  47% {
+    transform: translate(-15px, 7px) scale(1.12);
+  }
+  63% {
+    transform: translate(15px, -4px) scale(0.98);
+  }
+  82% {
+    transform: translate(-6px, 14px) scale(1.2);
+  }
+  100% {
+    transform: translate(-13px, -9px) scale(1);
+  }
+}
+
+@utility ghost-nudge {
+  animation: ghost-nudge 5s ease-in-out infinite;
+}
+
+@keyframes ghost-nudge {
+  0%,
+  90% {
+    transform: rotate(0deg) translateY(0);
+  }
+  92% {
+    transform: rotate(-10deg) translateY(-3px);
+  }
+  94% {
+    transform: rotate(10deg) translateY(-3px);
+  }
+  96% {
+    transform: rotate(-5deg) translateY(0);
+  }
+  98%,
+  100% {
+    transform: rotate(0deg) translateY(0);
+  }
+}
+
+/* Пакетное приложение: жёлтые пятна шапки (цвета огоньков посчитаны как
+   hue-rotate(263deg) saturate(1.3) прежнего фильтра слоя), свечение кнопки
+   ассистента и жёлтая надпись логотипа-заглушки (.brand-art, assets/brand-placeholder.webp) —
+   в розовый #F763FC (поворот тона подобран под основной жёлтый пятен). */
+:root[data-app-format="packages"] .gradient-blobs > span:nth-child(1) {
+  --blob: 255 164 255;
+}
+:root[data-app-format="packages"] .gradient-blobs > span:nth-child(2) {
+  --blob: 255 131 255;
+}
+:root[data-app-format="packages"] .gradient-blobs > span:nth-child(3) {
+  --blob: 255 146 255;
+}
+:root[data-app-format="packages"] .gradient-blobs > span:nth-child(4) {
+  --blob: 255 148 255;
+}
+:root[data-app-format="packages"] .gradient-blobs > span:nth-child(5) {
+  --blob: 255 200 255;
+}
+:root[data-app-format="packages"] .gradient-blobs > span:nth-child(6) {
+  --blob: 255 164 255;
+}
+:root[data-app-format="packages"] .gradient-blobs > span:nth-child(7) {
+  --blob: 255 125 255;
+}
+:root[data-app-format="packages"] .gradient-blobs > span:nth-child(8) {
+  --blob: 255 148 255;
+}
+:root[data-app-format="packages"] .gradient-blobs > span:nth-child(9) {
+  --blob: 255 131 255;
+}
+:root[data-app-format="packages"] .gradient-blobs > span:nth-child(10) {
+  --blob: 255 200 255;
+}
+:root[data-app-format="packages"] .gradient-blobs > span:nth-child(11) {
+  --blob: 255 142 255;
+}
+:root[data-app-format="packages"] .gradient-blobs > span:nth-child(12) {
+  --blob: 255 126 255;
+}
+:root[data-app-format="packages"] .gradient-blobs > span:nth-child(13) {
+  --blob: 255 179 255;
+}
+:root[data-app-format="packages"] .gradient-blobs > span:nth-child(14) {
+  --blob: 255 156 255;
+}
+:root[data-app-format="packages"] .gradient-blobs > span:nth-child(15) {
+  --blob: 255 146 255;
+}
+:root[data-app-format="packages"] .gradient-blobs > span:nth-child(16) {
+  --blob: 255 165 255;
+}
+:root[data-app-format="packages"] .gradient-blobs > span:nth-child(17) {
+  --blob: 255 134 255;
+}
+:root[data-app-format="packages"] .gradient-blobs > span:nth-child(18) {
+  --blob: 255 166 255;
+}
+:root[data-app-format="packages"] .brand-art {
+  filter: hue-rotate(263deg) saturate(1.3);
+}
+:root[data-app-format="packages"] .assistant-glow > .glow-orb {
+  filter: blur(5px) hue-rotate(263deg) saturate(1.3);
+}
+
+/* Иллюстрации на тёмной зоне (пакетное приложение: вход, онбординг —
+   DarkFrame в formats/packages/dark-frame.tsx): края картинки растворяются
+   в фоне; огоньки — отдельным слоем поверх картинки, с «дыркой» в её центре
+   (маска считается в DarkFrame по замеру картинки). */
+.art-fade {
+  -webkit-mask-image: radial-gradient(closest-side, #000 70%, transparent 100%);
+  mask-image: radial-gradient(closest-side, #000 70%, transparent 100%);
+}
+/* Мягче — картинка растворяется с середины, без заметной круглой границы
+   («Пригласи подругу», огоньки идут поверх неё). */
+.art-fade-soft {
+  -webkit-mask-image: radial-gradient(closest-side, #000 35%, transparent 100%);
+  mask-image: radial-gradient(closest-side, #000 35%, transparent 100%);
+}
+/* Мелкие огоньки (свой слой поверх картинки — «Пригласи подругу»). */
+.gradient-blobs.blobs-small {
+  opacity: 0.8;
+}
+.gradient-blobs.blobs-small > span {
+  scale: 0.45;
+}
+/* Ввод с телефона (клавиатура): картинку и длинные подзаголовки
+   (.frame-hide-typing) прячем — место полям; огоньки — без «дырки». */
+[data-dark-frame][data-typing] .frame-art,
+[data-dark-frame][data-kb] .frame-art,
+[data-dark-frame][data-typing] .frame-hide-typing,
+[data-dark-frame][data-kb] .frame-hide-typing {
+  display: none;
+}
+[data-dark-frame][data-typing] .frame-blobs,
+[data-dark-frame][data-kb] .frame-blobs {
+  -webkit-mask-image: none !important;
+  mask-image: none !important;
+}
+
+/* Слой огоньков шапки (HeaderBackdrop, page-shell.tsx): нижний край гаснет
+   плавно, а не обрезает огоньки прямой линией. Не маской: маска над
+   анимированными огоньками пересчитывается каждый кадр, а подложка
+   однотонная — тот же вид даёт её цвет поверх, от прозрачного. */
+.backdrop-fade::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, transparent 80%, #2a2b2f);
+}
+
+/* Заглушка «Поверните телефон» (RotateOverlay): телефон в горизонтали —
+   сенсорный экран без наведения и высотой до 500px (у планшетов больше). */
+@media (orientation: landscape) and (max-height: 500px) and (hover: none) and (pointer: coarse) {
+  .rotate-overlay {
+    display: flex;
+  }
+}

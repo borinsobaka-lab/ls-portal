@@ -1,0 +1,1069 @@
+# Портал Lady Stretch (Россия) — админка + клиентское приложение
+
+Копия портала Base40 для Lady Stretch в России (решение владельца
+2026-10-26, RU_SELECTEL.md): развёртывается на Selectel и развивается
+отдельно. Первый этап — **база знаний и «Академия»** для сотрудников
+(портал = админка, `apps/admin`); остальные разделы пока видит только
+суперадминистратор. ИИ (Kate, диктовка) выключен: переменные `AI_*` не
+задаются. Оба приложения — TanStack Start (SSR) + React 19 + Tailwind 4 +
+shadcn/radix, пакетный менеджер — bun.
+
+## Структура
+
+- `apps/admin/` — портал (админ-панель), `https://portal.<домен>`. Свой
+  **CLAUDE.md** (код, слой данных, auth-письма, сервер) — читать перед
+  правками.
+- `apps/client/` — клиентское приложение (две сборки: подписочная и
+  пакетная, `VITE_APP_FORMAT=packages`). На первом этапе не выкатывается.
+  Свой **CLAUDE.md**.
+- `db/` — схема БД: старые `db/*.sql`, `db/migrations/` и мигратор
+  `db/migrate.ts` (выполняется при старте контейнера портала; на пустой базе
+  сначала собирает схему целиком — см. «База данных»).
+- `DEPLOY.md` — инструкция деплоя на Selectel (сервер, Coolify, Supabase,
+  DNS и почта reg.ru, бэкапы в S3).
+
+Копия выложена без истории (2026-10-26) из репозитория Base40; исправления
+между копиями переносятся вручную по решению владельца.
+
+Приложения **независимы**: у каждого свой `package.json`, `bun.lock`,
+`tsconfig`, eslint/prettier и `.env`; общих пакетов (bun workspaces) нет.
+
+## Команды (из корня)
+
+- `bun run setup` — зависимости обоих приложений (только публичный
+  npm-реестр)
+- `bun run dev:admin` (:8080), `bun run dev:client` (:8081)
+- `bun run typecheck` — `tsc --noEmit` в обоих приложениях; должен быть чистым
+  перед коммитом
+- `bun run lint`, `bun run test`, `bun run build` — то же по обоим
+- `bun run test:db` — тесты базы (`db/*.test.ts`): мигратора
+  (`TEST_DATABASE_URL` — пустая база) и сценариев
+  (`TEST_SCHEMA_DATABASE_URL` — база с полной схемой; собирает её
+  `bash db/test/build-schema.sh <url>`: заглушки Supabase, старые db/\*.sql,
+  все миграции). Без переменных пропускаются; сценарии откатываются.
+- Внутри приложения работают его собственные команды
+  (`cd apps/admin && bun run dev`) — см. CLAUDE.md приложения.
+
+## Форматы студий — читать перед любой задачей
+
+Студии бывают двух форматов (`studios.format`): **«Зал с подписочной
+моделью»** (`subscription`, всё сделанное до 2026-10-09) и **«Зал с пакетами
+тренировок»** (`packages`, в разработке — абонементы, тренировки, расписание
+будут другими). У каждого формата своё клиентское приложение (две сборки
+`apps/client`). Подписочный формат не ломаем: пакетный добавляется рядом.
+Подробно, правила и журнал решений по пакетному формату — **STUDIO_FORMATS.md**
+(держать актуальным). Студии заводятся в «Управлении» → «Клубы» админки
+(внизу рейки слева от меню): тип, логотип в меню, основной цвет (`--brand`
+админки при открытой студии).
+
+**Термин в интерфейсе админки — «клуб», не «студия»** (решение владельца
+2026-10-11): все тексты админки (подписи, подсказки, ошибки, в том числе
+ошибки RPC — `db/migrations/2026-10-11_club_term_messages.sql`, описания
+инструментов Kate) пишутся с «клуб» в нужном роде и падеже («Клуб создан»,
+«в каждом клубе»). В коде, схеме и документах остаются `studio`/«студия».
+В «Скриптах LS» переменная — `{клуб}`; прежняя `{студия}` в старых текстах
+подставляется так же. Клиентское приложение этим решением не затронуто.
+
+## Рабочий режим
+
+- Изменения — в ветку `claude/*`, пуш, короткий отчёт владельцу; в `main`
+  мержит владелец (или Claude по его слову). **Пуш в `main` = автодеплой**
+  на сервер Selectel (Coolify).
+- Секретов и персональных данных в репозитории нет и не должно быть —
+  репозиторий публичный. Переменные окружения — только в Coolify.
+- Форматирование и содержательные правки — разными коммитами.
+- Версии — свои у копии, начаты с «1.0»: портал — `ADMIN_VERSION`
+  (`apps/admin/src/lib/app-version.ts`, `bun run version:admin`), клиент —
+  `APP_VERSION` (`apps/client/src/lib/app-version.ts`,
+  `bun run version:client`). Каждая выкладка приложения повышает его версию
+  на шаг отдельным коммитом «Версия портала N.M» / «Версия приложения N.M».
+
+## Деплой
+
+Selectel, один облачный сервер (Coolify + self-hosted Supabase + портал),
+ветка `main` этого репозитория. Шаги и переменные — **DEPLOY.md**. Контекст
+сборки Docker — корень репозитория, Dockerfile портала —
+`/apps/admin/Dockerfile`, Watch Paths — `apps/admin/**`, `db/**`.
+
+## Авторизация (оба приложения)
+
+Вход везде — по 6-значному коду из письма, паролей нет ни у клиентов, ни у
+сотрудников. Письма для обоих приложений шлёт хук в админке
+(`/api/auth-email`) — подробно в `apps/admin/CLAUDE.md` («Auth-письма»),
+клиентская сторона — `apps/client/CLAUDE.md` («Авторизация»), настройка —
+DEPLOY.md.
+
+**Сотрудник и клиент на одной почте — независимо** (решение владельца
+2026-10-12). Учётная запись GoTrue на почту одна, но у неё две части:
+служебная (роли owner/admin/trainer, «Доступы», `profiles` — имя, аватарка,
+студия админки) и клиентская (карточка `clients`, анкета, записи, оценки).
+Клиентская сторона служебную не трогает: студия клиента для RLS —
+студия карточки (`current_studio_id`), профиль сотрудника не переписывается;
+удаление карточки клиента у сотрудника стирает только клиентскую часть;
+снятие доступа не удаляет учётную запись клиента; выход — `signOut({ scope:
+"local" })` в обоих приложениях (глобальный отозвал бы сессии и во втором).
+Схема — `db/migrations/2026-10-12_zzz_staff_client_separation.sql`. Общий
+остаётся только код входа: новый код, запрошенный в одном приложении,
+отменяет неиспользованный код другого.
+
+## База данных
+
+- Удаление занятия: `db/migrations/2026-10-10_schedule_entry_delete.sql` —
+  журнал записей удалённого занятия переводится в «Отменено» (раньше оставался
+  «Забронировано», а потом превращался в пропуски клиентов); там же разовое
+  исправление истории. Сотрудники: `db/migrations/2026-10-10_staff_accounts.sql`
+  — без паролей, без карточек клиентов (актуальный `handle_new_user` —
+  `2026-10-11_zzzzzzzzz_client_signin_only.sql`; `db/client_app_fixes.sql`
+  вручную не перезапускать — вернёт регистрацию без карточки).
+  Справочник сотрудников над студиями: `db/migrations/2026-10-10_staff_directory.sql`
+  — `trainers` (тренеры и администраторы, `role`) без `studio_id`, студии —
+  `trainer_studios`; реквизиты `trainer_bank_details` и зарплатные ставки
+  `trainer_pay_rates` — только сотрудникам (клиенты видят тренеров своей
+  студии в расписании, но не счёт и не ставки). Это НЕ доступ в админку —
+  тот в `user_roles` (с 2026-10-25 — из ролей «Пользователей и ролей»,
+  см. «Пользователи портала, роли и доступы» ниже). Права в админке:
+  `db/migrations/2026-10-10_admin_permissions.sql` — студии = роль в
+  `user_roles`, разделы рейки («Клуб»/«Сотрудники»/«Мобильное приложение») —
+  `admin_permissions`, разделы клуба по студиям — `admin_studio_permissions`
+  (нет строки — открыто всё; владельцу клуба в его клубе — всё). С
+  2026-10-25 эти таблицы пишет пересчёт прав из ролей, не «Доступы». RLS проверяет разделы рейки
+  (`has_admin_section`: правка сотрудников, реквизиты и ставки; новости,
+  услуги, пуши, `club_settings`), разделы клуба скрывает только интерфейс —
+  их таблицы общие, граница там по-прежнему студия. Мобильное приложение — по
+  студиям (решение владельца 2026-10-11, отменило «общее для студий» из
+  `2026-10-10_app_content_shared.sql`):
+  `db/migrations/2026-10-11_zzzzzzzzzz_app_content_by_studio.sql` —
+  `news`/`services`/`push_notifications.studio_ids uuid[]` (старым записям —
+  все студии; `studio_id` больше не используется); сотрудник видит и правит
+  запись, где есть хоть одна его студия, добавляет и убирает только свои
+  (триггер `app_content_studios_guard`), удаляет — только если все студии
+  его; хелперы `staff_has_all_studios`/`staff_has_any_studio`; удалённая
+  студия уходит из списков, запись без студий удаляется. «Контакты и
+  правила» — `studio_app_settings` (строка на студию, заполнена из
+  `club_settings`); иконка и подпись PWA — `app_install_settings` (строка на
+  формат = приложение). Обе читаются публично.
+  «Скрипты LS» (скрипты администраторов Lady Stretch, перенос из
+  «Аудиоаналитики»): `db/migrations/2026-10-10_scripts_ls.sql` — таблицы
+  `scripts_*` без studio_id (раздел общий для студий), доступ — разделы рейки
+  `scripts` / `scripts-edit` в `admin_permissions` (`has_admin_section`);
+  подписи и хронологию пишут триггеры, статистика — RPC `scripts_copy_stats` /
+  `scripts_call_stats`, импорт — `scripts_import`.
+  Номенклатура пакетных студий: `db/migrations/2026-10-10_packages_memberships.sql`
+  — триггер, выключающий автопродление в пакетных студиях (добавленный там
+  `for_regular_clients` убран `2026-10-11_packages_no_regular_price.sql`).
+  Рассрочка пакетных студий: `db/migrations/2026-10-11_packages_installments.sql`
+  — `memberships.max_payments` (сколькими платежами можно оплатить, 1–12),
+  `sales.remaining_installments` расширен до 0–11 (подписочные 0/2/3 — как
+  были).
+  Типы номенклатуры и продаж пакетных студий:
+  `db/migrations/2026-10-11_packages_sale_kinds.sql` — `memberships.kind`
+  (`package` / `trial`), `sales.sale_kind` (`new` / `trial` / `upsell` /
+  `renewal`, null — без типа); там же пересоздана вью `sales_list` (актуальное
+  определение — в этой миграции, не в `db/performance_indexes.sql`).
+  Раздел «Абонементы» пакетных студий:
+  `db/migrations/2026-10-11_packages_client_memberships.sql` —
+  `sales.trainer_id`/`trainer_name` (тренер при продаже, бонус к зарплате),
+  `sales.membership_note` (комментарий раздела), `sale_installments.paid_at`
+  (дата внесения, ставит триггер), вью `client_packages_list` (строки раздела,
+  платежи json и `payment_state` paid/overdue/pending по дате Тбилиси); там же
+  снова пересоздана `sales_list` (актуальное определение — в этой миграции).
+  С 2026-10-13 «Абонементы» — единственный раздел продаж пакетного клуба
+  («Продаж» нет): `db/migrations/2026-10-13_packages_memberships_sales_merge.sql`
+  — `client_packages_list` + почта, `source`, `promo_code` (актуальное
+  определение вью — здесь), право «Продажи» пакетного клуба → «Абонементы».
+  Баланс и списание пакетных студий:
+  `db/migrations/2026-10-11_zz_packages_personal_balance.sql` — третий тип
+  номенклатуры `personal`, `memberships.personal_count`,
+  `client_memberships.personal_left`/`balance_kind` (один живой абонемент на
+  клиента и вид баланса, `activate_membership_from_sale` переопределена),
+  списание при `attended` — триггер на `schedule_bookings`
+  (`charged_membership_id`), состояние `soon` в `client_packages_list`
+  (актуальное определение вью — в этой миграции).
+  Продление пакетных студий: `db/migrations/2026-10-11_zzz_packages_renewal_queue.sql`
+  — `client_memberships.status = 'pending'` и `starts_on_first_visit` (срок от
+  первого посещения, `started_at` может быть null), очередь — `packages_settle`
+  (по виду баланса); переопределены `activate_membership_from_sale` и
+  `schedule_bookings_charge_balance` (из `zz_packages_personal_balance`),
+  `sale_installments.payment_method`; вью `client_packages_list` пересоздана
+  (актуальное определение — здесь).
+  Разовое посещение пакетных клубов (2026-10-15):
+  `db/migrations/2026-10-15_zz_packages_single_visit.sql` — `memberships.kind
+  = 'single'` (1 групповая, 30 дней, 1 платёж — `memberships_single_terms_check`),
+  в приложении не покупается (`sales_client_insert_guard`; с 2026-10-16
+  покупка клиентом в пакетном клубе закрыта совсем — см. «Предрелизный
+  риск (оплата)»), строка «Разовое посещение» в общем каталоге (цена 0 —
+  ставят в «Номенклатурах»). Живой пакет разовое не вытесняет и само им не
+  вытесняется — новая продажа встаёт в очередь, как продление:
+  `db/migrations/2026-10-15_zzzz_packages_review_fixes.sql` (актуальное
+  определение `activate_membership_from_sale`; там же `my_studio_visit_stats`
+  — без диагностик тела).
+  Отмена посещения и бонус: `db/migrations/2026-10-11_zzzzz_attendance_undo_personal_bonus.sql`
+  — RPC `unmark_booking_attended` (attended → booked, тренировку возвращает
+  триггер списания), `payroll_lines` — пакет персональных не идёт в продажи
+  администратора. `db/migrations/2026-10-11_zzzzzz_personal_no_trainer_bonus.sql`
+  — и тренера при продаже (актуальное определение `payroll_lines` — здесь).
+  Удаление продажи абонемента (оба формата):
+  `db/migrations/2026-10-11_zzzzzz_sale_membership_delete.sql` — продажа и
+  выданный по ней `client_memberships` удаляются вместе (в обе стороны,
+  триггеры), прежний заменённый абонемент возвращается, очередь продлений —
+  `packages_settle`.
+  Отмена занятия, «Не посетил», второй телефон:
+  `db/migrations/2026-10-11_zzzzzzz_entry_cancel_no_show.sql` —
+  `schedule_entries.cancelled_at`/`cancel_reason`, RPC `cancel_schedule_entry`
+  (записи → «Отменено», списанное возвращается) и `restore_schedule_entry`,
+  на отменённое не записывают (триггер), клиенты его не видят (RLS), в
+  зарплату не идёт (`payroll_lines` — актуальное определение здесь);
+  `schedule_bookings.no_show_excused`/`no_show_comment`, RPC
+  `mark_booking_no_show` — неуважительный пропуск списывается как посещение
+  (`schedule_bookings_charge_balance` и `packages_restart_term` переопределены
+  здесь), пропуск без причины — нет; `clients.phone2` (вью
+  `clients_with_status` пересоздана здесь).
+  Исправления по код-ревью: `db/migrations/2026-10-11_zzzzzzzz_review_fixes.sql`
+  — итоговые политики реквизитов/ставок (`can_manage_employee`), сотрудников,
+  новостей/услуг/пушей и `schedule_bookings_group_only` (на чистой базе
+  раньше побеждали версии из файлов, идущих позже по имени); удалённая запись
+  возвращает списанное и место (триггер `schedule_bookings_refund_ad`); запись
+  только в пределах студии; клиент не отменяет запись после начала занятия;
+  «Не посетил» не перезаписывается повторной записью; `book_schedule_entry` —
+  пусто/0 мест = без лимита; покупка в приложении не пишет продавца, тренера,
+  тип и дату (`sales_client_insert_guard`); ждущее продление не списывается
+  при живом абонементе того же вида, перенос начала срока сохраняет заморозку
+  (актуальный `packages_restart_term` — здесь; `packages_settle` —
+  `2026-10-14_zz_packages_exhausted_expire.sql`,
+  `schedule_bookings_charge_balance` — `2026-10-13_zz_packages_test_fixes.sql`). Порядок файлов = порядок имён: новый файл,
+  читающий колонки другого, должен идти по имени ПОСЛЕ него.
+  Вход в клиентское приложение без регистрации:
+  `db/migrations/2026-10-11_zzzzzzzzz_client_signin_only.sql` —
+  `handle_new_user` создаёт учётную запись клиента только по карточке
+  `clients` с той же почтой (иначе исключение, GoTrue не создаёт
+  пользователя), сотрудники из «Доступов» — как прежде;
+  `ensure_client_profile` ищет карточку по почте во всех студиях (актуальные
+  определения обеих функций — здесь).
+  Учётные записи приложения: `db/migrations/2026-10-12_client_account_wipe.sql`
+  — `ensure_client_profile` больше не заводит карточку (нет карточки с этой
+  почтой — исключение `not_a_club_member`, приложение выходит; актуальное
+  определение — здесь), хук писем не шлёт код входа в клиентское приложение
+  без карточки (`client_app_sign_in_allowed`, только service_role);
+  удаление карточки клиента (триггер `clients_wipe_account_ad`) стирает её
+  журнал записей и, если других карточек нет, учётную запись
+  (`wipe_client_app_account`: анкета, оценки, записи без карточки, сам
+  пользователь GoTrue; у сотрудника — только клиентская часть). Разово
+  стёрты «фантомные» учётные записи — входили, но карточки нет; клиентов с
+  карточкой (продажи, абонементы, анкета) очистка не трогала.
+  Разделение сотрудника и клиента:
+  `db/migrations/2026-10-12_zzz_staff_client_separation.sql` —
+  `current_studio_id` берёт студию карточки клиента (без карточки — профиля);
+  `sync_profile_studio` и `ensure_client_profile` не трогают профиль
+  сотрудника (актуальное определение `ensure_client_profile` — здесь);
+  триггер `user_roles_staff_home_studio` держит `profiles.studio_id`
+  сотрудника в студии, где он сотрудник; `clients_guard_self_update` (актуальное
+  определение — здесь) разрешает привязать свободную карточку со своей
+  почтой — раньше `ensure_client_profile` молча не привязывал её никому, кроме
+  сотрудников студии.
+  Правки пакетных клубов после тестирования 2026-10-13:
+  `db/migrations/2026-10-13_zz_packages_test_fixes.sql` — роль
+  `trainers.role = 'senior_admin'` (с 2026-10-15 «Руководитель студии» — как
+  администратор, подпись своя, в «Админах» приложения — первым); замена тренера на занятии —
+  `schedule_entry_substitutions` (ключ — тренер занятия, `replaced_trainer_id`
+  — кого заменил; связь с `trainers` одна, чтобы прежние
+  `schedule_entry_trainers(trainer:trainers(...))` остались однозначными;
+  клиент читает её отдельным запросом); возврат по продаже пакетного клуба
+  (триггер `refunds_packages_apply` на `refunds`) — абонемент `refunded`,
+  невнесённые платежи `sale_installments.refunded`, неотмеченные записи
+  клиента на занятия этого вида баланса удаляются вместе с журналом (если
+  другого абонемента того же вида нет); новая продажа пакетного клуба — срок
+  с первого посещения («ожидает посещения»: active, `starts_on_first_visit`,
+  без дат; `activate_membership_from_sale` переопределена здесь); «Посетил»
+  без абонемента с остатком — исключение в `schedule_bookings_charge_balance`
+  (актуальное определение — здесь); политики клиента на свои `sales` и
+  `sale_installments` (из ручного `db/sales_client_rls.sql`); вью
+  `client_packages_list` (`payment_state = 'refunded'`).
+  `db/migrations/2026-10-13_zzz_packages_refund_state.sql` — «Возврат» и у
+  строки, где абонемент уже заменён, но платежи сняты возвратом (раньше
+  попадала в «Оплачены полностью»); актуальное определение
+  `client_packages_list` — здесь. Логику правок проверяет
+  `db/packages.test.ts`.
+  Общий каталог пакетных клубов (решение владельца 2026-10-13):
+  `db/migrations/2026-10-13_zzzz_packages_shared_catalog.sql` — тренировки
+  (`workouts`) и номенклатура (`memberships`) пакетных клубов — один список
+  на все пакетные клубы; `studio_id` строки — клуб, где её завели. Сотрудник
+  любого пакетного клуба видит и правит каталог всех пакетных
+  (`can_manage_catalog` в политиках «… trainer write»), покупка в приложении
+  принимала пакет любого пакетного клуба (`catalog_shared` в
+  `sales_client_insert_guard`; с 2026-10-16 покупка клиентом в пакетном клубе
+  закрыта — `2026-10-16_packages_no_app_purchase.sql`), удаление
+  пакетного клуба переносит его каталог в другой пакетный
+  (`studios_packages_catalog_rehome`). Разово слиты одинаковые строки
+  (`packages_merge_catalog`: тренировки — по названию, номенклатура — по
+  названию, типу, количеству, сроку, цене и платежам) с переводом занятий,
+  журнала записей, продаж и абонементов клиентов. Подписочные клубы — как
+  раньше, у каждого свой каталог.
+  **Полная очистка клиентской базы 2026-10-12:**
+  `db/migrations/2026-10-12_zzzz_clients_full_reset.sql` (разово, вручную не
+  перезапускать) — во всех студиях стёрты клиенты, абонементы, продажи (с
+  рассрочкой, прочими продажами и возвратами), записи и их история, анкеты,
+  оценки тренеров клиентами, обратная связь, NPS, аватарки клиентов, роли
+  `member` и все учётные записи, кроме сотрудников. Студии, сотрудники,
+  расписание, номенклатура, касса, контент приложения остались.
+  **Очистка клиентской базы пакетных клубов 2026-10-17:**
+  `db/migrations/2026-10-17_zz_packages_clients_reset.sql` (разово, вручную
+  не перезапускать) — в пакетных клубах стёрты клиенты (с заявками),
+  абонементы клиентов с заморозками, продажи (с рассрочкой и возвратами),
+  прочие продажи, записи на занятия и их история, диагностики тела в
+  расписании; учётные записи приложения — как при удалении карточки
+  (без карточки в подписочном клубе — стёрты, у сотрудников — только
+  клиентская часть). Подписочные клубы, сотрудники, расписание, каталог,
+  касса, обратная связь, контент приложения остались.
+  **Перенос клиентов и абонементов из 1С 2026-10-18** (пакетные клубы,
+  решение владельца): `db/migrations/2026-10-18_import_1c.sql` —
+  `clients.onec_ref` / `sales.onec_ref` / `client_memberships.onec_ref`
+  (ключи 1С: повторная заливка не задваивает, удаление находит только
+  перенесённое), скрытая номенклатура «Остаток из 1С» (цена 0, в
+  приложении не продаётся), RPC `import_1c_chunk` (пачка клиентов, только
+  владелец её клубов: карточка, продажа «Перенос из 1С» без продавца — в
+  зарплаты не идёт, долг — рассрочкой, абонементу — состояние из 1С и
+  `packages_settle`, история — «Закончился» без продажи) и
+  `import_1c_rollback` (пока перенесённые не входили в приложение и не
+  записаны на занятия). **Данных клиентов в репозитории нет**: файл заливки
+  готовит `apps/admin/scripts/import-1c/` из выгрузки 1С, владелец
+  загружает его в «Доступы» → «Импорт из 1С». Правила переноса —
+  STUDIO_FORMATS.md, журнал 2026-10-18. Тесты — `db/import-1c.test.ts`.
+  Служебных заметок у перенесённых нет (решение владельца: что карточка из
+  1С, видно в «Добавлен»): `db/migrations/2026-10-18_zzzz_clients_1c_notes_cleanup.sql`
+  убрала строки «Перенесено из 1С…» из `clients.notes`, файл заливки версии 2
+  их не пишет, версию 1 страница импорта не принимает.
+  «Добавлен» в «Клиентах»: `db/migrations/2026-10-18_zz_clients_source.sql`
+  — `clients.source` (`admin` — «Сотрудником», по умолчанию; `import` —
+  «Из 1С», у всех с `onec_ref`; `mobile` — «Приложение», под будущую
+  регистрацию). Ставит триггер `clients_source_guard_biu`: из админки и
+  приложения (роли authenticated/anon) `source` и `onec_ref` не подделать,
+  функции владельца базы пишут как есть. Вью `clients_with_status`
+  пересоздана.
+  Фильтры «Клиентов» (2026-10-18, «Пол» убран):
+  `db/migrations/2026-10-18_zzzzzzz_clients_goal_app_seen.sql` —
+  `clients.app_last_seen_at` (последний раз в приложении формата клуба
+  карточки; переносит из `app_devices` триггер `app_devices_client_seen_aiu`
+  не чаще раза в 15 минут и при смене дня по Тбилиси; подделать нельзя —
+  `clients_source_guard`, актуальное определение здесь) и
+  `clients_with_status.primary_goal` (цель из анкеты `member_profiles`);
+  политики `member_profiles` сотрудника и клиента — в виде initplan.
+  Актуальное определение `clients_with_status` — здесь.
+  «Добавлен» в «Абонементах»: `db/migrations/2026-10-18_zzz_client_packages_added_via.sql`
+  — `client_packages_list.added_via` считается из продажи (`onec_ref` →
+  `import` «Из 1С», `source = 'mobile'` → «Приложение», иначе `admin` —
+  «Админка»); отдельной колонки в `sales` нет — `sales.source` переходит в
+  `client_memberships.source`, где `import` нарушил бы проверку.
+  Фильтры «Абонементов»: `db/migrations/2026-10-18_zzzzz_client_packages_filters.sql`
+  — `client_packages_list.seller_id` (кто продал), `balance_left` (у пакета
+  персональных — `personal_left`, иначе `visits_left`), `membership_state`
+  (статус как у бейджа: `awaiting`, `expired` и у active с прошедшим
+  сроком). Актуальное определение `client_packages_list` — здесь.
+  Правки приложения пакетов 2026-10-12:
+  `db/migrations/2026-10-12_zz_packages_app_fixes.sql` — `memberships.tag_text`
+  / `tag_style` (`soft` / `bright`) / `gift_text` (тег и «В подарок» в
+  карточке пакета); политики папки клиента `{uid}/` в бакете `avatars` и
+  «clients self update» (на self-hosted их не было — `db/storage_avatars.sql`
+  с невалидным `create policy if not exists`); калории — триггер
+  `schedule_bookings_log_kcal_aiu` при переходе записи в `attended` (не
+  зависит от версии `mark_booking_attended`) и `member_profiles_fill_calories_aiu`
+  (вес указан позже — досчитывает посещения без снимка),
+  `bookings_log_fill_calories` переопределена здесь; RPC
+  `my_studio_visit_stats` — сравнение со студией в статистике приложения;
+  `refresh_client_stats_30d` — только service_role.
+  Онбординг пакетного приложения: `db/migrations/2026-10-11_packages_onboarding.sql`
+  — `member_profiles.goal_other` (текст цели «Другое»), `birth_date`, новые
+  значения enum `fitness_goal` (`flexibility`/`stress_relief`/`body_shape`/`other`).
+  История веса клиента: `db/migrations/2026-10-12_zzzzz_client_weights.sql` —
+  `client_weights` (user_id, `weight_kg`, `measured_at`, `source`
+  `onboarding`/`manual`; клиент ведёт свою, сотрудник студии читает); вес из
+  анкеты — одна запись `onboarding` датой отправки (уже пройденные анкеты
+  перенесены), дальше — раздел взвешиваний (`manual`).
+  Цвет тренировки (пакетный формат, полоска в расписании):
+  `db/migrations/2026-10-11_workout_color.sql` — `workouts.color`.
+  Типы занятий в расписании (оба формата):
+  `db/migrations/2026-10-11_schedule_activity_kinds.sql` —
+  `schedule_entries.kind` (`group` / `personal` / `other`), `title` и
+  `pay_rate` прочей активности, `workout_id` только у групповых; клиенты видят
+  и записываются только на групповые (RLS + триггер на `schedule_bookings`).
+  Запись по карточке клиента: `db/migrations/2026-10-11_bookings_by_client.sql`
+  — `schedule_bookings.client_id` (user_id необязателен: клиент без
+  приложения), user_id/client_id дополняют друг друга триггером, при привязке
+  карточки к приложению записи получают user_id; журнал — `bookings_log.client_id`;
+  администратор записывает RPC `admin_book_client` (групповое и персональное,
+  проверка мест); персональное — только сотрудник, прочая активность — никто.
+  Старые функции журнала не переписаны (неизвестно, какие db/\*.sql на живой
+  базе), рядом — свои триггеры.
+  Зарплаты пакетных студий (раздел «Сотрудники»):
+  `db/migrations/2026-10-11_zzz_staff_payroll.sql` — `admin_shifts` (график
+  администраторов по студиям), `payroll_adjustments` (вычеты/надбавки),
+  `payroll_payouts` (отметка «выплачено» за половину месяца), расчёт — RPC
+  `payroll_lines` (security definer: оклад общий по всем пакетным студиям
+  сотрудника, отдаёт только сотрудников студий вызывающего). Доступ — раздел
+  рейки `staff` + роль в студии сотрудника (`can_manage_employee`).
+  Продавец в продажах: `db/migrations/2026-10-11_zzzz_sales_seller.sql` —
+  `sales.seller_id` / `other_sales.seller_id` (администратор из справочника,
+  выбирается в форме; `admin_name` — снимок имени, `admin_id` — кто внёс);
+  `trainers.user_id` и `staff_accounts_for_link` удалены; `payroll_lines`
+  переопределена (актуальное определение — здесь): продажи в зарплату —
+  поступившие за период платежи (`sale_installments.paid_at`, без графика —
+  вся сумма в день продажи).
+  Аватарки сотрудников админки: `db/migrations/2026-10-11_staff_avatars.sql`
+  — `profiles.avatar_url` (путь в бакете `avatars`, папка `staff/`, ставит
+  владелец в «Доступах» серверной функцией).
+  Установка клиентского приложения (PWA):
+  `db/migrations/2026-10-11_app_install_settings.sql` — бакет `app-icons`
+  (папки с нарезанными PNG, запись — раздел рейки `app`) и колонки
+  `club_settings.app_name`/`app_icon_path` — с `…_app_content_by_studio.sql`
+  не читаются, настройки в `app_install_settings` (у каждого приложения свои).
+  Приложение пакетных студий (правки 2026-10-11):
+  `db/migrations/2026-10-11_zzzzzzzzzzz_packages_app_studio.sql` —
+  `studio_app_settings.about/photo_path/google_maps_url/yandex_maps_url/instagram_url`
+  (раздел «Студия» в приложении, бакет `studio-photos`), `trainers.bio`,
+  `memberships.sort_order` (порядок в админке и приложении), политики
+  `… client browse` + `client_can_browse_studio`: клиент читает расписание,
+  тренировки, тренеров и показываемые абонементы другой студии того же
+  формата (переключатель студий; запись в чужую — гостевая, см. ниже).
+  Сеть пакетных студий (гостевые посещения):
+  `db/migrations/2026-10-14_network_guest_visits.sql` — все пакетные
+  студии одна сеть (`studios_same_network`), абонемент действует во всех:
+  запись — студии занятия, `client_id` — карточка домашней студии, списание
+  с её абонемента; `book_schedule_entry`, `admin_book_client`,
+  `schedule_bookings_link_person`, `schedule_bookings_same_studio`
+  переопределены (актуальные определения — здесь); гость для студии
+  занятия — RPC `entry_guest_clients` / `network_client_search` (имя,
+  телефон, клуб, абонементы; карточку RLS не открывает); журнал гостевых
+  посещений читает и домашняя студия (`bookings_log home studio read`).
+  С 2026-10-17 гостей нет — база клиентов общая (абзац ниже); гостевые RPC
+  в базе остались, админка их не вызывает.
+  Запись без абонемента (решение владельца 2026-10-19):
+  `db/migrations/2026-10-19_packages_book_without_membership.sql` —
+  `book_schedule_entry` (актуальное определение — здесь) в пакетном клубе
+  не требует действующего абонемента (нужна только карточка в клубе сети
+  занятия, иначе `no_client`), в ответе `has_membership`; «Посетил» без
+  абонемента с остатком — по-прежнему исключение. Подписочные — как были.
+  **Общая база клиентов пакетных клубов** (решение владельца 2026-10-17):
+  `db/migrations/2026-10-17_packages_shared_clients.sql` — у человека одна
+  карточка `clients` на все пакетные клубы, её видят и ведут сотрудники
+  любого пакетного клуба; продажа — клуба, где её внесли (`sales.studio_id`,
+  по ней `client_memberships.studio_id`): «Абонементы», касса, зарплаты,
+  бонус продавца — по клубу продажи, как раньше. `clients.studio_id` —
+  клуб, где карточку завели (на нём, как и прежде, пуши по клубам, заявки,
+  NPS, сравнение в статистике и студия приложения по умолчанию). Доступ —
+  по сети: `is_network_staff(uid, studio)` и `auth_network_studio_ids()`
+  (для политик, как `auth_staff_studio_ids`; те же клубы, что у общего
+  каталога). Сотрудник сети: карточка — читает и правит (политики
+  `clients`, `clients_guard_self_update`); абонементы — читает и правит
+  остаток, срок, заморозку (`client_memberships network update`,
+  `freeze_membership`/`unfreeze_membership`), выдаёт и удаляет — только клуб
+  абонемента; продажи других клубов — читает (`sales network read`), с
+  2026-10-20 отмечает их платежи и пишет комментарии (см. «Абонементы» общие
+  ниже); журнал
+  посещений, анкета, вес, `client_app_overview` — по карточке сети. Одна
+  карточка на человека: почта (без регистра и пробелов) и учётная запись
+  приложения — у одной карточки пакетных клубов (`clients_network_unique_guard`,
+  ошибка 23505 «уже есть в базе клубов»); разово слиты дубли
+  (`packages_merge_duplicate_clients` / `packages_merge_client_into`:
+  продажи, абонементы — живой второй встаёт в очередь, записи — общая на
+  занятии удаляется с журналом, журнал, заявки, NPS; вход в приложение не
+  теряется). Удаление пакетного клуба переносит его клиентов и их заявки в
+  другой пакетный (`studios_packages_catalog_rehome`, актуальное
+  определение — здесь). Остаток на занятии с записями во всех клубах — RPC
+  `entry_bookings_ahead`. Подписочные клубы — без изменений. Тесты —
+  `db/shared-clients.test.ts`.
+  **«Абонементы» общие для пакетных клубов и «Переоформить»** (решения
+  владельца 2026-10-20): `db/migrations/2026-10-20_packages_membership_transfer.sql`
+  — раздел показывает продажи всех клубов сети (чтение — «sales network
+  read»); `client_packages_list.studio_name`
+  (колонка «Клуб продажи»; актуальное определение вью — здесь). RPC
+  `transfer_client_membership(p_sale_id, p_client_id)` — сотрудник клуба
+  продажи передаёт абонемент клиенту той же сети: меняются только
+  `sales.client_id` и `client_memberships.client_id` (статус, остаток,
+  срок, платежи — нет); только живой или ждущий, без прошедшего срока,
+  оплаченный полностью и без живого абонемента того же вида у нового
+  владельца; очередь — `packages_settle` у обоих; отметка —
+  `sales.transferred_from_client_id` / `transferred_from_name` /
+  `transferred_at` / `transferred_by`. Платежи и комментарии продажи —
+  сотруднику любого клуба сети (решение владельца 2026-10-20):
+  `db/migrations/2026-10-20_zz_packages_network_payments.sql` — политики
+  «sale_installments network write», «sales network update» и триггер
+  `sales_network_update_guard` (не клубу продажи — только `comment`,
+  `membership_note`, `remaining_installments`); продать, удалить, возврат,
+  переоформить — только клуб продажи. Тесты — `db/membership-transfer.test.ts`.
+  Вместимость тренировки по клубам:
+  `db/migrations/2026-10-14_workout_studio_capacity.sql` —
+  `workout_capacities` (тренировка × клуб, null — без лимита; нет строки —
+  `workouts.capacity`), `workout_capacity_in`; занятие хранит свою
+  вместимость (`schedule_entries.capacity`, групповому без неё ставит
+  триггер `schedule_entries_fill_capacity_bi`).
+  Статус клуба без пробных: `db/migrations/2026-10-14_club_status_no_trial.sql`
+  — `clients_with_status` не считает абонементы `memberships.kind = 'trial'`
+  (актуальное определение вью — `2026-10-18_zzzzzzz_clients_goal_app_seen.sql`,
+  та же логика + новые колонки `clients`).
+  Отхоженный абонемент пакетного клуба:
+  `db/migrations/2026-10-14_zz_packages_exhausted_expire.sql` — без
+  остатка тренировок (и пробное) → `expired` и без ждущего продления;
+  вернули тренировку — снова `active` (актуальное определение
+  `packages_settle` — здесь).
+  «Вход закрыт» и картинка клуба:
+  `db/migrations/2026-10-14_zz_app_sign_in_closed_studio_photo.sql` —
+  `app_install_settings.sign_in_closed` (экран входа клиента без почты),
+  `studios.photo_url` (публичная колонка; картинка в выборе студии
+  приложения, бакет `studio-logos`, папка `{id}/photo`).
+  Правка графика платежей: `db/migrations/2026-10-14_zzz_sale_installments_edit.sql`
+  — RPC `replace_sale_installments` (security invoker: невнесённые платежи
+  заменяются, внесённые не трогаются, сумма графика не меньше
+  `sales.total_amount`), `sales_remaining_installments_check` — `>= 0`.
+  С 2026-10-18 — у любого абонемента без возврата:
+  `db/migrations/2026-10-18_zzzzzz_sale_installments_edit_paid.sql`
+  (актуальное определение) — у внесённого платежа меняется сумма (отметка,
+  дата внесения и способ — нет), оплата при продаже без графика
+  (`{paid: true}` без id) записывается внесённым платежом днём и способом
+  продажи.
+  **Пуш-уведомления — настоящая рассылка** (решение владельца 2026-10-15):
+  `db/migrations/2026-10-15_push_delivery.sql` — стандарт Web Push с ключами
+  VAPID, без сторонних сервисов. Ключи — `push_vapid_keys` (создаёт сервер
+  админки при первом запуске, только service_role; открытый ключ — RPC
+  `push_public_key`; не менять — на нём все подписки); устройства —
+  `push_subscriptions` (строка на телефон, язык приложения на нём `locale`
+  — на нём и придёт пуш; пишут только RPC `register_push_subscription` /
+  `unregister_push_subscription`, адрес — только служб браузеров
+  `push_endpoint_allowed`, до 10 устройств на учётную запись); кому ушло и
+  прочитано — `push_recipients` (лента «Уведомления» приложения: RPC
+  `my_push_inbox`, `push_mark_read`); очередь доставки — `push_deliveries`
+  (RPC `push_start_due` → `push_claim_deliveries` → `push_finish_deliveries`
+  / `push_finalize`, только service_role; подтверждение показа и нажатия с
+  телефона — `push_delivery_ack`, anon по id доставки). У
+  `push_notifications` — статус `sending`, счётчики `recipients_count`,
+  `devices_count`, `failed_count`, `finished_at`; из админки — только
+  черновик или запланированное («Отправить сейчас» = запланировано на
+  сейчас), отправленное не правится (триггер `push_notifications_guard`);
+  охват для формы — `push_audience_stats`. Пуш и лента — своего приложения
+  (`db/migrations/2026-10-15_zzzz_push_review_fixes.sql`, актуальные
+  определения `push_start_due`, `push_trigger_send`, `push_audience_stats`,
+  `my_push_inbox` / `push_mark_read` — здесь): доставка — на телефоны с
+  `push_subscriptions.app_format` формата клубов рассылки (или триггера),
+  лента и «Прочитать все» — с `p_app_format` (уведомления клубов формата;
+  без него — все). Ссылка перехода — до 1000 символов. Тесты — `db/push.test.ts`.
+  Отправитель — apps/admin (`src/lib/push/`), приём — apps/client
+  (`public/sw.js`, `src/lib/push.ts`).
+  **Обратная связь — своя форма** (решение владельца 2026-10-15, вместо
+  внешнего сервиса): `db/migrations/2026-10-15_zz_feedback_in_app.sql` —
+  отправить обращение в `feedback` может клиент приложения и anon (форма
+  `/feedback` клиентского приложения открывается без входа по ссылке или
+  QR-коду клуба, `?studio=<id>`); у не сотрудника клуб обязателен, статус,
+  поля отработки и дату сбрасывает триггер `feedback_insert_guard`,
+  `feedback.source` — `app` / `link` / `portal` (добавил сотрудник), размеры
+  полей — `feedback_lengths_check`. Читают, отрабатывают и удаляют — только
+  сотрудники (`db/security_hardening.sql`). Админка: «Обратная связь» —
+  фильтр по дате, «Ссылка и QR-код» (PNG 600×600 рисуется в браузере,
+  пакет `qrcode`), счётчик неотработанных у пункта меню (вместо
+  Telegram-уведомлений прежнего сервиса). Как есть сохраняется только
+  запись из админки (`source = 'portal'`): обращение сотрудника-клиента из
+  приложения — «из приложения», как у клиента (актуальное определение
+  `feedback_insert_guard` — `db/migrations/2026-10-15_zzzz_feedback_staff_client.sql`).
+  Тесты — `db/feedback.test.ts`.
+  **Диагностика тела и заявки клиентов** (пакетные клубы, решение владельца
+  2026-10-15): `db/migrations/2026-10-15_zz_diagnostics_client_requests.sql`
+  — `memberships.diagnostics_count`, `client_memberships.diagnostics_left`
+  (ставит `client_memberships_packages_fill`); `schedule_entries.kind =
+  'diagnostic'` (тренер, время, клиент; записывает только сотрудник),
+  клиент видит СВОИ диагностики (политики «… own diagnostic»,
+  `client_has_entry_booking`) и отменяет их сам; «Посетил» списывает
+  диагностику (`charged_balance = 'diagnostic'`, без остатка — исключение
+  `no_diagnostics`), возврат — как у тренировок. Актуальные определения
+  `schedule_bookings_charge_balance`, `schedule_bookings_refund_on_delete`,
+  `packages_settle` (диагностики держат отхоженный абонемент), вью
+  `client_packages_list`, `guest_client_json`, `client_memberships_packages_fill`
+  — здесь. Заявки — `client_requests` (`personal` с целями и комментарием /
+  `diagnostic`): создаёт только RPC `create_client_request` (одна
+  неотработанная заявка вида на клиента), «Отработано» — `processed_at`,
+  кто и когда ставит триггер `client_requests_guard`; раздел клуба
+  `requests` в админке. Диагностика в зарплату не идёт (решение владельца
+  2026-10-15): `db/migrations/2026-10-15_zzz_diagnostics_no_payroll.sql` —
+  актуальное определение `payroll_lines`. Тесты — `db/packages.test.ts`.
+  **Триггерные уведомления** (раздел «Триггеры», 2026-10-15):
+  `db/migrations/2026-10-15_push_triggers.sql` — `push_triggers` (строка на
+  формат = приложение и триггер: `enabled`, тексты `title`/`message` +
+  `translations` en/ka с переменными `{name}`, `{class}`, `{when}`…,
+  `action_url`, `params` — hours/days/left/send_hour; строки заводит только
+  миграция, админка правит — раздел рейки `app` + клуб формата, параметры
+  проверяет `push_triggers_guard`, включение ставит `active_since` — старые
+  события не рассылаются); проход — `push_triggers_run(p_now)` (только
+  service_role, сервер админки раз в минуту): по каждому включённому
+  триггеру ищет события и шлёт через ту же очередь — строка
+  `push_notifications` с `trigger_key` (в «Пуш-уведомлениях» и у Kate её
+  нет), один получатель, доставки на его телефоны; без повторов —
+  `push_trigger_log` (триггер × учётная запись × событие). Тексты
+  подставляет база (`push_trigger_vars` / `push_trigger_render`, время — по
+  Тбилиси), ночью (22:00–09:00) необязательные ждут утра, ежедневные — в
+  `send_hour`. «Кто записал» — `schedule_bookings.booked_by`/`booked_at`
+  (триггер `schedule_bookings_booked_by_biu`, `auth.uid()`), статистика —
+  `push_trigger_stats` (security invoker). Актуальное определение
+  `push_triggers_run` — `db/migrations/2026-10-15_zzzz_push_review_fixes.sql`:
+  кандидаты — без уже отправленного (иначе пачку `limit 500` каждый проход
+  забивали отправленные), «после пробной» и «оцените тренера» — окно 48 ч от
+  момента отправки, «давно не был» — посещения и записи в клубах формата,
+  без диагностик; журнал «давно не был» и дня рождения — свой у формата.
+  Тесты — `db/push-triggers.test.ts`.
+  **NPS-опросы в приложении** (решение владельца 2026-10-15, оба формата):
+  `db/migrations/2026-10-15_zz_nps_surveys.sql` — какой опрос положен
+  клиенту, решает база (`nps_pending_survey`: первые занятия — закончилась
+  4-я тренировка, первый месяц — 30 дней с начала первого абонемента, перед
+  продлением — за 10 дней до конца или при остатке ≤ 2 в пакетном клубе,
+  после возобновления — после 2-й тренировки вернувшегося из БЧК; частота и
+  сроки — в шапке миграции); показы — `nps_survey_prompts` (закрыт
+  крестиком / отвечен), ответы — `nps_responses` (+ `user_id`, `client_id`,
+  студия — карточки). Приложение — только RPC `my_nps_survey`,
+  `nps_survey_shown`, `nps_survey_close`, `submit_nps_response`; вставка в
+  `nps_responses` напрямую — только сотрудник (было — любой вошедший);
+  счётчики показов для админки — `nps_prompt_stats`. Тесты — `db/nps.test.ts`.
+  `db/migrations/2026-10-15_zzz_nps_read_renewal.sql` — «Перед продлением»
+  не приходит купившему продление (следующий абонемент того же вида ждёт в
+  очереди или оформлен; актуальное определение `nps_pending_survey` —
+  здесь); «прочитано» у ответа (`nps_responses.read_at` / `read_by` /
+  `read_by_name`, ставит триггер `nps_responses_read_biu`; ответ из
+  приложения — новый, внесённый сотрудником — сразу прочитан) — счётчик
+  непрочитанных у «NPS-опросов» в меню админки.
+  **Устройства и активность клиента в приложении** (решение владельца
+  2026-10-15, оба формата; вкладка «Приложение» карточки клиента админки):
+  `db/migrations/2026-10-15_zzzzz_client_app_activity.sql` —
+  `app_devices` (установка приложения × учётная запись: id устройства
+  придумывает приложение; система, модель, браузер, версия приложения,
+  установлено ли, разрешение и подписка на уведомления, язык, экран, тема;
+  первый и последний раз, `sessions_count`; до 10 устройств) и
+  `app_activity_days` (день по Тбилиси × учётная запись × формат:
+  открытия `sessions` и разделы `screens` jsonb `{"memberships": 2, …}`;
+  400 дней — для будущей статистики: активные за день/месяц, удержание,
+  интерес к абонементам). Пишет только RPC `app_ping` (вошедший — о своём
+  устройстве; новое открытие — после 30 минут без активности, считает
+  база), таблицы напрямую закрыты всем, кроме service_role. Админка читает
+  одной RPC `client_app_overview(p_client_id)` — только `is_trainer` клуба
+  карточки и только приложение формата этого клуба: вход (GoTrue —
+  создана, последний вход, согласие с политикой), устройства, активность,
+  уведомления за 30 дней (`push_recipients` / `push_deliveries`), действия
+  (записи сам / администратор по `booked_by`, покупки `source = 'mobile'`,
+  оценки, заявки, последний NPS). Последняя карточка удалена — устройства и
+  активность уходят (`clients_app_activity_cleanup_ad`). Тесты —
+  `db/app-activity.test.ts`.
+  **Скорость RLS под нагрузкой** (2026-10-16, перед запуском; нагрузочный
+  прогон — DEPLOY.md): `db/migrations/2026-10-16_zz_rls_initplan_perf.sql`
+  — политики горячих таблиц (`schedule_entries`, `schedule_entry_trainers`,
+  `schedule_entry_substitutions`, `trainers`, `trainer_studios`, `clients`,
+  `client_memberships`, `schedule_bookings`, `bookings_log`, `workouts`,
+  `memberships`, `sales`, `sale_installments`) — актуальные определения
+  здесь. Хелперы с SECURITY DEFINER не инлайнятся и в политике считались
+  для каждой строки (неделя расписания — ~2300 вызовов); теперь то, что не
+  зависит от строки, — один раз на запрос: `(select auth.uid())`,
+  `(select current_studio_id(auth.uid()))`, списки студий вызывающего
+  массивом — `auth_staff_studio_ids()` (= `is_trainer`),
+  `auth_browse_studio_ids()` (= `client_can_browse_studio`),
+  `auth_catalog_studio_ids()` (= `can_manage_catalog`):
+  `studio_id = any ((select auth_staff_studio_ids())::uuid[])`. **Новые
+  политики — в том же виде**, не `is_trainer(auth.uid(), studio_id)`.
+  `current_studio_id` — на plpgsql (план кэшируется). `nps_pending_survey` —
+  `plan_cache_mode = force_custom_plan` (новое определение функции —
+  сразу с этой настройкой). Индексы: `clients_email_unlinked_idx` (первый
+  вход), `bookings_log_studio_attended_idx` (`my_studio_visit_stats`).
+  **AI-ассистент Kate** (2026-10-19): `db/migrations/2026-10-19_zz_assistant_kate.sql`
+  — переписка сотрудника с Kate: `assistant_threads` (с 2026-10-20 — одна
+  на сотрудника, `db/migrations/2026-10-20_assistant_single_thread.sql`:
+  уникальный `assistant_threads_one_per_user`, прежние диалоги слиты в самый
+  ранний; решение владельца — новых чатов нет, вся хронология в одном) и
+  `assistant_messages` (`parts` — только текст
+  ответа, `tools` — какие инструменты вызывала; строки данных из
+  инструментов не хранятся). Видит и правит только автор (даже владелец
+  чужие не видит), завести диалог — только сотрудник (`is_staff`); срока
+  хранения нет (решение владельца — переписка не стирается). Сводки для
+  инструментов Kate — security definer, только `is_trainer` клуба, клиенты
+  базы клуба (у пакетного — общая база пакетных; внутренний
+  `assistant_client_scope` наружу не выдан): `assistant_app_clients` (первый
+  вход и последний раз в приложении, открытия и просмотры абонементов за
+  30 дней, пуши — `app_devices`/`app_activity_days` напрямую закрыты),
+  `assistant_inactive_members` (действующий абонемент, давно не был или
+  ни разу), `assistant_birthdays`. Медицинское из анкеты Kate не получает.
+  Тесты — `db/assistant.test.ts`.
+  **База знаний** (решение владельца 2026-10-24; план, решения и что вошло —
+  KNOWLEDGE_BASE.md): `db/migrations/2026-10-24_knowledge_base.sql` — базы
+  `kb_bases` (без `studio_id`, общие для сети, как «Скрипты LS»), дерево
+  папок и статей `kb_nodes` (`kind` folder/article, `path` — папки выше,
+  `reader_visible` — опубликован сам и все папки выше; ставят триггеры),
+  опубликованный текст — `kb_nodes.content` (документ BlockNote, jsonb;
+  `content_text` и `search` для поиска считает база), черновик правок —
+  `kb_drafts` (только редакторам; RPC `kb_save_draft` с проверкой метки —
+  `kb_draft_conflict`), публикация — `kb_publish` (снимок в `kb_revisions`),
+  доступы — `kb_grants` (сотрудник → база → `view`/`edit`; `node_id` и
+  `subject_type` — задел под ветки и должности сети, политики их пока не
+  читают), чтение — `kb_reads` (`kb_mark_read`, повтор не чаще раза в 30
+  минут). Владелец (owner хоть в одной студии) — всё (`kb_is_admin`), прочим
+  по умолчанию не видно ничего; без роли сотрудника выданное не действует.
+  Политики — массивами (`auth_kb_view_base_ids` / `auth_kb_edit_base_ids`).
+  RPC: `kb_move_node` (перенос и порядок), `kb_copy_node`,
+  `kb_reorder_bases`, `kb_search` (русская морфология + начало слова, в
+  папке), `kb_report` / `kb_article_readers` (отчёт по чтению, папки не
+  считаются), `kb_authors` (имена авторов — профили других клубов RLS не
+  отдаёт). Аудитория отчёта — `kb_article_audience`
+  (`db/migrations/2026-10-25_kb_report_audience.sql`, актуальные
+  определения `kb_report` / `kb_article_readers` — здесь): сотрудники с
+  доступом к базе из «Доступов», без владельцев и авторов статьи. Иконка
+  раздела (папки верхнего уровня) — `kb_nodes.icon`
+  (`db/migrations/2026-10-25_kb_section_icon.sql`: ключ набора админки,
+  только у папки, null — обычная папка). Блок 2, защита и упоминания
+  (2026-10-25): `db/migrations/2026-10-25_zz_kb_editor_tools.sql` —
+  избранное `kb_favorites` и личные отметки чек-листов `kb_checks` (свои
+  строки, только на видимое), шаблоны `kb_templates` (редакторам), корзина
+  `kb_trash` (снимок поддерева; RPC `kb_trash_node` / `kb_trash_restore` с
+  прежними id и авторством — флаг `kb.restoring` в `kb_nodes_biu`,
+  актуальное определение здесь / `kb_trash_delete`; через 30 дней —
+  `kb_trash_purge_due`, только service_role), очередь стирания файлов
+  `kb_file_purge` (удалено навсегда, удалённая база; разбирает сервер
+  админки), защита содержимого `kb_bases.protect_content` и
+  `kb_nodes.protect` (inherit/on/off), `kb_mention_candidates` (кого
+  упомянуть: владельцы и выданные), `kb_authors` — и авторы версий,
+  шаблонов, корзины. Файлы — закрытый бакет `kb-media` (`{база}/{статья}/{файл}`,
+  50 МБ на файл, читать — подписанные ссылки). Шаблоны общие для всех баз
+  (решение владельца 2026-10-25): `db/migrations/2026-10-25_zzz_kb_shared_templates.sql`
+  — у `kb_templates` нет `base_id`, видят и правят редакторы любой базы и
+  владельцы (`auth_kb_is_editor`); файлы шаблона — папка бакета
+  `templates/{шаблон}/` (только редакторам; админка копирует туда файлы
+  статьи и из неё — в папку новой статьи), удалённый шаблон — его папка в
+  `kb_file_purge.folder`; актуальное определение `kb_authors` — здесь.
+  Учёт чтения и аналитика (решение владельца 2026-10-25):
+  `db/migrations/2026-10-25_zzzz_kb_reading_analytics.sql` — `kb_reads` +
+  `read_published_at` (какую версию читал: раньше последней публикации —
+  «прежняя версия»), `seconds` (активное время, считает браузер, база режет
+  до 60 с за вызов), `max_scroll` / `completed_at` (дочитал ≥ 90 %; новая
+  версия начинает заново); `kb_read_days` (день по Тбилиси × сотрудник ×
+  статья: открытия и секунды), `kb_search_log` (запрос, сколько нашлось,
+  переход; набор по буквам — одна строка). Пишут только RPC `kb_mark_read`
+  (актуальное определение — здесь), `kb_track_reading`, `kb_log_search`,
+  `kb_log_search_click`; читают редакторы базы и владельцы —
+  `kb_analytics_overview` / `kb_analytics_people` / `kb_analytics_person`,
+  `kb_report` и `kb_article_readers` (пересозданы с новыми колонками —
+  актуальные определения здесь). Считаются сотрудники с доступом к базе
+  без владельцев (`kb_base_people`), у статьи — и без её авторов.
+  Скорость, чистка и место (2026-10-25, нагрузка 500 сотрудников × 300
+  статей за год — KNOWLEDGE_BASE.md): `db/migrations/2026-10-25_zzzzz_kb_storage_perf.sql`
+  — аудитория одним запросом `kb_audience_pairs` (сотрудник × статья без
+  авторов, наружу не выдана); актуальные определения `kb_base_pairs`,
+  `kb_analytics_people`, `kb_analytics_overview`, `kb_analytics_person`,
+  `kb_report` — здесь. `kb_file_gc_candidates` (файлы `kb-media` старше
+  7 дней, на которые не ссылаются ни статья, ни черновик, ни версия, ни
+  шаблон, ни корзина) и `kb_housekeeping` (журнал поиска — год,
+  `kb_read_days` — 400 дней) — только service_role, раз в сутки зовёт сервер
+  админки; `kb_storage_usage` — место по базам (файлы, таблицы `kb_*`),
+  только владельцу. Тесты — `db/knowledge-base.test.ts`.
+  Оценка статей, «Предыдущая / Следующая», цвет базы (решения владельца
+  2026-10-25): `db/migrations/2026-10-25_zzzzzz_kb_ratings_pager_color.sql` —
+  `kb_nodes.feedback_enabled` / `pager_enabled` (настройки страницы, по
+  умолчанию включены), оценки `kb_ratings` (1 — не помогла, 2 — так себе,
+  3 — помогла; строка на сотрудника × статью × опубликованную версию
+  `version_at`, повтор той же версии меняет оценку; пишет только RPC
+  `kb_rate`, читают — свои и редакторы базы), сводка и хронология —
+  `kb_ratings_report` (редакторам и владельцам), `kb_bases.brand_color`
+  (#rrggbb, null — цвет клуба). Корзина возвращает оценки и настройки,
+  копия — настройки: актуальные определения `kb_trash_node`,
+  `kb_trash_restore`, `kb_copy_node` — здесь. `kb_authors` отдаёт и
+  аватарку (`db/migrations/2026-10-25_zzzzzzzz_kb_authors_avatar.sql`,
+  актуальное определение — здесь): автор в шапке статьи.
+  Вложенные статьи (решение владельца 2026-10-25, бриф №2):
+  `db/migrations/2026-10-25_zzzzzzzz_kb_nested_articles.sql` — у статьи могут
+  быть вложенные статьи на любую глубину (папка в статье — нет:
+  `kb_folder_in_article`), видимость читателю наследуется как у папок, корзина
+  возвращает статью под прежнюю статью-родителя; актуальные определения
+  `kb_nodes_biu` и `kb_trash_restore` — здесь.
+  Теги статей (решение владельца 2026-10-25):
+  `db/migrations/2026-10-25_zzzzzzzzz_kb_tags.sql` — `kb_tags` (свои у
+  каждой базы, имя без регистра уникально, «#» и лишние пробелы срезает
+  триггер, до 40 знаков; видят все с доступом к базе, правят редакторы) и
+  `kb_node_tags` (только статьи, до 10 на статью; читатель видит теги лишь
+  видимых ему статей); `kb_search` (актуальное определение — здесь) находит
+  и статьи с тегом под запрос («#касса» = «касса»), точное имя тега — выше;
+  корзина уносит и возвращает теги триггерами на `kb_trash`
+  (`kb_trash_tags_bi` / `kb_trash_tags_ad`), функции корзины не тронуты.
+  Цвет тега — `kb_tags.color` (ключ готового набора админки, null — серый;
+  `db/migrations/2026-10-25_zzzzzzzzzzz_kb_tag_colors.sql`).
+  Правки по код-ревью 2026-10-25:
+  `db/migrations/2026-10-25_zzzzzzzzzz_kb_academy_code_review.sql` —
+  `kb_reads.read_published_at` разово заполнена (прочитанное до учёта
+  версий считалось «прежней версией»), корзина возвращает чтение целиком
+  (версия, секунды, прокрутка, «дочитал» — актуальное определение
+  `kb_trash_restore` здесь), вкладка «Поиск» аналитики — своя RPC
+  `kb_analytics_search` (только журнал поиска, без пар сотрудник × статья).
+  **«Академия» — курсы, тесты, проверка тренером** (решения владельца
+  2026-10-25; план, решения и что вошло — ACADEMY.md):
+  `db/migrations/2026-10-25_zzzzzzz_academy.sql` — отдельный раздел, курсы
+  общие для сети (без `studio_id`). Права — `acad_staff` (`can_create`
+  «Создаёт курсы», `can_review` «Проверяет ответы»; пишет сервер «Доступов»;
+  по умолчанию закрыто, владелец — всё, без роли сотрудника не действует;
+  хелперы `acad_can_create` / `acad_can_review` / `acad_is_team`). Каталог —
+  `acad_folders`, `acad_courses` (черновик / опубликован / архив, `sequential`,
+  `pass_percent`, обложка `kbfile:academy/<курс>/…`), шаги `acad_steps`
+  (урок — `content` BlockNote; урок из статьи — копия, `source_node_id` /
+  `source_published_at`, «Статья изменилась» — RPC `acad_course_sources`;
+  `content_updated_at` / `questions_updated_at` — напоминание проверить
+  вопросы), вопросы `acad_questions` (`single` / `multiple` / `open`,
+  варианты `{id, text, correct}` проверяет триггер), назначения
+  `acad_assignments` (человек или правило «роль owner/admin/trainer в
+  клубах», пусто — во всех; срок `due_date` или `due_days`; ученики —
+  внутренняя `acad_pairs`, курсы сотрудника — `acad_user_course_ids`).
+  Ход — `acad_enrollments`, `acad_lesson_done`, попытки `acad_attempts` и
+  ответы `acad_answers` (снимок вопроса; `carried` — верный перенесён из
+  прошлой попытки). Таблицы читает команда; ученик — только RPC
+  (`acad_my_courses`, `acad_course_view`, `acad_lesson`,
+  `acad_lesson_complete`, `acad_quiz_start` без отметок верных,
+  `acad_quiz_submit` — закрытые проверяет сразу, пересдача — только вопросы с
+  ошибкой, `acad_attempt` — свои ответы без правильных вариантов); проверка —
+  `acad_review_queue` / `acad_review_submit`; отчёты — `acad_course_report`,
+  `acad_question_stats`, `acad_overview`, `acad_people_overview`,
+  `acad_person`; рейка — `acad_access`. Файлы — бакет `kb-media`, папки
+  `academy/<курс>/` и `academy/answers/<сотрудник>/` (политики «academy …»);
+  удалённый курс — папка в `kb_file_purge`. Актуальные определения
+  `kb_file_gc_candidates` (ссылки и в Академии) и `kb_storage_usage`
+  (строка `academy`) — здесь. Правки после тестирования:
+  `db/migrations/2026-10-25_zzzzzzzzz_academy_review_fixes.sql` —
+  `acad_courses.default_due_days` (срок по умолчанию для окна назначения) и
+  `acad_questions.review_notes` (эталон и критерии свободного ответа —
+  только команде; в `acad_quiz_start` и снимок ответа не входят — поля там
+  поимённо, новое поле вопроса ученику туда не добавлять). Правки по
+  код-ревью 2026-10-25 (и базы знаний):
+  `db/migrations/2026-10-25_zzzzzzzzzz_kb_academy_code_review.sql` — замок
+  шагов «по порядку» одним проходом (`acad_step_locks`, внутренняя; порядок —
+  `sort_order, created_at`, как в интерфейсе), свои ответы не проверяют
+  (`acad_own_attempt`; нет в `acad_review_queue` и счётчике `acad_access`);
+  актуальные определения `acad_step_unlocked`, `acad_course_view`,
+  `acad_access`, `acad_review_queue`, `acad_review_submit` — здесь. Тесты —
+  `db/academy.test.ts`.
+  **Пользователи портала, роли и доступы** (решение владельца 2026-10-25,
+  под сеть Lady Stretch; подробно — ACCESS.md):
+  `db/migrations/2026-10-25_zzzzzzzzzzzz_access_roles.sql` — сеть
+  (`org_brands`, `studios.brand_id` / `ownership` / `city`), оргструктура
+  (`org_units` деревом, `path` — подразделения выше; `org_unit_members` —
+  руководитель / заместитель / сотрудник, человек в нескольких;
+  `org_positions`), люди (`portal_users`: тип, должность, статус,
+  `access_until`), каталог прав `access_permissions`, роли
+  `access_roles` + `access_role_permissions` (личная роль —
+  `personal_user_id`), назначения `access_assignments` (человеку /
+  подразделению «всем или руководителям, и ниже» / должности; во всех
+  клубах / клубах брендов / выбранных; `valid_from` / `valid_until`).
+  **Права из ролей пересчитывает `access_compile` и пишет в прежние
+  таблицы RLS**: `user_roles` (уровень в клубе), `admin_permissions`,
+  `admin_studio_permissions`, `kb_grants` (уровень базы), `acad_staff`.
+  Сетевые права и итог пишет в `access_user_rights` (`rights`,
+  `manage_all` / `manage_studio_ids`, `effective`). Эти таблицы **руками не
+  правятся**: изменения ролей, назначений, структуры, статуса, новые клубы
+  и базы помечают людей (`access_dirty`) и пересчитываются в той же
+  транзакции (`access_flush` в RPC, иначе — отложенный триггер). Сроки
+  пересчитывает сервер админки (`access_sync_due`, раз в 5 минут). Пишут
+  только RPC `access_*` / `org_*`. Они проверяют права: не больше своих и
+  только в своих клубах (`access_grant_problem`), последний
+  суперадминистратор не снимается (`access_guard`). Журнал — `access_log`.
+  **Владелец клуба больше не администратор сети**: `kb_is_admin`,
+  `acad_is_admin`, `has_admin_section`, `create_studio` смотрят на сетевые
+  права (`kb.admin`, `academy.admin`, `portal.admin`, `studios.create`). У
+  людей без строки `access_user_rights` — прежние правила (тесты,
+  сервисные записи). Вход в админку и базы знаний / Академия —
+  `is_portal_user` (сотрудник клуба **или** человек портала с ролями:
+  сотрудник УК может быть без клуба). Политика «user_roles owner manage»
+  снята: роли в клубах пишет только пересчёт. Перенос прежних «Доступов»
+  без изменения прав — `access_import_legacy` (один раз при выкатке).
+  Назначения Академии — ещё `access_role` / `unit` (+ `with_subunits`) /
+  `position` (`acad_pairs`, `acad_staff_directory` — актуальные определения
+  здесь). Актуальные определения `kb_base_people`, `kb_article_audience`,
+  `kb_mention_candidates` (без администраторов баз, а не без владельцев
+  клубов), `kb_base_level`, `auth_kb_view_base_ids` / `auth_kb_edit_base_ids`,
+  `acad_can_create` / `acad_can_review` / `acad_access` — здесь. Тесты —
+  `db/access.test.ts`.
+  **«Рабочий день»** (решение владельца 2026-10-25):
+  `db/migrations/2026-10-26_workday_checklist.sql` — порядок рабочего дня
+  администратора клуба (кнопка в шапке разделов клуба, рядом с поиском
+  клиента): блоки
+  `workday_sections` и пункты `workday_items` (текст, `due_time` — «к
+  HH:MM», null — без времени; `details` — инструкция с разметкой) — у
+  каждого клуба свои (клуб пункта — клуб блока, ставит триггер); отметки
+  `workday_checks` (пункт × день по Тбилиси, кто и когда — ставит триггер;
+  `workday_today()`). Читают и отмечают — сотрудники клуба, отметить и
+  снять — только за сегодня (история остаётся); блоки и пункты правит
+  владелец клуба (`auth_owner_studio_ids()` в политиках). RPC
+  `workday_reorder` (порядок одним запросом) и `workday_copy` (заменить
+  набор клуба копией другого). Стартовый набор — таблица Lady Stretch
+  «Рабочий день»: клубам с «Сабуртало» / «Ваке» в названии, если у клуба
+  ещё нет блоков (время не проставлено; имена клиентов из примера отчёта
+  не перенесены). «Просрочено» считает браузер. Тесты — `db/workday.test.ts`.
+  **«Аналитика сети» — студии на своих учётных системах** (решение
+  владельца 2026-10-26: вместо портала аналитики Lady Stretch; с нашими
+  клубами, продажами и расписанием НЕ связана — у них дашборд; что было у
+  Lady Stretch, правила расчёта, загрузка и что дальше — ANALYTICS.md):
+  `db/migrations/2026-10-26_zzz_analytics_network.sql` (первая версия
+  `2026-10-26_zz_analytics.sql` — отчёты по нашим продажам, раздел клуба
+  `club.analytics`, `analytics_*` — удалена этим файлом). Студии сети —
+  `an_studios` (название в учётной системе × `source` 1c / fitbase / adis /
+  mobifitness / other: город, партнёр, бренд, `closed_on`, `needs_review`),
+  точка 0 — `an_city_targets` (на город), номенклатура — `an_nomenclature`
+  (код → категория: только `subscription` идёт в продажи, только `trial` —
+  в воронку), загрузки — `an_imports` (status loading / done; отчёты видят
+  только done; новая загрузка заменяет данные того же вида у своих студий за
+  свой период), факты — `an_revenue`, `an_sales` (клиент — только хэш
+  SHA-256 из браузера), `an_classes`, `an_visits` (удаление загрузки —
+  каскадом), города партнёров — `an_user_cities`. Права — сетевые
+  `analytics.view` (все студии), `analytics.cities` (свои города),
+  `analytics.manage` (загрузка и справочники); стартовые роли «Аналитика
+  сети» и «Партнёр — аналитика»; вне модели прав — владелец клуба
+  (`an_has`). Напрямую читаются только `an_nomenclature` и `an_imports`
+  (manage), остальное — RPC: `an_access`, `an_scope`, отчёты
+  `an_revenue_report` / `an_sales_report` / `an_classes_report` /
+  `an_trials_report` / `an_zero_report` (студии — `auth_an_studio_ids()`,
+  агрегаты массивами в jsonb), загрузка `an_import_start` / `an_import_rows`
+  / `an_import_finish` / `an_import_delete`, справочники `an_studios_list`,
+  `an_studio_save`, `an_nomenclature_set`, `an_city_target_save`,
+  `an_partners_list`, `an_partner_cities_save`. Тесты — `db/analytics.test.ts`.
+  Рейтинг тренеров и чаевые: `db/migrations/2026-10-11_zzzzzzzzzzzzz_trainer_ratings.sql`
+  — `trainer_reviews` (оценка 1–5, одна от учётной записи на тренера; клиент
+  читает и правит свою, ставит — тренеру, которого видит в приложении,
+  `client_can_rate_trainer`), `trainers.rating_base_avg/rating_base_count`
+  (прежний сервис), итог `trainers.rating_avg/rating_count` — считает
+  триггер `trainers_rating_calc` при любой записи строки (руками не пишется),
+  `trainers.tip_url` (ссылка на чаевые).
+  Адрес студии: `db/migrations/2026-10-11_zzzzzzzzzzzz_studio_address.sql` —
+  `studios.address` (публичное чтение колонки, правит владелец; плашка
+  студии в приложении пакетов).
+  Массажисты и вкладки сотрудников приложения пакетов:
+  `db/migrations/2026-10-12_zzzzzzz_staff_masseurs.sql` — роль
+  `trainers.role = 'masseur'` (проверка `trainers_role_check`), оценки
+  (`trainer_reviews`) — только тренерам и массажистам
+  (`client_can_rate_trainer` — актуальное определение здесь),
+  `app_about_settings.specialists_count` (плитка «О нас», пакетам — 18).
+  Мессенджеры студии: `db/migrations/2026-10-12_studio_messengers.sql` —
+  `studio_app_settings.whatsapp_url/messenger_url` (с 2026-10-12 не
+  используются, как и `about/photo_path/…_maps_url/instagram_url` — «О
+  студии» заменён разделом «О нас»).
+  Раздел «О нас» приложения пакетов: `db/migrations/2026-10-12_zzzzzz_app_about_page.sql`
+  — `app_about_settings` (строка на формат, как `app_install_settings`;
+  публичное чтение, правка — раздел рейки `app` + студия формата): фото
+  обложки, галереи первой и второй студий, фото сообщества, цифры
+  (`visitors_count`, `group_trainings_count`, `visits_count`;
+  null — не показываются), `instagram_followers`, `instagram_posts` (jsonb
+  `[{path, url}]`, вручную); фото — бакет `studio-photos`, папка `about/`.
+  Тексты раздела — в коде клиента (`formats/packages/about-config.ts`).
+  Галерея главы «Массажный кабинет» (июнь 2026) —
+  `app_about_settings.massage_photos`
+  (`db/migrations/2026-10-12_zzzzzzz_app_about_massage.sql`).
+  Переводы контента (решение владельца 2026-10-12: клиентское приложение
+  на английском, грузинском и русском):
+  `db/migrations/2026-10-12_zzzzzz_content_translations.sql` — колонка
+  `translations jsonb` (`{"en": {поле: текст}, "ka": {…}}`, русский — в
+  прежних колонках) у `news`, `services`, `push_notifications`,
+  `memberships`, `workouts`, `trainers`, `studio_app_settings`, `studios`
+  (у `studios` — в публичном гранте колонок); админка пишет её из окон
+  редактирования (переключатель языков в шапке), клиент показывает язык
+  клиента → английский → русский (`apps/client/CLAUDE.md`, «Языки»).
+  Форматы и брендинг студий: `db/migrations/2026-10-09_studio_formats.sql` (`format`, `brand_color`,
+  `logo_url`, публичное чтение `studios`, RPC `create_studio`, бакет
+  `studio-logos`). Удаление студии — RPC `delete_studio`
+  (`db/migrations/2026-10-10_studio_delete.sql`, только владелец этой студии):
+  каскадом все данные студии; профили людей переносятся в другие студии,
+  общий контент приложения отвязывается от студии.
+- **Источник правды схемы — `db/` в корне репозитория** (общая для обоих
+  приложений). Новое изменение
+  схемы = новый файл `db/migrations/ГГГГ-ММ-ДД_имя.sql` (с 2026-10-09).
+  Мигратор `db/migrate.ts` запускается в контейнере админки перед сервером
+  (`apps/admin/Dockerfile`): выполняет невыполненные файлы по порядку имён, каждый в
+  транзакции, и отмечает их в `app_migrations.applied`; ошибка — откат файла и
+  сервер не стартует (Coolify ждёт «healthy» нового контейнера —
+  HEALTHCHECK в `apps/admin/Dockerfile` на bun — и оставляет прежний).
+  Блокировку таблицы файл ждёт не дольше 5 с (`lock_timeout`, с 2026-10-16;
+  было 60 с — всё это время запросы приложения к таблице стояли бы в
+  очереди): не дождался — откат, работает прежний контейнер, деплой
+  повторить в тихое время. Правила: файл не править после
+  выкатки (исправление — новый файл), без `begin/commit` и
+  `create index concurrently` внутри, по-прежнему идемпотентно (create ... if
+  not exists / drop policy if exists + create) — его могут выполнить и
+  вручную. Тесты мигратора на локальном Postgres —
+  `TEST_DATABASE_URL=… bun test db` (из корня).
+- Старые `db/*.sql` (вне `migrations/`) — история, выполнялись вручную в
+  Supabase SQL Editor; мигратор их не трогает. На пустой базе копии их выполняет мигратор
+  (см. DEPLOY.md).
+- `create table if not exists` НЕ добавляет колонки в существующую таблицу —
+  для новых колонок нужен явный `alter table ... add column if not exists`
+  (на этом уже ловили расхождение: clients.avatar_url был в файле, но не в БД).
+- Перед выкаткой миграцию можно прогнать на локальном Postgres 16 (есть в
+  системе): `bash db/test/build-schema.sh <url>` (заглушки — `db/test/stubs.sql`,
+  поправки порядка старых файлов — `db/test/fixups.sql`), сценарии —
+  `db/packages.test.ts`.
+- Серверная пагинация админки опирается на вью `clients_with_status`,
+  `sales_list`, `cash_totals`, `bookings_log_full` (db/performance_indexes.sql;
+  `sales_list` пересоздана в `2026-10-11_packages_client_memberships.sql`), все с
+  `security_invoker = true` — RLS действует. `s.*` во вью раскрывается при её
+  создании: новая колонка `sales` попадёт в `sales_list` только после
+  пересоздания вью (последнее — `2026-10-11_packages_client_memberships.sql`).
+- **Модель доступа: граница безопасности — RLS, не фронтенд.** Publishable-ключ
+  вшит в бандл, любой может дёргать PostgREST напрямую. Guard'ы роутов —
+  только UX. Все клиентские таблицы читаются по принципу «своя строка или
+  сотрудник» (`is_trainer`/`has_role`); витринные `news`/`services`/
+  `club_settings`/`studio_app_settings`/`app_install_settings` — публичны
+  намеренно. Каждый новый пользователь получает роль
+  `member` (auth_trigger.sql), поэтому «просто авторизован» ≠ «сотрудник» —
+  проверять роль явно. Хелперы: `has_role`, `is_trainer`, `is_staff` (staff в
+  любой студии — для пулов без studio_id: feedback/nps). Правки доступа собраны
+  в `db/security_hardening.sql` (аудит 2026-08-07): ужесточён select у
+  `clients`/`client_memberships`, закрыт IDOR в `cancel_membership*`,
+  `feedback`/`nps` — чтение/правка только сотрудник (`nps_responses`: с 2026-10-15 и
+  вставка — клиент отвечает через `submit_nps_response`). Storage: запись/удаление в
+  маркетинговых бакетах (news/services/memberships/trainer/workout-media) —
+  только сотрудник, фото тренеров — с разделом «Сотрудники», новости и услуги —
+  с «Мобильным приложением» (`db/migrations/2026-10-10_storage_media_write.sql`,
+  заменил `db/storage_hardening.sql`); бакет `avatars` пишется в свою
+  папку `{uid}/`. 
+- SECURITY DEFINER-функции, выданные `authenticated`, обходят RLS — обязаны
+  сами проверять вызывающего (`auth.uid()` — владелец записи или `is_trainer`).
+  Серверные роуты админки (chat/transcribe) — только для сотрудников через
+  `authenticateStaff` (`apps/admin/src/lib/staff-auth.server.ts`), серверные функции —
+  через middleware `requireStaff`/`requireOwner`
+  (`apps/admin/src/integrations/supabase/auth-middleware.ts`). Service-ключ
+  (`getSupabaseAdmin`) — только после такой проверки и только для того, что
+  RLS не позволяет (`auth.admin.*`).
+- **⚠️ Предрелизный риск (оплата): покупка абонемента клиентом — сейчас
+  МУЛЯЖ без оплаты.** `handlePurchase` в клиенте (`apps/client`) вставляет строку в `sales`
+  (политика `sales client insert own`, self-scoped: только своя строка в своей
+  студии), а триггер `activate_membership_from_sale` выдаёт абонемент. Пока
+  эквайринг не подключён — клиент фактически выдаёт себе абонемент бесплатно;
+  владелец принял это осознанно на стадии тестов (2026-08-07). **Перед боевым
+  запуском обязательно:** создание продажи вынести на сервер за проверку
+  платежа (webhook/подтверждение провайдера), а клиентскую вставку в `sales`
+  отозвать (`drop policy "sales client insert own"` + `"sales client select
+own"` оставить). Альтернатива — выдача абонемента только сотрудником из
+  админки (политика `sales studio rw` уже это позволяет).
+  **Пакетные клубы — закрыто 2026-10-16** (решение владельца перед запуском
+  Lady Stretch): `db/migrations/2026-10-16_packages_no_app_purchase.sql` —
+  `sales_client_insert_guard` (актуальное определение — здесь) не пускает
+  продажу от клиента в пакетном клубе (кнопки покупки в пакетном приложении
+  и так нет; запрос в обход приложения выдавал пакет бесплатно). Продажу
+  вносит сотрудник или сервер. Подписочные клубы (app.base40.fit) — муляж
+  остаётся до эквайринга.
+- Аналитика/новые фичи (аудит данных 2026-08-07):
+  `other_sales.sql` (каталог `sale_items` + продажи услуг/товаров `other_sales`,
+  отдельно от абонементов); `sales_payment.sql` (оплата/скидки на
+  `sales`/`other_sales` + `refunds`); `membership_freeze.sql` (заморозка:
+  `memberships.freeze_days_allowed`, статус `frozen`, `membership_freezes`, RPC
+  `freeze_membership`/`unfreeze_membership`; новая продажа вытесняет и
+  замороженный абонемент); `booking_hygiene.sql` (единый словарь статусов
+  посещений `booked|waitlist|attended|no_show|cancelled`, `expire_memberships()`,
+  триггер `last_visit_date`, `cancel_reason`/`cancelled_lead_minutes` + причина в
+  `cancel_schedule_booking*`). Вейт-лист (запись в очередь при заполнении) —
+  отдельным заходом с UI.
+- Известные особенности живой БД: `club_settings` — глобальный синглтон
+  (id = true), колонка studio_id в живой БД есть, но не используется;
+  `nps_responses` не привязаны к студии (гэп для мультистудии; `feedback` —
+  с `studio_id`, см. «Обратная связь» выше);
+  `schedule_days` объявлена в db/, но в живой БД не создана (фича не выкачена).
+
+## Документы
+
+- `DEPLOY.md` — деплой копии на Selectel, переменные окружения, первый
+  суперадминистратор, нагрузочный прогон.
+- `RU_SELECTEL.md` — решения владельца по копии для России, расчёт мощности,
+  второй этап.
+- `ACCESS.md` — пользователи портала, роли и доступы.
+- `KNOWLEDGE_BASE.md` — база знаний: решения, архитектура, бэклог.
+- `ACADEMY.md` — «Академия»: курсы, тесты, проверка.
+- `ANALYTICS.md` — «Аналитика сети».
+- `STUDIO_FORMATS.md` — форматы студий, журнал решений по пакетному формату.

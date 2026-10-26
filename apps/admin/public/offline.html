@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#1A2027" />
+    <title>Нет подключения — Base40</title>
+    <!-- Страница отдаётся service worker'ом без сети: всё встроено, внешних файлов нет. -->
+    <style>
+      body {
+        margin: 0;
+        min-height: 100dvh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+        box-sizing: border-box;
+        background: #eff1ee;
+        color: #1a2027;
+        font-family:
+          Roboto,
+          system-ui,
+          -apple-system,
+          "Segoe UI",
+          sans-serif;
+        text-align: center;
+      }
+      h1 {
+        margin: 0;
+        font-size: 20px;
+        font-weight: 600;
+      }
+      p {
+        margin: 8px 0 24px;
+        font-size: 14px;
+        color: #64748b;
+      }
+      button {
+        border: 0;
+        border-radius: 6px;
+        padding: 10px 16px;
+        background: #1a2027;
+        color: #fff;
+        font: inherit;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Нет подключения к интернету</h1>
+      <p>Админ-панель работает только онлайн. Проверьте сеть и попробуйте ещё раз.</p>
+      <button type="button" onclick="location.reload()">Повторить</button>
+    </main>
+  </body>
+</html>
