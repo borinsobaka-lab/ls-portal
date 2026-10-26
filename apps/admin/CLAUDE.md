@@ -78,9 +78,18 @@ src/lib/mail.ts с noreply@base40.fit через Resend (`RESEND_API_KEY`).
 письмо. Код входа в клиентское приложение уходит только члену клуба — есть
 карточка клиента с этой почтой (RPC `client_app_sign_in_allowed` сервис-ключом,
 `needsClubMembership`); иначе хук отвечает GoTrue ошибкой `not_a_club_member`.
-Env: SEND_EMAIL_HOOK_SECRET, RESEND_API_KEY,
-опционально ADMIN_APP_URL и RESEND_RPS (runtime, Coolify). Настройка — AUTH_SETUP.md
-в корне репозитория.
+Env: SEND_EMAIL_HOOK_SECRET, почта — `SMTP_HOST`, `SMTP_PORT` (465 — SSL,
+587 — STARTTLS; `SMTP_SECURE` — явно), `SMTP_USER`, `SMTP_PASS`, отправитель
+`MAIL_FROM` (по умолчанию — `SMTP_USER`) и `MAIL_FROM_NAME`; опционально
+`EMAIL_BRAND`, ADMIN_APP_URL (runtime, Coolify). Без SMTP — запасной Resend
+(`RESEND_API_KEY`, `RESEND_RPS`). Настройка — DEPLOY.md в корне репозитория.
+
+**SMTP** (копия Lady Stretch, 2026-10-26 — почтовый хостинг reg.ru):
+nodemailer с постоянным соединением (`pool`, до `SMTP_MAX_CONNECTIONS` = 2):
+код уходит без нового TLS-рукопожатия и входа в ящик, обычно за доли
+секунды. Одна попытка, без повторов (письмо могло уйти — был бы второй код);
+не уложились до deadline — ошибка, GoTrue повторит хук. Лимит хостинга —
+3000 писем в сутки.
 
 **Нагрузка** (2026-10-16, запуск приложений: ~1000 клиентов входят в одно
 утро): GoTrue ждёт хук 5 секунд **на все свои попытки сразу**, поэтому хук
@@ -105,11 +114,11 @@ SVG; грузится с `ADMIN_APP_URL`), текст и цифры кода —
 `#1a2027`, код — на бледно-розовой плашке с розовой рамкой `#f763fc`. Вёрстка
 таблицами с `bgcolor` — иначе почтовик, срезавший фон у div, потерял бы
 тёмную шапку.
-Отправитель — `emailSender`: `LADY_STRETCH_MAIL_FROM`
-(`noreply@lady-stretch.one`, задаётся только после Verified домена в Resend —
-AGENT_TASKS.md, Задача 13), без неё — `noreply@base40.fit` под именем
-«Lady Stretch». Админка и app.base40.fit — Base40, как прежде; письмо входа в
-админку — всегда Base40.
+Отправитель — `emailSender`: один ящик (`MAIL_FROM`, иначе `SMTP_USER`),
+имя — `MAIL_FROM_NAME` или бренд. Бренд писем портала (админки) и
+подписочного приложения — `EMAIL_BRAND` (по умолчанию `ladyStretch`, в этой
+копии; `base40` — прежний вид), письмо входа в портал — «Код для входа в
+портал {название}».
 
 **Язык писем клиентам** (решение владельца 2026-10-18): язык, выбранный в
 приложении, иначе английский (`emailLocale`, тексты en/ka/ru — `TEXTS` в

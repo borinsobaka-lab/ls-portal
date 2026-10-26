@@ -14,9 +14,8 @@ import { getSupabaseAdmin, hasSupabaseAdmin } from "@/integrations/supabase/clie
 import { mailProvider, sendMail } from "@/lib/mail";
 
 // Send Email Hook для Supabase Auth: GoTrue не шлёт письма сам, а дёргает
-// этот эндпоинт, и мы отправляем письмо с noreply@base40.fit через Resend
-// (RESEND_API_KEY) — см. src/lib/mail.ts. Клиентам пакетных клубов —
-// письмо Lady Stretch со своего адреса (LADY_STRETCH_MAIL_FROM).
+// этот эндпоинт, и мы отправляем письмо по SMTP (SMTP_*, отправитель —
+// MAIL_FROM / MAIL_FROM_NAME; запасной путь — Resend) — см. src/lib/mail.ts.
 //
 // Во всех письмах авторизации — 6-значный код, ссылок авто-входа нет: код
 // GoTrue передаёт только сюда, на сервер, и он уходит лишь в письмо (в ответ
@@ -29,8 +28,8 @@ import { mailProvider, sendMail } from "@/lib/mail";
 // иначе (включая нераспознанный redirect_to) -> клиентское письмо.
 //
 // Настройка (self-hosted Supabase): переменные GOTRUE_HOOK_SEND_EMAIL_* сервиса
-// auth в Coolify, URI https://admin.base40.fit/api/auth-email; тот же секрет и
-// ключ почты — в окружении админки (SEND_EMAIL_HOOK_SECRET, RESEND_API_KEY). Пока они не заданы, роут отвечает 500 и письма не
+// auth в Coolify, URI {ADMIN_APP_URL}/api/auth-email; тот же секрет и
+// почта — в окружении портала (SEND_EMAIL_HOOK_SECRET, SMTP_*; DEPLOY.md). Пока они не заданы, роут отвечает 500 и письма не
 // уходят вовсе (запасной отправки у GoTrue при включённом хуке нет) — хук
 // включать только после задания переменных.
 
@@ -106,7 +105,9 @@ export const Route = createFileRoute("/api/auth-email")({
         const deadline = Date.now() + HOOK_BUDGET_MS;
         const secret = process.env.SEND_EMAIL_HOOK_SECRET;
         if (!secret || !mailProvider()) {
-          console.error("[auth-email] SEND_EMAIL_HOOK_SECRET / RESEND_API_KEY не заданы");
+          console.error(
+            "[auth-email] SEND_EMAIL_HOOK_SECRET / SMTP_* (или RESEND_API_KEY) не заданы",
+          );
           return new Response("hook not configured", { status: 500 });
         }
 
@@ -142,8 +143,7 @@ export const Route = createFileRoute("/api/auth-email")({
           return Response.json({ error: { http_code: 403, message: NOT_A_CLUB_MEMBER } });
         }
 
-        // Бренд и отправитель — тоже по приложению: клиентам пакетных клубов
-        // (app.lady-stretch.one, pack.base40.fit) — Lady Stretch.
+        // Бренд и отправитель — тоже по приложению (EMAIL_BRAND, PACKAGES_APP_URLS).
         const brand = emailBrand(payload.email_data.redirect_to);
         const from = emailSender(brand);
         for (const email of buildEmails(payload, fromAdminApp, brand)) {

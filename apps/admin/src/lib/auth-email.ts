@@ -2,7 +2,7 @@
 // src/routes/api/auth-email.ts, чтобы её можно было проверять тестом
 // (bun test src/lib/auth-email.test.ts).
 
-import { MAIL_FROM_EMAIL, MAIL_FROM_NAME, type MailSender } from "./mail";
+import { defaultSender, type MailSender } from "./mail";
 
 export type HookPayload = {
   user: {
@@ -54,35 +54,38 @@ export function isPackagesApp(redirectTo: string | undefined): boolean {
 }
 
 // ---------------------------------------------------------------------------
-// Бренд письма (решение владельца 2026-10-15): клиентам пакетных клубов —
-// письма Lady Stretch (розовый #f763fc, серые бокового меню админки) с
-// отдельного адреса; админке и подписочному приложению — Base40 как прежде.
+// Бренд письма. Копия Lady Stretch (2026-10-26): письма портала (админки) и
+// приложения пакетных клубов — Lady Stretch (розовый #f763fc, серые бокового
+// меню); EMAIL_BRAND=base40 — прежний вид Base40 у портала и подписочного
+// приложения.
 // ---------------------------------------------------------------------------
 
 export type EmailBrand = "base40" | "ladyStretch";
 
-export function emailBrand(redirectTo: string | undefined): EmailBrand {
-  return !isAdminApp(redirectTo) && isPackagesApp(redirectTo) ? "ladyStretch" : "base40";
+type Env = Record<string, string | undefined>;
+
+/** Бренд писем портала и подписочного приложения (EMAIL_BRAND). */
+export function portalBrand(env: Env = process.env): EmailBrand {
+  return env.EMAIL_BRAND === "base40" ? "base40" : "ladyStretch";
+}
+
+export function emailBrand(redirectTo: string | undefined, env: Env = process.env): EmailBrand {
+  return !isAdminApp(redirectTo) && isPackagesApp(redirectTo) ? "ladyStretch" : portalBrand(env);
 }
 
 const BRAND_NAME: Record<EmailBrand, string> = { base40: "Base40", ladyStretch: "Lady Stretch" };
 
+/** Название в письмах: MAIL_FROM_NAME, иначе имя бренда. */
+export function brandName(brand: EmailBrand, env: Env = process.env): string {
+  return env.MAIL_FROM_NAME?.trim() || BRAND_NAME[brand];
+}
+
 /**
- * Отправитель письма. Lady Stretch — адрес из LADY_STRETCH_MAIL_FROM
- * (noreply@lady-stretch.one, когда домен подтверждён в Resend; AGENT_TASKS.md,
- * Задача 13). Пока переменной нет — прежний noreply@base40.fit под именем
- * Lady Stretch: с неподтверждённого домена Resend не отправит, и клиенты
- * остались бы без кода.
+ * Отправитель письма — один ящик на все письма (MAIL_FROM, иначе логин
+ * SMTP; src/lib/mail.ts), имя — название бренда.
  */
-export function emailSender(
-  brand: EmailBrand,
-  env: Record<string, string | undefined> = process.env,
-): MailSender {
-  if (brand === "base40") return { email: MAIL_FROM_EMAIL, name: MAIL_FROM_NAME };
-  const custom = env.LADY_STRETCH_MAIL_FROM?.trim();
-  const email =
-    custom && /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(custom) ? custom : MAIL_FROM_EMAIL;
-  return { email, name: BRAND_NAME.ladyStretch };
+export function emailSender(brand: EmailBrand, env: Env = process.env): MailSender {
+  return { email: defaultSender(env).email, name: brandName(brand, env) };
 }
 
 // Письма входа в КЛИЕНТСКОЕ приложение, которые уходят только члену клуба
@@ -318,13 +321,13 @@ export function buildEmails(
   brand: EmailBrand = "base40",
 ): OutgoingEmail[] {
   const { user, email_data } = payload;
-  const b: EmailBrand = fromAdminApp ? "base40" : brand;
+  const b: EmailBrand = fromAdminApp ? portalBrand() : brand;
   const tx = TEXTS[emailLocale(payload, fromAdminApp)];
   const codeEmail = CODE_EMAIL[b];
   if (email_data.email_action_type === "email_change") {
     const newEmail = user.new_email || null;
     if (email_data.token_new && newEmail) {
-      const subject = tx.emailChangeSubject(BRAND_NAME[b]);
+      const subject = tx.emailChangeSubject(brandName(b));
       return [
         {
           to: user.email,
@@ -349,9 +352,9 @@ export function buildEmail(
   brand: EmailBrand = "base40",
 ): { subject: string; html: string } {
   const { token, email_action_type } = payload.email_data;
-  // Админка — всегда Base40, какой бы бренд ни передали.
-  const b: EmailBrand = fromAdminApp ? "base40" : brand;
-  const name = BRAND_NAME[b];
+  // Портал (админка) — всегда бренд портала, какой бы бренд ни передали.
+  const b: EmailBrand = fromAdminApp ? portalBrand() : brand;
+  const name = brandName(b);
   const tx = TEXTS[emailLocale(payload, fromAdminApp)];
   const code = (title: string, lead: string) => CODE_EMAIL[b](title, lead, token, tx);
 
@@ -371,10 +374,10 @@ export function buildEmail(
     case "magiclink":
       return fromAdminApp
         ? {
-            subject: "Код для входа в админ-панель Base40",
+            subject: `Код для входа в портал ${name}`,
             html: code(
-              "Вход в админ-панель",
-              "Введите этот код на странице входа в админ-панель. Никому его не сообщайте.",
+              "Вход в портал",
+              "Введите этот код на странице входа в портал. Никому его не сообщайте.",
             ),
           }
         : {

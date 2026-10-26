@@ -1,6 +1,15 @@
 import { afterEach, describe, expect, test } from "bun:test";
 
-import { htmlToText, mailProvider, sendMail } from "./mail";
+import type { Transporter } from "nodemailer";
+
+import {
+  defaultSender,
+  htmlToText,
+  mailProvider,
+  sendMail,
+  setSmtpTransportForTests,
+  smtpOptions,
+} from "./mail";
 
 const realFetch = globalThis.fetch;
 afterEach(() => {
@@ -27,7 +36,13 @@ function mockFetch(status: number, reply: unknown) {
   return calls;
 }
 
+const SMTP = { SMTP_HOST: "mail.hosting.reg.ru", SMTP_USER: "noreply@x.ru", SMTP_PASS: "p" };
+
 describe("выбор провайдера", () => {
+  test("SMTP задан — он, даже при ключе Resend", () =>
+    expect(mailProvider({ ...SMTP, RESEND_API_KEY: "r" })).toBe("smtp"));
+  test("SMTP без пароля — не он", () =>
+    expect(mailProvider({ ...SMTP, SMTP_PASS: "" })).toBeNull());
   test("ключ Resend — он", () => expect(mailProvider({ RESEND_API_KEY: "r" })).toBe("resend"));
   test("ключ Unisender Go больше не используется", () =>
     expect(mailProvider({ UNISENDER_GO_API_KEY: "u" })).toBeNull());
@@ -39,14 +54,14 @@ describe("sendMail", () => {
     const calls = mockFetch(200, { id: "x" });
     const r = await sendMail(
       { to: ["a@b.ru", "c@d.ru"], subject: "Тема", html: "<p>Код<br>1234</p>" },
-      { RESEND_API_KEY: "re", UNISENDER_GO_API_KEY: "u" },
+      { RESEND_API_KEY: "re", UNISENDER_GO_API_KEY: "u", MAIL_FROM: "noreply@x.ru" },
     );
     expect(r.ok).toBe(true);
     expect(calls).toHaveLength(1);
     expect(calls[0].url).toBe("https://api.resend.com/emails");
     expect(calls[0].headers.Authorization).toBe("Bearer re");
     expect(calls[0].body).toEqual({
-      from: "Base40 <noreply@base40.fit>",
+      from: "Lady Stretch <noreply@x.ru>",
       to: ["a@b.ru", "c@d.ru"],
       subject: "Тема",
       html: "<p>Код<br>1234</p>",
@@ -179,3 +194,91 @@ test("htmlToText: ссылка — адресом", () =>
   expect(htmlToText('<p>Нажмите</p><a href="https://x.ru/v">Войти</a>')).toBe(
     "Нажмите\nВойти: https://x.ru/v",
   ));
+
+describe("SMTP", () => {
+  afterEach(() => setSmtpTransportForTests(null));
+
+  test("порт: 465 — SSL, 587 — STARTTLS обязателен, по умолчанию 465", () => {
+    expect(smtpOptions({ ...SMTP })).toMatchObject({ port: 465, secure: true, requireTLS: false });
+    expect(smtpOptions({ ...SMTP, SMTP_PORT: "587" })).toMatchObject({
+      port: 587,
+      secure: false,
+      requireTLS: true,
+    });
+    expect(smtpOptions({ ...SMTP, SMTP_PORT: "2525", SMTP_SECURE: "false" })).toMatchObject({
+      secure: false,
+      requireTLS: false,
+    });
+    expect(smtpOptions(SMTP).auth).toEqual({ user: "noreply@x.ru", pass: "p" });
+  });
+
+  test("отправитель по умолчанию — MAIL_FROM, иначе логин ящика", () => {
+    expect(defaultSender({ ...SMTP, MAIL_FROM: "robot@x.ru", MAIL_FROM_NAME: "LS" })).toEqual({
+      email: "robot@x.ru",
+      name: "LS",
+    });
+    expect(defaultSender(SMTP)).toEqual({ email: "noreply@x.ru", name: "Lady Stretch" });
+  });
+
+  test("письмо уходит через транспорт: отправитель, текстовая версия", async () => {
+    const sent: Record<string, unknown>[] = [];
+    setSmtpTransportForTests(
+      { sendMail: async (m: Record<string, unknown>) => sent.push(m) } as unknown as Transporter,
+      SMTP,
+    );
+    const r = await sendMail(
+      {
+        to: "a@b.ru",
+        subject: "Код",
+        html: "<p>Код<br>123456</p>",
+        from: { email: "noreply@x.ru", name: 'L "S"' },
+      },
+      SMTP,
+    );
+    expect(r.ok).toBe(true);
+    expect(sent).toEqual([
+      {
+        from: "L S <noreply@x.ru>",
+        to: ["a@b.ru"],
+        subject: "Код",
+        html: "<p>Код<br>123456</p>",
+        text: "Код\n123456",
+      },
+    ]);
+  });
+
+  test("ошибка сервера — не ok, без повтора", async () => {
+    let calls = 0;
+    setSmtpTransportForTests(
+      {
+        sendMail: async () => {
+          calls++;
+          throw new Error("535 auth failed");
+        },
+      } as unknown as Transporter,
+      SMTP,
+    );
+    const origErr = console.error;
+    console.error = () => {};
+    const r = await sendMail({ to: "a@b.ru", subject: "s", html: "h" }, SMTP);
+    console.error = origErr;
+    expect(r).toEqual({ ok: false, error: "SMTP: 535 auth failed" });
+    expect(calls).toBe(1);
+  });
+
+  test("завис дольше срока — ошибка к сроку", async () => {
+    setSmtpTransportForTests(
+      { sendMail: () => new Promise(() => {}) } as unknown as Transporter,
+      SMTP,
+    );
+    const origErr = console.error;
+    console.error = () => {};
+    const t0 = Date.now();
+    const r = await sendMail({ to: "a@b.ru", subject: "s", html: "h" }, SMTP, {
+      deadline: Date.now() + 1200,
+    });
+    console.error = origErr;
+    expect(r.ok).toBe(false);
+    expect(Date.now() - t0).toBeLessThan(2000);
+  });
+});

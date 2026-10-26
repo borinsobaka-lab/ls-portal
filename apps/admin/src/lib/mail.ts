@@ -1,13 +1,16 @@
-// Отправка писем с сервера через Resend (RESEND_API_KEY). С 2026-10-11 —
-// единственный провайдер: Unisender Go отключён (решение владельца), домен
-// base40.fit верифицирован в Resend; письма Lady Stretch — со своего домена
-// (LADY_STRETCH_MAIL_FROM, src/lib/auth-email.ts). Ключ — только runtime-переменная Coolify
-// у club40-admin, в бандл не попадает.
+// Отправка писем с сервера. Копия Lady Stretch (2026-10-26) — по SMTP
+// почтового хостинга (reg.ru): SMTP_HOST, SMTP_PORT (465 — SSL, 587 —
+// STARTTLS), SMTP_USER, SMTP_PASS. Запасной путь — Resend (RESEND_API_KEY),
+// если SMTP не задан. Отправитель — MAIL_FROM (по умолчанию — SMTP_USER) и
+// MAIL_FROM_NAME. Всё — только runtime-переменные Coolify, в бандл не
+// попадает.
+
+import nodemailer, { type Transporter } from "nodemailer";
 
 const RESEND_ENDPOINT = "https://api.resend.com/emails";
 
-export const MAIL_FROM_EMAIL = "noreply@base40.fit";
-export const MAIL_FROM_NAME = "Base40";
+const DEFAULT_FROM_NAME = "Lady Stretch";
+const EMAIL_RE = /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/;
 
 // Сколько ждём ответа провайдера. GoTrue ждёт хук писем ~5 секунд и при
 // неудаче повторяет его; если зависший провайдер всё же отправит письмо
@@ -38,8 +41,8 @@ export type MailMessage = {
   html: string;
   text?: string;
   replyTo?: string;
-  /** Отправитель; по умолчанию — Base40 <noreply@base40.fit>. Домен адреса
-   * должен быть подтверждён в Resend, иначе 403. */
+  /** Отправитель; по умолчанию — defaultSender(): MAIL_FROM_NAME <MAIL_FROM>.
+   * SMTP-сервер обычно отправляет только со своего ящика. */
   from?: MailSender;
 };
 
@@ -47,8 +50,92 @@ export type MailResult = { ok: true } | { ok: false; error: string };
 
 type Env = Record<string, string | undefined>;
 
-export function mailProvider(env: Env = process.env): "resend" | null {
+export function mailProvider(env: Env = process.env): "smtp" | "resend" | null {
+  if (env.SMTP_HOST && env.SMTP_USER && env.SMTP_PASS) return "smtp";
   return env.RESEND_API_KEY ? "resend" : null;
+}
+
+/** Отправитель по умолчанию: MAIL_FROM (иначе логин SMTP) и MAIL_FROM_NAME. */
+export function defaultSender(env: Env = process.env): MailSender {
+  const candidates = [env.MAIL_FROM, env.SMTP_USER].map((v) => v?.trim() ?? "");
+  const email = candidates.find((v) => EMAIL_RE.test(v)) ?? "noreply@localhost";
+  return { email, name: env.MAIL_FROM_NAME?.trim() || DEFAULT_FROM_NAME };
+}
+
+/** Настройки SMTP из окружения: 465 — SSL сразу, 587 — обязательно STARTTLS. */
+export function smtpOptions(env: Env = process.env) {
+  const port = Number(env.SMTP_PORT) || 465;
+  const secure = env.SMTP_SECURE ? env.SMTP_SECURE === "true" : port === 465;
+  return {
+    host: env.SMTP_HOST ?? "",
+    port,
+    secure,
+    requireTLS: !secure && port === 587,
+    auth: { user: env.SMTP_USER ?? "", pass: env.SMTP_PASS ?? "" },
+    // Соединение держим открытым (pool): код входа уходит без нового
+    // TLS-рукопожатия и входа в ящик — GoTrue ждёт хук 5 секунд.
+    pool: true,
+    maxConnections: Number(env.SMTP_MAX_CONNECTIONS) || 2,
+    maxMessages: 100,
+    connectionTimeout: 3000,
+    greetingTimeout: 3000,
+    socketTimeout: 10000,
+  };
+}
+
+let smtp: { key: string; transport: Transporter } | null = null;
+
+function smtpTransport(env: Env): Transporter {
+  const options = smtpOptions(env);
+  const key = JSON.stringify(options);
+  if (!smtp || smtp.key !== key) {
+    smtp?.transport.close();
+    smtp = { key, transport: nodemailer.createTransport(options) };
+  }
+  return smtp.transport;
+}
+
+/** Подмена транспорта в тестах. */
+export function setSmtpTransportForTests(transport: Transporter | null, env: Env = {}) {
+  smtp = transport ? { key: JSON.stringify(smtpOptions(env)), transport } : null;
+}
+
+const formatFrom = (from: MailSender) => `${from.name.replace(/["<>]/g, "")} <${from.email}>`;
+
+// SMTP: одна попытка, без повторов — сервер мог принять письмо и не успеть
+// ответить, повтор дал бы два кода. Не уложились в срок — ошибка (GoTrue
+// повторит хук сам).
+async function sendSmtp(
+  msg: MailMessage,
+  recipients: string[],
+  env: Env,
+  deadline: number,
+): Promise<MailResult> {
+  const left = deadline - Date.now();
+  if (left < MIN_REQUEST_MS) return { ok: false, error: "SMTP: не успели отправить до таймаута" };
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    await Promise.race([
+      smtpTransport(env).sendMail({
+        from: formatFrom(msg.from ?? defaultSender(env)),
+        to: recipients,
+        subject: msg.subject,
+        html: msg.html,
+        text: msg.text ?? htmlToText(msg.html),
+        ...(msg.replyTo ? { replyTo: msg.replyTo } : {}),
+      }),
+      new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error("таймаут")), left);
+      }),
+    ]);
+    return { ok: true };
+  } catch (e) {
+    const error = `SMTP: ${(e as Error).message}`;
+    console.error("[mail]", error);
+    return { ok: false, error };
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 // Текстовая версия письма: HTML без тегов, ссылки — адресом в скобках.
@@ -81,12 +168,14 @@ export async function sendMail(
   const recipients = (Array.isArray(msg.to) ? msg.to : [msg.to]).filter(Boolean);
   if (recipients.length === 0) return { ok: false, error: "no recipients" };
 
-  if (mailProvider(env) !== "resend") return { ok: false, error: "mail provider not configured" };
+  const provider = mailProvider(env);
+  if (!provider) return { ok: false, error: "mail provider not configured" };
 
   const deadline = opts.deadline ?? Date.now() + MAIL_TIMEOUT_MS;
+  if (provider === "smtp") return sendSmtp(msg, recipients, env, deadline);
   const interval = 1000 / (Number(env.RESEND_RPS) || DEFAULT_RESEND_RPS);
   const body = JSON.stringify({
-    from: `${msg.from?.name ?? MAIL_FROM_NAME} <${msg.from?.email ?? MAIL_FROM_EMAIL}>`,
+    from: formatFrom(msg.from ?? defaultSender(env)),
     to: recipients,
     subject: msg.subject,
     html: msg.html,

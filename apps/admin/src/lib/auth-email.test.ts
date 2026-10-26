@@ -7,6 +7,7 @@ import {
   emailLocale,
   emailSender,
   isAdminApp,
+  portalBrand,
   isPackagesApp,
   needsClubMembership,
   type HookPayload,
@@ -53,7 +54,7 @@ describe("вход: всегда код, приложение меняет то�
     const { html, subject } = buildEmail(payload(ADMIN), isAdminApp(ADMIN));
     expect(hasCode(html)).toBe(true);
     expect(hasLoginLink(html)).toBe(false);
-    expect(subject).toContain("админ");
+    expect(subject).toContain("портал");
   });
 
   test("один и тот же человек в двух приложениях получает разные письма", () => {
@@ -161,12 +162,16 @@ describe("Lady Stretch — письма клиентам пакетных клу
     expect(isPackagesApp("")).toBe(false);
   });
 
-  test("бренд: пакеты — Lady Stretch, остальное — Base40", () => {
-    expect(emailBrand(LS)).toBe("ladyStretch");
-    expect(emailBrand(PACK)).toBe("ladyStretch");
-    expect(emailBrand(CLIENT)).toBe("base40");
-    expect(emailBrand(ADMIN)).toBe("base40");
-    expect(emailBrand("")).toBe("base40");
+  test("бренд: пакеты — Lady Stretch, портал — бренд портала (по умолчанию Lady Stretch)", () => {
+    expect(emailBrand(LS, {})).toBe("ladyStretch");
+    expect(emailBrand(PACK, {})).toBe("ladyStretch");
+    expect(emailBrand(CLIENT, {})).toBe("ladyStretch");
+    expect(emailBrand(ADMIN, {})).toBe("ladyStretch");
+    expect(emailBrand("", {})).toBe("ladyStretch");
+    expect(emailBrand(CLIENT, { EMAIL_BRAND: "base40" })).toBe("base40");
+    expect(emailBrand(ADMIN, { EMAIL_BRAND: "base40" })).toBe("base40");
+    expect(emailBrand(LS, { EMAIL_BRAND: "base40" })).toBe("ladyStretch");
+    expect(portalBrand({ EMAIL_BRAND: "что-то" })).toBe("ladyStretch");
   });
 
   test("вход — код Lady Stretch в розовом, без ссылки и без Base40", () => {
@@ -205,33 +210,30 @@ describe("Lady Stretch — письма клиентам пакетных клу
     for (const e of emails) expect(e.subject).toContain("Lady Stretch");
   });
 
-  test("админка — всегда Base40, даже если передали Lady Stretch", () => {
-    const { html, subject } = buildEmail(payload(ADMIN), true, "ladyStretch");
-    expect(subject).toContain("Base40");
-    expect(html).not.toContain("#f763fc");
+  test("портал — бренд портала, даже если передали Base40", () => {
+    const { html, subject } = buildEmail(payload(ADMIN), true, "base40");
+    expect(subject).toBe("Код для входа в портал Lady Stretch");
+    expect(html).toContain("#f763fc");
+    expect(html).not.toContain("Base40");
   });
 
-  test("отправитель Lady Stretch — адрес из LADY_STRETCH_MAIL_FROM", () =>
-    expect(
-      emailSender("ladyStretch", { LADY_STRETCH_MAIL_FROM: "noreply@lady-stretch.one" }),
-    ).toEqual({ email: "noreply@lady-stretch.one", name: "Lady Stretch" }));
-
-  test("без переменной (домен не подтверждён) — прежний адрес, имя Lady Stretch", () =>
-    expect(emailSender("ladyStretch", {})).toEqual({
-      email: "noreply@base40.fit",
+  test("отправитель — MAIL_FROM, имя — MAIL_FROM_NAME или бренд", () => {
+    expect(emailSender("ladyStretch", { MAIL_FROM: "noreply@lady-stretching.ru" })).toEqual({
+      email: "noreply@lady-stretching.ru",
       name: "Lady Stretch",
-    }));
+    });
+    expect(
+      emailSender("ladyStretch", { MAIL_FROM: "noreply@x.ru", MAIL_FROM_NAME: "Леди Стретч" }),
+    ).toEqual({ email: "noreply@x.ru", name: "Леди Стретч" });
+    expect(emailSender("base40", { MAIL_FROM: "noreply@x.ru" }).name).toBe("Base40");
+  });
 
-  test("мусор в переменной — прежний адрес", () =>
-    expect(emailSender("ladyStretch", { LADY_STRETCH_MAIL_FROM: "Lady <x@y.z>" }).email).toBe(
-      "noreply@base40.fit",
-    ));
-
-  test("Base40 — прежний отправитель, переменная Lady Stretch не влияет", () =>
-    expect(emailSender("base40", { LADY_STRETCH_MAIL_FROM: "noreply@lady-stretch.one" })).toEqual({
-      email: "noreply@base40.fit",
-      name: "Base40",
-    }));
+  test("без MAIL_FROM — логин SMTP; мусор в MAIL_FROM — тоже он", () => {
+    expect(emailSender("ladyStretch", { SMTP_USER: "box@x.ru" }).email).toBe("box@x.ru");
+    expect(
+      emailSender("ladyStretch", { MAIL_FROM: "Lady <x@y.z>", SMTP_USER: "box@x.ru" }).email,
+    ).toBe("box@x.ru");
+  });
 });
 
 describe("язык письма клиенту — выбранный в приложении, иначе английский", () => {
@@ -304,7 +306,7 @@ describe("язык письма клиенту — выбранный в при�
 
   test("админка — русское письмо", () => {
     const { subject, html } = buildEmail(payload(`${ADMIN}?lang=en`), true);
-    expect(subject).toBe("Код для входа в админ-панель Base40");
+    expect(subject).toBe("Код для входа в портал Lady Stretch");
     expect(html).toContain("Код действует 1 час.");
   });
 });
