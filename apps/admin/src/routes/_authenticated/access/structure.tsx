@@ -6,9 +6,11 @@ import { toast } from "sonner";
 
 import { AdminShell } from "@/components/admin-shell";
 import { AssignDialog, type AssignSubject } from "@/components/access/assign-dialog";
+import { MultiPick } from "@/components/access/club-owners";
 import { AccessSection, PersonLine, RoleChip } from "@/components/access/parts";
 import { useConfirm } from "@/components/confirm-dialog";
 import { AccessStructurePageSkeleton } from "@/components/page-skeletons";
+import { DeleteStudioForm } from "@/components/studio-delete-form";
 import { Button } from "@/components/ui/button";
 import { ColorInput } from "@/components/ui/color-input";
 import {
@@ -22,6 +24,7 @@ import {
 } from "@/components/ui/dialog";
 import { FormField, InfoNote } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 import {
   Select,
   SelectContent,
@@ -52,6 +55,7 @@ import {
   orgMembersQuery,
   orgPositionsQuery,
   orgUnitsQuery,
+  studioOwnersQuery,
 } from "@/lib/access/data";
 import { MEMBER_ROLE_LABEL, scopeText, unitSubtree, unitTree } from "@/lib/access/logic";
 import type {
@@ -62,10 +66,18 @@ import type {
   OrgPosition,
   OrgUnit,
 } from "@/lib/access/types";
-import { STUDIO_FORMAT_LABEL } from "@/lib/studio-formats";
+import { CLUBS_HIDDEN } from "@/lib/launch";
+import { STUDIO_FORMATS, STUDIO_FORMAT_LABEL, type StudioFormat } from "@/lib/studio-formats";
 import { unwrap } from "@/lib/query";
 import { cn } from "@/lib/utils";
 import { useAccessNames } from "@/hooks/use-access-names";
+
+/** Подсказки «?» окна клуба. */
+const TIPS = {
+  ownership: "Свой клуб сети или клуб партнёра по франшизе — для фильтров и назначений ролей.",
+  owners:
+    "Пользователи портала, которым принадлежит клуб. Собственнику с ролью «Аналитика сети: свои клубы» его клубы открываются в аналитике сами. Клубы собственника видны и меняются и в карточке пользователя.",
+};
 
 type Tab = "units" | "positions" | "network";
 const TABS: { value: Tab; label: string }[] = [
@@ -136,7 +148,9 @@ function StructurePage() {
         )}
         {tab === "units" && <UnitsTab canEdit={canEdit} />}
         {tab === "positions" && <PositionsTab canEdit={canEdit} />}
-        {tab === "network" && <NetworkTab canEdit={canEdit} />}
+        {tab === "network" && (
+          <NetworkTab canEdit={canEdit} canCreate={hasRight(access, "studios.create")} />
+        )}
       </div>
     </AdminShell>
   );
@@ -892,26 +906,32 @@ function NameForm({
 // --- Сеть клубов ---------------------------------------------------------------
 
 const NONE = "none";
+const OWNERSHIP_LABEL: Record<NetworkStudio["ownership"], string> = {
+  own: "Свой",
+  franchise: "Франшиза",
+};
 
-function NetworkTab({ canEdit }: { canEdit: boolean }) {
+function NetworkTab({ canEdit, canCreate }: { canEdit: boolean; canCreate: boolean }) {
   const qc = useQueryClient();
   const { confirm, confirmDialog } = useConfirm();
   const { data: brands } = useQuery(orgBrandsQuery);
   const { data: studios } = useQuery(networkStudiosQuery);
+  const { data: owners } = useQuery(studioOwnersQuery);
+  const names = useAccessNames();
   const [editing, setEditing] = useState<OrgBrand | "new" | null>(null);
+  const [club, setClub] = useState<NetworkStudio | "new" | null>(null);
+  const [deleting, setDeleting] = useState<NetworkStudio | null>(null);
+  const brandById = useMemo(() => new Map((brands ?? []).map((b) => [b.id, b])), [brands]);
+  const ownersOf = useMemo(() => {
+    const m = new Map<string, string[]>();
+    for (const o of owners ?? []) m.set(o.studio_id, [...(m.get(o.studio_id) ?? []), o.user_id]);
+    return m;
+  }, [owners]);
   const count = useMemo(() => {
     const m = new Map<string, number>();
     for (const s of studios ?? []) if (s.brand_id) m.set(s.brand_id, (m.get(s.brand_id) ?? 0) + 1);
     return m;
   }, [studios]);
-  const saveStudio = async (s: NetworkStudio, patch: Record<string, string>) => {
-    try {
-      await accessRpc("org_studio_save", { p_studio: s.id, p: patch });
-      await invalidateAccess(qc);
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Не удалось сохранить");
-    }
-  };
   const removeBrand = async (b: OrgBrand) => {
     const ok = await confirm({ title: `Удалить бренд «${b.name}»?` });
     if (!ok) return;
@@ -973,81 +993,136 @@ function NetworkTab({ canEdit }: { canEdit: boolean }) {
 
       <AccessSection
         title="Клубы"
-        hint="Бренд, свой или франшиза, город. Создаются и настраиваются клубы в «Управлении» → «Клубы»."
+        hint="Бренд, свой или франшиза, город и собственники. Клубы используются в назначениях ролей и в «Аналитике сети»."
+        action={
+          canEdit && canCreate ? (
+            <Button size="sm" onClick={() => setClub("new")}>
+              <Plus /> Клуб
+            </Button>
+          ) : null
+        }
       >
-        <div className="rounded-lg border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Клуб</TableHead>
-                <TableHead>Бренд</TableHead>
-                <TableHead>Тип</TableHead>
-                <TableHead>Город</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {(studios ?? []).map((s) => (
-                <TableRow key={s.id}>
-                  <TableCell>
-                    <div className="font-medium">{s.name}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {STUDIO_FORMAT_LABEL[s.format as keyof typeof STUDIO_FORMAT_LABEL] ??
-                        s.format}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Select
-                      value={s.brand_id ?? NONE}
-                      disabled={!canEdit}
-                      onValueChange={(v) => void saveStudio(s, { brand_id: v === NONE ? "" : v })}
-                    >
-                      <SelectTrigger aria-label="Бренд" className="h-8 w-44">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value={NONE}>Без бренда</SelectItem>
-                        {(brands ?? []).map((b) => (
-                          <SelectItem key={b.id} value={b.id}>
-                            {b.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </TableCell>
-                  <TableCell>
-                    <Select
-                      value={s.ownership}
-                      disabled={!canEdit}
-                      onValueChange={(v) => void saveStudio(s, { ownership: v })}
-                    >
-                      <SelectTrigger aria-label="Свой или франшиза" className="h-8 w-36">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="own">Свой</SelectItem>
-                        <SelectItem value="franchise">Франшиза</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </TableCell>
-                  <TableCell>
-                    <Input
-                      className="h-8 w-40"
-                      defaultValue={s.city ?? ""}
-                      disabled={!canEdit}
-                      maxLength={80}
-                      aria-label="Город"
-                      onBlur={(e) => {
-                        if (e.target.value.trim() !== (s.city ?? ""))
-                          void saveStudio(s, { city: e.target.value });
-                      }}
-                    />
-                  </TableCell>
+        {(studios ?? []).length === 0 ? (
+          <InfoNote variant="empty">Клубов пока нет.</InfoNote>
+        ) : (
+          <div className="rounded-lg border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Клуб</TableHead>
+                  <TableHead>Бренд</TableHead>
+                  <TableHead>Тип</TableHead>
+                  <TableHead>Город</TableHead>
+                  <TableHead>Собственники</TableHead>
+                  {canEdit && <TableHead className="w-24" aria-label="Действия" />}
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+              </TableHeader>
+              <TableBody>
+                {(studios ?? []).map((s) => {
+                  const brand = s.brand_id ? brandById.get(s.brand_id) : null;
+                  const own = ownersOf.get(s.id) ?? [];
+                  return (
+                    <TableRow key={s.id}>
+                      <TableCell>
+                        <div className="font-medium">{s.name}</div>
+                        {!CLUBS_HIDDEN && (
+                          <div className="text-xs text-muted-foreground">
+                            {STUDIO_FORMAT_LABEL[s.format as keyof typeof STUDIO_FORMAT_LABEL] ??
+                              s.format}
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {brand ? (
+                          <span className="inline-flex items-center gap-2">
+                            <span
+                              aria-hidden
+                              className="size-3 rounded-full"
+                              style={{ backgroundColor: brand.color ?? "#94a3b8" }}
+                            />
+                            {brand.name}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell>{OWNERSHIP_LABEL[s.ownership]}</TableCell>
+                      <TableCell>
+                        {s.city ?? <span className="text-muted-foreground">—</span>}
+                      </TableCell>
+                      <TableCell>
+                        {own.length === 0 ? (
+                          <span className="text-muted-foreground">—</span>
+                        ) : (
+                          <div className="flex flex-col gap-0.5">
+                            {own.map((u) => (
+                              <Link
+                                key={u}
+                                to="/access/users/$userId"
+                                params={{ userId: u }}
+                                className="text-sm text-link underline-offset-4 hover:text-link-hover hover:underline"
+                              >
+                                {names.user.get(u) ?? "Пользователь"}
+                              </Link>
+                            ))}
+                          </div>
+                        )}
+                      </TableCell>
+                      {canEdit && (
+                        <TableCell className="text-right whitespace-nowrap">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            aria-label="Изменить клуб"
+                            onClick={() => setClub(s)}
+                          >
+                            <Pencil />
+                          </Button>
+                          {canCreate && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              aria-label="Удалить клуб"
+                              onClick={() => setDeleting(s)}
+                            >
+                              <Trash2 />
+                            </Button>
+                          )}
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        )}
       </AccessSection>
+      <Dialog open={!!club} onOpenChange={(o) => !o && setClub(null)}>
+        <DialogContent className="max-w-lg">
+          {club && (
+            <ClubForm
+              key={club === "new" ? "new" : club.id}
+              club={club === "new" ? null : club}
+              owners={club === "new" ? [] : (ownersOf.get(club.id) ?? [])}
+              onClose={() => setClub(null)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+      <Dialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
+        <DialogContent className="max-w-lg">
+          {deleting && (
+            <DeleteStudioForm
+              key={deleting.id}
+              studio={deleting}
+              onClose={() => setDeleting(null)}
+              // Данные клуба лежат во многих кэшах — сбрасываем всё.
+              onDeleted={() => void qc.invalidateQueries()}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
       <BrandDialog
         brand={editing}
         onClose={() => setEditing(null)}
@@ -1055,6 +1130,144 @@ function NetworkTab({ canEdit }: { canEdit: boolean }) {
       />
       {confirmDialog}
     </div>
+  );
+}
+
+/**
+ * Клуб сети: название, бренд, свой / франшиза, город, собственники (RPC
+ * org_studio_create / org_studio_save). Тип клуба (подписочный / пакетный) —
+ * только при создании и только когда разделы клубов открыты: на первом этапе
+ * новые клубы — пакетные (Lady Stretch).
+ */
+function ClubForm({
+  club,
+  owners,
+  onClose,
+}: {
+  club: NetworkStudio | null;
+  owners: string[];
+  onClose: () => void;
+}) {
+  const qc = useQueryClient();
+  const { data: brands } = useQuery(orgBrandsQuery);
+  const { data: users } = useQuery(accessUsersQuery);
+  const [name, setName] = useState(club?.name ?? "");
+  const [brandId, setBrandId] = useState(club?.brand_id ?? brands?.[0]?.id ?? NONE);
+  const [ownership, setOwnership] = useState<NetworkStudio["ownership"]>(club?.ownership ?? "own");
+  const [city, setCity] = useState(club?.city ?? "");
+  const [format, setFormat] = useState<StudioFormat>("packages");
+  const [ownerIds, setOwnerIds] = useState(owners);
+  const [saving, setSaving] = useState(false);
+  const people = useMemo(
+    () =>
+      (users ?? []).map((u) => ({
+        id: u.user_id,
+        label: u.full_name || u.email || "—",
+        sub: u.full_name ? u.email : null,
+      })),
+    [users],
+  );
+  const save = async () => {
+    if (!name.trim()) {
+      toast.error("Укажите название клуба");
+      return;
+    }
+    setSaving(true);
+    const p = {
+      name: name.trim(),
+      brand_id: brandId === NONE ? "" : brandId,
+      ownership,
+      city,
+      owner_ids: ownerIds,
+    };
+    try {
+      if (club) await accessRpc("org_studio_save", { p_studio: club.id, p });
+      else await accessRpc("org_studio_create", { p: { ...p, format } });
+      await Promise.all([invalidateAccess(qc), qc.invalidateQueries({ queryKey: ["studios"] })]);
+      toast.success(club ? "Клуб сохранён" : "Клуб создан");
+      onClose();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Не удалось сохранить");
+    } finally {
+      setSaving(false);
+    }
+  };
+  return (
+    <>
+      <DialogHeader>
+        <DialogTitle>{club ? club.name : "Новый клуб"}</DialogTitle>
+      </DialogHeader>
+      <DialogForm onSubmit={save}>
+        <DialogBody>
+          <div className="space-y-3">
+            <FormField label="Название" required>
+              <Input value={name} maxLength={120} onChange={(e) => setName(e.target.value)} />
+            </FormField>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <FormField label="Бренд">
+                <Select value={brandId} onValueChange={setBrandId}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={NONE}>Без бренда</SelectItem>
+                    {(brands ?? []).map((b) => (
+                      <SelectItem key={b.id} value={b.id}>
+                        {b.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormField>
+              <FormField label="Город" optional>
+                <Input value={city} maxLength={80} onChange={(e) => setCity(e.target.value)} />
+              </FormField>
+            </div>
+            <FormField label="Тип" htmlFor={null} tip={TIPS.ownership}>
+              <SegmentedControl
+                aria-label="Тип клуба"
+                fullWidth
+                value={ownership}
+                onChange={setOwnership}
+                options={[
+                  { value: "own", label: OWNERSHIP_LABEL.own },
+                  { value: "franchise", label: OWNERSHIP_LABEL.franchise },
+                ]}
+              />
+            </FormField>
+            {!club && !CLUBS_HIDDEN && (
+              <FormField label="Формат" htmlFor={null}>
+                <SegmentedControl
+                  aria-label="Формат клуба"
+                  fullWidth
+                  value={format}
+                  onChange={setFormat}
+                  options={STUDIO_FORMATS.map((f) => ({ value: f, label: STUDIO_FORMAT_LABEL[f] }))}
+                />
+              </FormField>
+            )}
+            <FormField label="Собственники" htmlFor={null} optional tip={TIPS.owners}>
+              <MultiPick
+                items={people}
+                value={ownerIds}
+                onChange={setOwnerIds}
+                empty="Пользователей портала нет — добавьте их в «Пользователях»."
+                searchPlaceholder="Найти пользователя"
+              />
+            </FormField>
+          </div>
+        </DialogBody>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={saving}>
+            Отмена
+          </Button>
+          <Button type="submit" disabled={saving}>
+            {saving && <Loader2 className="animate-spin" />}
+            {club ? "Сохранить" : "Создать клуб"}
+          </Button>
+        </DialogFooter>
+      </DialogForm>
+    </>
   );
 }
 

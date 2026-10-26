@@ -42,11 +42,12 @@ describe.skipIf(process.env.VITE_SHOW_CLUBS === "true")(
       expect(ADMIN_SECTIONS.map((s) => s.key)).toEqual(["manage"]);
     });
 
-    test("в Управлении есть «Клубы», нет переноса из 1С", () => {
+    test("в Управлении нет «Клубов» (они в «Сети клубов») и переноса из 1С", () => {
       const urls = MANAGE_GROUPS.flatMap((g) => g.items.map((i) => i.url));
-      expect(urls).toContain("/studios");
+      expect(urls).not.toContain("/studios");
       expect(urls).not.toContain("/import-1c");
-      expect(MANAGE_GROUPS.map((g) => g.label)).toEqual(["Знания", "Пользователи и роли", "Клубы"]);
+      expect(urls).toContain("/access/structure");
+      expect(MANAGE_GROUPS.map((g) => g.label)).toEqual(["Знания", "Пользователи и роли"]);
     });
 
     test("страницы скрытых разделов закрыты даже суперадминистратору", () => {
@@ -63,6 +64,7 @@ describe.skipIf(process.env.VITE_SHOW_CLUBS === "true")(
         "/scripts",
         "/scripts/settings",
         "/import-1c",
+        "/studios",
         "/assistant",
       ])
         expect(canOpenPath(admin, "s1", path)).toBe(false);
@@ -73,7 +75,7 @@ describe.skipIf(process.env.VITE_SHOW_CLUBS === "true")(
         "/access",
         "/access/roles",
         "/kb-bases",
-        "/studios",
+        "/access/structure",
       ])
         expect(canOpenPath(admin, "s1", path)).toBe(true);
     });

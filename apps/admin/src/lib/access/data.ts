@@ -10,6 +10,7 @@ import type {
   AccessRole,
   ExplainRow,
   NetworkStudio,
+  StudioOwner,
   OrgBrand,
   OrgMember,
   OrgPosition,
@@ -162,6 +163,14 @@ export const networkStudiosQuery = queryOptions({
     ),
   staleTime: 5 * 60_000,
   meta: { errorMessage: "Не удалось загрузить клубы" },
+});
+
+/** Собственники клубов («Сеть клубов»; связь двусторонняя — клуб и пользователь). */
+export const studioOwnersQuery = queryOptions({
+  queryKey: [ACCESS_KEY, "studio-owners"],
+  queryFn: () => unwrap<StudioOwner[]>(supabase.from("studio_owners").select("studio_id, user_id")),
+  staleTime: 5 * 60_000,
+  meta: { errorMessage: "Не удалось загрузить собственников клубов" },
 });
 
 /** Базы знаний — для прав «База знаний» в роли (видны только доступные). */

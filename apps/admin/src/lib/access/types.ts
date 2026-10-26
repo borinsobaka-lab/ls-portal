@@ -189,6 +189,7 @@ export type NetworkStudio = {
   ownership: "own" | "franchise";
   city: string | null;
 };
+export type StudioOwner = { studio_id: string; user_id: string };
 
 export type AccessLogRow = {
   id: number;

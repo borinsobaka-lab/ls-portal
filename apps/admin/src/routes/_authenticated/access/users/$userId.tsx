@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { AdminShell } from "@/components/admin-shell";
 import { AssignDialog } from "@/components/access/assign-dialog";
 import { AccessLogList } from "@/components/access/log-list";
+import { UserClubsSection } from "@/components/access/club-owners";
 import { AccessSection, RoleChip, UserStatusChip } from "@/components/access/parts";
 import { RoleMatrix } from "@/components/access/role-matrix";
 import { EditUserDialog } from "@/components/access/user-dialogs";
@@ -238,6 +239,7 @@ function UserCard({ user }: { user: PortalUserCard }) {
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <UnitsSection user={user} canEdit={hasRight(access, "structure.manage")} />
           <PersonalSection user={user} canManage={canManage && !isSelf} />
+          <UserClubsSection userId={user.user_id} canEdit={hasRight(access, "structure.manage")} />
         </div>
         <EffectiveSection user={user} />
         {(canManage || hasRight(access, "audit.view") || hasRight(access, "roles.manage")) && (

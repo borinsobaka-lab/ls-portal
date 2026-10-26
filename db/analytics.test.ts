@@ -221,6 +221,16 @@ describe.skipIf(!url)("аналитика сети (база)", () => {
       );
       expect(rows.map((r) => Number(r[2])).sort((a, b) => a - b)).toEqual([700, 1000]);
 
+      // Собственник клуба («Сеть клубов») — и его клуб, без нового назначения.
+      await tx`insert into studio_owners (studio_id, user_id) values (${kazan}, ${owner})`;
+      expect(await names(owner)).toEqual(["Казань, Баумана 3", "Москва, Арбат 2", "Москва, Тверская 1"]);
+      // Без права «свои клубы» собственность аналитику не открывает.
+      const bare = await user(tx);
+      await tx`insert into portal_users (user_id) values (${bare})`;
+      await tx`insert into studio_owners (studio_id, user_id) values (${kazan}, ${bare})`;
+      expect(await names(bare)).toEqual([]);
+      await tx`delete from studio_owners where studio_id = ${kazan} and user_id = ${owner}`;
+
       // Заблокирован — ничего.
       await tx`update portal_users set status = 'blocked' where user_id = ${owner}`;
       await tx`select access_flush()`;

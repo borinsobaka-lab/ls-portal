@@ -517,6 +517,52 @@ describe.skipIf(!url)("доступы и роли (база)", () => {
     });
   });
 
+  test("сеть клубов: клуб и его собственники с двух сторон, удаление клуба", async () => {
+    await scenario(async (tx) => {
+      const [{ id: brand }] = await tx`insert into org_brands (name) values ('Бренд сети') returning id`;
+      const s1 = await studio(tx);
+      const sa = await portal(tx, "Суперадмин", s1, [{ key: "superadmin" }]);
+      const own1 = await portal(tx, "Собственник 1", s1);
+      const own2 = await portal(tx, "Собственник 2", s1);
+      const plain = await portal(tx, "Тренер", s1, [{ key: "trainer", scope: "studios", ids: [s1] }]);
+
+      await as(tx, plain);
+      const denied = await failure(tx, () => tx`select org_studio_create('{"name": "Чужой"}'::jsonb)`);
+      expect(denied).toContain("access_forbidden");
+      const [{ n: seen }] = await tx`select count(*)::int n from studio_owners`;
+      expect(seen).toBe(0);
+      await asServer(tx);
+
+      await as(tx, sa);
+      const [{ id }] = await tx`select org_studio_create(${JSON.stringify({
+        name: " Новый клуб ", brand_id: brand, ownership: "franchise", city: "Москва", owner_ids: [own1],
+      })}::text::jsonb) id`;
+      const [club] = await tx`select name, format, brand_id, ownership, city from studios where id = ${id}`;
+      expect(club).toEqual({ name: "Новый клуб", format: "packages", brand_id: brand, ownership: "franchise", city: "Москва" });
+      // Суперадминистратор (во всех клубах) — сразу и в новом.
+      expect((await staffRoles(tx, sa)).some((r) => r.startsWith(`${id}:`))).toBe(true);
+
+      const owners = async () =>
+        (await tx`select user_id from studio_owners where studio_id = ${id} order by user_id`).map((r: Row) => r.user_id);
+      await tx`select org_studio_owners_set(${id}, ${[own1, own2]}::uuid[])`;
+      expect(await owners()).toEqual([own1, own2].sort());
+      await tx`select org_user_studios_set(${own1}, ${[s1]}::uuid[])`;
+      expect(await owners()).toEqual([own2]);
+      const [{ n: own1Clubs }] = await tx`select count(*)::int n from studio_owners where user_id = ${own1} and studio_id = ${s1}`;
+      expect(own1Clubs).toBe(1);
+      await tx`select org_studio_save(${id}, ${JSON.stringify({ name: "Переименован", owner_ids: [] })}::text::jsonb)`;
+      expect(await owners()).toEqual([]);
+      const notPortal = await failure(tx, () => tx`select org_studio_owners_set(${id}, ${[crypto.randomUUID()]}::uuid[])`);
+      expect(notPortal).toContain("пользователем портала");
+
+      const wrong = await failure(tx, () => tx`select delete_studio(${id}, 'Не то')`);
+      expect(wrong).toContain("введено неверно");
+      await tx`select delete_studio(${id}, 'Переименован')`;
+      const [{ n: left }] = await tx`select count(*)::int n from studios where id = ${id}`;
+      expect(left).toBe(0);
+    });
+  });
+
   test("RPC интерфейса: списки, карточка, откуда права, журнал, структура", async () => {
     await scenario(async (tx) => {
       const [{ id: brand }] = await tx`insert into org_brands (name) values ('Бренд RPC') returning id`;

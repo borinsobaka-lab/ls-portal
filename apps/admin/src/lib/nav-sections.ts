@@ -465,7 +465,8 @@ export const ACCESS_ITEMS: NavItem[] = [
   { title: "Импорт из 1С", url: "/import-1c", icon: ClipboardList },
 ];
 export const STUDIOS_ITEMS: NavItem[] = [{ title: "Настройки", url: "/studios", icon: Widget3 }];
-// Пункты клубов («Клубы», «Импорт из 1С») пока скрыты — lib/launch.ts.
+// Пункты клубов («Клубы», «Импорт из 1С») пока скрыты — lib/launch.ts: клубы
+// ведут в «Оргструктуре» → «Сеть клубов».
 export const MANAGE_GROUPS: NavGroup[] = [
   {
     key: "manage-kb",
