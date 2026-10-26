@@ -134,6 +134,7 @@ describe.skipIf(process.env.VITE_SHOW_CLUBS === "true")(
       expect(roleSummary(owner, catalog)).toEqual(["Аналитика сети: свои клубы"]);
       const names = { studio: new Map([["s1", "Тверская"]]), brand: new Map() };
       expect(scopeText({ scope_type: "studios", scope_ids: ["s1"] }, names)).toBe("Тверская");
+      expect(scopeText({ scope_type: "owned", scope_ids: [] }, names)).toBe("Клубы собственника");
     });
   },
 );

@@ -221,15 +221,23 @@ describe.skipIf(!url)("аналитика сети (база)", () => {
       );
       expect(rows.map((r) => Number(r[2])).sort((a, b) => a - b)).toEqual([700, 1000]);
 
-      // Собственник клуба («Сеть клубов») — и его клуб, без нового назначения.
+      // Собственность сама аналитику не открывает: роль на выбранные клубы —
+      // только они, даже если человек собственник ещё одного клуба.
       await tx`insert into studio_owners (studio_id, user_id) values (${kazan}, ${owner})`;
-      expect(await names(owner)).toEqual(["Казань, Баумана 3", "Москва, Арбат 2", "Москва, Тверская 1"]);
-      // Без права «свои клубы» собственность аналитику не открывает.
-      const bare = await user(tx);
-      await tx`insert into portal_users (user_id) values (${bare})`;
-      await tx`insert into studio_owners (studio_id, user_id) values (${kazan}, ${bare})`;
-      expect(await names(bare)).toEqual([]);
-      await tx`delete from studio_owners where studio_id = ${kazan} and user_id = ${owner}`;
+      expect(await names(owner)).toEqual(["Москва, Арбат 2", "Москва, Тверская 1"]);
+      // Область «Клубы собственника»: та же роль партнёрам — у каждого свои клубы.
+      const partner = await user(tx);
+      await tx`insert into portal_users (user_id) values (${partner})`;
+      await tx`insert into access_assignments (role_id, subject_type, user_id, scope_type)
+               values (${role}, 'user', ${partner}, 'owned')`;
+      await tx`select access_flush()`;
+      expect(await names(partner)).toEqual([]);
+      await tx`insert into studio_owners (studio_id, user_id) values (${kazan}, ${partner})`;
+      await tx`select access_flush()`;
+      expect(await names(partner)).toEqual(["Казань, Баумана 3"]);
+      await tx`delete from studio_owners where studio_id = ${kazan}`;
+      await tx`select access_flush()`;
+      expect(await names(partner)).toEqual([]);
 
       // Заблокирован — ничего.
       await tx`update portal_users set status = 'blocked' where user_id = ${owner}`;

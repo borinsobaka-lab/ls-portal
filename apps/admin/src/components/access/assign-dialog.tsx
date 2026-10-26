@@ -157,7 +157,12 @@ function AssignForm({
       toast.error("Выберите роль");
       return;
     }
-    if (studioPerms && scope.scope_type !== "all" && scope.scope_ids.length === 0) {
+    if (
+      studioPerms &&
+      scope.scope_type !== "all" &&
+      scope.scope_type !== "owned" &&
+      scope.scope_ids.length === 0
+    ) {
       toast.error(scope.scope_type === "brands" ? "Отметьте бренды" : "Отметьте клубы");
       return;
     }
