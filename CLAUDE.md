@@ -100,6 +100,49 @@ shadcn/radix, пакетный менеджер — bun.
   `bun run version:client`). Каждая выкладка приложения повышает его версию
   на шаг отдельным коммитом «Версия портала N.M» / «Версия приложения N.M».
 
+## Разработчик аналитики (внешний, из форка)
+
+«Аналитику сети» ведёт отдельный разработчик со своим Claude Code
+(решение владельца 2026-10-26). Права записи в этот репозиторий у него нет:
+он работает в форке и присылает Pull Request в `borinsobaka-lab/ls-portal`.
+
+**Если `origin` — не `borinsobaka-lab/ls-portal`, ты в форке и помогаешь
+разработчику аналитики.** Тогда вместо «Рабочего режима» выше:
+
+- Меняешь только файлы раздела: `apps/admin/src/components/analytics/`,
+  `apps/admin/src/lib/analytics/`, `apps/admin/src/routes/_authenticated/analytics/`,
+  `apps/admin/src/hooks/use-analytics-filters.ts`, `db/analytics.test.ts`,
+  `ANALYTICS.md`; `apps/admin/src/routeTree.gen.ts` — только как его
+  перегенерирует сборка для новых страниц `/analytics/*`.
+- Схема — только **новые** файлы `db/migrations/ГГГГ-ММ-ДД_…analytics….sql`
+  (`analytics` в имени, дата не раньше последней миграции в `main`, имя
+  идёт по порядку после неё). Только таблицы и функции `an_*`; выкаченные
+  миграции не правятся — исправление новым файлом. Правила миграций —
+  «База данных» ниже.
+- Нужна правка вне раздела (пункт меню в `lib/nav-sections.ts`, права в
+  `admin-access.ts`, общий компонент, новая зависимость в `package.json`,
+  чужие таблицы) — не делаешь, а пишешь в описании Pull Request, что и
+  зачем нужно: сделает сторона владельца.
+- Версию портала не повышаешь, в `main` не мержишь — это делает сторона
+  владельца при приёме.
+- Перед Pull Request: `cd apps/admin && bunx tsc --noEmit && bun run lint
+  && bun run test`, схема и тесты базы (`bash db/test/build-schema.sh <url>`,
+  `TEST_SCHEMA_DATABASE_URL=<url> bun test db`) и проверка путей:
+  `git diff --name-status origin/main...HEAD | bash .github/scripts/analytics-paths.sh`
+  (`origin/main` — свежий `main` основного репозитория).
+
+На Pull Request из форка GitHub запускает «Аналитика — пути» (файлы вне
+раздела — красная, workflow берётся из `main`, Pull Request его не
+подменит) и «Аналитика — проверки» (типы, линтер, тесты, схема с
+миграциями, тесты базы). **Приём на стороне владельца** (по просьбе
+владельца): обе проверки зелёные; прочитать весь diff, миграции — целиком
+(миграция может тронуть любую таблицу, проверка путей этого не видит):
+только `an_*`, у `security definer` — своя проверка прав (`an_has` /
+`auth_an_studio_ids`), никаких `service_role`, `auth.*`, грантов `anon`;
+в коде — никаких серверных функций с service-ключом и запросов к чужим
+таблицам. Затем merge в ветку `claude/*`, проверки и `bun run test:db` на
+локальном Postgres, «Версия портала N.M», merge в `main`.
+
 ## Деплой
 
 Selectel, один облачный сервер (Coolify + self-hosted Supabase + портал),

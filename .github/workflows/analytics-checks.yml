@@ -1,0 +1,46 @@
+# Проверки Pull Request из форка (разработчик «Аналитики сети», CLAUDE.md):
+# типы, линтер и тесты админки, сборка схемы со всеми миграциями на чистом
+# Postgres 16 и тесты базы. Код Pull Request выполняется с токеном только на
+# чтение и без секретов репозитория (событие pull_request).
+name: Аналитика — проверки
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    if: github.event.pull_request.head.repo.full_name != github.repository
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      TEST_SCHEMA_DATABASE_URL: postgres://postgres:postgres@localhost:5432/base40_test
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.4
+      - name: Зависимости
+        run: bun install --cwd apps/admin --frozen-lockfile
+      - name: Типы
+        run: cd apps/admin && bunx tsc --noEmit
+      - name: Линтер
+        run: cd apps/admin && bun run lint
+      - name: Тесты админки
+        run: cd apps/admin && bun run test
+      - name: Схема и миграции
+        run: bash db/test/build-schema.sh "$TEST_SCHEMA_DATABASE_URL"
+      - name: Тесты базы
+        run: bun test db

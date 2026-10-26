@@ -1,0 +1,37 @@
+# Pull Request из форка (разработчик «Аналитики сети», CLAUDE.md) — только
+# файлы раздела. pull_request_target: workflow и скрипт берутся из main, а не
+# из Pull Request, поэтому подправить проверку в самом Pull Request нельзя.
+# Код Pull Request здесь не скачивается и не выполняется — только список
+# файлов из API.
+name: Аналитика — пути
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, edited]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  paths:
+    if: github.event.pull_request.head.repo.full_name != github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Файлы только раздела «Аналитика»
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR/files" --jq '
+            .[]
+            | ({added: "A", modified: "M", changed: "M", removed: "D",
+                renamed: "R", copied: "C", unchanged: "M"}[.status]) as $s
+            | if .previous_filename then [$s, .previous_filename, .filename]
+              else [$s, .filename] end
+            | @tsv' > files.tsv
+          set -o pipefail
+          bash .github/scripts/analytics-paths.sh < files.tsv | tee -a "$GITHUB_STEP_SUMMARY"
