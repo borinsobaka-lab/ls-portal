@@ -826,8 +826,15 @@ input[type="number"]::-webkit-outer-spin-button {
   -webkit-touch-callout: none;
 }
 .kb-no-copy img,
-.kb-no-copy video {
+.kb-no-copy video,
+.kb-protected img,
+.kb-protected video {
   -webkit-user-drag: none;
+}
+/* Защита содержимого: долгое нажатие на телефоне не предлагает «Сохранить». */
+.kb-protected img,
+.kb-protected video {
+  -webkit-touch-callout: none;
 }
 /* Картинки статьи у читателя открываются в окне (components/kb/image-lightbox.tsx). */
 .kb-document-read img.bn-visual-media,

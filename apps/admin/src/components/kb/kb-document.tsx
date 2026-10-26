@@ -9,11 +9,13 @@
  * бакете kb-media (lib/kb/files.ts): в документе ссылка `kbfile:…`, на
  * показ — подписанная ссылка. Внешние адреса в документ не попадают: панель
  * файлов — только «Загрузить», картинки из вставленного текста (Word, Google
- * Docs) перезаливаются к нам.
+ * Docs) перезаливаются к нам. Исключение — «Видео с сервисов» (блок
+ * `embed`, components/kb/media-blocks.tsx): плеер YouTube, Kinescope, VK или
+ * iframe (решение владельца 2026-10-27).
  */
 import "@blocknote/shadcn/style.css";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import {
   BlockNoteSchema,
   defaultBlockSpecs,
@@ -84,6 +86,10 @@ import {
   ZOOMABLE_IMAGES,
   type LightboxImage,
 } from "@/components/kb/image-lightbox";
+import { EmbedBlock, KbVideoBlock } from "@/components/kb/media-blocks";
+import { EMBED_ICON } from "@/lib/kb/embed-icons";
+import { KbProtectContext } from "@/lib/kb/protect-context";
+import { KB_EMBED_PROVIDERS, KB_EMBED_TITLE } from "@/lib/kb/embed";
 
 // --- Тексты ----------------------------------------------------------------------
 
@@ -632,6 +638,8 @@ const kbSchema = BlockNoteSchema.create({
     ...blockSpecs,
     file: KbFileBlock(),
     audio: KbAudioBlock(),
+    video: KbVideoBlock(),
+    embed: EmbedBlock(),
     pdf: PdfBlock(),
     gallery: GalleryBlock(),
     columns: ColumnsBlock(),
@@ -642,6 +650,19 @@ const kbSchema = BlockNoteSchema.create({
     mention: Mention,
   },
 });
+
+const EMBED_SUBTEXT: Record<(typeof KB_EMBED_PROVIDERS)[number], string> = {
+  youtube: "Ссылка на видео YouTube — плеер прямо в статье",
+  kinescope: "Ссылка или код вставки из Kinescope",
+  vk: "Код вставки или ссылка на видео VK",
+  iframe: "Код <iframe> с любого сервиса: Rutube, Vimeo, Диск…",
+};
+const EMBED_ALIASES: Record<(typeof KB_EMBED_PROVIDERS)[number], string[]> = {
+  youtube: ["youtube", "ютуб", "видео"],
+  kinescope: ["kinescope", "кинескоп", "видео"],
+  vk: ["vk", "вк", "вконтакте", "видео"],
+  iframe: ["iframe", "встроить", "код", "embed", "rutube", "vimeo", "видео"],
+};
 
 /** Заголовки 4–6 уровня базе знаний не нужны — из меню «/» убраны. */
 const HIDDEN_SLASH_ITEMS = new Set(["heading_4", "heading_5", "heading_6"]);
@@ -728,6 +749,23 @@ function slashItems(
     },
   ];
   custom.forEach(add);
+  // Видео с сервисов — сразу за «Видео» (своим файлом).
+  const videoAt = items.findIndex((i) => "key" in i && i.key === "video");
+  items.splice(
+    videoAt < 0 ? items.length : videoAt + 1,
+    0,
+    ...KB_EMBED_PROVIDERS.map((provider): DefaultReactSuggestionItem => {
+      const Icon = EMBED_ICON[provider];
+      return {
+        title: KB_EMBED_TITLE[provider],
+        subtext: EMBED_SUBTEXT[provider],
+        aliases: EMBED_ALIASES[provider],
+        group: media,
+        icon: <Icon className="size-[18px]" />,
+        onItemClick: () => insertBlock({ type: "embed", props: { provider } }),
+      };
+    }),
+  );
   if (onPickArticle) {
     add({
       title: "Ссылка на статью",
@@ -1060,6 +1098,7 @@ export function KbDocument({
   checks?: { checked: Set<string>; onToggle: (blockId: string) => void };
 }) {
   const navigate = useNavigate();
+  const protect = useContext(KbProtectContext);
   // Тёмная тема базы знаний — только в самой базе (редактор берёт и «Академия»).
   const [kbDark] = useKbDarkTheme();
   const inKb = useRouterState({ select: (st) => railSectionKey(st.location.pathname) === "kb" });
@@ -1165,7 +1204,8 @@ export function KbDocument({
     setLightbox({
       images: all.map((el) => ({ src: el.currentSrc || el.src, name: el.alt })),
       index,
-      protect: !!img.closest(".kb-no-copy"),
+      // Защита включена — без «Скачать» у всех, и у редактора.
+      protect: protect || !!img.closest(".kb-no-copy"),
     });
   };
 

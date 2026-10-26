@@ -4,6 +4,7 @@ import { toast } from "sonner";
 
 import { useStaffProfile } from "@/hooks/use-staff-profile";
 import { formatDateTime } from "@/lib/format";
+import { KbProtectContext } from "@/lib/kb/protect-context";
 import { cn } from "@/lib/utils";
 
 /** Водяной знак: повторяющаяся надпись под углом (SVG фоном, без сети). */
@@ -22,7 +23,10 @@ function watermarkUrl(text: string): string {
  * временем открытия поверх текста и картинок; читателю (`canCopy` — нет) —
  * без выделения, копирования, сохранения картинок, печати (styles.css,
  * `.kb-no-copy`). Это помеха, а не замок: снимок экрана не запретить —
- * водяной знак показывает, чей он.
+ * водяной знак показывает, чей он. Картинки и своё видео при защите не
+ * скачать никому, и редактору тоже: нет «Скачать» в плеере и в окне
+ * картинки, меню по правой кнопке и перетаскивания (решение владельца
+ * 2026-10-27; файлы-вложения скачиваются как прежде).
  */
 export function KbProtectedArea({
   enabled,
@@ -39,6 +43,20 @@ export function KbProtectedArea({
   const ref = useRef<HTMLDivElement>(null);
   const opened = useMemo(() => formatDateTime(new Date().toISOString()), []);
   const lock = enabled && !canCopy;
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!enabled || lock || !el) return;
+    const stop = (e: Event) => {
+      if ((e.target as Element | null)?.closest?.("img, video")) e.preventDefault();
+    };
+    el.addEventListener("contextmenu", stop);
+    el.addEventListener("dragstart", stop);
+    return () => {
+      el.removeEventListener("contextmenu", stop);
+      el.removeEventListener("dragstart", stop);
+    };
+  }, [enabled, lock]);
 
   useEffect(() => {
     const el = ref.current;
@@ -62,8 +80,11 @@ export function KbProtectedArea({
 
   return (
     <>
-      <div ref={ref} className={cn("relative", lock && "kb-no-copy", className)}>
-        {children}
+      <div
+        ref={ref}
+        className={cn("relative", enabled && "kb-protected", lock && "kb-no-copy", className)}
+      >
+        <KbProtectContext.Provider value={enabled}>{children}</KbProtectContext.Provider>
         {enabled && (
           <div
             aria-hidden

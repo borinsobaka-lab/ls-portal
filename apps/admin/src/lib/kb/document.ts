@@ -43,6 +43,7 @@ const KIND_LABEL: Record<string, string> = {
   file: "Файл",
   pdf: "PDF",
   gallery: "Картинки в ряд",
+  embed: "Видео с сервиса",
 };
 
 function cellText(cell: unknown): string {
@@ -74,7 +75,9 @@ export function documentLines(doc: unknown[] | null | undefined): KbDocLine[] {
         const name =
           kind === "gallery"
             ? `${String(props.images ?? "[]").split('"url"').length - 1} шт.`
-            : String(props.name ?? props.caption ?? "");
+            : kind === "embed"
+              ? String(props.caption || props.url || "")
+              : String(props.name ?? props.caption ?? "");
         out.push({ kind, depth, text: `${KIND_LABEL[kind]}${name ? `: ${name}` : ""}` });
       } else {
         const text = inlineText(b.content).trim();

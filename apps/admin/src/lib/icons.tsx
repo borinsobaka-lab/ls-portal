@@ -52,9 +52,11 @@ import {
   ChevronsLeft as ChevronsLeftArt,
   ChevronsRight as ChevronsRightArt,
   Circle as CircleArt,
+  Clapperboard as ClapperboardArt,
   ClipboardList as ClipboardListArt,
   Clock as ClockArt,
   CloudOff as CloudOffArt,
+  Code as CodeArt,
   Columns2 as Columns2Art,
   Columns3 as Columns3Art,
   Copy as CopyArt,
@@ -139,9 +141,12 @@ import {
   UserPlus as UserPlusArt,
   UserRound as UserRoundArt,
   Users as UsersArt,
+  Video as VideoArt,
+  VkIcon as VkArt,
   Wallet as WalletArt,
   X as XArt,
   XCircle as XCircleArt,
+  Youtube as YoutubeArt,
 } from "@hugeicons/core-free-icons";
 
 type LucideProps = SVGProps<SVGSVGElement> & {
@@ -193,9 +198,11 @@ export const ChevronUpIcon = icon(ChevronUpIconArt, "ChevronUpIcon");
 export const ChevronsLeft = icon(ChevronsLeftArt, "ChevronsLeft");
 export const ChevronsRight = icon(ChevronsRightArt, "ChevronsRight");
 export const Circle = icon(CircleArt, "Circle");
+export const Clapperboard = icon(ClapperboardArt, "Clapperboard");
 export const ClipboardList = icon(ClipboardListArt, "ClipboardList");
 export const Clock = icon(ClockArt, "Clock");
 export const CloudOff = icon(CloudOffArt, "CloudOff");
+export const Code = icon(CodeArt, "Code");
 export const Columns2 = icon(Columns2Art, "Columns2");
 export const Columns3 = icon(Columns3Art, "Columns3");
 export const Copy = icon(CopyArt, "Copy");
@@ -280,6 +287,9 @@ export const UserMinus = icon(UserMinusArt, "UserMinus");
 export const UserPlus = icon(UserPlusArt, "UserPlus");
 export const UserRound = icon(UserRoundArt, "UserRound");
 export const Users = icon(UsersArt, "Users");
+export const Video = icon(VideoArt, "Video");
+export const Vk = icon(VkArt, "Vk");
 export const Wallet = icon(WalletArt, "Wallet");
 export const X = icon(XArt, "X");
 export const XCircle = icon(XCircleArt, "XCircle");
+export const Youtube = icon(YoutubeArt, "Youtube");
