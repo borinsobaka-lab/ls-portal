@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 
 import { StaffAvatar } from "@/components/employee-photo";
+import { PersonChip } from "@/components/people/person-card";
 import { InfoNote } from "@/components/ui/form-field";
 import { StatusChip } from "@/components/ui/status-chip";
 import { resolveKbFileUrl } from "@/lib/kb/files";
@@ -128,9 +129,18 @@ export function StepIcon({
   );
 }
 
-/** Сотрудник в строке: аватарка и имя. */
-export function PersonCell({ name, avatar }: { name: string | null; avatar: string | null }) {
+/** Сотрудник в строке: аватарка и имя; с `userId` — по нажатию карточка сотрудника. */
+export function PersonCell({
+  name,
+  avatar,
+  userId,
+}: {
+  name: string | null;
+  avatar: string | null;
+  userId?: string | null;
+}) {
   const label = name || "Сотрудник";
+  if (userId) return <PersonChip userId={userId} name={label} avatar={avatar} />;
   return (
     <span className="flex min-w-0 items-center gap-2">
       <StaffAvatar value={avatar} name={label} className="size-7 text-xs" />

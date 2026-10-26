@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { Search } from "lucide-react";
 
 import { StaffAvatar } from "@/components/employee-photo";
+import { PersonButton } from "@/components/people/person-card";
 import { ReadBar } from "@/components/kb/analytics/parts";
 import { useKbPerson } from "@/components/kb/analytics/queries";
 import { DialogBody, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -36,13 +37,20 @@ export function KbPersonDialogBody({ baseId, person }: { baseId: string; person:
     <>
       <DialogHeader>
         <DialogTitle className="flex items-center gap-3">
-          <StaffAvatar
-            value={person.avatar_url}
-            name={person.full_name ?? ""}
-            className="size-10 text-sm"
-          />
+          <PersonButton userId={person.user_id} className="shrink-0 rounded-full">
+            <StaffAvatar
+              value={person.avatar_url}
+              name={person.full_name ?? ""}
+              className="size-10 text-sm"
+            />
+          </PersonButton>
           <span className="min-w-0">
-            <span className="block truncate">{person.full_name || "Сотрудник"}</span>
+            <PersonButton
+              userId={person.user_id}
+              className="block max-w-full truncate hover:underline"
+            >
+              {person.full_name || "Сотрудник"}
+            </PersonButton>
             <span className="block text-xs font-normal text-muted-foreground">
               {person.level === "edit" ? "Правка базы" : "Просмотр базы"}
             </span>

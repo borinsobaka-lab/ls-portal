@@ -202,7 +202,7 @@ function TablePage({
   /** Раздел, общий для сети (ShellSkeleton network). */
   network?: boolean;
   /** Страница базы знаний — её шапка (ShellSkeleton kb). */
-  kb?: boolean;
+  kb?: boolean | "tool";
   actions?: ControlSkeleton[];
   /** Вкладки над плашкой фильтров (раздел «Сотрудники»). */
   tabs?: ReactNode;
@@ -2216,15 +2216,15 @@ export function KbNodePageSkeleton() {
 /** Аналитика базы: заголовок, вкладки и период, плитки, полоса чтения, график. */
 export function KbAnalyticsPageSkeleton() {
   return (
-    <ShellSkeleton title="Аналитика" kb>
+    <ShellSkeleton title="Аналитика" kb="tool">
       <div className="mx-auto max-w-6xl space-y-4">
         <div className="px-1 pb-1">
           <Skeleton className="h-4 w-40" />
           <Skeleton className="mt-1.5 h-7 w-44" />
         </div>
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <Skeleton className="h-10 w-80 max-w-full rounded-full" />
-          <Skeleton className="h-10 w-64 rounded-full" />
+        <div className="table-toolbar flex flex-wrap items-center gap-2 rounded-lg border bg-background p-2 sm:px-3">
+          <Skeleton className="toolbar-full h-10 w-96 max-w-full rounded-full" />
+          <Skeleton className="toolbar-full h-10 w-64 rounded-full sm:ml-auto" />
         </div>
         <DashboardStatsSkeleton
           labels={[
@@ -2247,7 +2247,7 @@ export function KbAnalyticsPageSkeleton() {
 export function KbTemplatesPageSkeleton() {
   return (
     <TablePage
-      kb
+      kb="tool"
       title="Шаблоны"
       toolbar={null}
       pagination={false}
@@ -2260,7 +2260,7 @@ export function KbTemplatesPageSkeleton() {
 export function KbTrashPageSkeleton() {
   return (
     <TablePage
-      kb
+      kb="tool"
       title="Корзина"
       toolbar={null}
       pagination={false}

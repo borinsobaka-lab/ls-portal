@@ -3,7 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { Frown, Meh, Smile } from "lucide-react";
 
 import { DataPagination, usePagination } from "@/components/data-pagination";
-import { StaffAvatar } from "@/components/employee-photo";
+import { PersonChip } from "@/components/people/person-card";
 import { Delta, EmptyBlock, KpiTile } from "@/components/kb/analytics/parts";
 import { useKbRatings } from "@/components/kb/analytics/queries";
 import { TableSkeletonRows } from "@/components/skeletons";
@@ -230,14 +230,11 @@ export function KbRatingsTab({
                         {formatDateTime(l.rated_at)}
                       </TableCell>
                       <TableCell>
-                        <span className="flex min-w-0 items-center gap-2.5">
-                          <StaffAvatar
-                            value={l.avatar_url}
-                            name={l.full_name ?? ""}
-                            className="size-8 text-xs"
-                          />
-                          <span className="truncate font-medium">{l.full_name || "Сотрудник"}</span>
-                        </span>
+                        <PersonChip
+                          userId={l.user_id}
+                          name={l.full_name || "Сотрудник"}
+                          avatar={l.avatar_url}
+                        />
                       </TableCell>
                       <TableCell className="max-w-72">
                         <Link

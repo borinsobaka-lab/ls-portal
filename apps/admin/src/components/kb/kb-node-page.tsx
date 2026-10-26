@@ -31,6 +31,7 @@ import { toast } from "sonner";
 
 import { AdminShell } from "@/components/admin-shell";
 import { StaffAvatar } from "@/components/employee-photo";
+import { PersonButton } from "@/components/people/person-card";
 import { DocumentText, Folder } from "@/components/nav-icons";
 import { KbArticleBodySkeleton, KbFolderBodySkeleton } from "@/components/page-skeletons";
 import { KbBaseForm } from "@/components/kb/base-dialog";
@@ -1314,15 +1315,28 @@ function ArticleView({
                   className="mt-4 flex flex-wrap items-center justify-between gap-2 text-sm"
                 >
                   <span>
-                    {node.status === "archived"
-                      ? "Статья в архиве — читатели её не видят."
-                      : node.status === "draft"
-                        ? "Черновик — читатели его не видят, пока вы не опубликуете."
-                        : `Есть неопубликованные правки${
-                            draft?.updated_by
-                              ? ` — ${name(draft.updated_by)}, ${formatDateTime(draft.updated_at)}`
-                              : ""
-                          }. Читатели видят прежний текст.`}
+                    {node.status === "archived" ? (
+                      "Статья в архиве — читатели её не видят."
+                    ) : node.status === "draft" ? (
+                      "Черновик — читатели его не видят, пока вы не опубликуете."
+                    ) : (
+                      <>
+                        Есть неопубликованные правки
+                        {draft?.updated_by && (
+                          <>
+                            {" — "}
+                            <PersonButton
+                              userId={draft.updated_by}
+                              className="inline font-medium hover:underline"
+                            >
+                              {name(draft.updated_by)}
+                            </PersonButton>
+                            , {formatDateTime(draft.updated_at)}
+                          </>
+                        )}
+                        . Читатели видят прежний текст.
+                      </>
+                    )}
                   </span>
                   <span className="flex flex-wrap gap-2">
                     <Button size="sm" variant="outline" onClick={() => void startEdit()}>
@@ -1540,12 +1554,20 @@ function ArticleAuthor({
   return (
     <div className="mt-4 flex items-center gap-3 text-sm">
       {fullName && (
-        <StaffAvatar value={author?.avatar_url} name={fullName} className="size-10 text-sm" />
+        <PersonButton userId={userId} className="shrink-0 rounded-full">
+          <StaffAvatar value={author?.avatar_url} name={fullName} className="size-10 text-sm" />
+        </PersonButton>
       )}
       <div className="min-w-0 leading-snug text-muted-foreground">
         {fullName && (
           <p className="truncate">
-            Автор: <span className="font-medium text-foreground">{fullName}</span>
+            Автор:{" "}
+            <PersonButton
+              userId={userId}
+              className="inline font-medium text-foreground hover:underline"
+            >
+              {fullName}
+            </PersonButton>
           </p>
         )}
         <p title={formatDateTime(publishedAt)}>

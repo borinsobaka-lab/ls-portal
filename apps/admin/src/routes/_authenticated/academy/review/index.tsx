@@ -79,7 +79,7 @@ function ReviewQueuePage() {
                       onKeyDown={(e) => e.key === "Enter" && open(r)}
                     >
                       <TableCell>
-                        <PersonCell name={r.full_name} avatar={r.avatar_url} />
+                        <PersonCell name={r.full_name} avatar={r.avatar_url} userId={r.user_id} />
                       </TableCell>
                       <TableCell className="text-sm">
                         <span className="block font-medium">{r.course_title}</span>

@@ -8,6 +8,7 @@ import { KbPeopleTab } from "@/components/kb/analytics/people-tab";
 import { KbRatingsTab } from "@/components/kb/analytics/ratings-tab";
 import { KbSearchTab } from "@/components/kb/analytics/search-tab";
 import { KbPageHeading } from "@/components/kb/kb-header";
+import { TableToolbar } from "@/components/table-toolbar";
 import { KbAnalyticsPageSkeleton } from "@/components/page-skeletons";
 import { InfoNote } from "@/components/ui/form-field";
 import { SegmentedControl } from "@/components/ui/segmented-control";
@@ -73,11 +74,13 @@ function KbAnalyticsPage() {
           <InfoNote variant="warning">Аналитику видят редакторы базы и владельцы.</InfoNote>
         ) : (
           <>
-            <div className="flex flex-wrap items-center justify-between gap-2">
+            {/* Табы и период — на белой плашке фильтров, не на канве. */}
+            <TableToolbar>
               <Tabs
                 value={tab}
                 onValueChange={(v) => go({ tab: v as Tab })}
                 activationMode="manual"
+                className="toolbar-full max-w-full"
               >
                 <TabsList aria-label="Разделы аналитики" className="max-w-full overflow-x-auto">
                   {TABS.map((t) => (
@@ -93,9 +96,10 @@ function KbAnalyticsPage() {
                   value={period}
                   onChange={(p) => go({ period: p })}
                   options={KB_PERIODS.map((p) => ({ value: p.value, label: p.label }))}
+                  className="sm:ml-auto"
                 />
               )}
-            </div>
+            </TableToolbar>
             {tab === "overview" && (
               <KbOverviewTab
                 baseId={baseId}
