@@ -22,6 +22,13 @@ import {
 } from "./logic";
 import type { Assignment, PermissionDef, RolePerm } from "./types";
 
+/**
+ * Логика разделов клубов — как после их возвращения (lib/launch.ts). Пока
+ * клубы скрыты, она идёт отдельным прогоном: VITE_SHOW_CLUBS=true
+ * (`bun run test`); в обычном `bun test` эти тесты пропускаются.
+ */
+const SHOW_CLUBS = process.env.VITE_SHOW_CLUBS === "true";
+
 const def = (
   key: string,
   block: PermissionDef["block"],
@@ -50,7 +57,7 @@ const catalog: PermissionDef[] = [
   def("users.manage", "admin", "studio", ["on"], 300),
 ];
 
-describe("пользователи и роли — логика", () => {
+describe.skipIf(!SHOW_CLUBS)("пользователи и роли — логика", () => {
   test("статус: блокировка, срок, без ролей, не входил", () => {
     const base = {
       status: "active" as const,

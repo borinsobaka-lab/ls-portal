@@ -8,6 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint .",
+    "test": "bun test && VITE_SHOW_CLUBS=true bun test src/lib/admin-access.test.ts src/lib/access/logic.test.ts",
     "format": "prettier --write .",
     "version:bump": "bun scripts/bump-version.ts"
   },

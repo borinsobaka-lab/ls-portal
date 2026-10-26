@@ -6,6 +6,7 @@ import { studioIdsKey, useSectionStudios } from "@/hooks/use-section-studios";
 import { useActiveStudio } from "@/hooks/use-studios";
 import { supabase } from "@/integrations/supabase/client";
 import { canOpenClubSection } from "@/lib/admin-access";
+import { CLUBS_HIDDEN } from "@/lib/launch";
 
 /**
  * Заявки клиентов из приложения пакетных клубов (client_requests,
@@ -57,7 +58,10 @@ export function useClubRequestsBadge() {
   const access = useAdminAccess();
   const ids = studioIdsKey(useSectionStudios("requests", "packages"));
   const enabled =
-    studio?.format === "packages" && !!access && canOpenClubSection(access, studioId, "requests");
+    !CLUBS_HIDDEN &&
+    studio?.format === "packages" &&
+    !!access &&
+    canOpenClubSection(access, studioId, "requests");
   const count = useOpenRequestsCount(ids, enabled);
   return enabled ? (count ?? 0) : 0;
 }

@@ -58,6 +58,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { CLUBS_HIDDEN } from "@/lib/launch";
 
 /** Пункты меню, чей счётчик — «новое», а не «ждёт действия»: серый CountBadge. */
 const QUIET_BADGES = new Set(["/nps"]);
@@ -514,7 +515,11 @@ export function AppSidebar() {
           <SidebarFooter
             className={cn(
               "gap-2 border-t border-white/10 p-3 lg:hidden",
-              (railKey === "kb" || railKey === "academy" || railKey === "analytics") && "hidden",
+              (CLUBS_HIDDEN ||
+                railKey === "kb" ||
+                railKey === "academy" ||
+                railKey === "analytics") &&
+                "hidden",
             )}
           >
             <StudioSwitcher triggerClassName="w-full border-white/15 bg-white/5 text-white focus-visible:bg-white/10 [&>svg]:text-white" />

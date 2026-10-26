@@ -202,6 +202,9 @@ export function zeroQuery(ids: string[] | null, p: Period) {
 
 export type AnStudioRow = AnStudio & {
   note: string | null;
+  /** Клуб портала за студией выгрузки (доступ «Аналитика сети: свои клубы»). */
+  clubId: string | null;
+  clubName: string | null;
   firstDay: string | null;
   lastDay: string | null;
 };
@@ -211,11 +214,19 @@ export const anStudiosListQuery = queryOptions({
   queryFn: async (): Promise<AnStudioRow[]> =>
     (
       await anRpc<
-        (RawStudio & { note: string | null; first_day: string | null; last_day: string | null })[]
+        (RawStudio & {
+          note: string | null;
+          club_id: string | null;
+          club_name: string | null;
+          first_day: string | null;
+          last_day: string | null;
+        })[]
       >("an_studios_list")
     ).map((s) => ({
       ...parseStudio({ ...s, brand_name: null }),
       note: s.note,
+      clubId: s.club_id,
+      clubName: s.club_name,
       firstDay: s.first_day,
       lastDay: s.last_day,
     })),

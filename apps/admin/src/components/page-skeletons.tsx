@@ -72,6 +72,7 @@ import {
   ZERO_COLUMNS,
   ZERO_TILES,
 } from "@/lib/analytics/labels";
+import { CLUBS_HIDDEN } from "@/lib/launch";
 
 /*
  * Скелетоны страниц админки — по одному на раздел, каждый повторяет
@@ -1638,10 +1639,17 @@ export function AccessUsersPageSkeleton() {
   return (
     <TablePage
       title="Пользователи"
-      toolbar={{ search: true, controls: ["w-44", "w-44", "w-44"] }}
+      toolbar={{
+        search: true,
+        controls: CLUBS_HIDDEN ? ["w-44", "w-44"] : ["w-44", "w-44", "w-44"],
+      }}
       pagination={false}
       rows={8}
-      headers={["Пользователь", "Должность", "Роли", "Клубы", "Статус", "Последний вход"]}
+      headers={
+        CLUBS_HIDDEN
+          ? ["Пользователь", "Должность", "Роли", "Статус", "Последний вход"]
+          : ["Пользователь", "Должность", "Роли", "Клубы", "Статус", "Последний вход"]
+      }
     />
   );
 }
@@ -1759,7 +1767,8 @@ export function StudiosPageSkeleton() {
         { label: "Логотип", className: "w-[180px]" },
         "Тип",
         "Цвет",
-        "Приложение клиентов",
+        // Без адресов клиентских приложений колонки нет (studios.tsx).
+        ...(CLUBS_HIDDEN ? [] : ["Приложение клиентов"]),
       ]}
     />
   );

@@ -201,7 +201,14 @@ export const TRIALS_CLUB_COLUMNS = [
   "Окно открыто",
 ];
 export const ZERO_COLUMNS = ["Город / студия / номенклатура", "Категория", "Строк", "Последняя"];
-export const STUDIOS_COLUMNS = ["Студия в учётной системе", "Город", "Партнёр", "Статус", "Данные"];
+export const STUDIOS_COLUMNS = [
+  "Студия в учётной системе",
+  "Город",
+  "Партнёр",
+  "Клуб портала",
+  "Статус",
+  "Данные",
+];
 export const NOMENCLATURE_COLUMNS = ["Номенклатура", "Код", "Система", "Категория"];
 export const IMPORTS_COLUMNS = ["Загружено", "Данные", "Период", "Студий", "Строк", "Файл"];
 

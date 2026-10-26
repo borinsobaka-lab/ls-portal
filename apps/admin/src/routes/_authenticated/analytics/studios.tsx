@@ -40,7 +40,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useTableSort } from "@/hooks/use-table-sort";
-import { orgBrandsQuery } from "@/lib/access/data";
+import { networkStudiosQuery, orgBrandsQuery } from "@/lib/access/data";
 import {
   anRpc,
   anStudiosListQuery,
@@ -62,6 +62,7 @@ const TIPS = {
   city: "Город для отчётов и «Моего города». Точка 0 задаётся на город; партнёр видит города, назначенные ему.",
   partner: "Партнёр (ИП) студии — для справки.",
   brand: "Бренд сети: Lady Stretch, Lady Jump…",
+  club: "Клуб из «Управления» → «Клубы»: его собственник с ролью «Аналитика сети: свои клубы» видит отчёты этой студии.",
   closed:
     "С этого дня студия считается закрытой: в отчётах — внизу города, фильтр «Статус». История остаётся.",
   status: "«Проверить» — пришла из загрузки, город ещё не указан.",
@@ -89,10 +90,11 @@ function StudiosPage() {
     name: (s) => s.name,
     city: (s) => s.city,
     partner: (s) => s.partner,
+    club: (s) => s.clubName,
     data: (s) => s.lastDay,
   });
   const toReview = (data ?? []).filter((s) => s.needsReview).length;
-  const keys = ["name", "city", "partner", null, "data"];
+  const keys = ["name", "city", "partner", "club", null, "data"];
 
   return (
     <AdminShell title={ANALYTICS_TITLES.studios}>
@@ -127,7 +129,7 @@ function StudiosPage() {
                 {STUDIOS_COLUMNS.map((c, i) => (
                   <TableHead
                     key={c}
-                    tip={[TIPS.name, TIPS.city, TIPS.partner, TIPS.status, TIPS.data][i]}
+                    tip={[TIPS.name, TIPS.city, TIPS.partner, TIPS.club, TIPS.status, TIPS.data][i]}
                     {...(keys[i] ? sort.head(keys[i]!) : {})}
                   >
                     {c}
@@ -164,6 +166,7 @@ function StudiosPage() {
                       </TableCell>
                       <TableCell>{s.city ?? "—"}</TableCell>
                       <TableCell>{s.partner ?? "—"}</TableCell>
+                      <TableCell>{s.clubName ?? "—"}</TableCell>
                       <TableCell>
                         {s.needsReview ? (
                           <StatusChip tone="warning">Проверить</StatusChip>
@@ -213,6 +216,8 @@ function StudioForm({
   const [city, setCity] = useState(studio.city ?? "");
   const [partner, setPartner] = useState(studio.partner ?? "");
   const [brandId, setBrandId] = useState(studio.brandId ?? "none");
+  const clubs = useQuery(networkStudiosQuery);
+  const [clubId, setClubId] = useState(studio.clubId ?? "none");
   const [closedOn, setClosedOn] = useState(studio.closedOn ?? "");
   const [note, setNote] = useState(studio.note ?? "");
   const [saving, setSaving] = useState(false);
@@ -231,6 +236,7 @@ function StudioForm({
         p_brand_id: brandId === "none" ? null : brandId,
         p_closed_on: closedOn || null,
         p_note: note,
+        p_club_id: clubId === "none" ? null : clubId,
       });
       toast.success("Студия сохранена");
       onSaved();
@@ -273,6 +279,21 @@ function StudioForm({
                   {(brands.data ?? []).map((b) => (
                     <SelectItem key={b.id} value={b.id}>
                       {b.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </FormField>
+            <FormField label="Клуб портала" tip={TIPS.club}>
+              <Select value={clubId} onValueChange={setClubId}>
+                <SelectTrigger aria-label="Клуб портала">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">— не связана —</SelectItem>
+                  {(clubs.data ?? []).map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
                     </SelectItem>
                   ))}
                 </SelectContent>

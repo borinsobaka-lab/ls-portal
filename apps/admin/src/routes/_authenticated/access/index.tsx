@@ -44,6 +44,7 @@ import {
 import type { PortalUserRow } from "@/lib/access/types";
 import { todayISO } from "@/lib/format";
 import { useAccessNames } from "@/hooks/use-access-names";
+import { CLUBS_HIDDEN } from "@/lib/launch";
 
 const ALL = "all";
 
@@ -65,7 +66,8 @@ export const Route = createFileRoute("/_authenticated/access/")({
 /**
  * «Пользователи» (Управление → Пользователи и роли, ACCESS.md): все люди
  * портала — сотрудники УК, партнёры, сотрудники клубов. Управляющему
- * клубами — люди его клубов и те, кого он завёл.
+ * клубами — люди его клубов и те, кого он завёл. Пока клубы скрыты
+ * (lib/launch.ts), колонки и фильтра «Клубы» нет.
  */
 function AccessUsersPage() {
   const navigate = useNavigate();
@@ -157,19 +159,22 @@ function AccessUsersPage() {
             )}
             <TableToolbar>
               <ToolbarSearch value={q} onChange={setQ} placeholder="Имя, почта или телефон" />
-              <Select value={studio} onValueChange={setStudio}>
-                <SelectTrigger aria-label="Клуб" className="w-44">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={ALL}>Все клубы</SelectItem>
-                  {[...names.studio].map(([id, name]) => (
-                    <SelectItem key={id} value={id}>
-                      {name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {/* Клубы пока скрыты (lib/launch.ts) — фильтра и колонки «Клубы» нет. */}
+              {!CLUBS_HIDDEN && (
+                <Select value={studio} onValueChange={setStudio}>
+                  <SelectTrigger aria-label="Клуб" className="w-44">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={ALL}>Все клубы</SelectItem>
+                    {[...names.studio].map(([id, name]) => (
+                      <SelectItem key={id} value={id}>
+                        {name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
               <Select value={role} onValueChange={setRole}>
                 <SelectTrigger aria-label="Роль" className="w-44">
                   <SelectValue />
@@ -233,9 +238,11 @@ function AccessUsersPage() {
                     <TableHead {...sort.head("name")}>Пользователь</TableHead>
                     <TableHead {...sort.head("position")}>Должность</TableHead>
                     <TableHead tip={TIPS.roles}>Роли</TableHead>
-                    <TableHead tip={TIPS.studios} {...sort.head("studios")}>
-                      Клубы
-                    </TableHead>
+                    {!CLUBS_HIDDEN && (
+                      <TableHead tip={TIPS.studios} {...sort.head("studios")}>
+                        Клубы
+                      </TableHead>
+                    )}
                     <TableHead tip={TIPS.status} {...sort.head("status")}>
                       Статус
                     </TableHead>
@@ -246,11 +253,11 @@ function AccessUsersPage() {
                 </TableHeader>
                 <TableBody>
                   {isLoading ? (
-                    <TableSkeletonRows columns={6} rows={6} />
+                    <TableSkeletonRows columns={CLUBS_HIDDEN ? 5 : 6} rows={6} />
                   ) : filtered.length === 0 ? (
                     <TableRow>
                       <TableCell
-                        colSpan={6}
+                        colSpan={CLUBS_HIDDEN ? 5 : 6}
                         className="py-8 text-center text-sm text-muted-foreground"
                       >
                         {filtersActive ? "Никого не нашлось" : "Пользователей пока нет"}
@@ -305,13 +312,15 @@ function AccessUsersPage() {
                             )}
                           </div>
                         </TableCell>
-                        <TableCell className="text-sm">
-                          {u.studio_ids.length === 0
-                            ? "—"
-                            : u.studio_ids.length <= 2
-                              ? u.studio_ids.map((id) => names.studio.get(id)).join(", ")
-                              : `${u.studio_ids.length} клубов`}
-                        </TableCell>
+                        {!CLUBS_HIDDEN && (
+                          <TableCell className="text-sm">
+                            {u.studio_ids.length === 0
+                              ? "—"
+                              : u.studio_ids.length <= 2
+                                ? u.studio_ids.map((id) => names.studio.get(id)).join(", ")
+                                : `${u.studio_ids.length} клубов`}
+                          </TableCell>
+                        )}
                         <TableCell>
                           <UserStatusChip status={userStatus(u, today)} />
                         </TableCell>

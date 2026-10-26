@@ -94,9 +94,12 @@ export type ZeroRow = {
 
 export type Period = { from: string; to: string };
 
-/** Права в разделе (RPC an_access): все клубы, загрузка и справочники, свои города. */
-export type AnAccess = { view: boolean; manage: boolean; cities: string[] };
+/**
+ * Права в разделе (RPC an_access): все клубы, загрузка и справочники, свои
+ * города, свои клубы (клубы портала из назначений роли с analytics.clubs).
+ */
+export type AnAccess = { view: boolean; manage: boolean; cities: string[]; clubs?: string[] };
 
 /** Видит ли сотрудник раздел (рейка, меню). */
 export const anVisible = (a: AnAccess | undefined) =>
-  !!a && (a.view || a.manage || a.cities.length > 0);
+  !!a && (a.view || a.manage || a.cities.length > 0 || (a.clubs?.length ?? 0) > 0);

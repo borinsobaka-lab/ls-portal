@@ -61,6 +61,7 @@ import {
 import type { AccessRight } from "@/lib/access/logic";
 import { anVisible } from "@/lib/analytics/types";
 import { DASHBOARD_TITLES } from "@/lib/dashboard-stats";
+import { HIDDEN_MANAGE_URLS, HIDDEN_RAIL_SECTIONS } from "@/lib/launch";
 import type { StudioFormat } from "@/lib/studio-formats";
 
 export type RailSectionKey =
@@ -382,8 +383,12 @@ export function hasAcademyRight(access: AdminAccess, need: AcademyNeed): boolean
   return a.can_create || a.can_review || a.my_courses > 0;
 }
 
-/** Раздел без url — заготовка: виден в рейке, но не нажимается. */
-export const SECTIONS: RailSection[] = [
+/**
+ * Все разделы рейки — и скрытые на первом этапе (lib/launch.ts): по ним
+ * railSectionKey узнаёт раздел страницы. Раздел без url — заготовка: виден
+ * в рейке, но не нажимается.
+ */
+const ALL_SECTIONS: RailSection[] = [
   // Над студиями: своё меню — подразделы дашборда.
   {
     key: "dashboard",
@@ -434,6 +439,9 @@ export const SECTIONS: RailSection[] = [
   },
 ];
 
+/** Разделы в рейке — без скрытых (lib/launch.ts). */
+export const SECTIONS: RailSection[] = ALL_SECTIONS.filter((s) => !HIDDEN_RAIL_SECTIONS.has(s.key));
+
 /**
  * «Управление» внизу рейки (решение владельца 2026-10-25: вместо трёх
  * разделов «Знания», «Доступы», «Клубы») — настройки над студиями; их
@@ -457,6 +465,7 @@ export const ACCESS_ITEMS: NavItem[] = [
   { title: "Импорт из 1С", url: "/import-1c", icon: ClipboardList },
 ];
 export const STUDIOS_ITEMS: NavItem[] = [{ title: "Настройки", url: "/studios", icon: Widget3 }];
+// Пункты клубов («Клубы», «Импорт из 1С») пока скрыты — lib/launch.ts.
 export const MANAGE_GROUPS: NavGroup[] = [
   {
     key: "manage-kb",
@@ -465,7 +474,9 @@ export const MANAGE_GROUPS: NavGroup[] = [
   },
   { key: "manage-access", label: "Пользователи и роли", items: ACCESS_ITEMS },
   { key: "manage-studios", label: "Клубы", items: STUDIOS_ITEMS },
-];
+]
+  .map((g) => ({ ...g, items: g.items.filter((i) => !HIDDEN_MANAGE_URLS.has(i.url)) }))
+  .filter((g) => g.items.length > 0);
 const MANAGE_URLS = MANAGE_GROUPS.flatMap((g) => g.items.map((i) => i.url));
 
 /** Внизу рейки. url — первая страница; AppRail ведёт на первую открытую. */
@@ -485,7 +496,7 @@ const matches = (pathname: string, path: string) =>
 
 /** Раздел страницы: свои страницы у разделов рейки, всё остальное — «Клуб». */
 export function railSectionKey(pathname: string): RailSectionKey {
-  const own = [...SECTIONS, ...ADMIN_SECTIONS].find(
+  const own = [...ALL_SECTIONS, ...ADMIN_SECTIONS].find(
     (s) =>
       s.key !== "club" &&
       [s.url, ...(s.paths ?? [])].some((path) => path && matches(pathname, path)),
@@ -518,6 +529,8 @@ export function canOpenPath(
   pathname: string,
 ): boolean {
   const section = railSectionKey(pathname);
+  // Скрытые на первом этапе разделы закрыты всем (lib/launch.ts).
+  if (HIDDEN_RAIL_SECTIONS.has(section)) return false;
   if (section === "manage") return canOpenManagePath(access, pathname);
   if (section === "kb") {
     const baseId = kbBaseIdOf(pathname);
@@ -550,6 +563,7 @@ export function canOpenPath(
  */
 export function canOpenManagePath(access: AdminAccess, pathname: string): boolean {
   const any = (...rights: AccessRight[]) => rights.some((r) => access.rights.includes(r));
+  if ([...HIDDEN_MANAGE_URLS].some((url) => matches(pathname, url))) return false;
   if (STUDIOS_ITEMS.some((i) => matches(pathname, i.url))) return true;
   if (matches(pathname, KB_BASES_URL)) return access.kbAdmin;
   if (matches(pathname, "/import-1c")) return Object.values(access.studios).some((s) => s.owner);

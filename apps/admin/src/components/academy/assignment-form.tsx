@@ -32,6 +32,7 @@ import {
 import { acadError, ROLE_LABEL } from "@/lib/academy/logic";
 import type { AcadAssignment } from "@/lib/academy/types";
 import { unwrap } from "@/lib/query";
+import { CLUBS_HIDDEN, isHiddenRole } from "@/lib/launch";
 
 type Mode = "user" | "role" | "unit" | "position" | "access_role";
 const MODE_LABEL: Record<Mode, string> = {
@@ -95,13 +96,16 @@ export function AcadAssignmentForm({
   const { data: accessRoles } = useQuery({
     queryKey: ["acad", "access-roles"],
     queryFn: () =>
-      unwrap<{ id: string; name: string }[]>(
+      unwrap<{ id: string; name: string; system_key: string | null }[]>(
         supabase
           .from("access_roles")
-          .select("id, name")
+          .select("id, name, system_key")
           .is("personal_user_id", null)
           .order("sort_order"),
       ),
+    // Стартовые роли клубов пока не показываются (lib/launch.ts).
+    select: (rows: { id: string; name: string; system_key: string | null }[]) =>
+      rows.filter((r) => !isHiddenRole(r)),
     enabled: mode === "access_role",
     meta: { errorMessage: "Не удалось загрузить роли" },
   });
@@ -227,11 +231,14 @@ export function AcadAssignmentForm({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {(Object.keys(MODE_LABEL) as Mode[]).map((m) => (
-                    <SelectItem key={m} value={m}>
-                      {MODE_LABEL[m]}
-                    </SelectItem>
-                  ))}
+                  {(Object.keys(MODE_LABEL) as Mode[])
+                    // «По роли в клубе» — пока клубы скрыты (lib/launch.ts), нет.
+                    .filter((m) => !CLUBS_HIDDEN || m !== "role")
+                    .map((m) => (
+                      <SelectItem key={m} value={m}>
+                        {MODE_LABEL[m]}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </FormField>

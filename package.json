@@ -9,7 +9,7 @@
     "build": "bun run --cwd apps/admin build && bun run --cwd apps/client build",
     "typecheck": "cd apps/admin && bunx tsc --noEmit && cd ../client && bunx tsc --noEmit",
     "lint": "bun run --cwd apps/admin lint && bun run --cwd apps/client lint",
-    "test": "cd apps/admin && bun test && cd ../client && bun test && cd ../.. && bun test db",
+    "test": "cd apps/admin && bun run test && cd ../client && bun test && cd ../.. && bun test db",
     "test:db": "bun test db",
     "migrate": "bun db/migrate.ts",
     "version:client": "bun run --cwd apps/client version:bump",

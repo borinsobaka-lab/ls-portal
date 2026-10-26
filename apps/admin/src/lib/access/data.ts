@@ -2,6 +2,7 @@ import { queryOptions, type QueryClient } from "@tanstack/react-query";
 
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/query";
+import { isHiddenPermission, isHiddenRole } from "@/lib/launch";
 import { accessErrorText } from "./logic";
 import type {
   AccessLogRow,
@@ -58,6 +59,8 @@ export const accessCatalogQuery = queryOptions({
         .select("key, block, label, hint, scope, levels, target, sort_order")
         .order("sort_order"),
     ),
+  // Права скрытых разделов (lib/launch.ts) в ролях не показываются.
+  select: (rows: PermissionDef[]) => rows.filter((p) => !isHiddenPermission(p.key)),
   staleTime: Infinity,
   meta: { errorMessage: "Не удалось загрузить каталог прав" },
 });
@@ -65,6 +68,8 @@ export const accessCatalogQuery = queryOptions({
 export const accessRolesQuery = queryOptions({
   queryKey: [ACCESS_KEY, "roles"],
   queryFn: () => accessRpc<AccessRole[]>("access_roles_list"),
+  // Стартовые роли клубов пока не показываются (lib/launch.ts).
+  select: (rows: AccessRole[]) => rows.filter((r) => !isHiddenRole(r)),
   meta: { errorMessage: "Не удалось загрузить роли" },
 });
 

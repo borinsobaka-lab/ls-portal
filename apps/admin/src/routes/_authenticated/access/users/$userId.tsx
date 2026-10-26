@@ -78,6 +78,8 @@ import type {
 } from "@/lib/access/types";
 import { formatDate, formatDateTime, todayISO } from "@/lib/format";
 import { useAccessNames } from "@/hooks/use-access-names";
+import { CLUBS_HIDDEN, isHiddenPermission } from "@/lib/launch";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/access/users/$userId")({
   head: () => ({ meta: [{ title: "Пользователь — Lady Stretch" }] }),
@@ -689,7 +691,8 @@ function EffectiveSection({ user }: { user: PortalUserCard }) {
     (names.studio.get(a) ?? "").localeCompare(names.studio.get(b) ?? "", "ru"),
   );
   const kb = Object.entries(e.kb ?? {});
-  const rights = (e.rights ?? []).filter((r) => r !== "portal.admin");
+  // Права скрытых разделов (lib/launch.ts) не упоминаются.
+  const rights = (e.rights ?? []).filter((r) => r !== "portal.admin" && !isHiddenPermission(r));
   const rails = e.rails;
   return (
     <AccessSection
@@ -713,7 +716,7 @@ function EffectiveSection({ user }: { user: PortalUserCard }) {
                 Суперадминистратор: всё во всех клубах и в портале.
               </InfoNote>
             )}
-            {studios.length === 0 ? (
+            {CLUBS_HIDDEN ? null : studios.length === 0 ? (
               <p className="text-sm text-muted-foreground">Нет доступа к данным клубов</p>
             ) : (
               <ul className="space-y-1 text-sm">
@@ -745,7 +748,7 @@ function EffectiveSection({ user }: { user: PortalUserCard }) {
           <div className="space-y-2">
             <h3 className="text-sm font-medium">Сеть</h3>
             <ul className="space-y-1 text-sm">
-              <li>
+              <li className={cn(CLUBS_HIDDEN && "hidden")}>
                 <span className="text-muted-foreground">Разделы админки: </span>
                 {rails === null
                   ? "все"

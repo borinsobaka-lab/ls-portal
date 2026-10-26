@@ -173,6 +173,65 @@ describe.skipIf(!url)("аналитика сети (база)", () => {
       expect(access.manage).toBe(true);
     }));
 
+  test("свои клубы: студии клубов из назначения роли; клуб — в справочнике студий", () =>
+    scenario(async (tx) => {
+      const admin = await person(tx, ["analytics.manage"]);
+      await load(tx, admin, "revenue", "2026-09-01", "2026-09-30", [
+        ["Москва, Тверская 1", "2026-09-02", "", 1000, 0],
+        ["Москва, Арбат 2", "2026-09-02", "", 700, 0],
+        ["Казань, Баумана 3", "2026-09-02", "", 500, 0],
+      ]);
+      const [{ id: tverskaya }] = await tx`insert into studios (name, format) values ('Тверская', 'packages') returning id`;
+      const [{ id: arbat }] = await tx`insert into studios (name, format) values ('Арбат', 'packages') returning id`;
+      const [{ id: kazan }] = await tx`insert into studios (name, format) values ('Казань', 'packages') returning id`;
+      const ids = Object.fromEntries(
+        (await tx`select id, name from an_studios`).map((r: { id: string; name: string }) => [r.name, r.id]),
+      );
+      // Связь студии выгрузки с клубом — в справочнике, только manage.
+      await as(tx, admin);
+      await tx`select an_studio_save(${ids["Москва, Тверская 1"]}::uuid, 'Москва', null, null, null, null, ${tverskaya}::uuid)`;
+      await tx`select an_studio_save(${ids["Москва, Арбат 2"]}::uuid, 'Москва', null, null, null, null, ${arbat}::uuid)`;
+      await tx`select an_studio_save(${ids["Казань, Баумана 3"]}::uuid, 'Казань', null, null, null, null, ${kazan}::uuid)`;
+      await asServer(tx);
+      const list = await call<{ name: string; club_name: string }[]>(tx, admin, (t) => t`select an_studios_list() as r`);
+      expect(list.find((x) => x.name === "Москва, Арбат 2")?.club_name).toBe("Арбат");
+
+      // Собственник: роль «Владелец клуба — аналитика» в двух своих клубах.
+      const owner = await user(tx);
+      await tx`insert into portal_users (user_id) values (${owner})`;
+      const [{ id: role }] = await tx`select id from access_roles where system_key = 'club_owner_analytics'`;
+      await tx`insert into access_assignments (role_id, subject_type, user_id, scope_type, scope_ids)
+               values (${role}, 'user', ${owner}, 'studios', ${[tverskaya, arbat]}::uuid[])`;
+      await tx`select access_flush()`;
+      // Франчайзи: «Аналитика сети» — все клубы.
+      const franchise = await person(tx, ["analytics.view"]);
+
+      const names = async (who: string) =>
+        (await call<{ studios: { name: string }[] }>(tx, who, (t) => t`select an_scope() as r`)).studios
+          .map((x) => x.name)
+          .sort();
+      expect(await names(owner)).toEqual(["Москва, Арбат 2", "Москва, Тверская 1"]);
+      expect(await names(franchise)).toEqual(["Казань, Баумана 3", "Москва, Арбат 2", "Москва, Тверская 1"]);
+      const access = await call<{ clubs: string[]; view: boolean }>(tx, owner, (t) => t`select an_access() as r`);
+      expect(access.view).toBe(false);
+      expect([...access.clubs].sort()).toEqual([tverskaya, arbat].sort());
+      // Отчёт — только свои клубы, даже если запросить все студии.
+      const rows = await call<unknown[][]>(tx, owner, (t) =>
+        t`select an_revenue_report(null, '2026-09-01', '2026-09-30') as r`,
+      );
+      expect(rows.map((r) => Number(r[2])).sort((a, b) => a - b)).toEqual([700, 1000]);
+
+      // Заблокирован — ничего.
+      await tx`update portal_users set status = 'blocked' where user_id = ${owner}`;
+      await tx`select access_flush()`;
+      expect(await names(owner)).toEqual([]);
+
+      // Клуб удалили — связь со студией снимается, данные студии остаются.
+      await tx`delete from studios where id = ${kazan}`;
+      const [{ club_id }] = await tx`select club_id from an_studios where id = ${ids["Казань, Баумана 3"]}`;
+      expect(club_id).toBeNull();
+    }));
+
   test("загрузка: новые студии и номенклатура «проверить», повтор заменяет период, удаление", () =>
     scenario(async (tx) => {
       const admin = await person(tx, ["analytics.manage"]);

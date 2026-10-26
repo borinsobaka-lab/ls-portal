@@ -70,6 +70,9 @@ const TIPS = {
     "Маленькая картинка слева от названия клуба в приложении клиентов, когда они выбирают студию («Сменить студию» на главной).",
 };
 
+/** Колонка и подписи «Приложение клиентов» — только когда адрес задан (VITE_*_APP_URL). */
+const SHOW_APPS = STUDIO_FORMATS.some((f) => !!STUDIO_FORMAT_APP_URL[f]);
+
 export const Route = createFileRoute("/_authenticated/studios")({
   head: () => ({ meta: [{ title: "Клубы — Lady Stretch" }] }),
   pendingComponent: StudiosPageSkeleton,
@@ -133,15 +136,18 @@ function StudiosPage() {
               <TableHead tip={TIPS.color} {...sort.head("color")}>
                 Цвет
               </TableHead>
-              <TableHead {...sort.head("app")}>Приложение клиентов</TableHead>
+              {SHOW_APPS && <TableHead {...sort.head("app")}>Приложение клиентов</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableSkeletonRows columns={5} rows={2} />
+              <TableSkeletonRows columns={SHOW_APPS ? 5 : 4} rows={2} />
             ) : studios.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="py-8 text-center text-sm text-muted-foreground">
+                <TableCell
+                  colSpan={SHOW_APPS ? 5 : 4}
+                  className="py-8 text-center text-sm text-muted-foreground"
+                >
                   Нет клубов, где вы сотрудник.
                 </TableCell>
               </TableRow>
@@ -203,17 +209,19 @@ function StudiosPage() {
                           {s.brand_color}
                         </span>
                       </TableCell>
-                      <TableCell>
-                        <a
-                          href={STUDIO_FORMAT_APP_URL[s.format]}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-1 text-sm text-link underline-offset-4 hover:text-link-hover hover:underline"
-                        >
-                          {STUDIO_FORMAT_APP_URL[s.format].replace(/^https?:\/\//, "")}
-                          <ExternalLink className="size-3.5" />
-                        </a>
-                      </TableCell>
+                      {SHOW_APPS && (
+                        <TableCell>
+                          <a
+                            href={STUDIO_FORMAT_APP_URL[s.format]}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1 text-sm text-link underline-offset-4 hover:text-link-hover hover:underline"
+                          >
+                            {STUDIO_FORMAT_APP_URL[s.format].replace(/^https?:\/\//, "")}
+                            <ExternalLink className="size-3.5" />
+                          </a>
+                        </TableCell>
+                      )}
                     </TableRow>
                   </RowContextMenu>
                 );
@@ -535,14 +543,15 @@ function StudioForm({
               <InfoNote>
                 Тип:{" "}
                 <span className="font-medium text-foreground">{STUDIO_FORMAT_LABEL[format]}</span>.
-                Тип задаётся при создании и не меняется. Приложение клиентов — {appHost(format)}.
+                Тип задаётся при создании и не меняется.
+                {SHOW_APPS && ` Приложение клиентов — ${appHost(format)}.`}
               </InfoNote>
             ) : (
               <FormField
                 label="Тип клуба"
                 required
                 tip={TIPS.format}
-                hint={`Приложение клиентов — ${appHost(format)}. После создания тип не меняется.`}
+                hint={`${SHOW_APPS ? `Приложение клиентов — ${appHost(format)}. ` : ""}После создания тип не меняется.`}
               >
                 <Select value={format} onValueChange={(v) => setFormat(v as StudioFormat)}>
                   <SelectTrigger>

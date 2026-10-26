@@ -20,6 +20,7 @@ import {
   KB_TABS_SLOT,
 } from "@/lib/kb/header-layout";
 import { cn } from "@/lib/utils";
+import { CLUBS_HIDDEN } from "@/lib/launch";
 
 /*
  * Скелетоны админки — состояние ПЕРВОЙ загрузки: вместо пустоты, нулей или
@@ -131,6 +132,9 @@ export function ShellSkeleton({
   network?: boolean;
   children: ReactNode;
 }) {
+  // Пока клубы скрыты (lib/launch.ts), у всех страниц шапка без поиска
+  // клиента и выбора клуба — как у AdminShell.
+  network ||= CLUBS_HIDDEN;
   return (
     <>
       {kb ? (

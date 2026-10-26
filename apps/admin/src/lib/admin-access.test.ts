@@ -9,6 +9,13 @@ import {
 } from "./admin-access";
 import { canOpenPath, firstAllowedUrl, railSectionKey } from "./nav-sections";
 
+/**
+ * Логика разделов клубов — как после их возвращения (lib/launch.ts). Пока
+ * клубы скрыты, она идёт отдельным прогоном: VITE_SHOW_CLUBS=true
+ * (`bun run test`); в обычном `bun test` эти тесты пропускаются.
+ */
+const SHOW_CLUBS = process.env.VITE_SHOW_CLUBS === "true";
+
 const A = "studio-a";
 const B = "studio-b";
 
@@ -59,7 +66,7 @@ const partner: AdminAccess = {
   studios: { [A]: { owner: true, sections: null } },
 };
 
-describe("права в админке", () => {
+describe.skipIf(!SHOW_CLUBS)("права в админке", () => {
   test("без строк прав открыто всё, кроме «Пользователей и ролей»", () => {
     expect(canOpenRail(legacy, "staff")).toBe(true);
     expect(canOpenPath(legacy, A, "/dashboard")).toBe(true);

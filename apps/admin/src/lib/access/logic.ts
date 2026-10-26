@@ -5,6 +5,7 @@
  */
 import { formatDate, formatDateTime } from "@/lib/format";
 import { plural } from "@/lib/academy/logic";
+import { isHiddenPermission } from "@/lib/launch";
 import type {
   Assignment,
   Effective,
@@ -153,10 +154,13 @@ export function clubSectionPerms(catalog: PermissionDef[]) {
     .sort((a, b) => a.sort_order - b.sort_order);
 }
 
-/** Есть ли у роли права «в клубе» — тогда при назначении важны клубы. */
+/**
+ * Есть ли у роли права «в клубе» — тогда при назначении важны клубы. Права
+ * скрытых разделов (lib/launch.ts) не в счёт.
+ */
 export function hasStudioPerms(perms: RolePerm[], catalog: PermissionDef[]) {
   const scope = new Map(catalog.map((p) => [p.key, p.scope]));
-  return perms.some((p) => scope.get(p.perm_key) === "studio");
+  return perms.some((p) => !isHiddenPermission(p.perm_key) && scope.get(p.perm_key) === "studio");
 }
 
 /** Что не так с правами роли (как проверяет база); null — всё в порядке. */
@@ -169,7 +173,9 @@ export function roleProblem(perms: RolePerm[]): string | null {
 }
 
 /** Короткое описание прав роли — чипами в списке ролей. */
-export function roleSummary(perms: RolePerm[], catalog: PermissionDef[]): string[] {
+export function roleSummary(allPerms: RolePerm[], catalog: PermissionDef[]): string[] {
+  // Права скрытых разделов (lib/launch.ts) в описании роли не упоминаются.
+  const perms = allPerms.filter((p) => !isHiddenPermission(p.perm_key));
   const label = new Map(catalog.map((p) => [p.key, p.label]));
   const out: string[] = [];
   const tier = permLevel(perms, "studio.tier") as Tier | null;
@@ -190,6 +196,11 @@ export function roleSummary(perms: RolePerm[], catalog: PermissionDef[]): string
     if (p.scope !== "network" || p.target || p.key === "scripts" || p.key === "portal.admin")
       continue;
     if (permLevel(perms, p.key)) out.push(label.get(p.key) ?? p.key);
+  }
+  // Прочие права «в клубе» (аналитика своих клубов) — по названию.
+  for (const p of catalog) {
+    if (p.scope !== "studio" || p.key === "studio.tier" || p.key.startsWith("club.")) continue;
+    if (p.key !== "users.manage" && permLevel(perms, p.key)) out.push(p.label);
   }
   if (permLevel(perms, "users.manage")) out.push(label.get("users.manage") ?? "users.manage");
   return out;

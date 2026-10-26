@@ -10,6 +10,7 @@ import {
   orgPositionsQuery,
   orgUnitsQuery,
 } from "@/lib/access/data";
+import { isHiddenPermission } from "@/lib/launch";
 import type { Names } from "@/lib/access/logic";
 
 /** Имена клубов, брендов, подразделений, должностей и людей — для подписей. */
@@ -38,11 +39,14 @@ export function useAccessNames(withUsers = true): Names & {
           {
             name: r.name,
             color: r.color,
+            // Права «в клубе» без скрытых разделов (lib/launch.ts).
             studio: r.access_role_permissions.some(
               (p) =>
-                p.perm_key === "studio.tier" ||
-                p.perm_key.startsWith("club.") ||
-                p.perm_key === "users.manage",
+                !isHiddenPermission(p.perm_key) &&
+                (p.perm_key === "studio.tier" ||
+                  p.perm_key.startsWith("club.") ||
+                  p.perm_key === "users.manage" ||
+                  p.perm_key === "analytics.clubs"),
             ),
           },
         ]),

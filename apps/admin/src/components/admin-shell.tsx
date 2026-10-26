@@ -14,6 +14,7 @@ import { MAIN_HEADER_GRID, MAIN_HEADER_STUDIO } from "@/lib/header-layout";
 import { useKbDarkTheme } from "@/lib/kb/theme";
 import { kbBaseIdOf, railSectionKey } from "@/lib/nav-sections";
 import { cn } from "@/lib/utils";
+import { CLUBS_HIDDEN } from "@/lib/launch";
 
 // Kate (AI SDK, markdown) — отдельным чанком: в общем каркасе он прибавлял к
 // первой загрузке любой страницы ~80 kB, а открывают его редко. Наведение на
@@ -78,7 +79,10 @@ export function AdminShell({
   // «Академия» общая для сети, «Аналитика» — над клубами (клубы выбираются
   // фильтрами отчёта): только заголовок, без поиска клиента, Kate и выбора
   // клуба.
-  const network = ["academy", "analytics"].includes(railSectionKey(pathname));
+  // Пока клубы скрыты (lib/launch.ts), так же и «Управление»: поиск клиента,
+  // «Рабочий день», Kate и выбор клуба — только для разделов клубов.
+  const network =
+    ["academy", "analytics"].includes(railSectionKey(pathname)) || (CLUBS_HIDDEN && !kb);
   const kbBaseId = kb ? kbBaseIdOf(pathname) : null;
   // Тёмная тема базы знаний: класс на <html> вешает StudioBranding.
   const [kbDarkTheme, toggleKbTheme] = useKbDarkTheme();
