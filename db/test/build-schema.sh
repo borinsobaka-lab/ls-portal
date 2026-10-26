@@ -25,7 +25,7 @@ for pass in 1 2 3; do
     psql "$URL" -q -X -v ON_ERROR_STOP=0 -f "$f" >/dev/null 2>&1 || true
   done
 done
-psql "$URL" -q -X -v ON_ERROR_STOP=1 -f "$HERE/fixups.sql" >/dev/null
+psql "$URL" -q -X -v ON_ERROR_STOP=1 -f "$ROOT/bootstrap/fixups.sql" >/dev/null
 
 for f in "$ROOT"/migrations/*.sql; do
   if ! out=$(psql "$URL" -q -X -v ON_ERROR_STOP=1 -1 -f "$f" 2>&1 >/dev/null); then

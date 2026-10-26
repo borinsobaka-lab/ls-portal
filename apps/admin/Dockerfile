@@ -28,7 +28,10 @@ ENV NODE_ENV=production HOST=0.0.0.0 PORT=3000
 COPY --from=build /app/.output ./.output
 # Мигратор схемы БД и его файлы: при старте сначала миграции (без
 # DATABASE_URL — пропускаются), упали — сервер не запускается.
-COPY db/migrate.ts ./db/migrate.ts
+# На пустой базе мигратор сначала собирает старую схему (db/bootstrap.ts):
+# старые db/*.sql и db/bootstrap/fixups.sql.
+COPY db/migrate.ts db/bootstrap.ts db/*.sql ./db/
+COPY db/bootstrap ./db/bootstrap
 COPY db/migrations ./db/migrations
 
 EXPOSE 3000

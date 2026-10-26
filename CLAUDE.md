@@ -980,14 +980,20 @@ DEPLOY.md.
   вручную. Тесты мигратора на локальном Postgres —
   `TEST_DATABASE_URL=… bun test db` (из корня).
 - Старые `db/*.sql` (вне `migrations/`) — история, выполнялись вручную в
-  Supabase SQL Editor; мигратор их не трогает. На пустой базе копии их выполняет мигратор
-  (см. DEPLOY.md).
+  Supabase SQL Editor; мигратор их не трогает. **На пустой базе их выполняет мигратор
+  сам** (`db/bootstrap.ts`, 2026-10-26): три прохода по алфавиту, каждая
+  команда отдельно, упавшие пропускаются (как `db/test/build-schema.sh`),
+  затем `db/bootstrap/fixups.sql`, отметка `legacy:bootstrap` в
+  `app_migrations.applied`, затем все миграции. Нужны схемы `auth` и
+  `storage` (GoTrue и storage-api стартуют раньше портала), пользователь
+  `DATABASE_URL` — `postgres`. Проверено на чистом self-hosted Supabase
+  (Postgres 15.8, GoTrue, storage-api): схема совпадает со сборкой через psql.
 - `create table if not exists` НЕ добавляет колонки в существующую таблицу —
   для новых колонок нужен явный `alter table ... add column if not exists`
   (на этом уже ловили расхождение: clients.avatar_url был в файле, но не в БД).
 - Перед выкаткой миграцию можно прогнать на локальном Postgres 16 (есть в
   системе): `bash db/test/build-schema.sh <url>` (заглушки — `db/test/stubs.sql`,
-  поправки порядка старых файлов — `db/test/fixups.sql`), сценарии —
+  поправки порядка старых файлов — `db/bootstrap/fixups.sql`), сценарии —
   `db/packages.test.ts`.
 - Серверная пагинация админки опирается на вью `clients_with_status`,
   `sales_list`, `cash_totals`, `bookings_log_full` (db/performance_indexes.sql;

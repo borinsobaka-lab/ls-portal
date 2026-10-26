@@ -4,9 +4,11 @@
  * db/migrations/*.sql по порядку имён и записывает их в
  * app_migrations.applied — каждый файл выполняется один раз.
  *
- * - DATABASE_URL (runtime-секрет club40-admin в Coolify) — прямое подключение
+ * - DATABASE_URL (runtime-секрет портала в Coolify) — прямое подключение
  *   к Postgres self-hosted Supabase. Не задан — миграции пропускаются, сервер
  *   стартует как раньше (ручной режим через SQL Editor).
+ * - Пустая база (первый старт копии) — сначала старые db/*.sql и поправки
+ *   (db/bootstrap.ts, как db/test/build-schema.sh), потом миграции.
  * - Каждый файл — в своей транзакции вместе с отметкой о выполнении: упал —
  *   откат целиком, контейнер не стартует (exit 1), новый код не выходит
  *   раньше схемы. Внутри файла begin/commit и create index concurrently не
@@ -22,6 +24,8 @@ import { SQL } from "bun";
 import { createHash } from "node:crypto";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+
+import { bootstrapLegacy } from "./bootstrap";
 
 /** Имя файла миграции: дата и короткое имя — 2026-10-09_studio_formats.sql. */
 export const MIGRATION_NAME_RE = /^\d{4}-\d{2}-\d{2}_[a-z0-9_]+\.sql$/;
@@ -50,6 +54,8 @@ export async function runMigrations(
   db: SQL,
   migrations: Migration[],
   log: (line: string) => void = console.log,
+  /** Папка старых db/*.sql: задана — пустая база сначала собирается из них. */
+  legacyDir?: string,
 ): Promise<string[]> {
   const conn = await db.reserve();
   try {
@@ -66,6 +72,7 @@ export async function runMigrations(
           applied_at timestamptz not null default now()
         );
       `);
+      if (legacyDir) await bootstrapLegacy(conn, legacyDir, log);
       const rows = (await conn.unsafe(`select name, checksum from app_migrations.applied`)) as {
         name: string;
         checksum: string;
@@ -126,7 +133,12 @@ if (import.meta.main) {
   }
   const db = new SQL(url, { max: 1 });
   try {
-    await runMigrations(db, readMigrations(join(import.meta.dir, "migrations")));
+    await runMigrations(
+      db,
+      readMigrations(join(import.meta.dir, "migrations")),
+      console.log,
+      import.meta.dir,
+    );
   } catch (e) {
     console.error(`[migrate] ОШИБКА, сервер не запущен: ${(e as Error).message}`);
     process.exit(1);
