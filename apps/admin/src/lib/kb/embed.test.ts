@@ -5,22 +5,23 @@ import { parseKbEmbed } from "./embed";
 const src = (r: ReturnType<typeof parseKbEmbed>) => ("src" in r ? r.src : r.error);
 
 describe("parseKbEmbed", () => {
-  test("YouTube: обычная, короткая, shorts, встраивание, время начала", () => {
-    const yt = "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?rel=0";
-    expect(src(parseKbEmbed("youtube", "https://www.youtube.com/watch?v=dQw4w9WgXcQ"))).toBe(yt);
-    expect(src(parseKbEmbed("youtube", "youtu.be/dQw4w9WgXcQ?si=abc"))).toBe(yt);
-    expect(src(parseKbEmbed("youtube", "https://youtube.com/shorts/dQw4w9WgXcQ"))).toBe(yt);
-    expect(src(parseKbEmbed("youtube", "https://m.youtube.com/watch?v=dQw4w9WgXcQ&t=1m30s"))).toBe(
-      `${yt}&start=90`,
+  test("RuTube: обычная, shorts, закрытая с ключом, код для вставки", () => {
+    const id = "0123456789abcdef0123456789abcdef";
+    const rt = `https://rutube.ru/play/embed/${id}/`;
+    expect(src(parseKbEmbed("rutube", `https://rutube.ru/video/${id}/`))).toBe(rt);
+    expect(src(parseKbEmbed("rutube", `rutube.ru/video/${id}/?r=wd&t=95`))).toBe(`${rt}?t=95`);
+    expect(src(parseKbEmbed("rutube", `https://rutube.ru/shorts/${id}/`))).toBe(rt);
+    expect(src(parseKbEmbed("rutube", `https://rutube.ru/video/private/${id}/?p=AbC-123`))).toBe(
+      `${rt}?p=AbC-123`,
     );
     expect(
       src(
         parseKbEmbed(
-          "youtube",
-          '<iframe width="560" src="https://www.youtube.com/embed/dQw4w9WgXcQ?si=x&amp;start=5" allowfullscreen></iframe>',
+          "rutube",
+          `<iframe width="720" src="https://rutube.ru/play/embed/${id}" frameBorder="0" allow="clipboard-write; autoplay" allowFullScreen></iframe>`,
         ),
       ),
-    ).toBe(`${yt}&start=5`);
+    ).toBe(rt);
   });
 
   test("Kinescope: ссылка и код для вставки", () => {
@@ -53,10 +54,10 @@ describe("parseKbEmbed", () => {
 
   test("iframe: любой https, известный сервис узнаётся сам", () => {
     expect(
-      src(parseKbEmbed("iframe", '<iframe src="https://rutube.ru/play/embed/abc"></iframe>')),
-    ).toBe("https://rutube.ru/play/embed/abc");
-    const r = parseKbEmbed("iframe", "https://youtu.be/dQw4w9WgXcQ");
-    expect("provider" in r && r.provider).toBe("youtube");
+      src(parseKbEmbed("iframe", '<iframe src="https://player.vimeo.com/video/1"></iframe>')),
+    ).toBe("https://player.vimeo.com/video/1");
+    const r = parseKbEmbed("iframe", "https://rutube.ru/video/0123456789abcdef0123456789abcdef/");
+    expect("provider" in r && r.provider).toBe("rutube");
     expect("error" in parseKbEmbed("iframe", "http://example.com/x")).toBe(true);
     expect(
       "error" in parseKbEmbed("iframe", "https://portal.example/kb", "https://portal.example"),
@@ -64,9 +65,10 @@ describe("parseKbEmbed", () => {
   });
 
   test("не та ссылка — ошибка с примером", () => {
-    expect("error" in parseKbEmbed("youtube", "https://example.com/video")).toBe(true);
+    expect("error" in parseKbEmbed("rutube", "https://example.com/video")).toBe(true);
+    expect("error" in parseKbEmbed("rutube", "https://rutube.ru/channel/123/")).toBe(true);
     expect("error" in parseKbEmbed("vk", "https://vkvideo.ru/")).toBe(true);
-    expect("error" in parseKbEmbed("youtube", "  ")).toBe(true);
+    expect("error" in parseKbEmbed("rutube", "  ")).toBe(true);
     expect("error" in parseKbEmbed("kinescope", "<iframe></iframe>")).toBe(true);
   });
 });
@@ -79,16 +81,14 @@ describe("блок видео с сервиса в документе", () => {
         id: "e",
         type: "embed",
         props: {
-          provider: "youtube",
-          url: "https://www.youtube-nocookie.com/embed/x",
+          provider: "rutube",
+          url: "https://rutube.ru/play/embed/x/",
           caption: "",
         },
         children: [],
       },
     ];
-    expect(documentLines(doc)[0].text).toBe(
-      "Видео с сервиса: https://www.youtube-nocookie.com/embed/x",
-    );
+    expect(documentLines(doc)[0].text).toBe("Видео с сервиса: https://rutube.ru/play/embed/x/");
     expect(documentIsEmpty(doc)).toBe(false);
   });
 });

@@ -1,6 +1,6 @@
 /**
  * Видео в статье: своё видео (загруженный файл) и видео с внешних сервисов —
- * YouTube, Kinescope, VK Видео, любой iframe (решение владельца 2026-10-27).
+ * RuTube, Kinescope, VK Видео, любой iframe (решение владельца 2026-10-27).
  * Схема — components/kb/kb-document.tsx, разбор ссылок — lib/kb/embed.ts.
  */
 import { useContext, useState } from "react";
@@ -80,7 +80,7 @@ function VideoPlayer({ url, width }: { url: string; width: number | undefined })
 
 // --- Видео с сервисов ------------------------------------------------------------
 
-/** Разрешения плеера — как в коде вставки Kinescope (им хватает и YouTube, и VK). */
+/** Разрешения плеера — как в коде вставки Kinescope (им хватает и RuTube, и VK). */
 const IFRAME_ALLOW =
   "autoplay; fullscreen; picture-in-picture; encrypted-media; gyroscope; accelerometer; clipboard-write; screen-wake-lock";
 
@@ -92,7 +92,7 @@ type EmbedEditor = {
 type EmbedProps = { provider: string; url: string; source: string; caption: string };
 
 /**
- * Видео с YouTube, Kinescope, VK Видео или любой iframe: в документе —
+ * Видео с RuTube, Kinescope, VK Видео или любой iframe: в документе —
  * адрес плеера (`url`) и что вставил автор (`source`, чтобы поправить).
  * Новый блок сразу открывает окно ссылки с подсказкой; «Отмена» у пустого
  * блока его убирает.
@@ -143,7 +143,7 @@ function Embed({
             allow={IFRAME_ALLOW}
             allowFullScreen
             loading="lazy"
-            // Без источника YouTube и Kinescope (разрешённые домены) не играют.
+            // Kinescope с разрешёнными доменами без источника страницы не играет.
             referrerPolicy="strict-origin-when-cross-origin"
             // Чужой сайт из «iframe» не уведёт портал на свою страницу.
             sandbox={

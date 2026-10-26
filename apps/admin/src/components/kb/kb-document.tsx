@@ -10,7 +10,7 @@
  * показ — подписанная ссылка. Внешние адреса в документ не попадают: панель
  * файлов — только «Загрузить», картинки из вставленного текста (Word, Google
  * Docs) перезаливаются к нам. Исключение — «Видео с сервисов» (блок
- * `embed`, components/kb/media-blocks.tsx): плеер YouTube, Kinescope, VK или
+ * `embed`, components/kb/media-blocks.tsx): плеер RuTube, Kinescope, VK или
  * iframe (решение владельца 2026-10-27).
  */
 import "@blocknote/shadcn/style.css";
@@ -652,16 +652,16 @@ const kbSchema = BlockNoteSchema.create({
 });
 
 const EMBED_SUBTEXT: Record<(typeof KB_EMBED_PROVIDERS)[number], string> = {
-  youtube: "Ссылка на видео YouTube — плеер прямо в статье",
+  rutube: "Ссылка на видео RuTube — плеер прямо в статье",
   kinescope: "Ссылка или код вставки из Kinescope",
   vk: "Код вставки или ссылка на видео VK",
-  iframe: "Код <iframe> с любого сервиса: Rutube, Vimeo, Диск…",
+  iframe: "Код <iframe> с любого сервиса: Vimeo, Диск…",
 };
 const EMBED_ALIASES: Record<(typeof KB_EMBED_PROVIDERS)[number], string[]> = {
-  youtube: ["youtube", "ютуб", "видео"],
+  rutube: ["rutube", "рутуб", "видео"],
   kinescope: ["kinescope", "кинескоп", "видео"],
   vk: ["vk", "вк", "вконтакте", "видео"],
-  iframe: ["iframe", "встроить", "код", "embed", "rutube", "vimeo", "видео"],
+  iframe: ["iframe", "встроить", "код", "embed", "vimeo", "видео"],
 };
 
 /** Заголовки 4–6 уровня базе знаний не нужны — из меню «/» убраны. */

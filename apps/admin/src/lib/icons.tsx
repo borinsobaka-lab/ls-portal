@@ -103,6 +103,7 @@ import {
   Mic as MicArt,
   ArrowShrinkIcon as MinimizeArt,
   Minus as MinusArt,
+  MonitorPlay as MonitorPlayArt,
   Moon as MoonArt,
   Music as MusicArt,
   PanelLeft as PanelLeftArt,
@@ -146,7 +147,6 @@ import {
   Wallet as WalletArt,
   X as XArt,
   XCircle as XCircleArt,
-  Youtube as YoutubeArt,
 } from "@hugeicons/core-free-icons";
 
 type LucideProps = SVGProps<SVGSVGElement> & {
@@ -249,6 +249,7 @@ export const MessageSquare = icon(MessageSquareArt, "MessageSquare");
 export const Mic = icon(MicArt, "Mic");
 export const Minimize = icon(MinimizeArt, "Minimize");
 export const Minus = icon(MinusArt, "Minus");
+export const MonitorPlay = icon(MonitorPlayArt, "MonitorPlay");
 export const Moon = icon(MoonArt, "Moon");
 export const Music = icon(MusicArt, "Music");
 export const PanelLeft = icon(PanelLeftArt, "PanelLeft");
@@ -292,4 +293,3 @@ export const Vk = icon(VkArt, "Vk");
 export const Wallet = icon(WalletArt, "Wallet");
 export const X = icon(XArt, "X");
 export const XCircle = icon(XCircleArt, "XCircle");
-export const Youtube = icon(YoutubeArt, "Youtube");

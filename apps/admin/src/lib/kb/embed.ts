@@ -4,12 +4,12 @@
  * встраивания. Без React — тесты рядом.
  */
 
-export type KbEmbedProvider = "youtube" | "kinescope" | "vk" | "iframe";
+export type KbEmbedProvider = "rutube" | "kinescope" | "vk" | "iframe";
 
-export const KB_EMBED_PROVIDERS: KbEmbedProvider[] = ["youtube", "kinescope", "vk", "iframe"];
+export const KB_EMBED_PROVIDERS: KbEmbedProvider[] = ["rutube", "kinescope", "vk", "iframe"];
 
 export const KB_EMBED_LABEL: Record<KbEmbedProvider, string> = {
-  youtube: "YouTube",
+  rutube: "RuTube",
   kinescope: "Kinescope",
   vk: "VK Видео",
   iframe: "iframe",
@@ -17,7 +17,7 @@ export const KB_EMBED_LABEL: Record<KbEmbedProvider, string> = {
 
 /** Название блока — в меню «/» и окне ссылки. */
 export const KB_EMBED_TITLE: Record<KbEmbedProvider, string> = {
-  youtube: "Видео YouTube",
+  rutube: "Видео RuTube",
   kinescope: "Видео Kinescope",
   vk: "VK Видео",
   iframe: "Видео по коду iframe",
@@ -25,13 +25,13 @@ export const KB_EMBED_TITLE: Record<KbEmbedProvider, string> = {
 
 /** Что вставить в блок — показывается в окне ссылки. */
 export const KB_EMBED_HINT: Record<KbEmbedProvider, { lines: string[]; example: string }> = {
-  youtube: {
+  rutube: {
     lines: [
-      "Ссылка на видео: из адресной строки или «Поделиться» → «Копировать» под видео. Подойдёт и код из «Поделиться» → «Встроить».",
-      "Видео должно быть открытым или «Доступ по ссылке» («Ограниченный доступ» не покажется), а встраивание — разрешено в настройках видео.",
-      "Время начала из ссылки (…?t=90) сохранится.",
+      "Ссылка на видео: из адресной строки или «Поделиться» → «Скопировать ссылку» под видео. Подойдёт и код из «Поделиться» → «Код для вставки».",
+      "Закрытое видео («Доступ по ссылке») — тоже: ссылка вида rutube.ru/video/private/…/?p=… — ключ после p= сохранится.",
+      "Видео не должно быть удалено или скрыто «Только для меня».",
     ],
-    example: "https://youtu.be/XXXXXXXXXXX",
+    example: "https://rutube.ru/video/0123456789abcdef0123456789abcdef/",
   },
   kinescope: {
     lines: [
@@ -50,11 +50,11 @@ export const KB_EMBED_HINT: Record<KbEmbedProvider, { lines: string[]; example: 
   },
   iframe: {
     lines: [
-      'Код для вставки <iframe src="https://…"></iframe> или адрес плеера для встраивания с любого сервиса — Rutube, Vimeo, Яндекс Диск, Google Диск и т. п.',
+      'Код для вставки <iframe src="https://…"></iframe> или адрес плеера для встраивания с любого сервиса — Vimeo, Яндекс Диск, Google Диск и т. п.',
       "Нужен именно адрес для встраивания (обычно в «Поделиться» → «Код для вставки»): обычная страница сайта внутри статьи чаще всего не покажется.",
-      "Ссылки YouTube, Kinescope и VK Видео распознаются сами.",
+      "Ссылки RuTube, Kinescope и VK Видео распознаются сами.",
     ],
-    example: '<iframe src="https://rutube.ru/play/embed/…"></iframe>',
+    example: '<iframe src="https://player.vimeo.com/video/…"></iframe>',
   },
 };
 
@@ -85,29 +85,25 @@ function extractUrl(raw: string): URL | null {
 
 const host = (u: URL) => u.hostname.toLowerCase().replace(/^(www|m)\./, "");
 
-/** «90», «90s», «1m30s», «1h2m3s» — секунды. */
-function parseStart(value: string | null): number {
-  if (!value) return 0;
-  if (/^\d+$/.test(value)) return Number(value);
-  const m = /^(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?$/.exec(value);
-  if (!m) return 0;
-  return Number(m[1] ?? 0) * 3600 + Number(m[2] ?? 0) * 60 + Number(m[3] ?? 0);
-}
+const RUTUBE_ID = /^[a-f0-9]{32}$/i;
 
-const YT_HOSTS = ["youtube.com", "music.youtube.com", "youtu.be", "youtube-nocookie.com"];
-const YT_ID = /^[A-Za-z0-9_-]{11}$/;
-
-function youtube(u: URL): string | null {
-  const h = host(u);
-  if (!YT_HOSTS.includes(h)) return null;
+/**
+ * RuTube: rutube.ru/video/<id>/, /shorts/<id>/, закрытое /video/private/<id>/?p=<ключ>,
+ * встраивание /play/embed/<id> — в плеер /play/embed/<id>/ (ключ и время — как были).
+ */
+function rutube(u: URL): string | null {
+  if (host(u) !== "rutube.ru") return null;
   const seg = u.pathname.split("/").filter(Boolean);
-  let id: string | null = null;
-  if (h === "youtu.be") id = seg[0] ?? null;
-  else if (seg[0] === "watch") id = u.searchParams.get("v");
-  else if (["embed", "shorts", "live", "v"].includes(seg[0] ?? "")) id = seg[1] ?? null;
-  if (!id || !YT_ID.test(id)) return null;
-  const start = parseStart(u.searchParams.get("t") ?? u.searchParams.get("start"));
-  return `https://www.youtube-nocookie.com/embed/${id}?rel=0${start ? `&start=${start}` : ""}`;
+  const id = seg.find((x) => RUTUBE_ID.test(x));
+  const kind = seg[0] === "play" ? seg[1] : seg[0];
+  if (!id || !["video", "shorts", "embed"].includes(kind ?? "")) return null;
+  const p = new URLSearchParams();
+  const key = u.searchParams.get("p");
+  if (key) p.set("p", key);
+  const t = u.searchParams.get("t");
+  if (t && /^\d+$/.test(t)) p.set("t", t);
+  const q = p.toString();
+  return `https://rutube.ru/play/embed/${id.toLowerCase()}/${q ? `?${q}` : ""}`;
 }
 
 function kinescope(u: URL): string | null {
@@ -143,14 +139,14 @@ function vk(u: URL): string | null {
 }
 
 const PARSERS: [Exclude<KbEmbedProvider, "iframe">, (u: URL) => string | null][] = [
-  ["youtube", youtube],
+  ["rutube", rutube],
   ["kinescope", kinescope],
   ["vk", vk],
 ];
 
 /**
  * Адрес плеера из вставленного автором. Ссылку известного сервиса узнаём
- * при любом выбранном блоке (вставили YouTube в «iframe» — встанет YouTube);
+ * при любом выбранном блоке (вставили RuTube в «iframe» — встанет RuTube);
  * `iframe` — любой https-адрес, кроме самого портала (`ownOrigin`).
  */
 export function parseKbEmbed(

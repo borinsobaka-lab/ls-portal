@@ -603,20 +603,23 @@ YouTube/RuTube и видеохостинг с CDN — отдельной зад�
 Решения владельца:
 
 - **Видео с сервисов** — в меню «/» сразу за «Видео» (своим файлом):
-  «Видео YouTube», «Видео Kinescope», «VK Видео», «Видео по коду iframe».
+  «Видео RuTube», «Видео Kinescope», «VK Видео», «Видео по коду iframe»
+  (сначала был YouTube — владелец 2026-10-27 заменил на RuTube).
   Новый блок открывает окно «Что вставить» с подсказкой по сервису
   (`KB_EMBED_HINT` в `lib/kb/embed.ts`), поле — ссылка или код для
   вставки, «Подпись под видео». Из вставленного база не нужна — адрес
-  плеера считает браузер (`parseKbEmbed` + тест): YouTube — watch, youtu.be,
-  shorts, live, embed и время начала (`t=`) → `youtube-nocookie.com/embed`;
+  плеера считает браузер (`parseKbEmbed` + тест): RuTube —
+  `rutube.ru/video/<id>/`, `/shorts/<id>/`, закрытое
+  `/video/private/<id>/?p=<ключ>` и код вставки → `rutube.ru/play/embed/<id>/`
+  (ключ `p` и `t` сохраняются);
   Kinescope — `kinescope.io/<id>` или код → `kinescope.io/embed/<id>`;
   VK — код из «Поделиться» → «Экспортировать» (с `hash`, надёжнее) или
   ссылка `vkvideo.ru/video-<oid>_<id>` / `vk.com/…?z=video…` →
   `vkvideo.ru/video_ext.php`; iframe — любой https-адрес плеера, кроме
   самого портала. Ссылку известного сервиса узнаёт любой из четырёх
   пунктов. Плеер — iframe 16:9 с разрешениями из кода Kinescope
-  (`allow`, полный экран), источник страницы передаётся (без него YouTube и
-  Kinescope с разрешёнными доменами не играют); у «iframe» — `sandbox`
+  (`allow`, полный экран), источник страницы передаётся (без него Kinescope
+  с разрешёнными доменами не играет); у «iframe» — `sandbox`
   (чужой сайт не уведёт портал). Блок `embed` (`provider`, `url`, `source`
   — что вставил автор, `caption`) — `components/kb/media-blocks.tsx`; у
   редактора под плеером — сервис и «Изменить».

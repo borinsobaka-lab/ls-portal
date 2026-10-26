@@ -476,7 +476,7 @@ kb`. Доступ — ролями «Пользователей и ролей» 
   плеер без «Скачать», окно картинки без «Скачать», правая кнопка и
   перетаскивание у них закрыты; 2026-10-27). Видео с сервисов (2026-10-27,
   KNOWLEDGE_BASE.md) — блок `embed` (`components/kb/media-blocks.tsx`,
-  разбор ссылок — `lib/kb/embed.ts` + тест): YouTube, Kinescope, VK Видео,
+  разбор ссылок — `lib/kb/embed.ts` + тест): RuTube, Kinescope, VK Видео,
   iframe в меню «/» за «Видео», окно со ссылкой и подсказкой. Новые блоки
   (`kb-document.tsx`): «Две/Три колонки» — свои блоки `columns`/`column`
   (сетка в styles.css, у своих блоков BlockNote обёртка `.react-renderer`;
