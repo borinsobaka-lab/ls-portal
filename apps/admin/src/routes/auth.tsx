@@ -1,9 +1,10 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { requestStaffLoginCode } from "@/lib/auth.functions";
 import { Button } from "@/components/ui/button";
+import { CodeInput } from "@/components/ui/code-input";
 import { Input } from "@/components/ui/input";
 import { FormField } from "@/components/ui/form-field";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -43,6 +44,7 @@ function AuthPage() {
   const requestCode = useServerFn(requestStaffLoginCode);
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
+  const codeFormRef = useRef<HTMLFormElement>(null);
   const [step, setStep] = useState<Step>("email");
   const [loading, setLoading] = useState(false);
   // Ошибка шага — под полем (FormField error), а не тостом: тост исчезает
@@ -80,7 +82,7 @@ function AuthPage() {
     e.preventDefault();
     setError(null);
     if (!email.trim().includes("@")) {
-      setError("Укажите рабочую почту");
+      setError("Укажите почту");
       return;
     }
     if (await sendCode()) {
@@ -126,7 +128,9 @@ function AuthPage() {
       setCode("");
       // Ответ одинаковый и при лимите отправки (auth.functions.ts) — не обещаем,
       // что письмо точно ушло и прежний код погас.
-      toast.success("Если почта сотрудника, новый код отправлен — проверьте письмо");
+      toast.success(
+        "Если у этой почты есть доступ к порталу, новый код отправлен — проверьте письмо",
+      );
     }
   };
 
@@ -140,7 +144,7 @@ function AuthPage() {
           </CardTitle>
           <CardDescription>
             {step === "email"
-              ? "Вход для сотрудников — по коду из письма на рабочую почту"
+              ? "Вход для сотрудников и партнёров Lady Stretch — по коду из письма"
               : "Введите код из письма"}
           </CardDescription>
         </CardHeader>
@@ -163,29 +167,30 @@ function AuthPage() {
                 Получить код для входа
               </Button>
               <p className="text-xs text-muted-foreground text-center">
-                Доступ — только для сотрудников, добавленных владельцем клуба в «Доступах».
+                Вход открыт сотрудникам и партнёрам — собственникам клубов, которым выдан доступ к
+                порталу.
               </p>
             </form>
           ) : (
-            <form noValidate onSubmit={submitCode} className="space-y-4">
+            <form ref={codeFormRef} noValidate onSubmit={submitCode} className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                Если <span className="font-medium text-foreground">{email}</span> — почта
-                сотрудника, мы отправили на неё {CODE_LENGTH}-значный код. Код действует 1 час и
+                Если у <span className="font-medium text-foreground">{email}</span> есть доступ к
+                порталу, мы отправили на неё {CODE_LENGTH}-значный код. Код действует 1 час и
                 работает один раз.
               </p>
               <FormField label="Код из письма" required error={error}>
-                <Input
-                  // type="text", а не number: у number браузер теряет ведущие нули.
-                  inputMode="numeric"
-                  autoComplete="one-time-code"
+                <CodeInput
+                  length={CODE_LENGTH}
                   autoFocus
-                  maxLength={CODE_LENGTH}
-                  className="text-center text-lg tracking-[0.5em] tabular-nums"
+                  disabled={loading}
+                  invalid={!!error}
                   value={code}
-                  onChange={(e) => {
-                    setCode(e.target.value.replace(/\D/g, "").slice(0, CODE_LENGTH));
+                  onChange={(v) => {
+                    setCode(v);
                     setError(null);
                   }}
+                  // Вставили код из письма — входим сразу, без «Войти».
+                  onComplete={() => setTimeout(() => codeFormRef.current?.requestSubmit(), 0)}
                 />
               </FormField>
               <Button type="submit" className="w-full" disabled={loading}>
