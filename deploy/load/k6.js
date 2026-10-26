@@ -124,7 +124,14 @@ const WORDS = ["касса", "клиент", "абонемент", "запись
 export function setup() {
   if (!URL || !ANON || !SECRET) throw new Error("Задайте SUPABASE_URL, ANON_KEY и JWT_SECRET");
   const jwt = token(userId(1), "loadtest-001@loadtest.invalid");
-  const bases = json(get(jwt, `kb_bases?select=id,title&title=eq.${encodeURIComponent("Нагрузочный тест")}`, "kb_bases")) || [];
+  const bases =
+    json(
+      get(
+        jwt,
+        `kb_bases?select=id,title&title=eq.${encodeURIComponent("Нагрузочный тест")}`,
+        "kb_bases",
+      ),
+    ) || [];
   if (!bases.length) throw new Error("Нет базы «Нагрузочный тест» — выполните seed.sql");
   return { baseId: bases[0].id };
 }
@@ -139,9 +146,24 @@ export default function (data) {
   // Портал открылся: базы, доступы, дерево базы, Академия в рейке.
   let tree = [];
   group("вход в базу знаний", () => {
-    get(jwt, "kb_bases?select=id,title,rail_title,icon,description,sort_order,protect_content,brand_color&order=sort_order,created_at", "kb_bases");
-    get(jwt, `kb_grants?select=base_id,level&subject_type=eq.user&subject_id=eq.${sub}&node_id=is.null`, "kb_grants");
-    tree = json(get(jwt, `kb_nodes?select=${TREE}&base_id=eq.${base}&order=sort_order,created_at`, "kb_tree")) || [];
+    get(
+      jwt,
+      "kb_bases?select=id,title,rail_title,icon,description,sort_order,protect_content,brand_color&order=sort_order,created_at",
+      "kb_bases",
+    );
+    get(
+      jwt,
+      `kb_grants?select=base_id,level&subject_type=eq.user&subject_id=eq.${sub}&node_id=is.null`,
+      "kb_grants",
+    );
+    tree =
+      json(
+        get(
+          jwt,
+          `kb_nodes?select=${TREE}&base_id=eq.${base}&order=sort_order,created_at`,
+          "kb_tree",
+        ),
+      ) || [];
     get(jwt, `kb_tags?select=id,name,color&base_id=eq.${base}`, "kb_tags");
     get(jwt, `kb_node_tags?select=node_id,tag_id&base_id=eq.${base}`, "kb_node_tags");
     rpc(jwt, "acad_access");
@@ -159,8 +181,16 @@ export default function (data) {
       group("статья", () => {
         const t0 = Date.now();
         get(jwt, `kb_nodes?select=${TREE},content&id=eq.${node.id}`, "kb_node");
-        get(jwt, `kb_favorites?select=node_id,created_at&base_id=eq.${base}&order=created_at.desc`, "kb_favorites");
-        get(jwt, `kb_reads?select=node_id,last_read_at&base_id=eq.${base}&user_id=eq.${sub}&order=last_read_at.desc&limit=12`, "kb_reads");
+        get(
+          jwt,
+          `kb_favorites?select=node_id,created_at&base_id=eq.${base}&order=created_at.desc`,
+          "kb_favorites",
+        );
+        get(
+          jwt,
+          `kb_reads?select=node_id,last_read_at&base_id=eq.${base}&user_id=eq.${sub}&order=last_read_at.desc&limit=12`,
+          "kb_reads",
+        );
         get(jwt, `kb_checks?select=block_id&node_id=eq.${node.id}`, "kb_checks");
         rpc(jwt, "kb_authors", { p_base: base });
         rpc(jwt, "kb_mark_read", { p_node: node.id });
@@ -169,7 +199,11 @@ export default function (data) {
       const reads = 1 + Math.floor(Math.random() * 3);
       for (let r = 0; r < reads; r++) {
         sleep(25 + Math.random() * 10);
-        rpc(jwt, "kb_track_reading", { p_node: node.id, p_seconds: 30, p_scroll: Math.round((100 * (r + 1)) / reads) });
+        rpc(jwt, "kb_track_reading", {
+          p_node: node.id,
+          p_seconds: 30,
+          p_scroll: Math.round((100 * (r + 1)) / reads),
+        });
       }
     }
   } else if (roll < 0.9) {
@@ -180,11 +214,20 @@ export default function (data) {
       for (const len of [3, 5, word.length]) {
         const q = word.slice(0, len);
         const t0 = Date.now();
-        hits = json(rpc(jwt, "kb_search", { p_query: q, p_base: base, p_folder: null, p_limit: 30 })) || [];
+        hits =
+          json(rpc(jwt, "kb_search", { p_query: q, p_base: base, p_folder: null, p_limit: 30 })) ||
+          [];
         searchTime.add(Date.now() - t0);
         sleep(0.4 + Math.random() * 0.4);
       }
-      const logged = json(rpc(jwt, "kb_log_search", { p_base: base, p_query: word, p_results: hits.length, p_in_folder: false }));
+      const logged = json(
+        rpc(jwt, "kb_log_search", {
+          p_base: base,
+          p_query: word,
+          p_results: hits.length,
+          p_in_folder: false,
+        }),
+      );
       if (hits.length) {
         if (logged) rpc(jwt, "kb_log_search_click", { p_id: logged, p_node: hits[0].id });
         get(jwt, `kb_nodes?select=${TREE},content&id=eq.${hits[0].id}`, "kb_node");
