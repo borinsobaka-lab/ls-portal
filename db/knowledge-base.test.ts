@@ -706,14 +706,39 @@ describe.skipIf(!url)("база знаний (база)", () => {
       expect(await tx`select 1 from kb_file_purge where folder = ${`templates/${tpl.id}`}`).toHaveLength(1);
       await as(tx, t.reader);
 
-      // Упомянуть можно владельцев и тех, кому выдана база.
+      // Упомянуть можно любого человека портала (2026-10-27); у кого нет
+      // доступа к базе — has_access = false и ниже в списке. Клиента — нельзя.
+      await asServer(tx);
+      const client = await user(tx);
+      await tx`insert into user_roles (user_id, studio_id, role) values (${client}, ${t.s}, 'member'::app_role)`;
+      await as(tx, t.reader);
       expect(await failure(tx, () => tx`select * from kb_mention_candidates(${t.b})`)).toContain("kb_forbidden");
       await as(tx, t.editor);
-      const people = ((await tx`select user_id from kb_mention_candidates(${t.b})`) as Row[]).map((r) => r.user_id);
-      expect(people).toContain(t.owner);
-      expect(people).toContain(t.reader);
-      expect(people).toContain(t.editor);
-      expect(people).not.toContain(t.stranger);
+      const rows = (await tx`select user_id, has_access from kb_mention_candidates(${t.b})`) as Row[];
+      const access = new Map(rows.map((r) => [r.user_id, r.has_access]));
+      expect(access.get(t.owner)).toBe(true);
+      expect(access.get(t.reader)).toBe(true);
+      expect(access.get(t.editor)).toBe(true);
+      expect(access.get(t.stranger)).toBe(false);
+      expect(access.has(client)).toBe(false);
+      expect(rows.findIndex((r) => r.user_id === t.stranger)).toBe(rows.length - 1);
+
+      // Карточка сотрудника и короткие карточки — любому человеку портала.
+      await as(tx, t.stranger);
+      const [card] = (await tx`select person_card(${t.reader}) as c`) as Row[];
+      const c = card.c as Record<string, unknown>;
+      expect(c.full_name).toBe("Сотрудник " + t.reader.slice(0, 4));
+      expect(c.clubs).toEqual([{ name: "Тест", role: "admin" }]);
+      expect(c.active).toBe(true);
+      const [none] = (await tx`select person_card(${crypto.randomUUID()}) as c`) as Row[];
+      expect(none.c).toBeNull();
+      const short = (await tx`select user_id from people_cards(${[t.owner, t.editor]}::uuid[])`) as Row[];
+      expect(short.map((r) => r.user_id).sort()).toEqual([t.owner, t.editor].sort());
+      await as(tx, client);
+      expect(await failure(tx, () => tx`select person_card(${t.reader})`)).toContain("forbidden");
+      expect(await failure(tx, () => tx`select * from people_cards(${[t.reader]}::uuid[])`)).toContain(
+        "forbidden",
+      );
       await asServer(tx);
     }));
 

@@ -782,12 +782,36 @@ input[type="number"]::-webkit-outer-spin-button {
   display: none;
 }
 /* Упоминание сотрудника — плашкой цвета клуба. */
+/* Упоминание сотрудника: аватарка в кружке и имя, по нажатию — карточка
+   (components/people/person-card.tsx). */
 .kb-document .kb-mention {
-  border-radius: 0.25rem;
-  background: color-mix(in oklab, var(--brand) 14%, transparent);
-  padding: 0 0.2em;
-  font-weight: 500;
   white-space: nowrap;
+}
+.kb-document .kb-mention-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+  vertical-align: bottom;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--brand) 12%, transparent);
+  padding: 0.05em 0.5em 0.05em 0.1em;
+  font-weight: 500;
+  line-height: 1.4;
+}
+.kb-document .kb-mention-button:hover {
+  background: color-mix(in oklab, var(--brand) 22%, transparent);
+}
+.kb-document .kb-mention-avatar {
+  /* Размер — от шрифта текста: 2.25em при font-size 0.6em = 1.35em строки. */
+  width: 2.25em;
+  height: 2.25em;
+  font-size: 0.6em;
+}
+/* Инициалы без фото — на плотном кружке, иначе он теряется на подложке. */
+.kb-document .kb-mention-avatar > * {
+  background-color: color-mix(in oklab, var(--brand) 30%, var(--background));
+  color: var(--foreground);
+  font-weight: 600;
 }
 /* Чек-лист у читателя (kb_checks): свой флажок вместо флажка документа —
    отмечен он или нет, решает вставленный стиль с id отмеченных пунктов. */

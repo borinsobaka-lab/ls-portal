@@ -277,7 +277,11 @@ function TeamSection() {
         <ul className="divide-y rounded-lg border bg-background">
           {people.map(({ person, r }) => (
             <li key={person.user_id} className="flex items-center gap-3 px-3 py-2">
-              <PersonCell name={person.full_name} avatar={person.avatar_url} />
+              <PersonCell
+                name={person.full_name}
+                avatar={person.avatar_url}
+                userId={person.user_id}
+              />
               <span className="ml-auto flex flex-wrap justify-end gap-1">
                 {r?.can_create && <StatusChip tone="info">Создаёт курсы</StatusChip>}
                 {r?.can_review && <StatusChip tone="info">Проверяет ответы</StatusChip>}

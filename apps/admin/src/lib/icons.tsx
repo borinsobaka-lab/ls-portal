@@ -29,6 +29,7 @@ import {
   ArrowUp as ArrowUpArt,
   ArrowUpDown as ArrowUpDownArt,
   ArrowUpRight as ArrowUpRightArt,
+  AtSign as AtSignArt,
   BanIcon as BanArt,
   Banknote as BanknoteArt,
   Bold as BoldArt,
@@ -94,6 +95,7 @@ import {
   LoaderCircle as Loader2Art,
   Lock as LockArt,
   LogIn as LogInArt,
+  Mail as MailArt,
   MapPin as MapPinArt,
   ArrowExpandIcon as MaximizeArt,
   Meh as MehArt,
@@ -175,6 +177,7 @@ export const ArrowRight = icon(ArrowRightArt, "ArrowRight");
 export const ArrowUp = icon(ArrowUpArt, "ArrowUp");
 export const ArrowUpDown = icon(ArrowUpDownArt, "ArrowUpDown");
 export const ArrowUpRight = icon(ArrowUpRightArt, "ArrowUpRight");
+export const AtSign = icon(AtSignArt, "AtSign");
 export const Ban = icon(BanArt, "Ban");
 export const Banknote = icon(BanknoteArt, "Banknote");
 export const Bold = icon(BoldArt, "Bold");
@@ -240,6 +243,7 @@ export const ListOrdered = icon(ListOrderedArt, "ListOrdered");
 export const Loader2 = icon(Loader2Art, "Loader2");
 export const Lock = icon(LockArt, "Lock");
 export const LogIn = icon(LogInArt, "LogIn");
+export const Mail = icon(MailArt, "Mail");
 export const MapPin = icon(MapPinArt, "MapPin");
 export const Maximize = icon(MaximizeArt, "Maximize");
 export const Meh = icon(MehArt, "Meh");

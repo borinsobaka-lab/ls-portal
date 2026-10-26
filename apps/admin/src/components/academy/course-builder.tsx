@@ -741,7 +741,7 @@ function LearnersTab({ course, canEdit }: { course: AcadCourse; canEdit: boolean
                   return (
                     <TableRow key={r.user_id}>
                       <TableCell>
-                        <PersonCell name={r.full_name} avatar={r.avatar_url} />
+                        <PersonCell name={r.full_name} avatar={r.avatar_url} userId={r.user_id} />
                       </TableCell>
                       <TableCell className="min-w-44">
                         <span className="mb-1 flex items-center justify-between gap-2 text-xs">

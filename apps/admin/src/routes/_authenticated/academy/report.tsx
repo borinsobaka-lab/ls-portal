@@ -221,7 +221,7 @@ function PeopleTab() {
                   onKeyDown={(e) => e.key === "Enter" && setOpen(r)}
                 >
                   <TableCell>
-                    <PersonCell name={r.full_name} avatar={r.avatar_url} />
+                    <PersonCell name={r.full_name} avatar={r.avatar_url} userId={r.user_id} />
                   </TableCell>
                   <TableCell className="text-sm tabular-nums">{r.courses}</TableCell>
                   <TableCell className="min-w-40">

@@ -15,7 +15,7 @@
  */
 import "@blocknote/shadcn/style.css";
 
-import { useContext, useEffect, useMemo, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import {
   BlockNoteSchema,
   defaultBlockSpecs,
@@ -23,7 +23,7 @@ import {
   filterSuggestionItems,
   type PartialBlock,
 } from "@blocknote/core";
-import { FilePanelExtension } from "@blocknote/core/extensions";
+import { FilePanelExtension, SuggestionMenu } from "@blocknote/core/extensions";
 import { ru } from "@blocknote/core/locales";
 import {
   createReactBlockSpec,
@@ -49,6 +49,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import {
+  AtSign,
   Download,
   Eraser,
   ExternalLink,
@@ -89,6 +90,9 @@ import {
 import { EmbedBlock, KbVideoBlock } from "@/components/kb/media-blocks";
 import { EMBED_ICON } from "@/lib/kb/embed-icons";
 import { KbProtectContext } from "@/lib/kb/protect-context";
+import { StaffAvatar } from "@/components/employee-photo";
+import { PersonButton } from "@/components/people/person-card";
+import { usePersonShort, usePrimePeople, type PersonShort } from "@/lib/people";
 import { KB_EMBED_PROVIDERS, KB_EMBED_TITLE } from "@/lib/kb/embed";
 
 // --- Тексты ----------------------------------------------------------------------
@@ -610,7 +614,12 @@ function normalizeColumns(editor: KbEditor) {
 
 // --- Упоминания ----------------------------------------------------------------------
 
-/** Упоминание сотрудника (№28): «@Имя» в тексте — меню по «@» в редакторе. */
+/**
+ * Упоминание сотрудника (№28; переделано по решению владельца 2026-10-27):
+ * в тексте — аватарка в кружке и имя, по нажатию — карточка сотрудника.
+ * Имя и аватарка — свежие из people_cards; `name` в документе — запасной
+ * (человека удалили) и для поиска и сравнения версий.
+ */
 const Mention = createReactInlineContentSpec(
   {
     type: "mention",
@@ -619,14 +628,33 @@ const Mention = createReactInlineContentSpec(
   },
   {
     render: ({ inlineContent }) => (
-      <span className="kb-mention" data-user-id={inlineContent.props.userId}>
-        @{inlineContent.props.name}
-      </span>
+      <MentionChip userId={inlineContent.props.userId} name={inlineContent.props.name} />
     ),
   },
 );
 
-type MentionCandidate = { user_id: string; full_name: string; avatar_url: string | null };
+function MentionChip({ userId, name }: { userId: string; name: string }) {
+  const { data } = usePersonShort(userId || null);
+  const label = data?.full_name || name || "Сотрудник";
+  return (
+    <span className="kb-mention" data-user-id={userId} contentEditable={false}>
+      <PersonButton userId={userId || null} className="kb-mention-button">
+        <StaffAvatar value={data?.avatar_url} name={label} className="kb-mention-avatar" />
+        <span>{label}</span>
+      </PersonButton>
+    </span>
+  );
+}
+
+type MentionCandidate = PersonShort & { has_access: boolean };
+
+/** Открыть список «@» на месте курсора (меню «/» и кнопка панели). */
+function openMentionMenu(editor: KbEditor) {
+  editor.getExtension(SuggestionMenu)?.openSuggestionMenu("@", {
+    deleteTriggerCharacter: true,
+    ignoreQueryLength: true,
+  });
+}
 
 // --- Схема ----------------------------------------------------------------------
 
@@ -688,6 +716,7 @@ function slashItems(
   editor: KbEditor,
   onPickArticle?: () => Promise<KbArticleLink | null>,
   onPickHeading?: (headings: KbHeading[]) => Promise<KbArticleLink | null>,
+  onMention?: () => void,
 ): DefaultReactSuggestionItem[] {
   const insertBlock = (block: PartialBlock<typeof kbSchema.blockSchema>) => {
     const cur = editor.getTextCursorPosition().block;
@@ -780,6 +809,16 @@ function slashItems(
       },
     });
   }
+  if (onMention) {
+    add({
+      title: "Упомянуть сотрудника",
+      subtext: "Аватарка и имя в тексте — по нажатию откроется карточка",
+      aliases: ["упомянуть", "упоминание", "сотрудник", "тег", "mention", "@"],
+      group: basic,
+      icon: <AtSign className="size-[18px]" />,
+      onItemClick: onMention,
+    });
+  }
   if (onPickHeading) {
     add({
       title: "Ссылка на заголовок",
@@ -832,10 +871,33 @@ function ClearFormattingButton() {
   );
 }
 
+/** «Упомянуть сотрудника» в панели над выделением: список «@» после выделения. */
+function MentionButton() {
+  const editor = useBlockNoteEditor();
+  const Components = useComponentsContext();
+  const canMention = useContext(MentionEnabledContext);
+  if (!Components || !editor.isEditable || !canMention) return null;
+  return (
+    <Components.FormattingToolbar.Button
+      mainTooltip="Упомянуть сотрудника (@)"
+      label="Упомянуть сотрудника"
+      icon={<AtSign className="size-4" />}
+      onClick={() => {
+        // Курсор — в конец выделения, чтобы упоминание не заменило текст.
+        editor._tiptapEditor.commands.setTextSelection(editor.prosemirrorState.selection.to);
+        openMentionMenu(editor as unknown as KbEditor);
+      }}
+    />
+  );
+}
+
+const MentionEnabledContext = createContext(false);
+
 function KbFormattingToolbar() {
   return (
     <FormattingToolbar>
       {getFormattingToolbarItems()}
+      <MentionButton key="mentionButton" />
       <ClearFormattingButton key="clearFormattingButton" />
     </FormattingToolbar>
   );
@@ -985,19 +1047,53 @@ function UploadOnlyFilePanel({ blockId }: FilePanelProps) {
   );
 }
 
-/** Кружок с инициалами в меню «@». */
-function MentionAvatar({ name }: { name: string }) {
-  const letters = name
-    .split(/\s+/)
-    .map((w) => w[0] ?? "")
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
-  return (
-    <span className="flex size-6 items-center justify-center rounded-full bg-muted text-[10px] font-semibold text-muted-foreground">
-      {letters}
-    </span>
+/**
+ * Список «@»: люди портала с аватаркой и должностью, поиск — по словам имени
+ * и должности (набранное после «@»). Сначала — у кого есть доступ к базе;
+ * без доступа — отдельной группой: упомянуть можно, но статью они не откроют.
+ */
+function mentionItems(
+  editor: KbEditor,
+  candidates: MentionCandidate[] | undefined,
+  query: string,
+): DefaultReactSuggestionItem[] {
+  if (!candidates) {
+    return [
+      {
+        title: "Загружаем сотрудников…",
+        group: "Сотрудники",
+        icon: <Loader2 className="size-4 animate-spin" />,
+        onItemClick: () => undefined,
+      },
+    ];
+  }
+  const items = filterSuggestionItems(
+    candidates.map((c) => {
+      const name = c.full_name || "Сотрудник";
+      return {
+        title: name,
+        subtext: c.position_name ?? undefined,
+        aliases: [...name.split(/\s+/), ...(c.position_name?.split(/\s+/) ?? [])],
+        group: c.has_access ? "Сотрудники с доступом к базе" : "Без доступа к этой базе",
+        icon: <StaffAvatar value={c.avatar_url} name={name} className="size-7 text-[10px]" />,
+        onItemClick: () =>
+          editor.insertInlineContent([
+            { type: "mention", props: { userId: c.user_id, name } },
+            " ",
+          ]),
+      };
+    }),
+    query,
   );
+  return items.length > 0
+    ? items.slice(0, 50)
+    : [
+        {
+          title: query ? `Никого не нашли по «${query}»` : "Сотрудников пока нет",
+          group: "Сотрудники",
+          onItemClick: () => undefined,
+        },
+      ];
 }
 
 /** Полоса загрузки: имя, сколько отправлено из скольких, проценты. */
@@ -1109,12 +1205,16 @@ export function KbDocument({
     queryFn: async () => {
       const { data, error } = await supabase.rpc("kb_mention_candidates", { p_base: baseId });
       if (error) throw new Error(error.message);
-      return (data ?? []) as MentionCandidate[];
+      const rows = (data ?? []) as MentionCandidate[];
+      primePeople(rows);
+      return rows;
     },
     enabled: editable && !!baseId,
     staleTime: 5 * 60_000,
     meta: { errorMessage: "Не удалось загрузить сотрудников для упоминаний" },
   });
+  const primePeople = usePrimePeople();
+  const canMention = editable && !!baseId;
   const pending = useRef(new Set<string>());
   const upload = useMemo(
     () => async (file: File, blockId?: string) => {
@@ -1270,55 +1370,52 @@ export function KbDocument({
               .join("")}
           </style>
         )}
-        <BlockNoteView
-          editor={editor}
-          editable={editable}
-          theme={dark ? "dark" : "light"}
-          filePanel={false}
-          slashMenu={false}
-          formattingToolbar={false}
-          onChange={() => {
-            const doc = editor.document as unknown[];
-            onChange?.(doc);
-            onHeadings?.(documentHeadings(doc));
-            if (editable) {
-              normalizeColumns(editor);
-              ensureTrailingParagraph(editor);
-              void reuploadForeignImages(editor, pending.current, upload);
-            }
-          }}
-        >
-          <SuggestionMenuController
-            triggerCharacter="/"
-            getItems={async (query) =>
-              filterSuggestionItems(slashItems(editor, onPickArticle, onPickHeading), query)
-            }
-          />
-          <SuggestionMenuController
-            triggerCharacter="@"
-            getItems={async (query) =>
-              filterSuggestionItems(
-                (candidates ?? []).map((c) => ({
-                  title: c.full_name,
-                  aliases: c.full_name.split(/\s+/),
-                  group: "Сотрудники с доступом к базе",
-                  icon: <MentionAvatar name={c.full_name} />,
-                  onItemClick: () =>
-                    editor.insertInlineContent([
-                      { type: "mention", props: { userId: c.user_id, name: c.full_name } },
-                      " ",
-                    ]),
-                })),
-                query,
-              )
-            }
-          />
-          <FilePanelController filePanel={UploadOnlyFilePanel} />
-          <FormattingToolbarController
-            formattingToolbar={KbFormattingToolbar}
-            floatingUIOptions={toolbarFloating}
-          />
-        </BlockNoteView>
+        <MentionEnabledContext.Provider value={canMention}>
+          <BlockNoteView
+            editor={editor}
+            editable={editable}
+            theme={dark ? "dark" : "light"}
+            filePanel={false}
+            slashMenu={false}
+            formattingToolbar={false}
+            onChange={() => {
+              const doc = editor.document as unknown[];
+              onChange?.(doc);
+              onHeadings?.(documentHeadings(doc));
+              if (editable) {
+                normalizeColumns(editor);
+                ensureTrailingParagraph(editor);
+                void reuploadForeignImages(editor, pending.current, upload);
+              }
+            }}
+          >
+            <SuggestionMenuController
+              triggerCharacter="/"
+              getItems={async (query) =>
+                filterSuggestionItems(
+                  slashItems(
+                    editor,
+                    onPickArticle,
+                    onPickHeading,
+                    canMention ? () => openMentionMenu(editor) : undefined,
+                  ),
+                  query,
+                )
+              }
+            />
+            {canMention && (
+              <SuggestionMenuController
+                triggerCharacter="@"
+                getItems={async (query) => mentionItems(editor, candidates, query)}
+              />
+            )}
+            <FilePanelController filePanel={UploadOnlyFilePanel} />
+            <FormattingToolbarController
+              formattingToolbar={KbFormattingToolbar}
+              floatingUIOptions={toolbarFloating}
+            />
+          </BlockNoteView>
+        </MentionEnabledContext.Provider>
       </div>
       {lightbox && (
         <KbImageLightbox

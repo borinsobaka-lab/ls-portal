@@ -1,6 +1,7 @@
 import { ReadBar } from "@/components/kb/analytics/parts";
 import { useKbReaders } from "@/components/kb/analytics/queries";
 import { StaffAvatar } from "@/components/employee-photo";
+import { PersonButton } from "@/components/people/person-card";
 import { DialogBody, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { KB_READ_STATE, formatAgo, formatDuration, type KbReadState } from "@/lib/kb/analytics";
 import { formatDateTime } from "@/lib/format";
@@ -62,15 +63,20 @@ export function KbReadersDialogBody({ nodeId, title }: { nodeId: string; title: 
                     .filter((r) => r.state === s)
                     .map((r) => (
                       <li key={r.user_id} className="flex items-center gap-3 px-3 py-2 text-sm">
-                        <StaffAvatar
-                          value={r.avatar_url}
-                          name={r.full_name ?? ""}
-                          className="size-8 text-xs"
-                        />
+                        <PersonButton userId={r.user_id} className="shrink-0 rounded-full">
+                          <StaffAvatar
+                            value={r.avatar_url}
+                            name={r.full_name ?? ""}
+                            className="size-8 text-xs"
+                          />
+                        </PersonButton>
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate font-medium">
+                          <PersonButton
+                            userId={r.user_id}
+                            className="block max-w-full truncate font-medium hover:underline"
+                          >
                             {r.full_name || "Сотрудник"}
-                          </span>
+                          </PersonButton>
                           {s !== "unread" && (
                             <span className="block text-xs text-muted-foreground">
                               {formatDuration(r.seconds)} · прокрутил {r.max_scroll}%
