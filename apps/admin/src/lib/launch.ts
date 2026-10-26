@@ -16,8 +16,8 @@ import type { RailSectionKey } from "@/lib/nav-sections";
 
 /**
  * Клубы и всё, что к ним относится, на портале не показываются. Вернуть
- * разделы — build-переменная VITE_SHOW_CLUBS=true (её же ставят тесты логики
- * клубов — launch-visible.test-helper.ts).
+ * разделы — build-переменная VITE_SHOW_CLUBS=true (с ней же идёт отдельный
+ * прогон тестов логики клубов — `bun run test` в apps/admin).
  */
 export const CLUBS_HIDDEN = import.meta.env.VITE_SHOW_CLUBS !== "true";
 
