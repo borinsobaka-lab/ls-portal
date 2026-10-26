@@ -33,7 +33,7 @@ import { formatDate, formatDateTime, formatPhone } from "@/lib/format";
 import { AutorenewPageSkeleton } from "@/components/page-skeletons";
 
 export const Route = createFileRoute("/_authenticated/autorenew-cancellations")({
-  head: () => ({ meta: [{ title: "Отмены автопродления — Base40 Admin" }] }),
+  head: () => ({ meta: [{ title: "Отмены автопродления — Lady Stretch" }] }),
   pendingComponent: AutorenewPageSkeleton,
   component: AutorenewCancellationsRoute,
 });

@@ -33,8 +33,8 @@ export const Route = createFileRoute("/invite")({
 /** Сколько тренировок в подарок — и пригласившей, и подруге. */
 const GIFT_TRAININGS = 2;
 
-/** Ссылка в приглашении — страница записи студии. */
-const INVITE_URL = "https://lady-stretch.one/hello";
+/** Ссылка в приглашении — страница записи студии (VITE_INVITE_URL; пусто — без ссылки). */
+const INVITE_URL: string = import.meta.env.VITE_INVITE_URL ?? "";
 
 /**
  * Текст приглашения (шаблон владельца 2026-10-12): студия, имя и фамилия
@@ -56,8 +56,7 @@ function inviteMessage(t: Translator, studio: string, name: string): string {
           "Если при покупке абонемента скажешь, что ты от меня, нам обеим подарят по {n} тренировки 🎁",
           { n: GIFT_TRAININGS },
         ),
-    "",
-    INVITE_URL,
+    ...(INVITE_URL ? ["", INVITE_URL] : []),
   ].join("\n");
 }
 

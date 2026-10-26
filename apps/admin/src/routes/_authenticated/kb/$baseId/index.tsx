@@ -10,7 +10,7 @@ export const Route = createFileRoute("/_authenticated/kb/$baseId/")({
     tag:
       typeof search.tag === "string" && /^[0-9a-f-]{36}$/.test(search.tag) ? search.tag : undefined,
   }),
-  head: () => ({ meta: [{ title: "База знаний — Base40 Admin" }] }),
+  head: () => ({ meta: [{ title: "База знаний — Lady Stretch" }] }),
   pendingComponent: KbNodePageSkeleton,
   component: KbBaseHome,
 });

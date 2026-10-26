@@ -10,7 +10,7 @@ const TABS: BuilderTab[] = ["content", "learners", "errors"];
 
 // Конструктор курса; ?tab= — «Ученики» / «Ошибки» (без — «Содержание»).
 export const Route = createFileRoute("/_authenticated/academy/courses/$courseId/")({
-  head: () => ({ meta: [{ title: "Курс — Академия — Base40 Admin" }] }),
+  head: () => ({ meta: [{ title: "Курс — Академия — Lady Stretch" }] }),
   validateSearch: (search: Record<string, unknown>): { tab?: BuilderTab } =>
     TABS.includes(search.tab as BuilderTab) && search.tab !== "content"
       ? { tab: search.tab as BuilderTab }

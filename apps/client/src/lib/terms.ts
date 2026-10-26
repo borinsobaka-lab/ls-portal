@@ -1,7 +1,7 @@
 import { msg } from "@/i18n";
 import { APP_FORMAT } from "@/lib/app-format";
 
-/** Пакетное приложение (app.lady-stretch.one). */
+/** Пакетное приложение (VITE_APP_FORMAT=packages). */
 export const IS_PACKAGES = APP_FORMAT === "packages";
 
 /**

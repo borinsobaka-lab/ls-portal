@@ -67,7 +67,7 @@ const TIPS = {
 };
 
 export const Route = createFileRoute("/_authenticated/memberships")({
-  head: () => ({ meta: [{ title: "Номенклатуры — Base40 Admin" }] }),
+  head: () => ({ meta: [{ title: "Номенклатуры — Lady Stretch" }] }),
   pendingComponent: MembershipsPageSkeleton,
   component: MembershipsRoute,
 });

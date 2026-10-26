@@ -65,7 +65,7 @@ const TIPS = {
 };
 
 export const Route = createFileRoute("/_authenticated/feedback")({
-  head: () => ({ meta: [{ title: "Обратная связь — Base40 Admin" }] }),
+  head: () => ({ meta: [{ title: "Обратная связь — Lady Stretch" }] }),
   pendingComponent: FeedbackPageSkeleton,
   component: FeedbackPage,
 });

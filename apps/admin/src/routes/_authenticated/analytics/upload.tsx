@@ -55,7 +55,7 @@ import type { AnKind, AnSource } from "@/lib/analytics/types";
 import { formatDate, formatDateTime } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/analytics/upload")({
-  head: () => ({ meta: [{ title: "Загрузка данных — Аналитика сети — Base40 Admin" }] }),
+  head: () => ({ meta: [{ title: "Загрузка данных — Аналитика сети — Lady Stretch" }] }),
   pendingComponent: AnalyticsUploadPageSkeleton,
   component: UploadPage,
 });

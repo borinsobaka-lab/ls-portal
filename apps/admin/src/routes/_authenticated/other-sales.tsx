@@ -75,7 +75,7 @@ const TIPS = {
 };
 
 export const Route = createFileRoute("/_authenticated/other-sales")({
-  head: () => ({ meta: [{ title: "Прочие продажи — Base40 Admin" }] }),
+  head: () => ({ meta: [{ title: "Прочие продажи — Lady Stretch" }] }),
   pendingComponent: OtherSalesPageSkeleton,
   component: OtherSalesPage,
 });

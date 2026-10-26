@@ -52,7 +52,7 @@ import { formatDate, todayISO } from "@/lib/format";
 import { sortRows } from "@/lib/table-sort";
 
 export const Route = createFileRoute("/_authenticated/analytics/studios")({
-  head: () => ({ meta: [{ title: "Студии сети — Аналитика сети — Base40 Admin" }] }),
+  head: () => ({ meta: [{ title: "Студии сети — Аналитика сети — Lady Stretch" }] }),
   pendingComponent: AnalyticsStudiosPageSkeleton,
   component: StudiosPage,
 });

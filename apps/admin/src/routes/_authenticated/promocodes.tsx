@@ -52,7 +52,7 @@ const TIPS = {
 };
 
 export const Route = createFileRoute("/_authenticated/promocodes")({
-  head: () => ({ meta: [{ title: "Промокоды — Base40 Admin" }] }),
+  head: () => ({ meta: [{ title: "Промокоды — Lady Stretch" }] }),
   pendingComponent: PromocodesPageSkeleton,
   component: PromoCodesPage,
 });

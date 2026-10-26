@@ -17,7 +17,7 @@ import { useStudios } from "@/hooks/use-studios";
 import { STUDIO_FORMAT_APP_URL } from "@/lib/studio-formats";
 
 export const Route = createFileRoute("/_authenticated/app-about")({
-  head: () => ({ meta: [{ title: "О нас — Base40 Admin" }] }),
+  head: () => ({ meta: [{ title: "О нас — Lady Stretch" }] }),
   pendingComponent: AppAboutPageSkeleton,
   component: AppAboutPage,
 });

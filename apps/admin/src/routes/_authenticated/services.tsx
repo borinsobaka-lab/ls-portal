@@ -29,7 +29,7 @@ const SERVICES: ShowcaseConfig = {
 };
 
 export const Route = createFileRoute("/_authenticated/services")({
-  head: () => ({ meta: [{ title: "Услуги — Base40 Admin" }] }),
+  head: () => ({ meta: [{ title: "Услуги — Lady Stretch" }] }),
   pendingComponent: ServicesPageSkeleton,
   component: () => <ShowcasePage config={SERVICES} />,
 });

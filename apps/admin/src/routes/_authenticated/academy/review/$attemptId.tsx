@@ -6,7 +6,7 @@ import { AcademyAttemptPageSkeleton } from "@/components/page-skeletons";
 
 // Проверка попытки: свободные ответы — «Верно / Неверно» и комментарий.
 export const Route = createFileRoute("/_authenticated/academy/review/$attemptId")({
-  head: () => ({ meta: [{ title: "Проверка ответов — Академия — Base40 Admin" }] }),
+  head: () => ({ meta: [{ title: "Проверка ответов — Академия — Lady Stretch" }] }),
   pendingComponent: AcademyAttemptPageSkeleton,
   component: ReviewAttemptPage,
 });

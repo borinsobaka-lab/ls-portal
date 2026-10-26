@@ -51,7 +51,7 @@ const KbDocument = lazy(() =>
 );
 
 export const Route = createFileRoute("/_authenticated/kb/$baseId/templates")({
-  head: () => ({ meta: [{ title: "Шаблоны — Base40 Admin" }] }),
+  head: () => ({ meta: [{ title: "Шаблоны — Lady Stretch" }] }),
   pendingComponent: KbTemplatesPageSkeleton,
   component: KbTemplatesPage,
 });

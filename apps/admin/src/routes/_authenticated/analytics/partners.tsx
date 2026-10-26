@@ -40,7 +40,7 @@ import { ANALYTICS_TITLES } from "@/lib/analytics/labels";
 import { cityNames, NO_CITY } from "@/lib/analytics/logic";
 
 export const Route = createFileRoute("/_authenticated/analytics/partners")({
-  head: () => ({ meta: [{ title: "Доступ партнёров — Аналитика сети — Base40 Admin" }] }),
+  head: () => ({ meta: [{ title: "Доступ партнёров — Аналитика сети — Lady Stretch" }] }),
   pendingComponent: AnalyticsPartnersPageSkeleton,
   component: PartnersPage,
 });

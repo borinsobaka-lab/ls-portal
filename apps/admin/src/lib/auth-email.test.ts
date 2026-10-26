@@ -1,5 +1,9 @@
 import { describe, expect, test } from "bun:test";
 
+// Адреса приложений — из окружения (DEPLOY.md); в тестах — свои.
+process.env.ADMIN_APP_URL = "https://portal.example.ru";
+process.env.PACKAGES_APP_URLS = "https://app.example.ru,https://pack.example.ru";
+
 import {
   buildEmail,
   buildEmails,
@@ -20,12 +24,12 @@ const payload = (redirect_to: string, email_action_type = "magiclink"): HookPayl
     token_hash: "hash",
     redirect_to,
     email_action_type,
-    site_url: "https://admin.base40.fit",
+    site_url: "https://portal.example.ru",
   },
 });
 
-const ADMIN = "https://admin.base40.fit/";
-const CLIENT = "https://app.base40.fit/";
+const ADMIN = "https://portal.example.ru/";
+const CLIENT = "https://sub.example.ru/";
 
 const hasCode = (html: string) => html.includes("1234");
 // Ссылка авто-входа — любая ссылка или token_hash (из него собирается
@@ -37,7 +41,7 @@ describe("isAdminApp — признак приложения по redirect_to", 
   test("админка", () => expect(isAdminApp(ADMIN)).toBe(true));
   test("клиентское приложение", () => expect(isAdminApp(CLIENT)).toBe(false));
   test("подделка хоста не проходит", () =>
-    expect(isAdminApp("https://admin.base40.fit.evil.com/")).toBe(false));
+    expect(isAdminApp("https://portal.example.ru.evil.com/")).toBe(false));
   test("пустой redirect — считаем клиентом", () => expect(isAdminApp("")).toBe(false));
   test("мусор вместо URL — считаем клиентом", () => expect(isAdminApp("не-url")).toBe(false));
 });
@@ -150,15 +154,15 @@ describe("код входа в клиентское приложение — т�
 });
 
 describe("Lady Stretch — письма клиентам пакетных клубов", () => {
-  const LS = "https://app.lady-stretch.one";
-  const PACK = "https://pack.base40.fit/";
+  const LS = "https://app.example.ru";
+  const PACK = "https://pack.example.ru/";
 
   test("приложение пакетов — по хосту, оба адреса", () => {
     expect(isPackagesApp(LS)).toBe(true);
     expect(isPackagesApp(PACK)).toBe(true);
     expect(isPackagesApp(CLIENT)).toBe(false);
     expect(isPackagesApp(ADMIN)).toBe(false);
-    expect(isPackagesApp("https://app.lady-stretch.one.evil.com/")).toBe(false);
+    expect(isPackagesApp("https://app.example.ru.evil.com/")).toBe(false);
     expect(isPackagesApp("")).toBe(false);
   });
 

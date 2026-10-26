@@ -30,7 +30,7 @@ type SettingsTab = (typeof TABS)[number];
 const isTab = (v: unknown): v is SettingsTab => TABS.some((t) => t === v);
 
 export const Route = createFileRoute("/_authenticated/scripts/settings")({
-  head: () => ({ meta: [{ title: "Настройки скриптов — Base40 Admin" }] }),
+  head: () => ({ meta: [{ title: "Настройки скриптов — Lady Stretch" }] }),
   // Вкладка — в адресе: ссылкой можно поделиться, «Назад» не теряет её.
   validateSearch: (search: Record<string, unknown>): { tab?: SettingsTab } => ({
     tab: isTab(search.tab) ? search.tab : undefined,

@@ -12,7 +12,11 @@ export const STUDIO_WHATSAPP_URL: string = import.meta.env.VITE_STUDIO_WHATSAPP_
 const WHATSAPP_URL = STUDIO_WHATSAPP_URL;
 
 const CONTACTS = [
-  { label: "Instagram", href: import.meta.env.VITE_STUDIO_INSTAGRAM_URL ?? "", Icon: InstagramIcon },
+  {
+    label: "Instagram",
+    href: import.meta.env.VITE_STUDIO_INSTAGRAM_URL ?? "",
+    Icon: InstagramIcon,
+  },
   { label: "Facebook", href: import.meta.env.VITE_STUDIO_MESSENGER_URL ?? "", Icon: MessengerIcon },
   { label: "WhatsApp", href: WHATSAPP_URL, Icon: WhatsAppIcon },
 ].filter((c) => c.href);

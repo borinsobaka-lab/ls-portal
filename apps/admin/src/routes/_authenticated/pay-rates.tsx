@@ -31,7 +31,7 @@ import {
 import { PayRatesPageSkeleton } from "@/components/page-skeletons";
 
 export const Route = createFileRoute("/_authenticated/pay-rates")({
-  head: () => ({ meta: [{ title: "Зарплатные ставки — Base40 Admin" }] }),
+  head: () => ({ meta: [{ title: "Зарплатные ставки — Lady Stretch" }] }),
   pendingComponent: PayRatesPageSkeleton,
   component: PayRatesPage,
 });

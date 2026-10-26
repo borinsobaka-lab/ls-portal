@@ -25,10 +25,11 @@ export type HookPayload = {
 
 // Из какого приложения пришёл запрос. Разбирать redirect_to как URL
 // обязательно: сравнение подстрокой пропустило бы, например,
-// https://admin.base40.fit.evil.com.
+// https://portal.example.ru.evil.com. Адрес портала — ADMIN_APP_URL
+// (обязателен: без него хук не отвечает, src/routes/api/auth-email.ts).
 export function isAdminApp(redirectTo: string | undefined): boolean {
-  const adminUrl = process.env.ADMIN_APP_URL ?? "https://admin.base40.fit";
-  return hostOf(redirectTo) !== null && hostOf(redirectTo) === hostOf(adminUrl);
+  const host = hostOf(redirectTo);
+  return host !== null && host === hostOf(process.env.ADMIN_APP_URL);
 }
 
 function hostOf(url: string | undefined): string | null {
@@ -40,15 +41,12 @@ function hostOf(url: string | undefined): string | null {
   }
 }
 
-// Приложение пакетных клубов (Lady Stretch): новый адрес и прежний
-// pack.base40.fit, на котором остались вошедшие клиенты. Через запятую в
-// PACKAGES_APP_URLS — если адресов станет больше.
-const PACKAGES_APP_URLS = "https://app.lady-stretch.one,https://pack.base40.fit";
-
+// Приложение пакетных клубов (Lady Stretch): адреса через запятую в
+// PACKAGES_APP_URLS (пусто — приложение не развёрнуто).
 export function isPackagesApp(redirectTo: string | undefined): boolean {
   const host = hostOf(redirectTo);
   if (!host) return false;
-  return (process.env.PACKAGES_APP_URLS ?? PACKAGES_APP_URLS)
+  return (process.env.PACKAGES_APP_URLS ?? "")
     .split(",")
     .some((url) => hostOf(url.trim()) === host);
 }
@@ -267,7 +265,10 @@ const LS_INK = "#1a2027";
 const LS_PAGE = "#f4f4f6";
 const LS_MUTED = "#5f6873";
 const LS_FAINT = "#8a929c";
-const LS_LOGO_URL = `${process.env.ADMIN_APP_URL ?? "https://admin.base40.fit"}/email/lady-stretch-logo-dark.png`;
+// Логотип — с портала (ADMIN_APP_URL) или EMAIL_LOGO_URL.
+const lsLogoUrl = () =>
+  process.env.EMAIL_LOGO_URL?.trim() ||
+  `${(process.env.ADMIN_APP_URL ?? "").replace(/\/+$/, "")}/email/lady-stretch-logo-dark.png`;
 
 const codeLadyStretch = (title: string, lead: string, token: string, tx: EmailTexts) => `
 <div style="margin:0;padding:0;background:${LS_PAGE}">
@@ -275,7 +276,7 @@ const codeLadyStretch = (title: string, lead: string, token: string, tx: EmailTe
   <tr><td align="center" style="padding:32px 16px">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:440px">
       <tr><td align="center" bgcolor="${LS_INK}" style="background:${LS_INK};border-radius:20px 20px 0 0;padding:22px 16px">
-        <img src="${LS_LOGO_URL}" width="140" height="40" alt="Lady Stretch" style="display:block;width:140px;height:40px;border:0;color:#ffffff;font-size:22px;font-weight:600">
+        <img src="${lsLogoUrl()}" width="140" height="40" alt="Lady Stretch" style="display:block;width:140px;height:40px;border:0;color:#ffffff;font-size:22px;font-weight:600">
       </td></tr>
       <tr><td bgcolor="#ffffff" style="background:#ffffff;border-radius:0 0 20px 20px;padding:32px 28px">
         <h2 style="margin:0;font-size:20px;font-weight:600;line-height:1.3;color:${LS_INK}">${title}</h2>
@@ -289,7 +290,7 @@ const codeLadyStretch = (title: string, lead: string, token: string, tx: EmailTe
       </td></tr>
       <tr><td align="center" style="padding:24px 8px 0;color:${LS_FAINT};font-size:12px;line-height:1.5">
         ${tx.ignore}<br>
-        <span style="color:${LS_PINK}">&#9679;</span>&nbsp; Lady Stretch Tbilisi
+        <span style="color:${LS_PINK}">&#9679;</span>&nbsp; ${brandName("ladyStretch")}
       </td></tr>
     </table>
   </td></tr>

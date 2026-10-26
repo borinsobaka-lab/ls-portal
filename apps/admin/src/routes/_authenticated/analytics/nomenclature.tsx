@@ -33,7 +33,7 @@ import { anNomenclatureQuery, anRpc, invalidateAnalytics } from "@/lib/analytics
 import { ANALYTICS_TITLES, CATEGORY_LABEL, SOURCE_LABEL } from "@/lib/analytics/labels";
 
 export const Route = createFileRoute("/_authenticated/analytics/nomenclature")({
-  head: () => ({ meta: [{ title: "Номенклатура — Аналитика сети — Base40 Admin" }] }),
+  head: () => ({ meta: [{ title: "Номенклатура — Аналитика сети — Lady Stretch" }] }),
   pendingComponent: AnalyticsNomenclaturePageSkeleton,
   component: NomenclaturePage,
 });

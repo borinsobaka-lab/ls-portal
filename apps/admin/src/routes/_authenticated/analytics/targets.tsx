@@ -23,7 +23,7 @@ import { ANALYTICS_TITLES } from "@/lib/analytics/labels";
 import { cityNames, cityOf, NO_CITY } from "@/lib/analytics/logic";
 
 export const Route = createFileRoute("/_authenticated/analytics/targets")({
-  head: () => ({ meta: [{ title: "Точка 0 — Аналитика сети — Base40 Admin" }] }),
+  head: () => ({ meta: [{ title: "Точка 0 — Аналитика сети — Lady Stretch" }] }),
   pendingComponent: AnalyticsTargetsPageSkeleton,
   component: TargetsPage,
 });

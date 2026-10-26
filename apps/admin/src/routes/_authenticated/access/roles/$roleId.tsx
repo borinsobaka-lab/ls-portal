@@ -31,7 +31,7 @@ import { unwrap } from "@/lib/query";
 import { useAccessNames } from "@/hooks/use-access-names";
 
 export const Route = createFileRoute("/_authenticated/access/roles/$roleId")({
-  head: () => ({ meta: [{ title: "Роль — Base40 Admin" }] }),
+  head: () => ({ meta: [{ title: "Роль — Lady Stretch" }] }),
   validateSearch: (search: Record<string, unknown>): { copy?: string } =>
     typeof search.copy === "string" ? { copy: search.copy } : {},
   pendingComponent: AccessRolePageSkeleton,

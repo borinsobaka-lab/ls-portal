@@ -28,7 +28,7 @@ import { formatDate, formatDateTime } from "@/lib/format";
 import { unwrap } from "@/lib/query";
 
 export const Route = createFileRoute("/_authenticated/kb/$baseId/trash")({
-  head: () => ({ meta: [{ title: "Корзина — Base40 Admin" }] }),
+  head: () => ({ meta: [{ title: "Корзина — Lady Stretch" }] }),
   pendingComponent: KbTrashPageSkeleton,
   component: KbTrashPage,
 });

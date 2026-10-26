@@ -23,6 +23,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { getSupabaseAdmin, hasSupabaseAdmin } from "@/integrations/supabase/client.server";
 import { SUPABASE_URL } from "@/integrations/supabase/env";
+import { defaultSender } from "@/lib/mail";
 import { buildPushPayload, type PushContent } from "./payload";
 import {
   VapidSigner,
@@ -39,8 +40,9 @@ const BATCH = 200;
 const CONCURRENCY = 25;
 /** Пачек за один проход (дальше — следующий проход). */
 const MAX_BATCHES = 100;
-/** Подпись VAPID: адрес для связи службы доставки с отправителем. */
-const DEFAULT_SUBJECT = "mailto:noreply@base40.fit";
+/** Подпись VAPID: адрес для связи службы доставки с отправителем (VAPID_SUBJECT,
+ * иначе — отправитель писем MAIL_FROM). */
+const defaultSubject = () => `mailto:${defaultSender().email}`;
 
 type Claimed = {
   delivery_id: string;
@@ -153,7 +155,7 @@ async function loadVapidKeys(admin: SupabaseClient): Promise<VapidKeyPair> {
 
 function getSigner(admin: SupabaseClient): Promise<VapidSigner> {
   state.signer ??= loadVapidKeys(admin).then(
-    (keys) => new VapidSigner(keys, process.env.VAPID_SUBJECT?.trim() || DEFAULT_SUBJECT),
+    (keys) => new VapidSigner(keys, process.env.VAPID_SUBJECT?.trim() || defaultSubject()),
   );
   return state.signer;
 }

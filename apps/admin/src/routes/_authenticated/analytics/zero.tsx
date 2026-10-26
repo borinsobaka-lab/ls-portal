@@ -21,7 +21,7 @@ import { zeroTree } from "@/lib/analytics/logic";
 import { formatDate, formatNumber } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/analytics/zero")({
-  head: () => ({ meta: [{ title: "Нулевая номенклатура — Аналитика сети — Base40 Admin" }] }),
+  head: () => ({ meta: [{ title: "Нулевая номенклатура — Аналитика сети — Lady Stretch" }] }),
   pendingComponent: AnalyticsZeroPageSkeleton,
   component: ZeroPage,
 });

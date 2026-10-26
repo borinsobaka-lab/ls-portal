@@ -36,7 +36,7 @@ export const APP_ICON_MIN_SIZE = 512;
 export const APP_NAME_MAX = 30;
 /** Длиннее — телефоны обрезают подпись под значком многоточием. */
 export const APP_NAME_FITS = 12;
-export const APP_NAME_DEFAULT = "Base40";
+export const APP_NAME_DEFAULT = "Lady Stretch";
 
 const BUCKET = STORAGE_BUCKETS.appIcons.id;
 

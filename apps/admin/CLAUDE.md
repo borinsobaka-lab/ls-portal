@@ -48,24 +48,28 @@ Tailwind 4 + shadcn/radix. Пакетный менеджер — bun.
 
 ## Деплой
 
-Ресурс Coolify `club40-admin`, https://admin.base40.fit, Dockerfile —
-`apps/admin/Dockerfile` (контекст — корень репозитория: нужен `db/`).
-Env-переменные: `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`
-(build-time), `APP_SUPABASE_SERVICE_KEY` (runtime-секрет, раздел
-«Доступы»), `DATABASE_URL` (runtime-секрет, прямое подключение к Postgres
-для мигратора; не задан — миграции пропускаются). AI-переменные
-(`AI_GATEWAY_*`, `AI_CHAT_MODEL`, `AI_TRANSCRIBE_MODEL`) не заданы — ассистент
-и диктовка намеренно отвечают 503 до выбора провайдера. Пуши (необязательно):
+Портал копии — ресурс Coolify на сервере Selectel (DEPLOY.md в корне),
+Dockerfile — `apps/admin/Dockerfile` (контекст — корень репозитория: нужен
+`db/`). Все переменные с пояснениями — `.env.example`: build —
+`VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`,
+`VITE_SUBSCRIPTION_APP_URL` / `VITE_PACKAGES_APP_URL` (адреса клиентских
+приложений; пусто — не развёрнуты); runtime — `APP_SUPABASE_SERVICE_KEY`,
+`DATABASE_URL` (мигратор; на пустой базе собирает схему целиком),
+`ADMIN_APP_URL` (адрес портала — обязателен для писем), почта (`SMTP_*`,
+`MAIL_FROM`, `MAIL_FROM_NAME`, «Auth-письма» ниже), `SEND_EMAIL_HOOK_SECRET`.
+AI-переменные (`AI_GATEWAY_*`, `AI_CHAT_MODEL`, `AI_TRANSCRIBE_MODEL`) в копии
+не задаются — ассистент и диктовка отвечают 503. Пуши (необязательно):
 `VAPID_SUBJECT` — контакт отправителя для служб доставки (по умолчанию
-`mailto:noreply@base40.fit`), `PUSH_WORKER=off` — не рассылать с этого
-сервера (и «Отправить сейчас» здесь очередь не толкает — заберёт сервер, где
-рассылка включена).
+`mailto:` + `MAIL_FROM`), `PUSH_WORKER=off` — не рассылать с этого сервера.
+
+Бренд портала — Lady Stretch (`src/lib/brand.ts`: заголовки страниц, экран
+входа; значки `public/` — логотип Lady Stretch, favicon — «LS»).
 
 ## Auth-письма
 
 Send Email Hook (`GOTRUE_HOOK_SEND_EMAIL_*` у сервиса auth): Supabase дёргает /api/auth-email (src/routes/api/auth-email.ts),
 логика писем — src/lib/auth-email.ts (+ тест auth-email.test.ts), отправка —
-src/lib/mail.ts с noreply@base40.fit через Resend (`RESEND_API_KEY`).
+src/lib/mail.ts по SMTP (`SMTP_*`; запасной — Resend).
 Решение владельца 2026-10-11 (позднее прежнего «остаёмся на Unisender Go»):
 переходим на Resend, Unisender Go отключён, код Unisender удалён.
 
@@ -73,7 +77,7 @@ src/lib/mail.ts с noreply@base40.fit через Resend (`RESEND_API_KEY`).
 (решение владельца 2026-10-10; recovery/invite — тоже код: `/recover` у GoTrue
 публичный). Текст письма зависит от ПРИЛОЖЕНИЯ, а не от человека: один
 человек может быть и админом, и клиентом. Признак — хост в redirect_to (оба
-приложения задают emailRedirectTo явно): admin.base40.fit -> «вход в
+приложения задают emailRedirectTo явно): хост `ADMIN_APP_URL` -> «вход в
 админ-панель», всё остальное (включая нераспознанный redirect) -> клиентское
 письмо. Код входа в клиентское приложение уходит только члену клуба — есть
 карточка клиента с этой почтой (RPC `client_app_sign_in_allowed` сервис-ключом,
@@ -104,7 +108,7 @@ nodemailer с постоянным соединением (`pool`, до `SMTP_MA
 — AUTH_SETUP.md, шаг 6.
 
 **Письма Lady Stretch** (решение владельца 2026-10-15): клиенты пакетных
-клубов (redirect_to — `app.lady-stretch.one` или `pack.base40.fit`, список —
+клубов (redirect_to — адрес из
 `PACKAGES_APP_URLS`, `isPackagesApp`) получают письма в брендинге студий
 растяжки — `emailBrand` → `"ladyStretch"`: светлое (решение владельца
 2026-10-15, тёмное — «мрачно»): светло-серая подложка, белая карточка с

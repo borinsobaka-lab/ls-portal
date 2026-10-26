@@ -76,7 +76,7 @@ const TIPS = {
 };
 
 export const Route = createFileRoute("/_authenticated/workouts")({
-  head: () => ({ meta: [{ title: "Тренировки — Base40 Admin" }] }),
+  head: () => ({ meta: [{ title: "Тренировки — Lady Stretch" }] }),
   pendingComponent: WorkoutsPageSkeleton,
   component: WorkoutsPage,
 });

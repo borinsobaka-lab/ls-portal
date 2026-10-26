@@ -51,7 +51,7 @@ import { SalesPageSkeleton } from "@/components/page-skeletons";
 const TIPS = { ...SALE_TIPS, admin: SELLER_TIP };
 
 export const Route = createFileRoute("/_authenticated/sales")({
-  head: () => ({ meta: [{ title: "Продажи — Base40 Admin" }] }),
+  head: () => ({ meta: [{ title: "Продажи — Lady Stretch" }] }),
   pendingComponent: SalesPageSkeleton,
   component: SalesRoute,
 });

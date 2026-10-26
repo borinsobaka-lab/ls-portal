@@ -22,7 +22,7 @@ import { formatDateTime } from "@/lib/format";
 import type { SortGetters } from "@/lib/table-sort";
 
 export const Route = createFileRoute("/_authenticated/academy/review/")({
-  head: () => ({ meta: [{ title: "Проверка ответов — Академия — Base40 Admin" }] }),
+  head: () => ({ meta: [{ title: "Проверка ответов — Академия — Lady Stretch" }] }),
   pendingComponent: AcademyReviewPageSkeleton,
   component: ReviewQueuePage,
 });

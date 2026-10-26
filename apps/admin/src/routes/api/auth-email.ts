@@ -24,7 +24,7 @@ import { mailProvider, sendMail } from "@/lib/mail";
 // Текст письма зависит от ПРИЛОЖЕНИЯ, а не от человека: один и тот же человек
 // может быть и администратором, и клиентом. Признак — хост в
 // email_data.redirect_to (его явно задают оба приложения через
-// emailRedirectTo): совпал с ADMIN_APP_URL -> письмо «вход в админ-панель»,
+// emailRedirectTo): совпал с ADMIN_APP_URL -> письмо «вход в портал»,
 // иначе (включая нераспознанный redirect_to) -> клиентское письмо.
 //
 // Настройка (self-hosted Supabase): переменные GOTRUE_HOOK_SEND_EMAIL_* сервиса
@@ -104,9 +104,9 @@ export const Route = createFileRoute("/api/auth-email")({
       POST: async ({ request }) => {
         const deadline = Date.now() + HOOK_BUDGET_MS;
         const secret = process.env.SEND_EMAIL_HOOK_SECRET;
-        if (!secret || !mailProvider()) {
+        if (!secret || !mailProvider() || !process.env.ADMIN_APP_URL) {
           console.error(
-            "[auth-email] SEND_EMAIL_HOOK_SECRET / SMTP_* (или RESEND_API_KEY) не заданы",
+            "[auth-email] SEND_EMAIL_HOOK_SECRET / SMTP_* (или RESEND_API_KEY) / ADMIN_APP_URL не заданы",
           );
           return new Response("hook not configured", { status: 500 });
         }

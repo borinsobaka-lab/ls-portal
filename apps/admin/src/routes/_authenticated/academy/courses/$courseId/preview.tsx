@@ -9,7 +9,7 @@ import { acadCourseQuery } from "@/lib/academy/data";
 // «Как видит ученик» из конструктора: внутри «Курсов» (в меню подсвечены они,
 // а не «Мои курсы»), ход не записывается; ?step= — открытый шаг.
 export const Route = createFileRoute("/_authenticated/academy/courses/$courseId/preview")({
-  head: () => ({ meta: [{ title: "Как видит ученик — Академия — Base40 Admin" }] }),
+  head: () => ({ meta: [{ title: "Как видит ученик — Академия — Lady Stretch" }] }),
   validateSearch: (search: Record<string, unknown>): { step?: string } =>
     typeof search.step === "string" ? { step: search.step } : {},
   pendingComponent: AcademyCoursePageSkeleton,

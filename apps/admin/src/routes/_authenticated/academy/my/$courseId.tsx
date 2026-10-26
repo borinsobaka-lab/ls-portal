@@ -8,7 +8,7 @@ import { acadCourseViewQuery } from "@/lib/academy/data";
 
 // Прохождение курса; ?step= — открытый шаг (иначе первый непройденный).
 export const Route = createFileRoute("/_authenticated/academy/my/$courseId")({
-  head: () => ({ meta: [{ title: "Курс — Академия — Base40 Admin" }] }),
+  head: () => ({ meta: [{ title: "Курс — Академия — Lady Stretch" }] }),
   validateSearch: (search: Record<string, unknown>): { step?: string } =>
     typeof search.step === "string" ? { step: search.step } : {},
   pendingComponent: AcademyCoursePageSkeleton,

@@ -33,10 +33,11 @@ export const staffHasRating = (role: StaffRole) => role !== "admin";
 
 /**
  * «Записаться на массаж» — закреплённая кнопка внизу карточки массажиста
- * (решение владельца 2026-10-15): одна ссылка на запись NEBA для всех
- * массажистов (сопоставления с мастерами NEBA нет — MASSAGE_BOOKING.md).
+ * (решение владельца 2026-10-15): одна ссылка на запись (VITE_MASSAGE_BOOKING_URL;
+ * пусто — кнопки нет) для всех
+ * массажистов.
  */
-export const MASSAGE_BOOKING_URL = "https://booking.neba.space/";
+export const MASSAGE_BOOKING_URL: string = import.meta.env.VITE_MASSAGE_BOOKING_URL ?? "";
 
 /** Подписи карточки сотрудника по роли (переводятся при показе — t(…)). */
 export const STAFF_ROLE_TEXT: Record<

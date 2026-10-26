@@ -37,7 +37,7 @@ import {
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/analytics/revenue")({
-  head: () => ({ meta: [{ title: "Выручка — Аналитика сети — Base40 Admin" }] }),
+  head: () => ({ meta: [{ title: "Выручка — Аналитика сети — Lady Stretch" }] }),
   pendingComponent: AnalyticsRevenuePageSkeleton,
   component: RevenuePage,
 });

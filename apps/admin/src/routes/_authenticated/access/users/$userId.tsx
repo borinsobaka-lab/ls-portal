@@ -80,7 +80,7 @@ import { formatDate, formatDateTime, todayISO } from "@/lib/format";
 import { useAccessNames } from "@/hooks/use-access-names";
 
 export const Route = createFileRoute("/_authenticated/access/users/$userId")({
-  head: () => ({ meta: [{ title: "Пользователь — Base40 Admin" }] }),
+  head: () => ({ meta: [{ title: "Пользователь — Lady Stretch" }] }),
   pendingComponent: AccessUserPageSkeleton,
   component: UserCardPage,
 });

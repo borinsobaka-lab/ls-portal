@@ -13,7 +13,7 @@ import { formatDate, todayISO } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/academy/")({
-  head: () => ({ meta: [{ title: "Мои курсы — Академия — Base40 Admin" }] }),
+  head: () => ({ meta: [{ title: "Мои курсы — Академия — Lady Stretch" }] }),
   pendingComponent: AcademyMyPageSkeleton,
   component: MyCoursesPage,
 });

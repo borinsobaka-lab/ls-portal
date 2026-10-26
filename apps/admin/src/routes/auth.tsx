@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { AuthPageSkeleton } from "@/components/page-skeletons";
 import { safeRedirectPath } from "@/lib/auth-redirect";
+import { PORTAL_TITLE } from "@/lib/brand";
 
 export const Route = createFileRoute("/auth")({
   // Ключ — всегда, и undefined: без него роутер оставил бы исходное значение
@@ -135,11 +136,11 @@ function AuthPage() {
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle className="text-2xl">
-            <h1>Base40</h1>
+            <h1>{PORTAL_TITLE}</h1>
           </CardTitle>
           <CardDescription>
             {step === "email"
-              ? "Вход для сотрудников клуба — по коду из письма на рабочую почту"
+              ? "Вход для сотрудников — по коду из письма на рабочую почту"
               : "Введите код из письма"}
           </CardDescription>
         </CardHeader>

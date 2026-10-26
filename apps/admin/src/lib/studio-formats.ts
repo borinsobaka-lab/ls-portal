@@ -14,10 +14,14 @@ export const STUDIO_FORMAT_LABEL: Record<StudioFormat, string> = {
   packages: "Зал с пакетами тренировок",
 };
 
-/** Адрес клиентского приложения формата. */
+/**
+ * Адрес клиентского приложения формата — build-переменные
+ * VITE_SUBSCRIPTION_APP_URL / VITE_PACKAGES_APP_URL (пусто — приложение
+ * формата не развёрнуто).
+ */
 export const STUDIO_FORMAT_APP_URL: Record<StudioFormat, string> = {
-  subscription: "https://app.base40.fit",
-  packages: "https://app.lady-stretch.one",
+  subscription: (import.meta.env.VITE_SUBSCRIPTION_APP_URL ?? "").replace(/\/+$/, ""),
+  packages: (import.meta.env.VITE_PACKAGES_APP_URL ?? "").replace(/\/+$/, ""),
 };
 
 /** Цвет новой студии — прежний фирменный розовый (он же --brand в styles.css). */

@@ -42,7 +42,7 @@ export const Route = createFileRoute("/_authenticated/kb/$baseId/analytics")({
         ? search.node
         : undefined,
   }),
-  head: () => ({ meta: [{ title: "Аналитика — Base40 Admin" }] }),
+  head: () => ({ meta: [{ title: "Аналитика — Lady Stretch" }] }),
   pendingComponent: KbAnalyticsPageSkeleton,
   component: KbAnalyticsPage,
 });

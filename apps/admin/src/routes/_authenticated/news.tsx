@@ -31,7 +31,7 @@ const NEWS: ShowcaseConfig = {
 };
 
 export const Route = createFileRoute("/_authenticated/news")({
-  head: () => ({ meta: [{ title: "Новости — Base40 Admin" }] }),
+  head: () => ({ meta: [{ title: "Новости — Lady Stretch" }] }),
   pendingComponent: NewsPageSkeleton,
   component: () => <ShowcasePage config={NEWS} />,
 });

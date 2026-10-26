@@ -108,7 +108,7 @@ export function TrainerDrawer({
               </>
             )}
           </div>
-          {masseur && (
+          {masseur && MASSAGE_BOOKING_URL && (
             <div className="shrink-0 border-t border-border bg-background px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
               <Button asChild className="w-full">
                 <a href={MASSAGE_BOOKING_URL} target="_blank" rel="noopener noreferrer">

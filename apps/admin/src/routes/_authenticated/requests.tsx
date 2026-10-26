@@ -71,7 +71,7 @@ const TIPS = {
 };
 
 export const Route = createFileRoute("/_authenticated/requests")({
-  head: () => ({ meta: [{ title: "Заявки — Base40 Admin" }] }),
+  head: () => ({ meta: [{ title: "Заявки — Lady Stretch" }] }),
   pendingComponent: RequestsPageSkeleton,
   component: RequestsRoute,
 });

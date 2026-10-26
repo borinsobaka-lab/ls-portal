@@ -123,7 +123,7 @@ const MAX_PAYMENTS_LIMIT = 12;
  * (решение владельца 2026-10-11). Подписочная номенклатура — memberships.tsx.
  */
 export const Route = createFileRoute("/_authenticated/packages")({
-  head: () => ({ meta: [{ title: "Номенклатуры — Base40 Admin" }] }),
+  head: () => ({ meta: [{ title: "Номенклатуры — Lady Stretch" }] }),
   pendingComponent: PackagesPageSkeleton,
   component: PackagesRoute,
 });

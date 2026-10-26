@@ -88,7 +88,7 @@ import { SegmentedControl } from "@/components/ui/segmented-control";
 import { PayrollPageSkeleton } from "@/components/page-skeletons";
 
 export const Route = createFileRoute("/_authenticated/payroll")({
-  head: () => ({ meta: [{ title: "Зарплаты — Base40 Admin" }] }),
+  head: () => ({ meta: [{ title: "Зарплаты — Lady Stretch" }] }),
   pendingComponent: PayrollPageSkeleton,
   component: PayrollPage,
 });

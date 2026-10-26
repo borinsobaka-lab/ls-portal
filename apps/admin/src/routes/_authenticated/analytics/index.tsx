@@ -38,7 +38,7 @@ import { formatNumber } from "@/lib/format";
  * видит только свои города: их отдаёт база.
  */
 export const Route = createFileRoute("/_authenticated/analytics/")({
-  head: () => ({ meta: [{ title: "Мой город — Аналитика сети — Base40 Admin" }] }),
+  head: () => ({ meta: [{ title: "Мой город — Аналитика сети — Lady Stretch" }] }),
   pendingComponent: AnalyticsCityPageSkeleton,
   component: CityPage,
 });

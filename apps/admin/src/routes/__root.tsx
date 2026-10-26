@@ -14,6 +14,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { Button } from "@/components/ui/button";
 import { KB_THEME_BOOT } from "@/lib/kb/theme";
 import { supabase } from "@/integrations/supabase/client";
+import { PORTAL_NAME, PORTAL_TITLE } from "@/lib/brand";
 
 function NotFoundComponent() {
   return (
@@ -73,10 +74,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         name: "viewport",
         content: "width=device-width, initial-scale=1, interactive-widget=resizes-content",
       },
-      { title: "Base40 — Админ-панель" },
-      { name: "description", content: "Админ-панель фитнес-клуба Base40." },
-      { property: "og:title", content: "Base40 — Админ-панель" },
-      { property: "og:description", content: "Админ-панель фитнес-клуба Base40." },
+      { title: PORTAL_TITLE },
+      { name: "description", content: `${PORTAL_TITLE}: база знаний и Академия.` },
+      { property: "og:title", content: PORTAL_TITLE },
+      { property: "og:description", content: `${PORTAL_TITLE}: база знаний и Академия.` },
       { property: "og:type", content: "website" },
       // Цвет плашки иконки — им же браузеры красят интерфейс на мобильных.
       { name: "theme-color", content: "#1A2027" },
@@ -84,7 +85,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       // iPhone — свои мета-теги: Safari берёт имя и иконку отсюда, а не из манифеста.
       { name: "mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-capable", content: "yes" },
-      { name: "apple-mobile-web-app-title", content: "Base40" },
+      { name: "apple-mobile-web-app-title", content: PORTAL_NAME },
       { name: "apple-mobile-web-app-status-bar-style", content: "default" },
     ],
     links: [

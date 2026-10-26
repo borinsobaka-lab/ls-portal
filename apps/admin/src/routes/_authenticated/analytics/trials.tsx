@@ -24,7 +24,7 @@ import { formatRate, trialLines, trialsSummary, type TrialsSummary } from "@/lib
 import { formatNumber } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/analytics/trials")({
-  head: () => ({ meta: [{ title: "Воронка пробных — Аналитика сети — Base40 Admin" }] }),
+  head: () => ({ meta: [{ title: "Воронка пробных — Аналитика сети — Lady Stretch" }] }),
   pendingComponent: AnalyticsTrialsPageSkeleton,
   component: TrialsPage,
 });

@@ -34,7 +34,7 @@ import { formatNumber } from "@/lib/format";
 import { sortRows } from "@/lib/table-sort";
 
 export const Route = createFileRoute("/_authenticated/analytics/classes")({
-  head: () => ({ meta: [{ title: "Занятия — Аналитика сети — Base40 Admin" }] }),
+  head: () => ({ meta: [{ title: "Занятия — Аналитика сети — Lady Stretch" }] }),
   pendingComponent: AnalyticsClassesPageSkeleton,
   component: ClassesPage,
 });

@@ -44,7 +44,7 @@ import { cn } from "@/lib/utils";
 type ReportTab = "courses" | "people";
 
 export const Route = createFileRoute("/_authenticated/academy/report")({
-  head: () => ({ meta: [{ title: "Отчёт — Академия — Base40 Admin" }] }),
+  head: () => ({ meta: [{ title: "Отчёт — Академия — Lady Stretch" }] }),
   validateSearch: (search: Record<string, unknown>): { tab?: ReportTab } =>
     search.tab === "people" ? { tab: "people" } : {},
   pendingComponent: AcademyReportPageSkeleton,

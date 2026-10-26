@@ -10,7 +10,7 @@ import { acadStepsQuery } from "@/lib/academy/data";
 // Шаг курса в конструкторе: урок (текст) или тест (вопросы); ?new=1 — только
 // что создан, курсор в название.
 export const Route = createFileRoute("/_authenticated/academy/courses/$courseId/$stepId")({
-  head: () => ({ meta: [{ title: "Шаг курса — Академия — Base40 Admin" }] }),
+  head: () => ({ meta: [{ title: "Шаг курса — Академия — Lady Stretch" }] }),
   validateSearch: (search: Record<string, unknown>): { new?: 1 } =>
     search.new === 1 || search.new === "1" ? { new: 1 } : {},
   pendingComponent: AcademyStepPageSkeleton,

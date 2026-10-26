@@ -5,7 +5,7 @@ import { KbNodePageSkeleton } from "@/components/page-skeletons";
 
 // Папка или статья базы знаний. ?edit=1 — сразу в редактор (новая статья, копия).
 export const Route = createFileRoute("/_authenticated/kb/$baseId/$nodeId")({
-  head: () => ({ meta: [{ title: "База знаний — Base40 Admin" }] }),
+  head: () => ({ meta: [{ title: "База знаний — Lady Stretch" }] }),
   validateSearch: (search: Record<string, unknown>): { edit?: boolean } =>
     search.edit === true || search.edit === "1" || search.edit === "true" ? { edit: true } : {},
   pendingComponent: KbNodePageSkeleton,

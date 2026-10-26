@@ -75,7 +75,7 @@ const TABS: { value: Tab; label: string }[] = [
 ];
 
 export const Route = createFileRoute("/_authenticated/access/structure")({
-  head: () => ({ meta: [{ title: "Оргструктура — Base40 Admin" }] }),
+  head: () => ({ meta: [{ title: "Оргструктура — Lady Stretch" }] }),
   validateSearch: (search: Record<string, unknown>): { tab?: Tab; unit?: string } => ({
     ...(search.tab === "positions" || search.tab === "network" ? { tab: search.tab } : {}),
     ...(typeof search.unit === "string" ? { unit: search.unit } : {}),

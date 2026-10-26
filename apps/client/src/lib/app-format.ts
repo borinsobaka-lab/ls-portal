@@ -2,8 +2,8 @@
  * Формат студий, для которого собрано приложение (studios.format; подробно —
  * STUDIO_FORMATS.md в корне репозитория).
  *
- * Одна кодовая база — два приложения: app.base40.fit для «Зала с подписочной
- * моделью» и отдельный адрес для «Зала с пакетами тренировок». Формат задаёт
+ * Одна кодовая база — два приложения: для «Зала с подписочной моделью» и для
+ * «Зала с пакетами тренировок», у каждого свой адрес. Формат задаёт
  * build-переменная VITE_APP_FORMAT (в Coolify — Build Variable); без неё —
  * подписочный, как было до разделения.
  */
@@ -12,10 +12,17 @@ export type StudioFormat = "subscription" | "packages";
 export const APP_FORMAT: StudioFormat =
   import.meta.env.VITE_APP_FORMAT === "packages" ? "packages" : "subscription";
 
-/** Адреса приложений форматов. Те же значения — в studio-formats.ts админки. */
+/**
+ * Адреса приложений форматов — build-переменные VITE_SUBSCRIPTION_APP_URL /
+ * VITE_PACKAGES_APP_URL (те же, что у админки, studio-formats.ts). Без
+ * переменной — заглушка (адрес нужен как URL, например для календаря).
+ */
+const appUrl = (value: string | undefined) =>
+  (value || "https://app.example.com").replace(/\/+$/, "");
+
 export const FORMAT_APP_URL: Record<StudioFormat, string> = {
-  subscription: "https://app.base40.fit",
-  packages: "https://app.lady-stretch.one",
+  subscription: appUrl(import.meta.env.VITE_SUBSCRIPTION_APP_URL),
+  packages: appUrl(import.meta.env.VITE_PACKAGES_APP_URL),
 };
 
 /**

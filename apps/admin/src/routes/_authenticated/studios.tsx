@@ -71,7 +71,7 @@ const TIPS = {
 };
 
 export const Route = createFileRoute("/_authenticated/studios")({
-  head: () => ({ meta: [{ title: "Клубы — Base40 Admin" }] }),
+  head: () => ({ meta: [{ title: "Клубы — Lady Stretch" }] }),
   pendingComponent: StudiosPageSkeleton,
   component: StudiosPage,
 });
@@ -520,7 +520,7 @@ function StudioForm({
               label={<ContentLangLabel lang={tr.lang}>Название</ContentLangLabel>}
               required={tr.lang === "ru"}
             >
-              <Input {...tr.input("name", name, setName, "Base40 Ваке")} />
+              <Input {...tr.input("name", name, setName, "Lady Stretch Москва")} />
             </FormField>
 
             <FormField

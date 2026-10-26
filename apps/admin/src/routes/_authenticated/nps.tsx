@@ -77,7 +77,7 @@ const TIPS = {
 };
 
 export const Route = createFileRoute("/_authenticated/nps")({
-  head: () => ({ meta: [{ title: "NPS-опросы — Base40 Admin" }] }),
+  head: () => ({ meta: [{ title: "NPS-опросы — Lady Stretch" }] }),
   pendingComponent: NpsPageSkeleton,
   component: NpsPage,
 });

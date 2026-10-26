@@ -91,7 +91,7 @@ const TIPS = {
 const STATS_DAYS = 30;
 
 export const Route = createFileRoute("/_authenticated/push-triggers")({
-  head: () => ({ meta: [{ title: "Триггерные уведомления — Base40 Admin" }] }),
+  head: () => ({ meta: [{ title: "Триггерные уведомления — Lady Stretch" }] }),
   pendingComponent: PushTriggersPageSkeleton,
   component: PushTriggersPage,
 });

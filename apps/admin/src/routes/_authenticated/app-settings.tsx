@@ -30,7 +30,7 @@ import {
 } from "@/lib/studio-formats";
 
 export const Route = createFileRoute("/_authenticated/app-settings")({
-  head: () => ({ meta: [{ title: "Настройки приложения — Base40 Admin" }] }),
+  head: () => ({ meta: [{ title: "Настройки приложения — Lady Stretch" }] }),
   pendingComponent: AppSettingsPageSkeleton,
   component: AppSettingsPage,
 });
@@ -333,7 +333,7 @@ function AppIconField({
         </Button>
         {value && (
           <Button variant="ghost" size="sm" onClick={() => onChange(null)}>
-            Вернуть иконку Base40
+            Вернуть иконку по умолчанию
           </Button>
         )}
       </div>

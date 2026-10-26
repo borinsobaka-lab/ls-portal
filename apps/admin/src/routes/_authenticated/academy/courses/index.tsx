@@ -25,7 +25,7 @@ import type { AcadCourse, AcadCourseStatus } from "@/lib/academy/types";
 import { unwrap } from "@/lib/query";
 
 export const Route = createFileRoute("/_authenticated/academy/courses/")({
-  head: () => ({ meta: [{ title: "Курсы — Академия — Base40 Admin" }] }),
+  head: () => ({ meta: [{ title: "Курсы — Академия — Lady Stretch" }] }),
   pendingComponent: AcademyCoursesPageSkeleton,
   component: CoursesPage,
 });

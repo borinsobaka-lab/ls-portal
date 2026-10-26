@@ -135,7 +135,7 @@
   --sidebar-ring: oklch(0.704 0.04 256.788);
 }
 
-/* Пакетное приложение (app.lady-stretch.one, VITE_APP_FORMAT=packages). */
+/* Пакетное приложение (VITE_APP_FORMAT=packages). */
 :root[data-app-format="packages"] {
   --brand: #f763fc;
   --brand-foreground: #ffffff;

@@ -16,7 +16,7 @@ import { formatRate, monthLabel, rating, type RankBy } from "@/lib/analytics/log
 import { formatNumber } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/analytics/rating")({
-  head: () => ({ meta: [{ title: "Рейтинг — Аналитика сети — Base40 Admin" }] }),
+  head: () => ({ meta: [{ title: "Рейтинг — Аналитика сети — Lady Stretch" }] }),
   pendingComponent: AnalyticsRatingPageSkeleton,
   component: RatingPage,
 });

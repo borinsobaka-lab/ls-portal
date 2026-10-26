@@ -40,7 +40,7 @@ import { unwrap } from "@/lib/query";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/academy/settings")({
-  head: () => ({ meta: [{ title: "Настройки — Академия — Base40 Admin" }] }),
+  head: () => ({ meta: [{ title: "Настройки — Академия — Lady Stretch" }] }),
   pendingComponent: AcademySettingsPageSkeleton,
   component: SettingsPage,
 });

@@ -28,7 +28,7 @@ import {
 import { formatNumber } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/analytics/sales")({
-  head: () => ({ meta: [{ title: "Продажи абонементов — Аналитика сети — Base40 Admin" }] }),
+  head: () => ({ meta: [{ title: "Продажи абонементов — Аналитика сети — Lady Stretch" }] }),
   pendingComponent: AnalyticsSalesPageSkeleton,
   component: SalesPage,
 });

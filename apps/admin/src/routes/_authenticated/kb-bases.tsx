@@ -25,7 +25,7 @@ import type { KbBase } from "@/lib/kb/types";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/kb-bases")({
-  head: () => ({ meta: [{ title: "Базы знаний — Base40 Admin" }] }),
+  head: () => ({ meta: [{ title: "Базы знаний — Lady Stretch" }] }),
   pendingComponent: KbBasesPageSkeleton,
   component: KbBasesPage,
 });

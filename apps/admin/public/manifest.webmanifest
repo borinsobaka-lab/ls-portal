@@ -1,8 +1,8 @@
 {
   "id": "/",
-  "name": "Base40 — Админ-панель",
-  "short_name": "Base40",
-  "description": "Админ-панель фитнес-клуба Base40.",
+  "name": "Портал Lady Stretch",
+  "short_name": "Lady Stretch",
+  "description": "Портал Lady Stretch: база знаний и Академия.",
   "lang": "ru",
   "start_url": "/",
   "scope": "/",
