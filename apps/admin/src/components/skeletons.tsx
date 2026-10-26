@@ -126,8 +126,11 @@ export function ShellSkeleton({
   title: string;
   /** Кнопки действий страницы — как в настоящих actions AdminShell. */
   actions?: ControlSkeleton[];
-  /** Шапка базы знаний: вкладки баз и поиск по базе, рабочая область белая. */
-  kb?: boolean;
+  /**
+   * Шапка базы знаний: вкладки баз и поиск по базе, рабочая область белая;
+   * "tool" — служебная страница базы на канве (isKbToolPath).
+   */
+  kb?: boolean | "tool";
   /** Раздел, общий для сети («Академия»): в шапке только заголовок. */
   network?: boolean;
   children: ReactNode;
@@ -205,7 +208,10 @@ export function ShellSkeleton({
         </header>
       )}
       <main
-        className={cn("admin-main flex-1 overflow-auto p-3 sm:p-4 lg:p-6", kb && "bg-background")}
+        className={cn(
+          "admin-main flex-1 overflow-auto p-3 sm:p-4 lg:p-6",
+          kb === true && "bg-background",
+        )}
         aria-busy="true"
       >
         {children}

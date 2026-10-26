@@ -12,7 +12,7 @@ import { WorkdayButton } from "@/components/workday/workday-button";
 import { KB_ACTIONS_SLOT, KB_HEADER_GRID, KB_SEARCH_SLOT } from "@/lib/kb/header-layout";
 import { MAIN_HEADER_GRID, MAIN_HEADER_STUDIO } from "@/lib/header-layout";
 import { useKbDarkTheme } from "@/lib/kb/theme";
-import { kbBaseIdOf, railSectionKey } from "@/lib/nav-sections";
+import { isKbToolPath, kbBaseIdOf, railSectionKey } from "@/lib/nav-sections";
 import { cn } from "@/lib/utils";
 import { CLUBS_HIDDEN } from "@/lib/launch";
 
@@ -74,7 +74,8 @@ export function AdminShell({
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   // База знаний — своя шапка (решение владельца 2026-10-25): вкладки баз и
   // поиск по базе вместо заголовка и поиска клиента, без Kate и выбора
-  // клуба (базы общие для сети); весь раздел — на белом.
+  // клуба (базы общие для сети); главная базы, папки и статьи — на белом,
+  // служебные страницы («Аналитика», «Шаблоны», «Корзина») — на канве.
   const kb = railSectionKey(pathname) === "kb";
   // «Академия» общая для сети, «Аналитика» — над клубами (клубы выбираются
   // фильтрами отчёта): только заголовок, без поиска клиента, Kate и выбора
@@ -257,7 +258,7 @@ export function AdminShell({
       <main
         className={cn(
           "admin-main flex-1 overflow-auto p-3 sm:p-4 lg:p-6",
-          kb && "bg-background text-foreground",
+          kb && !isKbToolPath(pathname) && "bg-background text-foreground",
         )}
       >
         {children}
