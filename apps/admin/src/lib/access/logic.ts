@@ -83,6 +83,7 @@ export const SCOPE_LABEL: Record<ScopeType, string> = {
   all: "Во всех клубах — и в новых",
   brands: "В клубах брендов — и в новых",
   studios: "В выбранных клубах",
+  owned: "В клубах, где он собственник",
 };
 
 // --- Статус человека --------------------------------------------------------
@@ -233,6 +234,7 @@ export function scopeText(
 ): string {
   if (!studioScoped) return "Вся сеть";
   if (a.scope_type === "all") return "Все клубы";
+  if (a.scope_type === "owned") return "Клубы собственника";
   if (a.scope_type === "brands")
     return `${plural(a.scope_ids.length, ["Бренд", "Бренды", "Бренды"])} ${listText(a.scope_ids, names.brand, "бренд")}`;
   if (a.scope_ids.length === 0) return "Клубов нет";

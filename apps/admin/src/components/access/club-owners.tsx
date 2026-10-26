@@ -104,7 +104,7 @@ export function UserClubsSection({ userId, canEdit }: { userId: string; canEdit:
   return (
     <AccessSection
       title="Собственник клубов"
-      hint="Собственнику с ролью «Аналитика сети: свои клубы» его клубы открываются в аналитике сами."
+      hint="Роли с областью «Клубы собственника» (например, «Владелец клуба — аналитика») действуют у него в этих клубах."
       action={
         canEdit ? (
           <Button size="sm" variant="outline" onClick={() => setOpen(true)}>

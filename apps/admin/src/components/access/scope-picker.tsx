@@ -55,11 +55,18 @@ export function ScopePicker({
             { value: "all", label: "Все клубы" },
             { value: "brands", label: "Бренды" },
             { value: "studios", label: "Выбранные" },
+            { value: "owned", label: "Собственника" },
           ]}
         />
       )}
       {value.scope_type === "all" && !restricted && (
         <InfoNote>Во всех клубах сети — и в тех, что появятся позже.</InfoNote>
+      )}
+      {value.scope_type === "owned" && !restricted && (
+        <InfoNote>
+          В клубах, где человек собственник («Оргструктура» → «Сеть клубов»), — у каждого свои.
+          Сменились собственники — права пересчитаются сами.
+        </InfoNote>
       )}
       {value.scope_type === "brands" && (
         <div className="space-y-2 rounded-md border p-3">

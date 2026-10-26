@@ -563,6 +563,48 @@ describe.skipIf(!url)("доступы и роли (база)", () => {
     });
   });
 
+  test("область «Клубы собственника»: должности — у каждого свои клубы, смена собственника пересчитывает", async () => {
+    await scenario(async (tx) => {
+      const s1 = await studio(tx);
+      const s2 = await studio(tx);
+      const sa = await portal(tx, "Суперадмин", s1, [{ key: "superadmin" }]);
+      const a = await portal(tx, "Партнёр А", s1);
+      const b = await portal(tx, "Партнёр Б", s1);
+      const manager = await portal(tx, "Управляющий", s1, [{ key: "studio_owner", scope: "studios", ids: [s1] }]);
+      await as(tx, sa);
+      const [{ id: pos }] = await tx`select org_position_save(${JSON.stringify({ name: "Партнёр" })}::text::jsonb) id`;
+      for (const u of [a, b])
+        await tx`select access_user_save(${u}, ${JSON.stringify({ position_id: pos })}::text::jsonb)`;
+      await tx`select org_studio_owners_set(${s1}, ${[a]}::uuid[])`;
+      await tx`select org_studio_owners_set(${s2}, ${[b]}::uuid[])`;
+      await tx`select access_assignment_save(${JSON.stringify({
+        role_id: await roleId(tx, "studio_admin"), subject_type: "position", position_id: pos, scope_type: "owned",
+      })}::text::jsonb)`;
+      const [{ t }] = await tx`select scope_type t from access_assignments where position_id = ${pos}`;
+      expect(t).toBe("owned");
+      await asServer(tx);
+      expect(await staffRoles(tx, a)).toEqual([`${s1}:admin`]);
+      expect(await staffRoles(tx, b)).toEqual([`${s2}:admin`]);
+
+      // Клуб перешёл к другому собственнику — права пересчитаны сразу.
+      await as(tx, sa);
+      await tx`select org_user_studios_set(${a}, ${[s1, s2]}::uuid[])`;
+      await tx`select org_studio_owners_set(${s1}, ${[]}::uuid[])`;
+      await asServer(tx);
+      expect(await staffRoles(tx, a)).toEqual([`${s2}:admin`]);
+      expect((await staffRoles(tx, b)).sort()).toEqual([`${s2}:admin`]);
+
+      // Управляющий одним клубом «Клубы собственника» не выдаёт.
+      const c = await portal(tx, "Новый", s1);
+      const adminRole = await roleId(tx, "studio_admin");
+      await as(tx, manager);
+      const denied = await failure(tx, () => tx`select access_assignment_save(${JSON.stringify({
+        role_id: adminRole, subject_type: "user", user_id: c, scope_type: "owned",
+      })}::text::jsonb)`);
+      expect(denied).not.toBeNull();
+    });
+  });
+
   test("RPC интерфейса: списки, карточка, откуда права, журнал, структура", async () => {
     await scenario(async (tx) => {
       const [{ id: brand }] = await tx`insert into org_brands (name) values ('Бренд RPC') returning id`;

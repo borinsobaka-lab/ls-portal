@@ -50,7 +50,7 @@ const avatarSchema = z
 const assignmentSchema = z
   .object({
     role_id: z.string().uuid(),
-    scope_type: z.enum(["all", "brands", "studios"]),
+    scope_type: z.enum(["all", "brands", "studios", "owned"]),
     scope_ids: z.array(z.string().uuid()).max(500),
     valid_until: z.string().datetime({ offset: true }).nullable().optional(),
   })

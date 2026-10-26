@@ -41,7 +41,8 @@ export type AccessRole = {
 };
 
 export type SubjectType = "user" | "unit" | "position";
-export type ScopeType = "all" | "brands" | "studios";
+/** owned — клубы, где человек собственник («Сеть клубов»), у каждого свои. */
+export type ScopeType = "all" | "brands" | "studios" | "owned";
 export type MemberRole = "head" | "deputy" | "member";
 export type UserType = "hq" | "partner" | "studio" | "contractor" | "service";
 export type UserStatus = "active" | "blocked";
