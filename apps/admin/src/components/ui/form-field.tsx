@@ -204,13 +204,16 @@ export function InfoNote({
     <div
       className={cn(
         "rounded-md border p-3 text-xs",
-        variant === "muted" && "bg-muted/40 text-muted-foreground",
+        // muted и empty — непрозрачные: на канве полупрозрачная подложка
+        // сливалась с серым фоном (на белом вид тот же — --field = muted 40%
+        // поверх белого).
+        variant === "muted" && "bg-field text-muted-foreground dark:bg-muted/40",
         // dark: — тёмная тема базы знаний (html.dark.kb-dark).
         variant === "info" &&
           "border-blue-200 bg-blue-50 text-blue-900 dark:border-blue-400/25 dark:bg-blue-400/10 dark:text-blue-100",
         variant === "warning" &&
           "border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-400/25 dark:bg-amber-400/10 dark:text-amber-100",
-        variant === "empty" && "border-dashed text-center text-muted-foreground",
+        variant === "empty" && "border-dashed bg-background text-center text-muted-foreground",
         className,
       )}
       {...props}

@@ -32,6 +32,7 @@ import {
 import { useConfirm } from "@/components/confirm-dialog";
 import { DropIndicator } from "@/components/kb/drop-indicator";
 import { TableSkeletonRows } from "@/components/skeletons";
+import { TableToolbar } from "@/components/table-toolbar";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { InfoNote } from "@/components/ui/form-field";
@@ -118,13 +119,15 @@ export function CourseBuilder({ courseId, tab }: { courseId: string; tab: Builde
   return (
     <div className="mx-auto max-w-5xl space-y-4">
       <CourseHead course={course} canEdit={canEdit} />
-      <Tabs value={tab} onValueChange={setTab}>
-        <TabsList>
-          <TabsTrigger value="content">Содержание</TabsTrigger>
-          <TabsTrigger value="learners">Ученики</TabsTrigger>
-          <TabsTrigger value="errors">Ошибки</TabsTrigger>
-        </TabsList>
-      </Tabs>
+      <TableToolbar>
+        <Tabs value={tab} onValueChange={setTab} className="toolbar-full max-w-full">
+          <TabsList className="max-w-full overflow-x-auto">
+            <TabsTrigger value="content">Содержание</TabsTrigger>
+            <TabsTrigger value="learners">Ученики</TabsTrigger>
+            <TabsTrigger value="errors">Ошибки</TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </TableToolbar>
       {tab === "content" ? (
         <ContentTab course={course} canEdit={canEdit} />
       ) : tab === "learners" ? (

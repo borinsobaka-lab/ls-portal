@@ -56,9 +56,15 @@ export function RoleMatrix({
   return (
     <div className="space-y-4">
       {groups.map((g) => (
-        <fieldset key={g.block} className="space-y-3 rounded-lg border p-4" disabled={disabled}>
-          <legend className="px-1 text-sm font-semibold">{g.label}</legend>
-          <p className="-mt-1 text-xs text-muted-foreground">{g.hint}</p>
+        // Белая карточка на канве, заголовок — внутри (float снимает «вырез»
+        // legend в рамке fieldset), как у AccessSection.
+        <fieldset
+          key={g.block}
+          className="space-y-3 rounded-lg border bg-background p-4"
+          disabled={disabled}
+        >
+          <legend className="float-left w-full font-semibold">{g.label}</legend>
+          <p className="clear-left -mt-2 text-xs text-muted-foreground">{g.hint}</p>
 
           {g.block === "club" && (
             <>

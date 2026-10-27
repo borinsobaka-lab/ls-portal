@@ -1757,7 +1757,9 @@ export function AccessStructurePageSkeleton() {
   return (
     <ShellSkeleton title="Оргструктура">
       <div className="space-y-4">
-        <Skeleton className="h-9 w-80 max-w-full" />
+        <div className="table-toolbar flex flex-wrap items-center gap-2 rounded-lg border bg-background p-2 sm:px-3">
+          <Skeleton className="toolbar-full h-10 w-80 max-w-full rounded-full" />
+        </div>
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,22rem)_1fr]">
           <section className="space-y-2 rounded-lg border bg-background p-3">
             {Array.from({ length: 7 }, (_, i) => (
@@ -2406,12 +2408,14 @@ export function AcademyBuilderPageSkeleton() {
     <ShellSkeleton title="Курс" network>
       <div className="mx-auto max-w-5xl space-y-4">
         <AcademyCourseHeadSkeleton />
-        <div className="inline-flex h-10 items-center gap-1 rounded-full bg-muted p-1">
-          {["Содержание", "Ученики", "Ошибки"].map((t) => (
-            <span key={t} className="px-3 text-sm text-muted-foreground">
-              {t}
-            </span>
-          ))}
+        <div className="table-toolbar flex flex-wrap items-center gap-2 rounded-lg border bg-background p-2 sm:px-3">
+          <div className="toolbar-full inline-flex h-10 items-center gap-1 rounded-full bg-muted p-1">
+            {["Содержание", "Ученики", "Ошибки"].map((t) => (
+              <span key={t} className="px-3 text-sm text-muted-foreground">
+                {t}
+              </span>
+            ))}
+          </div>
         </div>
         <ul className="divide-y rounded-lg border bg-background">
           {Array.from({ length: 4 }, (_, i) => (
@@ -2452,12 +2456,14 @@ export function AcademyReportPageSkeleton() {
   return (
     <ShellSkeleton title="Отчёт по обучению" network>
       <div className="mx-auto max-w-6xl space-y-4">
-        <div className="inline-flex h-10 items-center gap-1 rounded-full bg-muted p-1">
-          {["Курсы", "Сотрудники"].map((t) => (
-            <span key={t} className="px-3 text-sm text-muted-foreground">
-              {t}
-            </span>
-          ))}
+        <div className="table-toolbar flex flex-wrap items-center gap-2 rounded-lg border bg-background p-2 sm:px-3">
+          <div className="toolbar-full inline-flex h-10 items-center gap-1 rounded-full bg-muted p-1">
+            {["Курсы", "Сотрудники"].map((t) => (
+              <span key={t} className="px-3 text-sm text-muted-foreground">
+                {t}
+              </span>
+            ))}
+          </div>
         </div>
         <TableCardSkeleton
           headers={[

@@ -64,25 +64,33 @@ const TIPS = {
 function ReportPage() {
   const navigate = useNavigate();
   const { tab = "courses" } = Route.useSearch();
+  const [q, setQ] = useState("");
   return (
     <AdminShell title="Отчёт по обучению">
       <div className="mx-auto max-w-6xl space-y-4">
-        <Tabs
-          value={tab}
-          onValueChange={(t) =>
-            void navigate({
-              to: "/academy/report",
-              search: t === "people" ? { tab: "people" } : {},
-              replace: true,
-            })
-          }
-        >
-          <TabsList>
-            <TabsTrigger value="courses">Курсы</TabsTrigger>
-            <TabsTrigger value="people">Сотрудники</TabsTrigger>
-          </TabsList>
-        </Tabs>
-        {tab === "people" ? <PeopleTab /> : <CoursesTab />}
+        {/* Табы и поиск вкладки — на одной белой плашке, не на канве. */}
+        <TableToolbar>
+          <Tabs
+            value={tab}
+            onValueChange={(t) =>
+              void navigate({
+                to: "/academy/report",
+                search: t === "people" ? { tab: "people" } : {},
+                replace: true,
+              })
+            }
+            className="toolbar-full"
+          >
+            <TabsList>
+              <TabsTrigger value="courses">Курсы</TabsTrigger>
+              <TabsTrigger value="people">Сотрудники</TabsTrigger>
+            </TabsList>
+          </Tabs>
+          {tab === "people" && (
+            <ToolbarSearch value={q} onChange={setQ} placeholder="Имя сотрудника" />
+          )}
+        </TableToolbar>
+        {tab === "people" ? <PeopleTab q={q} /> : <CoursesTab />}
       </div>
     </AdminShell>
   );
@@ -178,10 +186,9 @@ const PEOPLE_SORT: SortGetters<AcadPeopleRow> = {
   activity: (r) => r.last_activity_at,
 };
 
-function PeopleTab() {
+function PeopleTab({ q }: { q: string }) {
   const { data, isLoading, error } = useQuery(acadPeopleQuery);
   const sort = useTableSort<AcadPeopleRow>(PEOPLE_SORT);
-  const [q, setQ] = useState("");
   const [open, setOpen] = useState<AcadPeopleRow | null>(null);
   const term = q.trim().toLowerCase();
   const rows = sort.apply(
@@ -192,9 +199,6 @@ function PeopleTab() {
     return <AcadEmpty title="Опубликованные курсы пока никому не назначены" />;
   return (
     <div className="space-y-3">
-      <TableToolbar>
-        <ToolbarSearch value={q} onChange={setQ} placeholder="Имя сотрудника" />
-      </TableToolbar>
       <div className="rounded-lg border bg-background">
         <Table>
           <TableHeader>

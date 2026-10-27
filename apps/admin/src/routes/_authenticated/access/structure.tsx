@@ -12,6 +12,7 @@ import { SearchableCombobox } from "@/components/searchable-combobox";
 import { useConfirm } from "@/components/confirm-dialog";
 import { AccessStructurePageSkeleton } from "@/components/page-skeletons";
 import { DeleteStudioForm } from "@/components/studio-delete-form";
+import { TableToolbar } from "@/components/table-toolbar";
 import { Button } from "@/components/ui/button";
 import { ColorInput } from "@/components/ui/color-input";
 import {
@@ -137,21 +138,25 @@ function StructurePage() {
   return (
     <AdminShell title="Оргструктура">
       <div className="space-y-4">
-        <Tabs
-          value={tab}
-          onValueChange={(v) =>
-            void navigate({ search: { tab: v === "units" ? undefined : (v as Tab) } })
-          }
-          activationMode="manual"
-        >
-          <TabsList aria-label="Разделы оргструктуры" className="max-w-full overflow-x-auto">
-            {TABS.map((t) => (
-              <TabsTrigger key={t.value} value={t.value}>
-                {t.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
+        {/* Табы — на белой плашке фильтров, не на канве. */}
+        <TableToolbar>
+          <Tabs
+            value={tab}
+            onValueChange={(v) =>
+              void navigate({ search: { tab: v === "units" ? undefined : (v as Tab) } })
+            }
+            activationMode="manual"
+            className="toolbar-full max-w-full"
+          >
+            <TabsList aria-label="Разделы оргструктуры" className="max-w-full overflow-x-auto">
+              {TABS.map((t) => (
+                <TabsTrigger key={t.value} value={t.value}>
+                  {t.label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+        </TableToolbar>
         <PageIntro key={tab} id={`structure-${tab}`}>
           {INTRO[tab]}
         </PageIntro>
