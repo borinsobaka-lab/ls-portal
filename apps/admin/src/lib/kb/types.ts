@@ -45,6 +45,8 @@ export type KbTreeNode = {
   updated_at: string;
   published_at: string | null;
   published_by: string | null;
+  /** Автор, выбранный редактором; null — автор тот, кто опубликовал. */
+  author_id: string | null;
 };
 
 /** Статья целиком: опубликованный текст (документ BlockNote). */

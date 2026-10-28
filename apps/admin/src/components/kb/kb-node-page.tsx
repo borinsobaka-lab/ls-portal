@@ -36,6 +36,7 @@ import { DocumentText, Folder } from "@/components/nav-icons";
 import { KbArticleBodySkeleton, KbFolderBodySkeleton } from "@/components/page-skeletons";
 import { KbBaseForm } from "@/components/kb/base-dialog";
 import { KbArticlePager, KbArticleRating } from "@/components/kb/article-footer";
+import { KbAuthorPicker } from "@/components/kb/author-picker";
 import { KbPageSettingsForm } from "@/components/kb/page-settings-dialog";
 import { KbProtectForm } from "@/components/kb/protect-dialog";
 import { KbProtectedArea } from "@/components/kb/protected-area";
@@ -1286,8 +1287,11 @@ function ArticleView({
                   {node.published_at && (
                     <ArticleAuthor
                       baseId={baseId}
-                      userId={node.published_by}
+                      nodeId={node.id}
+                      authorId={node.author_id}
+                      userId={node.author_id ?? node.published_by}
                       publishedAt={node.published_at}
+                      canEdit={canEdit}
                     />
                   )}
                 </div>
@@ -1536,17 +1540,25 @@ function ArticleView({
 
 /**
  * Автор статьи под названием (решение владельца 2026-10-25, по образцу
- * справочных центров): аватарка, «Автор: Имя» — кто опубликовал последнюю
- * версию, ниже — «Обновлено 11 дней назад» (точная дата — в подсказке).
+ * справочных центров): аватарка, «Автор: Имя» — выбранный редактором
+ * (`author_id`, 2026-10-28), иначе кто опубликовал последнюю версию, ниже —
+ * «Обновлено 11 дней назад» (точная дата — в подсказке). Редактору у имени —
+ * «Сменить автора».
  */
 function ArticleAuthor({
   baseId,
+  nodeId,
+  authorId,
   userId,
   publishedAt,
+  canEdit,
 }: {
   baseId: string;
+  nodeId: string;
+  authorId: string | null;
   userId: string | null;
   publishedAt: string;
+  canEdit: boolean;
 }) {
   const { data: authors } = useKbAuthorProfiles(baseId);
   const author = userId ? authors?.get(userId) : undefined;
@@ -1568,6 +1580,7 @@ function ArticleAuthor({
             >
               {fullName}
             </PersonButton>
+            {canEdit && <KbAuthorPicker baseId={baseId} nodeId={nodeId} authorId={authorId} />}
           </p>
         )}
         <p title={formatDateTime(publishedAt)}>

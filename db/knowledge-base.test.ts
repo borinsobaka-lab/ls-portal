@@ -891,6 +891,52 @@ describe.skipIf(!url)("база знаний (база)", () => {
       expect(await tx`select 1 from kb_node_tags where node_id = ${t.pub}`).toHaveLength(0);
     }));
 
+  test("автор статьи: меняет редактор, только человек портала и у статьи, корзина, отчёт", () =>
+    scenario(async (tx) => {
+      const t = await setup(tx);
+      const outsider = await user(tx);
+      await asServer(tx);
+      const [{ updated_by: before }] = await tx`select updated_by from kb_nodes where id = ${t.pub}`;
+
+      // Читатель автора не меняет (политика правки kb_nodes).
+      await as(tx, t.reader);
+      await tx`update kb_nodes set author_id = ${t.reader} where id = ${t.pub}`;
+      await asServer(tx);
+      expect((await tx`select author_id from kb_nodes where id = ${t.pub}`)[0].author_id).toBeNull();
+
+      await as(tx, t.editor);
+      expect(
+        await failure(tx, () => tx`update kb_nodes set author_id = ${outsider} where id = ${t.pub}`),
+      ).toContain("kb_bad_author");
+      expect(
+        await failure(tx, () => tx`update kb_nodes set author_id = ${t.reader} where id = ${t.folder}`),
+      ).toContain("kb_not_article");
+      await tx`update kb_nodes set author_id = ${t.reader} where id = ${t.pub}`;
+      const authors = (await tx`select user_id from kb_authors(${t.b})`) as Row[];
+      expect(authors.map((r) => r.user_id)).toContain(t.reader);
+      // Автор статьи — не её читатель: в аудитории остаётся только редактор.
+      const [rep] = (await tx`select * from kb_report(${t.b}) where id = ${t.pub}`) as Row[];
+      expect(rep.access_count).toBe(1);
+      const readers = (await tx`select user_id from kb_article_readers(${t.pub})`) as Row[];
+      expect(readers.map((r) => r.user_id)).toEqual([t.editor]);
+      await asServer(tx);
+      // Смена автора — не правка статьи.
+      expect((await tx`select updated_by from kb_nodes where id = ${t.pub}`)[0].updated_by).toBe(before);
+
+      // Корзина возвращает автора.
+      await as(tx, t.editor);
+      const [{ id: trashId }] = await tx`select kb_trash_node(${t.pub}) as id`;
+      await tx`select kb_trash_restore(${trashId})`;
+      await asServer(tx);
+      expect((await tx`select author_id from kb_nodes where id = ${t.pub}`)[0].author_id).toBe(t.reader);
+
+      // Пусто — снова «кто опубликовал».
+      await as(tx, t.editor);
+      await tx`update kb_nodes set author_id = null where id = ${t.pub}`;
+      await asServer(tx);
+      expect((await tx`select author_id from kb_nodes where id = ${t.pub}`)[0].author_id).toBeNull();
+    }));
+
   test("цвет базы: #rrggbb или пусто; ставит владелец", () =>
     scenario(async (tx) => {
       const t = await setup(tx);

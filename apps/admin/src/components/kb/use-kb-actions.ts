@@ -111,6 +111,7 @@ export function useKbActions(baseId: string) {
           | "status"
           | "feedback_enabled"
           | "pager_enabled"
+          | "author_id"
         >
       >,
     ) => {
