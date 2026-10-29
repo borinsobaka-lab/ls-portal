@@ -721,7 +721,11 @@ describe.skipIf(!url)("база знаний (база)", () => {
       expect(access.get(t.editor)).toBe(true);
       expect(access.get(t.stranger)).toBe(false);
       expect(access.has(client)).toBe(false);
-      expect(rows.findIndex((r) => r.user_id === t.stranger)).toBe(rows.length - 1);
+      // Без доступа — после всех с доступом (между собой — по имени; имена
+      // в тесте случайные, поэтому «чужой» не обязательно последний).
+      const firstWithout = rows.findIndex((r) => !r.has_access);
+      expect(rows.slice(firstWithout).every((r) => !r.has_access)).toBe(true);
+      expect(rows.findIndex((r) => r.user_id === t.stranger)).toBeGreaterThanOrEqual(firstWithout);
 
       // Карточка сотрудника и короткие карточки — любому человеку портала.
       await as(tx, t.stranger);
