@@ -4,7 +4,14 @@ import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { getSupabaseAdmin } from "@/integrations/supabase/client.server";
-import { accessErrorText, isPlaceholderEmail, NO_EMAIL_DOMAIN } from "@/lib/access/logic";
+import {
+  authErrorText,
+  createStaffAccount,
+  findProfileIdByEmail,
+  homeStudioFor,
+  isPortalUser,
+} from "@/lib/access/accounts.server";
+import { accessErrorText, isPlaceholderEmail } from "@/lib/access/logic";
 import type { AccessMe } from "@/lib/access/types";
 import { STAFF_ROLES } from "@/lib/roles";
 
@@ -31,14 +38,6 @@ async function rpcAs<T>(supabase: SupabaseClient, fn: string, args?: Record<stri
   const { data, error } = await supabase.rpc(fn, args);
   if (error) throw new Error(accessErrorText(error.message, error.details));
   return data as T;
-}
-
-/** Сообщения GoTrue приходят по-английски — частые переводим для тоста. */
-function authErrorText(message: string) {
-  if (/already (been )?registered|already exists|email_exists/i.test(message)) {
-    return "Пользователь с такой почтой уже зарегистрирован";
-  }
-  return message;
 }
 
 /** Почта входа: служебный адрес «без почты» вписать руками нельзя. */
@@ -100,82 +99,24 @@ export const createPortalUser = createServerFn({ method: "POST" })
     const admin = getSupabaseAdmin();
     const fullName = `${data.last_name} ${data.first_name}`;
 
-    let userId: string | null = null;
-    if (data.email) {
-      const pattern = data.email.replace(/[\\%_]/g, "\\$&");
-      const { data: found, error: findErr } = await admin
-        .from("profiles")
-        .select("id")
-        .ilike("email", pattern)
-        .limit(1);
-      if (findErr) throw new Error(findErr.message);
-      userId = (found?.[0]?.id as string | undefined) ?? null;
-    }
+    let userId = data.email ? await findProfileIdByEmail(admin, data.email) : null;
     let created = false;
 
     if (userId) {
-      const { data: portal, error: portalErr } = await admin
-        .from("portal_users")
-        .select("user_id")
-        .eq("user_id", userId)
-        .limit(1);
-      if (portalErr) throw new Error(portalErr.message);
-      if (portal?.length) {
+      if (await isPortalUser(admin, userId)) {
         throw new Error(`already_in_portal:${userId}`);
       }
     } else {
-      // Клуб профиля (profiles.studio_id обязателен): первый клуб первой
-      // роли, иначе клуб того, кто добавляет. Права это не даёт — их дают роли.
+      // Клуб профиля: первый клуб первой роли, иначе клуб того, кто добавляет.
       const first = data.assignments.find((a) => a.scope_type === "studios" && a.scope_ids.length);
-      let homeStudioId = first?.scope_ids[0] ?? null;
-      if (!homeStudioId) {
-        const { data: own } = await admin
-          .from("profiles")
-          .select("studio_id")
-          .eq("id", context.userId)
-          .maybeSingle();
-        homeStudioId = (own?.studio_id as string | undefined) ?? null;
-      }
-      if (!homeStudioId) {
-        const { data: oldest } = await admin
-          .from("studios")
-          .select("id")
-          .order("created_at")
-          .limit(1)
-          .maybeSingle();
-        homeStudioId = (oldest?.id as string | undefined) ?? null;
-      }
-      if (!homeStudioId) throw new Error("Сначала заведите хотя бы один клуб");
-
-      // Без почты — служебный адрес в домене .invalid (lib/access/logic.ts):
-      // GoTrue без почты или телефона учётную запись не заводит.
-      const authEmail = data.email ?? `nomail-${crypto.randomUUID()}@${NO_EMAIL_DOMAIN}`;
-      const { data: res, error } = await admin.auth.admin.createUser({
-        email: authEmail,
-        email_confirm: true,
-        // studio_id читает handle_new_user; staff_account — не заводить
-        // карточку клиента (db/migrations/…_staff_accounts.sql).
-        user_metadata: {
-          first_name: data.first_name,
-          last_name: data.last_name,
-          full_name: fullName,
-          studio_id: homeStudioId,
-          staff_account: true,
-        },
+      const studioId = await homeStudioFor(admin, first?.scope_ids[0] ?? null, context.userId);
+      userId = await createStaffAccount(admin, {
+        email: data.email,
+        first_name: data.first_name,
+        last_name: data.last_name,
+        studioId,
       });
-      if (error || !res.user) {
-        throw new Error(authErrorText(error?.message ?? "Не удалось создать пользователя"));
-      }
-      userId = res.user.id;
       created = true;
-      const { error: profErr } = await admin
-        .from("profiles")
-        .upsert({ id: userId, studio_id: homeStudioId, full_name: fullName, email: data.email });
-      // profiles.email у человека без почты — пусто (handle_new_user мог вписать служебный).
-      if (profErr) {
-        await admin.auth.admin.deleteUser(userId);
-        throw new Error(profErr.message);
-      }
     }
 
     try {

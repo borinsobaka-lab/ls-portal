@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { chunkRows, replicaSignature, verifyReplicaRequest } from "./replica.server";
+import { agentLogRow, chunkRows, replicaSignature, verifyReplicaRequest } from "./replica.server";
 
 describe("приём синхронизации со старого портала", () => {
   const secret = "s".repeat(40);
@@ -16,6 +16,33 @@ describe("приём синхронизации со старого портал
     expect(verifyReplicaRequest(secret, null, sig, body, now)).toBe("Нет подписи");
     const other = new TextEncoder().encode('{"batch":"2","items":[]}');
     expect(verifyReplicaRequest(secret, time, sig, other, now)).toBe("Неверная подпись");
+  });
+
+  test("подпись совпадает с агентом (deploy/analytics-replica/agent.py, sign)", () => {
+    expect(replicaSignature(secret, "1790000000", body)).toBe(
+      "c8769ba0efed58c6ff4f7107f10b58467e6679304fdb0fd0f61f6f13ac9c0c8e",
+    );
+  });
+
+  test("отметка агента: первая ошибка по таблицам — в журнал", () => {
+    const ok = agentLogRow("b1", { version: "1.0", sources: [{ target: "an_legacy_users" }] });
+    expect(ok.target).toBe("agent");
+    expect(ok.error).toBeNull();
+    const bad = agentLogRow("b2", {
+      version: "1.0",
+      sources: [
+        { target: "an_legacy_users", error: null },
+        { target: "an_legacy_audit", error: "Нет таблицы audit_log" },
+      ],
+    });
+    expect(bad.error).toBe("1 табл. с ошибкой: an_legacy_audit — Нет таблицы audit_log");
+    const huge = agentLogRow(null, {
+      version: "1.0",
+      host: "h",
+      sources: [],
+      blob: "x".repeat(60_000),
+    });
+    expect(huge.details).toEqual({ version: "1.0", host: "h" });
   });
 
   test("строки режутся на пачки по числу и объёму", () => {

@@ -5,6 +5,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { AdminShell } from "@/components/admin-shell";
+import { LegacyPeopleSection } from "@/components/analytics/legacy-people";
 import { useConfirm } from "@/components/confirm-dialog";
 import { AnalyticsSyncPageSkeleton } from "@/components/page-skeletons";
 import { TableSkeletonRows } from "@/components/skeletons";
@@ -20,7 +21,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useAdminAccess } from "@/hooks/use-admin-access";
 import { supabase } from "@/integrations/supabase/client";
+import { hasRight } from "@/lib/admin-access";
 import { getReplicaConfig, runAnalyticsJob } from "@/lib/analytics/admin.functions";
 import { ANALYTICS_KEY } from "@/lib/analytics/data";
 import { AN_JOB_LABEL, jobLabel } from "@/lib/analytics/jobs";
@@ -62,6 +65,15 @@ type JobRow = {
   last_duration_ms: number | null;
 };
 
+type AgentRow = {
+  received_at: string;
+  error: string | null;
+  details: { version?: string; host?: string; check?: boolean } | null;
+};
+
+/** Агент шлёт отметку каждые 2 минуты: дольше 15 минут тишины — что-то не так. */
+const AGENT_QUIET_MS = 15 * 60_000;
+
 const JOB_TONE = { success: "positive", partial: "warning", error: "negative" } as const;
 const JOB_STATUS = { success: "Готово", partial: "Частично", error: "Ошибка" } as const;
 
@@ -74,6 +86,7 @@ const JOB_STATUS = { success: "Готово", partial: "Частично", error
 function AnalyticsSyncPage() {
   const qc = useQueryClient();
   const { confirm, confirmDialog } = useConfirm();
+  const access = useAdminAccess();
   const configFn = useServerFn(getReplicaConfig);
   const runFn = useServerFn(runAnalyticsJob);
   const [running, setRunning] = useState<string | null>(null);
@@ -93,6 +106,12 @@ function AnalyticsSyncPage() {
     queryFn: () => unwrap<TargetRow[] | null>(supabase.rpc("an_replica_status")),
     refetchInterval: 60_000,
     meta: { errorMessage: "Не удалось загрузить приём данных" },
+  });
+  const { data: agent } = useQuery({
+    queryKey: [ANALYTICS_KEY, "replica-agent"],
+    queryFn: () => unwrap<AgentRow | null>(supabase.rpc("an_replica_agent")),
+    refetchInterval: 60_000,
+    meta: { errorMessage: "Не удалось загрузить состояние агента" },
   });
   const { data: jobs, isPending: jobsLoading } = useQuery({
     queryKey: [ANALYTICS_KEY, "jobs"],
@@ -240,6 +259,31 @@ function AnalyticsSyncPage() {
             <div className="text-muted-foreground">
               Последняя пачка: {lastReceived ? formatDateTime(lastReceived) : "ещё не приходила"}
             </div>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              Агент на старом сервере:
+              {!agent ? (
+                <StatusChip tone="neutral">ещё не выходил на связь</StatusChip>
+              ) : Date.now() - new Date(agent.received_at).getTime() > AGENT_QUIET_MS ? (
+                <StatusChip tone="negative">
+                  молчит с {formatDateTime(agent.received_at)}
+                </StatusChip>
+              ) : (
+                <StatusChip tone={agent.error ? "warning" : "positive"}>
+                  на связи · {formatDateTime(agent.received_at)}
+                </StatusChip>
+              )}
+              {agent?.details?.version && (
+                <span className="text-xs text-muted-foreground">
+                  версия {agent.details.version}
+                  {agent.details.host ? ` · ${agent.details.host}` : ""}
+                </span>
+              )}
+            </div>
+            {agent?.error && <div className="mt-1 text-xs text-destructive">{agent.error}</div>}
+            <div className="mt-1 text-xs text-muted-foreground">
+              Установка — deploy/analytics-replica (README.md): батник на компьютере с доступом к
+              серверу старого портала.
+            </div>
           </div>
           <div className="overflow-hidden rounded-lg border bg-background">
             <Table data-mobile-cards>
@@ -285,6 +329,8 @@ function AnalyticsSyncPage() {
             </Table>
           </div>
         </section>
+
+        <LegacyPeopleSection canImport={hasRight(access, "portal.admin")} />
 
         <section className="space-y-3">
           <h2 className="text-lg font-semibold">Фоновые задачи</h2>

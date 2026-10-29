@@ -35,6 +35,7 @@ const ACTION_LABEL: Record<string, string> = {
   "studio.update": "Клуб",
   "studio.create": "Новый клуб",
   import: "Перенос «Доступов»",
+  "analytics.import": "Перенос со старого портала аналитики",
 };
 
 export const LOG_ACTION_LABEL = ACTION_LABEL;

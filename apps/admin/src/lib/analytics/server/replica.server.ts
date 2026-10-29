@@ -8,12 +8,15 @@
  *                                        "<время>.<sha256 тела hex>"))
  *   X-Replica-Gzip: 1          — тело сжато gzip
  *   { "batch": "…", "items": [{ "target": "an_…", "rows": [...], "delete": [...] }],
- *     "secrets": [{ "kind": "…", "ref": "…", "name": "…", "value": "<RSA-блоки>" }] }
+ *     "secrets": [{ "kind": "…", "ref": "…", "name": "…", "value": "<RSA-блоки>" }],
+ *     "agent": { "version": "…", "host": "…", "sources": [...] } }
  *
  * Строки — колонки таблицы-получателя (её регистрирует миграция модуля в
  * an_replica_targets): upsert по ключу и удаление ключей — RPC
  * an_replica_apply (service_role), пачками. Ключи интеграций — в an_secrets.
- * Повтор пачки безопасен (upsert).
+ * Повтор пачки безопасен (upsert). «agent» — отметка «на связи» в конце
+ * каждого запуска агента (итог по таблицам): строка журнала с target
+ * 'agent', её показывает «Синхронизация».
  */
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import { gunzipSync } from "node:zlib";
@@ -30,7 +33,38 @@ const RPC_BYTES = 1_500_000;
 
 export type ReplicaItem = { target: string; rows?: unknown[]; delete?: unknown[] };
 export type ReplicaSecret = { kind: string; ref: string; name: string; value: string };
-export type ReplicaBody = { batch?: string; items?: ReplicaItem[]; secrets?: ReplicaSecret[] };
+export type ReplicaAgent = {
+  version?: unknown;
+  host?: unknown;
+  sources?: { target?: unknown; error?: unknown }[];
+  [key: string]: unknown;
+};
+export type ReplicaBody = {
+  batch?: string;
+  items?: ReplicaItem[];
+  secrets?: ReplicaSecret[];
+  agent?: ReplicaAgent;
+};
+
+/** Отметка агента в журнал: итог и первая ошибка по таблицам. */
+export function agentLogRow(batch: string | null, agent: ReplicaAgent) {
+  const sources = Array.isArray(agent.sources) ? agent.sources : [];
+  const failed = sources.filter((s) => s && typeof s.error === "string" && s.error);
+  const details = JSON.stringify(agent);
+  return {
+    batch,
+    target: "agent",
+    upserts: 0,
+    deletes: 0,
+    error: failed.length
+      ? `${failed.length} табл. с ошибкой: ${String(failed[0].target)} — ${String(failed[0].error)}`.slice(
+          0,
+          1000,
+        )
+      : null,
+    details: details.length <= 50_000 ? agent : { version: agent.version, host: agent.host },
+  };
+}
 
 export function replicaSecret(): string | null {
   const s = process.env.ANALYTICS_REPLICA_SECRET?.trim();
@@ -154,6 +188,11 @@ export async function applyReplicaBody(body: ReplicaBody): Promise<ReplicaResult
       error: result.error ?? null,
     });
     results.push(result);
+  }
+
+  if (body.agent && typeof body.agent === "object" && !Array.isArray(body.agent)) {
+    const { error } = await admin.from("an_replica_log").insert(agentLogRow(batch, body.agent));
+    if (error) console.error("[analytics] отметка агента:", error.message);
   }
 
   for (const s of body.secrets ?? []) {

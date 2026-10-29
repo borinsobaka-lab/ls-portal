@@ -107,6 +107,92 @@ create table if not exists public.an_partner_city_settings (
   primary key (user_id, city)
 );
 
+-- 3б) Ядро старого портала (зеркало) ---------------------------------------------
+-- Их таблицы portal.sqlite3 как есть: те же колонки, время — unix-секунды,
+-- id — их. Без паролей и токенов сессий. Пишет только приём синхронизации
+-- (агент на их сервере); связи между таблицами не проверяются — строки
+-- приходят в любом порядке, как и у них внешние ключи не включены.
+-- user_id / imported_at / imported_by у an_legacy_users — свои колонки
+-- портала: кем человек стал у нас после переноса (ANALYTICS_PLAN.md, §10);
+-- агент их не присылает и не перезаписывает.
+create table if not exists public.an_legacy_users (
+  id bigint primary key,
+  login text not null,
+  full_name text not null,
+  role text not null,
+  is_active integer not null default 1,
+  created_at bigint not null,
+  position text not null default '',
+  partner_city text not null default '',
+  is_targetologist integer not null default 0,
+  is_lead_manager integer not null default 0,
+  user_id uuid references auth.users(id) on delete set null,
+  imported_at timestamptz,
+  imported_by uuid references auth.users(id) on delete set null
+);
+create index if not exists an_legacy_users_user_idx on public.an_legacy_users (user_id);
+create table if not exists public.an_legacy_dashboard_access (
+  user_id bigint not null,
+  dashboard_name text not null,
+  primary key (user_id, dashboard_name)
+);
+create table if not exists public.an_legacy_partner_cities (
+  user_id bigint not null,
+  city text not null,
+  primary key (user_id, city)
+);
+create table if not exists public.an_legacy_partner_profiles (
+  user_id bigint primary key,
+  phone text not null default '',
+  telegram text not null default '',
+  max_messenger text not null default '',
+  individual_entrepreneur text not null default '',
+  inn text not null default ''
+);
+create table if not exists public.an_legacy_partner_city_settings (
+  user_id bigint not null,
+  city text not null,
+  trial_price text not null default '',
+  directions text not null default '',
+  primary key (user_id, city)
+);
+create table if not exists public.an_legacy_fitbase_connections (
+  user_id bigint not null,
+  connection_id bigint not null,
+  domain text not null,
+  club_id text not null,
+  primary key (user_id, connection_id)
+);
+-- Сессии — без token_hash: для «Посещаемости» (входы, активное время).
+create table if not exists public.an_legacy_sessions (
+  id bigint primary key,
+  user_id bigint not null,
+  created_at bigint not null,
+  last_seen_at bigint not null,
+  ended_at bigint,
+  last_active_at bigint not null default 0,
+  active_seconds bigint not null default 0,
+  expires_at bigint not null default 0
+);
+create index if not exists an_legacy_sessions_user_idx on public.an_legacy_sessions (user_id, last_seen_at);
+create table if not exists public.an_legacy_activity (
+  id bigint primary key,
+  session_id bigint not null,
+  user_id bigint not null,
+  dashboard_name text not null,
+  recorded_at bigint not null,
+  active_seconds bigint not null
+);
+create index if not exists an_legacy_activity_user_idx on public.an_legacy_activity (user_id, recorded_at);
+create table if not exists public.an_legacy_audit (
+  id bigint primary key,
+  user_id bigint,
+  event text not null,
+  details text,
+  created_at bigint not null
+);
+create index if not exists an_legacy_audit_at_idx on public.an_legacy_audit (created_at);
+
 -- 4) Режимы модулей ------------------------------------------------------------------
 create table if not exists public.an_modules (
   module text primary key
@@ -170,10 +256,24 @@ create table if not exists public.an_replica_log (
   upserts integer not null default 0,
   deletes integer not null default 0,
   duration_ms integer,
-  error text
+  error text,
+  -- У отметки агента (target = 'agent'): версия, сервер, итог по таблицам.
+  details jsonb
 );
 create index if not exists an_replica_log_target_idx on public.an_replica_log (target, received_at desc);
 create index if not exists an_replica_log_at_idx on public.an_replica_log (received_at desc);
+
+insert into public.an_replica_targets (target, module, key_cols) values
+  ('an_legacy_users', 'core', '{id}'),
+  ('an_legacy_dashboard_access', 'core', '{user_id,dashboard_name}'),
+  ('an_legacy_partner_cities', 'core', '{user_id,city}'),
+  ('an_legacy_partner_profiles', 'core', '{user_id}'),
+  ('an_legacy_partner_city_settings', 'core', '{user_id,city}'),
+  ('an_legacy_fitbase_connections', 'core', '{user_id,connection_id}'),
+  ('an_legacy_sessions', 'core', '{id}'),
+  ('an_legacy_activity', 'core', '{id}'),
+  ('an_legacy_audit', 'core', '{id}')
+on conflict (target) do update set module = excluded.module, key_cols = excluded.key_cols;
 
 -- 8) Доступ к таблицам ------------------------------------------------------------------
 alter table public.an_partner_cities enable row level security;
@@ -185,13 +285,30 @@ alter table public.an_job_state enable row level security;
 alter table public.an_job_runs enable row level security;
 alter table public.an_replica_targets enable row level security;
 alter table public.an_replica_log enable row level security;
+alter table public.an_legacy_users enable row level security;
+alter table public.an_legacy_dashboard_access enable row level security;
+alter table public.an_legacy_partner_cities enable row level security;
+alter table public.an_legacy_partner_profiles enable row level security;
+alter table public.an_legacy_partner_city_settings enable row level security;
+alter table public.an_legacy_fitbase_connections enable row level security;
+alter table public.an_legacy_sessions enable row level security;
+alter table public.an_legacy_activity enable row level security;
+alter table public.an_legacy_audit enable row level security;
 
 revoke all on public.an_partner_cities, public.an_partner_profiles, public.an_partner_city_settings,
   public.an_modules, public.an_secrets, public.an_job_state, public.an_job_runs,
-  public.an_replica_targets, public.an_replica_log from anon, authenticated;
+  public.an_replica_targets, public.an_replica_log,
+  public.an_legacy_users, public.an_legacy_dashboard_access, public.an_legacy_partner_cities,
+  public.an_legacy_partner_profiles, public.an_legacy_partner_city_settings,
+  public.an_legacy_fitbase_connections, public.an_legacy_sessions, public.an_legacy_activity,
+  public.an_legacy_audit from anon, authenticated;
 grant all on public.an_partner_cities, public.an_partner_profiles, public.an_partner_city_settings,
   public.an_modules, public.an_secrets, public.an_job_state, public.an_job_runs,
-  public.an_replica_targets, public.an_replica_log to service_role;
+  public.an_replica_targets, public.an_replica_log,
+  public.an_legacy_users, public.an_legacy_dashboard_access, public.an_legacy_partner_cities,
+  public.an_legacy_partner_profiles, public.an_legacy_partner_city_settings,
+  public.an_legacy_fitbase_connections, public.an_legacy_sessions, public.an_legacy_activity,
+  public.an_legacy_audit to service_role;
 
 -- 9) Права человека ---------------------------------------------------------------------
 -- Администратор аналитики: право «Администратор аналитики» или суперадминистратор.
@@ -242,7 +359,13 @@ begin
     from public.an_partner_cities where user_id = _user_id;
   v_partner := not v_admin and ('an.partner' = any (v_rights) or v_cities is not null);
   if not v_admin and 'an.targetologist' = any (v_rights) then
-    select nullif(btrim(full_name), '') into v_target from public.profiles where id = _user_id;
+    -- ФИО — ключ назначений таргетологов (как у них). Перенесённому со
+    -- старого портала — его ФИО там: назначения приходят оттуда зеркалом.
+    select nullif(btrim(full_name), '') into v_target
+      from public.an_legacy_users where user_id = _user_id order by is_active desc, id limit 1;
+    if v_target is null then
+      select nullif(btrim(full_name), '') into v_target from public.profiles where id = _user_id;
+    end if;
     v_target := coalesce(v_target, '');
   end if;
 
@@ -401,7 +524,10 @@ grant execute on function public.an_jobs_list() to authenticated, service_role;
 
 -- 12) Приём синхронизации (сервер, service_role) --------------------------------------
 -- Строки — json-объекты с колонками таблицы-получателя: upsert по её ключу.
--- p_delete — объекты с ключевыми колонками: удалить. Одна пачка — одна транзакция.
+-- Пишутся только присланные колонки (по первой строке пачки): свои колонки
+-- получателя (например, связь с пользователем портала) синхронизация не
+-- трогает. p_delete — объекты с ключевыми колонками: удалить. Пачка — одна
+-- транзакция.
 create or replace function public.an_replica_apply(p_target text, p_rows jsonb, p_delete jsonb)
 returns jsonb
 language plpgsql
@@ -439,7 +565,11 @@ begin
       into v_cols, v_set
       from pg_attribute a
      where a.attrelid = format('public.%I', p_target)::regclass
-       and a.attnum > 0 and not a.attisdropped and a.attgenerated = '' and a.attidentity = '';
+       and a.attnum > 0 and not a.attisdropped
+       and a.attname in (select jsonb_object_keys(p_rows -> 0));
+    if v_cols is null then
+      raise exception 'an_replica_no_columns %', p_target using errcode = '22023';
+    end if;
     execute format(
       'insert into public.%I (%s) select %s from jsonb_populate_recordset(null::public.%I, $1) on conflict (%s) do %s',
       p_target, v_cols, v_cols, p_target, v_key_list,
@@ -481,6 +611,25 @@ $$;
 revoke all on function public.an_replica_status() from public, anon;
 grant execute on function public.an_replica_status() to authenticated, service_role;
 
+-- Агент на старом сервере: последняя отметка «на связи» и последняя проверка.
+create or replace function public.an_replica_agent()
+returns jsonb
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select case when public.an_is_admin(auth.uid()) then (
+    select jsonb_build_object('received_at', l.received_at, 'error', l.error, 'details', l.details)
+      from public.an_replica_log l
+     where l.target = 'agent'
+     order by l.received_at desc, l.id desc
+     limit 1)
+  end
+$$;
+revoke all on function public.an_replica_agent() from public, anon;
+grant execute on function public.an_replica_agent() to authenticated, service_role;
+
 -- Журнал приёма — 30 дней.
 create or replace function public.an_replica_log_cleanup()
 returns void
@@ -492,5 +641,109 @@ as $$
 $$;
 revoke all on function public.an_replica_log_cleanup() from public, anon, authenticated;
 grant execute on function public.an_replica_log_cleanup() to service_role;
+
+-- 13) Люди старого портала: список и связь с человеком портала -------------------
+-- Тип — их приоритет (users_page): администратор, партнёр (есть города),
+-- таргетолог, лид-менеджер, сотрудник. match_user_id — учётная запись
+-- портала с той же почтой (логин у них — почта).
+create or replace function public.an_legacy_people()
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+begin
+  perform public.an_require_admin();
+  return coalesce((
+    select jsonb_agg(jsonb_build_object(
+             'id', u.id, 'login', u.login, 'full_name', u.full_name, 'role', u.role,
+             'is_active', u.is_active = 1, 'position', u.position,
+             'kind', case when u.role = 'admin' then 'admin'
+                          when cardinality(c.cities) > 0 then 'partner'
+                          when u.is_targetologist = 1 then 'targetologist'
+                          when u.is_lead_manager = 1 then 'lead_manager'
+                          else 'staff' end,
+             'is_targetologist', u.is_targetologist = 1, 'is_lead_manager', u.is_lead_manager = 1,
+             'grants', to_jsonb(g.grants), 'cities', to_jsonb(c.cities),
+             'created_at', to_timestamp(u.created_at),
+             'last_seen_at', (select to_timestamp(max(s.last_seen_at)) from public.an_legacy_sessions s
+                               where s.user_id = u.id),
+             'user_id', u.user_id, 'user_name', public.access_user_name(u.user_id),
+             'imported_at', u.imported_at,
+             'match_user_id', m.id, 'match_in_portal', m.in_portal)
+             order by u.role, u.full_name, u.id)
+      from public.an_legacy_users u
+      cross join lateral (select coalesce(array_agg(dashboard_name order by dashboard_name), '{}') as grants
+                            from public.an_legacy_dashboard_access a where a.user_id = u.id) g
+      cross join lateral (select coalesce(array_agg(city order by city), '{}') as cities
+                            from public.an_legacy_partner_cities pc where pc.user_id = u.id) c
+      left join lateral (
+        select p.id, exists (select 1 from public.portal_users pu where pu.user_id = p.id) as in_portal
+          from public.profiles p
+         where u.user_id is null and position('@' in u.login) > 1
+           and lower(btrim(p.email)) = lower(btrim(u.login))
+         order by p.id limit 1) m on true
+  ), '[]'::jsonb);
+end;
+$$;
+revoke all on function public.an_legacy_people() from public, anon;
+grant execute on function public.an_legacy_people() to authenticated, service_role;
+
+-- Связать человека старого портала с человеком портала после переноса (роли
+-- и учётную запись к этому времени выдал сервер портала): один раз
+-- переносятся его города партнёра, карточка и условия по городам — дальше
+-- доступ в двух порталах ведётся независимо (ANALYTICS_PLAN.md, §3.3).
+-- Уже внесённое в портале не перезаписывается. Только суперадминистратор.
+create or replace function public.an_legacy_link(p_legacy_id bigint, p_user uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_legacy public.an_legacy_users;
+begin
+  if not public.access_has_right(auth.uid(), 'portal.admin') then
+    raise exception 'an_forbidden' using errcode = '42501';
+  end if;
+  select * into v_legacy from public.an_legacy_users where id = p_legacy_id for update;
+  if not found then
+    raise exception 'an_legacy_not_found' using errcode = 'P0002';
+  end if;
+  if v_legacy.user_id is not null and v_legacy.user_id <> p_user then
+    raise exception 'an_legacy_linked' using errcode = '23505';
+  end if;
+  if not exists (select 1 from public.portal_users where user_id = p_user) then
+    raise exception 'access_user_not_found' using errcode = 'P0002';
+  end if;
+
+  insert into public.an_partner_cities (user_id, city)
+  select p_user, btrim(city) from public.an_legacy_partner_cities
+   where user_id = p_legacy_id and btrim(city) <> ''
+  on conflict do nothing;
+  insert into public.an_partner_profiles (user_id, phone, telegram, max_messenger, individual_entrepreneur, inn)
+  select p_user, nullif(btrim(phone), ''), nullif(btrim(telegram), ''), nullif(btrim(max_messenger), ''),
+         nullif(btrim(individual_entrepreneur), ''),
+         case when btrim(inn) ~ '^([0-9]{10}|[0-9]{12})$' then btrim(inn) end
+    from public.an_legacy_partner_profiles where user_id = p_legacy_id
+  on conflict (user_id) do nothing;
+  insert into public.an_partner_city_settings (user_id, city, trial_price, directions)
+  select p_user, btrim(city), nullif(btrim(trial_price), ''), nullif(btrim(directions), '')
+    from public.an_legacy_partner_city_settings
+   where user_id = p_legacy_id and btrim(city) <> ''
+  on conflict do nothing;
+
+  update public.an_legacy_users
+     set user_id = p_user, imported_at = coalesce(imported_at, now()), imported_by = coalesce(imported_by, auth.uid())
+   where id = p_legacy_id;
+  perform public.access_log_add('analytics.import',
+    format('Перенесён со старого портала аналитики — %s', public.access_user_name(p_user)),
+    p_user, null, jsonb_build_object('legacy_id', p_legacy_id, 'login', v_legacy.login,
+                                     'full_name', v_legacy.full_name));
+end;
+$$;
+revoke all on function public.an_legacy_link(bigint, uuid) from public, anon;
+grant execute on function public.an_legacy_link(bigint, uuid) to authenticated, service_role;
 
 notify pgrst, 'reload schema';

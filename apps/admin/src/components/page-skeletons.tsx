@@ -2548,11 +2548,27 @@ export function AnalyticsSyncPageSkeleton() {
         </section>
         <section className="space-y-3">
           <h2 className="text-lg font-semibold">Приём данных со старого портала</h2>
-          <Skeleton className="h-16 w-full rounded-lg" />
+          <Skeleton className="h-28 w-full rounded-lg" />
           <TableCardSkeleton
             headers={["Таблица", "Модуль", "Строк", "За сутки", "Последняя пачка"]}
             rows={3}
             pagination={false}
+          />
+        </section>
+        <section className="space-y-3">
+          <h2 className="text-lg font-semibold">Пользователи со старого портала</h2>
+          <Skeleton className="h-16 w-full rounded-lg" />
+          <TableCardSkeleton
+            headers={[
+              { label: "", className: "w-10" },
+              "Человек",
+              "Тип и должность",
+              "Доступ",
+              "Получит",
+              "Последний вход",
+              "Перенос",
+            ]}
+            rows={5}
           />
         </section>
       </div>
