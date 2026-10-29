@@ -17,7 +17,7 @@
  * иконок: его читает и сервер.
  */
 import type { AcadAccessInfo } from "@/lib/academy/types";
-import type { AnAccess } from "@/lib/analytics/types";
+import type { AnMe } from "@/lib/analytics/access";
 import type { KbLevel } from "@/lib/kb/access";
 import type { AccessRight } from "@/lib/access/logic";
 
@@ -71,10 +71,11 @@ export type AdminAccess = {
    */
   academy?: AcadAccessInfo;
   /**
-   * «Аналитика сети» (клубы на 1С, FitBase и других системах): все клубы,
-   * загрузка и справочники, свои города (RPC an_access). Нет поля — раздела нет.
+   * «Аналитика» (перенос портала аналитики Lady Stretch): открытые отчёты,
+   * администрирование, города партнёра, таргетолог (RPC an_me). Нет поля —
+   * раздела нет.
    */
-  analytics?: AnAccess;
+  analytics?: AnMe;
   /**
    * Сетевые права (lib/access/logic.ts, ACCESS_RIGHTS): portal.admin,
    * users.manage, roles.manage, kb.admin… У человека вне новой модели

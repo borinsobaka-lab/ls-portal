@@ -34,6 +34,7 @@ import {
   MoneyBag,
   Notebook,
   PieChart2,
+  Refresh,
   Settings,
   ShieldUser,
   Smartphone,
@@ -59,7 +60,7 @@ import {
   type ClubSectionKey,
 } from "@/lib/admin-access";
 import type { AccessRight } from "@/lib/access/logic";
-import { anVisible } from "@/lib/analytics/types";
+import { anCan, type AnNeed } from "@/lib/analytics/access";
 import { DASHBOARD_TITLES } from "@/lib/dashboard-stats";
 import { HIDDEN_MANAGE_URLS, HIDDEN_RAIL_SECTIONS } from "@/lib/launch";
 import type { StudioFormat } from "@/lib/studio-formats";
@@ -237,32 +238,45 @@ export const DASHBOARD_ITEMS: NavItem[] = [
 ];
 
 /**
- * «Аналитика сети» (2026-10-26, ANALYTICS.md) — отчёты для клубов сети,
- * которые ведут учёт в своих системах (1С, FitBase, АДИС, Мобифитнес…), а не
- * в нашей CRM: то, что Lady Stretch показывала партнёрам в своём портале
- * аналитики. С нашими клубами не связана — у них «Дашборд». Отчёты видят
- * права «Аналитика сети: все клубы» и «свои города» (партнёр), блок «Данные»
- * (загрузка выгрузок и справочники) — «загрузка и справочники».
+ * «Аналитика» (решения владельца 2026-10-29, ANALYTICS_PLAN.md) — перенос
+ * портала аналитики Lady Stretch (analytics.lady-stretching.ru): отчёты 1С и
+ * FitBase, маркетинг (amoCRM, VK Ads, Авито), отзывы, контент, диалоги VK,
+ * инструменты (обработка 1С, очистка Excel). Меню — группы, пункт открыт по
+ * своему праву (`need`, lib/analytics/access.ts: их allowed_dashboards).
+ * Модули добавляются сюда по мере переноса.
  */
 export const ANALYTICS_URL = "/analytics";
-export const ANALYTICS_ITEMS: NavItem[] = [
-  { title: "Мой город", url: ANALYTICS_URL, icon: City, exact: true },
-  { title: "Выручка", url: "/analytics/revenue", icon: GraphNewUp },
-  { title: "Продажи абонементов", url: "/analytics/sales", icon: Card },
-  { title: "Занятия", url: "/analytics/classes", icon: Dumbbell },
-  { title: "Воронка пробных", url: "/analytics/trials", icon: Target },
-  { title: "Нулевая номенклатура", url: "/analytics/zero", icon: TagPrice },
-  { title: "Рейтинг", url: "/analytics/rating", icon: CupStar },
+export type AnalyticsNavItem = NavItem & { need: AnNeed };
+export const ANALYTICS_GROUPS: NavGroup<AnalyticsNavItem>[] = [
+  {
+    key: "an-home",
+    label: "Аналитика",
+    items: [{ title: "Главная", url: ANALYTICS_URL, icon: HomeSmile, exact: true, need: "home" }],
+  },
+  {
+    key: "an-admin",
+    label: "Администрирование",
+    items: [
+      {
+        title: "Синхронизация",
+        url: "/analytics/admin/sync",
+        icon: Refresh,
+        need: "admin",
+      },
+    ],
+  },
 ];
-/** Блок «Данные»: загрузка выгрузок и справочники (право analytics.manage). */
-export const ANALYTICS_DATA_ITEMS: NavItem[] = [
-  { title: "Загрузка данных", url: "/analytics/upload", icon: UploadMinimalistic },
-  { title: "Студии", url: "/analytics/studios", icon: Buildings2 },
-  { title: "Номенклатура", url: "/analytics/nomenclature", icon: TagPrice },
-  { title: "Точка 0", url: "/analytics/targets", icon: Flag },
-  { title: "Доступ партнёров", url: "/analytics/partners", icon: HandShake },
-];
-const ANALYTICS_PATHS = [...ANALYTICS_ITEMS, ...ANALYTICS_DATA_ITEMS].map((i) => i.url);
+const ANALYTICS_NAV = ANALYTICS_GROUPS.flatMap((g) => g.items);
+const ANALYTICS_PATHS = ANALYTICS_NAV.map((i) => i.url);
+
+/** Пункт меню «Аналитики», которому принадлежит страница (самый длинный адрес). */
+export function analyticsNavItemOf(pathname: string): AnalyticsNavItem | null {
+  return (
+    ANALYTICS_NAV.filter((i) => (i.exact ? pathname === i.url : matches(pathname, i.url))).sort(
+      (a, b) => b.url.length - a.url.length,
+    )[0] ?? null
+  );
+}
 
 /** Разделы студии в форме «Доступов»: дашборд и меню клуба. */
 export const STUDIO_SECTION_GROUPS: NavGroup<ClubNavItem>[] = [
@@ -437,12 +451,12 @@ const ALL_SECTIONS: RailSection[] = [
     icon: SquareAcademicCap,
     paths: ACADEMY_ITEMS.slice(1).map((i) => i.url),
   },
-  // Аналитика клубов сети на своих учётных системах (бывший портал
-  // аналитики Lady Stretch) — в конце рейки (решение владельца 2026-10-26).
+  // Перенос портала аналитики Lady Stretch — в конце рейки (решение
+  // владельца 2026-10-26).
   {
     key: "analytics",
     title: "Анали\u00ADтика",
-    fullTitle: "Аналитика сети — клубы на 1С, FitBase и других системах",
+    fullTitle: "Аналитика — отчёты сети Lady Stretch",
     url: ANALYTICS_URL,
     icon: Chart2,
     paths: ANALYTICS_PATHS.slice(1),
@@ -552,9 +566,7 @@ export function canOpenPath(
   // Дашборд над студиями: открыт, если открыт хоть в одной студии.
   if (section === "dashboard") return dashboardStudioIds(access).length > 0;
   if (section === "analytics")
-    return ANALYTICS_DATA_ITEMS.some((i) => matches(pathname, i.url))
-      ? !!access.analytics?.manage
-      : anVisible(access.analytics);
+    return anCan(access.analytics, analyticsNavItemOf(pathname)?.need ?? "home");
   if (section === "app" || section === "scripts") return canOpenRail(access, section);
   if (section === "club") {
     // «Сотрудники» общие для клубов: право — раздел рейки, не раздел клуба.

@@ -33,23 +33,23 @@ export const ACCESS_RIGHTS = [
   "academy.review",
   "staff.directory",
   "app.content",
-  "analytics.view",
-  "analytics.cities",
-  "analytics.manage",
 ] as const;
 export type AccessRight = (typeof ACCESS_RIGHTS)[number];
 
-export const BLOCK_ORDER: PermBlock[] = ["club", "sections", "knowledge", "admin"];
+export const BLOCK_ORDER: PermBlock[] = ["club", "sections", "knowledge", "analytics", "admin"];
 export const BLOCK_LABEL: Record<PermBlock, string> = {
   club: "Клуб — данные и разделы",
   sections: "Разделы админки",
   knowledge: "База знаний и Академия",
+  analytics: "Аналитика",
   admin: "Управление порталом",
 };
 export const BLOCK_HINT: Record<PermBlock, string> = {
   club: "Действуют в клубах, выбранных при назначении роли: во всех, в клубах бренда или в отдельных.",
   sections: "Общие для всей сети.",
   knowledge: "Базы знаний и курсы общие для сети.",
+  analytics:
+    "Отчёты и инструменты прежнего портала аналитики Lady Stretch. Партнёру — только его города, таргетологу — его пары «бренд + город».",
   admin: "Кто управляет людьми, ролями и структурой.",
 };
 

@@ -1,4 +1,5 @@
 import { startAccessSync } from "./lib/access/sync.server";
+import { startAnalyticsJobs } from "./lib/analytics/server/jobs.server";
 import { errorResponse } from "./lib/error-page";
 import { startKbTrashPurge } from "./lib/kb/trash-purge.server";
 import { startPushWorker } from "./lib/push/push-worker.server";
@@ -13,6 +14,8 @@ startPushWorker();
 startKbTrashPurge();
 // Сроки ролей и «Доступ до»: доступ включается и выключается сам.
 startAccessSync();
+// «Аналитика»: сборщики модулей и служебные задачи (ANALYTICS_PLAN.md).
+startAnalyticsJobs();
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;

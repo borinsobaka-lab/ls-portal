@@ -28,7 +28,14 @@ const admin: AdminAccess = {
     my_open: 0,
     to_review: 0,
   },
-  analytics: { view: true, cities: [], manage: true },
+  analytics: {
+    visible: true,
+    admin: true,
+    reports: [],
+    partnerCities: null,
+    targetologist: null,
+    inbox: true,
+  },
 };
 
 // С VITE_SHOW_CLUBS=true (прогон логики клубов) — клубы видны, тест не к месту.
@@ -95,8 +102,8 @@ describe.skipIf(process.env.VITE_SHOW_CLUBS === "true")(
       for (const key of [
         "kb.base",
         "academy.admin",
-        "analytics.view",
-        "analytics.clubs",
+        "an.admin",
+        "an.onec.mycity",
         "studios.create",
         "users.manage",
         "portal.admin",
@@ -112,7 +119,7 @@ describe.skipIf(process.env.VITE_SHOW_CLUBS === "true")(
       const def = (key: string, scope: "studio" | "network") => ({
         key,
         block: "sections" as const,
-        label: key === "analytics.clubs" ? "Аналитика сети: свои клубы" : key,
+        label: key === "users.manage" ? "Управляет пользователями" : key,
         hint: null,
         scope,
         levels: ["on"],
@@ -122,16 +129,16 @@ describe.skipIf(process.env.VITE_SHOW_CLUBS === "true")(
       const catalog = [
         def("studio.tier", "studio"),
         def("club.all", "studio"),
-        def("analytics.clubs", "studio"),
+        def("users.manage", "studio"),
       ];
       const tierOnly = [
         { perm_key: "studio.tier", target_id: null, level: "owner" },
         { perm_key: "club.all", target_id: null, level: "on" },
       ];
       expect(hasStudioPerms(tierOnly, catalog)).toBe(false);
-      const owner = [...tierOnly, { perm_key: "analytics.clubs", target_id: null, level: "on" }];
+      const owner = [...tierOnly, { perm_key: "users.manage", target_id: null, level: "on" }];
       expect(hasStudioPerms(owner, catalog)).toBe(true);
-      expect(roleSummary(owner, catalog)).toEqual(["Аналитика сети: свои клубы"]);
+      expect(roleSummary(owner, catalog)).toEqual(["Управляет пользователями"]);
       const names = { studio: new Map([["s1", "Тверская"]]), brand: new Map() };
       expect(scopeText({ scope_type: "studios", scope_ids: ["s1"] }, names)).toBe("Тверская");
       expect(scopeText({ scope_type: "owned", scope_ids: [] }, names)).toBe("Клубы собственника");

@@ -52,26 +52,7 @@ import {
   TRAINER_COLUMNS,
   WORKOUT_COLUMNS,
 } from "@/lib/dashboard-stats";
-import {
-  ANALYTICS_FILTERS,
-  ANALYTICS_TITLES,
-  CITY_CLUB_COLUMNS,
-  CITY_TILES,
-  CLASSES_CLUB_COLUMNS,
-  CLASSES_TILES,
-  RATING_PANELS,
-  REVENUE_COLUMNS_TAIL,
-  REVENUE_TILES,
-  SALES_CLUB_COLUMNS,
-  SALES_TILES,
-  STUDIOS_COLUMNS,
-  IMPORTS_COLUMNS,
-  NOMENCLATURE_COLUMNS,
-  TRIALS_CLUB_COLUMNS,
-  TRIALS_TILES,
-  ZERO_COLUMNS,
-  ZERO_TILES,
-} from "@/lib/analytics/labels";
+import { AN_HOME_TEXT, AN_TITLES } from "@/lib/analytics/labels";
 import { CLUBS_HIDDEN } from "@/lib/launch";
 
 /*
@@ -2506,299 +2487,74 @@ export function AcademySettingsPageSkeleton() {
 }
 
 // ---------------------------------------------------------------------------
-// «Аналитика» (components/analytics/, routes/_authenticated/analytics/)
+// «Аналитика» (перенос портала аналитики Lady Stretch, ANALYTICS_PLAN.md)
 
-/** Плашка фильтров отчёта (подписи над полями, как у дашборда) и тело. */
-export function AnalyticsBodySkeleton({
-  mode = "range",
+/** Шапка главной «Аналитики» (как у их главной) и карточки под ней. */
+export function AnalyticsHomeBody({
+  greeting,
   children,
 }: {
-  mode?: "range" | "month";
+  /** null — имя ещё не загружено. */
+  greeting: string | null;
   children: ReactNode;
 }) {
   return (
-    <div className="space-y-3">
-      <div className="table-toolbar flex flex-wrap items-end gap-2 rounded-lg border bg-background p-2 sm:px-3">
-        {[
-          mode === "month" ? ANALYTICS_FILTERS.month : ANALYTICS_FILTERS.period,
-          ANALYTICS_FILTERS.city,
-        ].map((f) => (
-          <DashboardFilterField key={f.label} {...f}>
-            <Skeleton className="h-10 w-full" />
-          </DashboardFilterField>
-        ))}
-      </div>
+    <div className="space-y-4">
+      <section className="rounded-lg border bg-background p-5">
+        <div className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+          {AN_HOME_TEXT.eyebrow}
+        </div>
+        {greeting === null ? (
+          <Skeleton className="mt-1 h-7 w-64" />
+        ) : (
+          <h2 className="mt-1 text-xl font-semibold">{greeting}</h2>
+        )}
+        <p className="mt-1 text-sm text-muted-foreground">{AN_HOME_TEXT.lead}</p>
+      </section>
       {children}
     </div>
   );
 }
 
-/** Плитки отчёта (KpiTile): настоящие подписи, болванки значения и сравнения. */
-export function AnalyticsTilesSkeleton({
-  labels,
-  cols = 4,
-  deltas = true,
-}: {
-  labels: string[];
-  cols?: 3 | 4 | 6;
-  deltas?: boolean;
-}) {
+export function AnalyticsHomePageSkeleton() {
   return (
-    <div
-      className={cn(
-        "grid grid-cols-2 gap-2 sm:gap-3",
-        cols === 3 && "lg:grid-cols-3",
-        cols === 4 && "lg:grid-cols-4",
-        cols === 6 && "lg:grid-cols-3 2xl:grid-cols-6",
-      )}
-    >
-      {labels.map((label) => (
-        <div
-          key={label}
-          className="min-w-0 rounded-lg border bg-background px-3 py-2.5 sm:px-4 sm:py-3"
-        >
-          <p className="truncate text-xs font-medium text-muted-foreground sm:text-sm">{label}</p>
-          <Skeleton className="mt-1.5 h-6 w-24" />
-          {deltas && <Skeleton className="mt-1.5 h-3 w-28" />}
+    <ShellSkeleton title={AN_TITLES.home} network>
+      <AnalyticsHomeBody greeting={null}>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="min-h-28 space-y-2 rounded-lg border bg-background p-5">
+              <Skeleton className="h-5 w-40" />
+              <Skeleton className="h-4 w-3/4" />
+            </div>
+          ))}
         </div>
-      ))}
-    </div>
-  );
-}
-
-const labelsOf = (tiles: Record<string, { label: string }>) =>
-  Object.values(tiles).map((t) => t.label);
-
-/** Таблица отчёта в белой карточке с заголовком (TableCard). */
-export function AnalyticsTableSkeleton({
-  title,
-  headers,
-  rows = 6,
-}: {
-  title: string;
-  headers: string[];
-  rows?: number;
-}) {
-  return <TableCardSkeleton title={title} headers={headers} rows={rows} />;
-}
-
-export function AnalyticsCityBodySkeleton() {
-  return (
-    <div className="space-y-3">
-      <AnalyticsTilesSkeleton labels={labelsOf(CITY_TILES)} />
-      <div className="grid gap-3 xl:grid-cols-2">
-        <DashboardChartSkeleton title="Выручка по месяцам" height={240} />
-        <AnalyticsTableSkeleton
-          title="Что покупают"
-          headers={["Номенклатура", "Продано", "Сумма"]}
-          rows={5}
-        />
-      </div>
-      <AnalyticsTableSkeleton title="Студии" headers={CITY_CLUB_COLUMNS} rows={4} />
-    </div>
-  );
-}
-
-export function AnalyticsCityPageSkeleton() {
-  return (
-    <ShellSkeleton title={ANALYTICS_TITLES.city} network>
-      <AnalyticsBodySkeleton>
-        <AnalyticsCityBodySkeleton />
-      </AnalyticsBodySkeleton>
+      </AnalyticsHomeBody>
     </ShellSkeleton>
   );
 }
 
-export function AnalyticsRevenueBodySkeleton() {
+export function AnalyticsSyncPageSkeleton() {
   return (
-    <div className="space-y-3">
-      <AnalyticsTilesSkeleton labels={labelsOf(REVENUE_TILES)} deltas={false} />
-      <AnalyticsTableSkeleton
-        title="Города и студии"
-        headers={["Город / клуб", "1–7", "8–14", "15–21", "22–28", ...REVENUE_COLUMNS_TAIL]}
-        rows={8}
-      />
-    </div>
-  );
-}
-
-export function AnalyticsRevenuePageSkeleton() {
-  return (
-    <ShellSkeleton title={ANALYTICS_TITLES.revenue} network>
-      <AnalyticsBodySkeleton mode="month">
-        <AnalyticsRevenueBodySkeleton />
-      </AnalyticsBodySkeleton>
-    </ShellSkeleton>
-  );
-}
-
-export function AnalyticsSalesBodySkeleton() {
-  const tiles = labelsOf(SALES_TILES);
-  return (
-    <div className="space-y-3">
-      <AnalyticsTilesSkeleton labels={tiles.slice(0, 6)} cols={6} />
-      <AnalyticsTilesSkeleton labels={tiles.slice(6)} cols={3} />
-      <div className="grid gap-3 xl:grid-cols-2">
-        <DashboardChartSkeleton title="Продано по месяцам" height={240} />
-        <DashboardChartSkeleton title="Оплаты по месяцам" height={240} />
-      </div>
-      <AnalyticsTableSkeleton title="Города и студии" headers={SALES_CLUB_COLUMNS} rows={4} />
-    </div>
-  );
-}
-
-export function AnalyticsSalesPageSkeleton() {
-  return (
-    <ShellSkeleton title={ANALYTICS_TITLES.sales} network>
-      <AnalyticsBodySkeleton>
-        <AnalyticsSalesBodySkeleton />
-      </AnalyticsBodySkeleton>
-    </ShellSkeleton>
-  );
-}
-
-export function AnalyticsClassesBodySkeleton() {
-  return (
-    <div className="space-y-3">
-      <AnalyticsTilesSkeleton labels={labelsOf(CLASSES_TILES)} cols={6} />
-      <AnalyticsTableSkeleton title="Города и студии" headers={CLASSES_CLUB_COLUMNS} rows={4} />
-    </div>
-  );
-}
-
-export function AnalyticsClassesPageSkeleton() {
-  return (
-    <ShellSkeleton title={ANALYTICS_TITLES.classes} network>
-      <AnalyticsBodySkeleton>
-        <AnalyticsClassesBodySkeleton />
-      </AnalyticsBodySkeleton>
-    </ShellSkeleton>
-  );
-}
-
-export function AnalyticsTrialsBodySkeleton() {
-  return (
-    <div className="space-y-3">
-      <AnalyticsTilesSkeleton labels={labelsOf(TRIALS_TILES)} />
-      <AnalyticsTableSkeleton title="Города и студии" headers={TRIALS_CLUB_COLUMNS} rows={4} />
-    </div>
-  );
-}
-
-export function AnalyticsTrialsPageSkeleton() {
-  return (
-    <ShellSkeleton title={ANALYTICS_TITLES.trials} network>
-      <AnalyticsBodySkeleton>
-        <AnalyticsTrialsBodySkeleton />
-      </AnalyticsBodySkeleton>
-    </ShellSkeleton>
-  );
-}
-
-export function AnalyticsZeroBodySkeleton() {
-  return (
-    <div className="space-y-3">
-      <AnalyticsTilesSkeleton labels={labelsOf(ZERO_TILES)} deltas={false} />
-      <AnalyticsTableSkeleton title="Продажи с нулём" headers={ZERO_COLUMNS} rows={6} />
-    </div>
-  );
-}
-
-export function AnalyticsZeroPageSkeleton() {
-  return (
-    <ShellSkeleton title={ANALYTICS_TITLES.zero} network>
-      <AnalyticsBodySkeleton>
-        <AnalyticsZeroBodySkeleton />
-      </AnalyticsBodySkeleton>
-    </ShellSkeleton>
-  );
-}
-
-export function AnalyticsRatingBodySkeleton() {
-  return (
-    <div className="grid gap-3 xl:grid-cols-2">
-      {Object.values(RATING_PANELS).map((p) => (
-        <DashboardChartSkeleton key={p.label} title={p.label}>
-          <DashboardRankSkeleton rows={5} />
-        </DashboardChartSkeleton>
-      ))}
-    </div>
-  );
-}
-
-export function AnalyticsRatingPageSkeleton() {
-  return (
-    <ShellSkeleton title={ANALYTICS_TITLES.rating} network>
-      <AnalyticsBodySkeleton mode="month">
-        <AnalyticsRatingBodySkeleton />
-      </AnalyticsBodySkeleton>
-    </ShellSkeleton>
-  );
-}
-
-export function AnalyticsUploadPageSkeleton() {
-  return (
-    <ShellSkeleton title={ANALYTICS_TITLES.upload} network>
+    <ShellSkeleton title={AN_TITLES.sync} network>
       <div className="space-y-6">
-        <section className="max-w-3xl space-y-4 rounded-lg border bg-background p-6">
-          <h2 className="text-lg font-semibold">Новая загрузка</h2>
-          <Skeleton className="h-10 w-full" />
-          <div className="grid gap-4 sm:grid-cols-2">
-            <FieldSkeleton />
-            <FieldSkeleton />
-          </div>
-          <Skeleton className="h-12 w-full" />
-          <ControlSkeletonView control={{ label: "Выбрать файл", icon: true }} />
+        <Skeleton className="h-16 w-full rounded-lg" />
+        <section className="space-y-3">
+          <h2 className="text-lg font-semibold">Режимы модулей</h2>
+          <TableCardSkeleton
+            headers={["Модуль", "Режим", "Изменён"]}
+            rows={10}
+            pagination={false}
+          />
         </section>
         <section className="space-y-3">
-          <h2 className="text-lg font-semibold">Журнал загрузок</h2>
-          <TableCardSkeleton headers={IMPORTS_COLUMNS} rows={4} />
+          <h2 className="text-lg font-semibold">Приём данных со старого портала</h2>
+          <Skeleton className="h-16 w-full rounded-lg" />
+          <TableCardSkeleton
+            headers={["Таблица", "Модуль", "Строк", "За сутки", "Последняя пачка"]}
+            rows={3}
+            pagination={false}
+          />
         </section>
-      </div>
-    </ShellSkeleton>
-  );
-}
-
-export function AnalyticsStudiosPageSkeleton() {
-  return (
-    <TablePage
-      title={ANALYTICS_TITLES.studios}
-      toolbar={{ search: true, controls: ["w-48"] }}
-      headers={STUDIOS_COLUMNS}
-      pagination={false}
-      network
-    />
-  );
-}
-
-export function AnalyticsNomenclaturePageSkeleton() {
-  return (
-    <TablePage
-      title={ANALYTICS_TITLES.nomenclature}
-      toolbar={{ search: true, controls: ["w-48"] }}
-      headers={[{ label: "", className: "w-10" }, ...NOMENCLATURE_COLUMNS]}
-      network
-    />
-  );
-}
-
-export function AnalyticsTargetsPageSkeleton() {
-  return (
-    <ShellSkeleton title={ANALYTICS_TITLES.targets} network>
-      <div className="max-w-3xl space-y-3">
-        <Skeleton className="h-12 w-full" />
-        <TableCardSkeleton headers={["Город", "Студий", "Точка 0, ₽ в месяц"]} rows={5} />
-      </div>
-    </ShellSkeleton>
-  );
-}
-
-export function AnalyticsPartnersPageSkeleton() {
-  return (
-    <ShellSkeleton title={ANALYTICS_TITLES.partners} network>
-      <div className="space-y-3">
-        <Skeleton className="h-12 w-full" />
-        <TableCardSkeleton headers={["Партнёр", "Почта", "Города"]} rows={4} />
       </div>
     </ShellSkeleton>
   );

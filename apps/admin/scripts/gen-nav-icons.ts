@@ -64,6 +64,7 @@ const ICONS: Record<string, string> = {
   Notebook: "notes",
   PhoneCallingRounded: "call",
   PieChart2: "business",
+  Refresh: "arrows",
   QuestionCircle: "ui",
   Rocket: "astronomy",
   Settings: "settings",

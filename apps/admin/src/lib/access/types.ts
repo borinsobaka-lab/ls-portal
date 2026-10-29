@@ -4,7 +4,7 @@
  */
 
 export type PermScope = "studio" | "network";
-export type PermBlock = "club" | "sections" | "knowledge" | "admin";
+export type PermBlock = "club" | "sections" | "knowledge" | "analytics" | "admin";
 
 /** Право из каталога access_permissions. */
 export type PermissionDef = {

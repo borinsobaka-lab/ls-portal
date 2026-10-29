@@ -47,8 +47,7 @@ export function useAccessNames(withUsers = true): Names & {
                 !isHiddenPermission(p.perm_key) &&
                 (p.perm_key === "studio.tier" ||
                   p.perm_key.startsWith("club.") ||
-                  p.perm_key === "users.manage" ||
-                  p.perm_key === "analytics.clubs"),
+                  p.perm_key === "users.manage"),
             ),
           },
         ]),
