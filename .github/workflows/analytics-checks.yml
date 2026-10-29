@@ -1,4 +1,4 @@
-# Проверки Pull Request из форка (разработчик «Аналитики сети», CLAUDE.md):
+# Проверки Pull Request разработчика «Аналитики» — из форка или не от владельца (CLAUDE.md):
 # типы, линтер и тесты админки, сборка схемы со всеми миграциями на чистом
 # Postgres 16 и тесты базы. Код Pull Request выполняется с токеном только на
 # чтение и без секретов репозитория (событие pull_request).
@@ -12,7 +12,8 @@ permissions:
 
 jobs:
   checks:
-    if: github.event.pull_request.head.repo.full_name != github.repository
+    # Из форка или не от владельца (разработчик аналитики с доступом к репозиторию).
+    if: github.event.pull_request.head.repo.full_name != github.repository || github.event.pull_request.user.login != github.repository_owner
     runs-on: ubuntu-latest
     services:
       postgres:

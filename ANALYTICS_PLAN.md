@@ -273,7 +273,7 @@ Postgres вместо SQLite, префикс `an_<модуль>_`, секрет�
 | Модуль | Таблицы (их → наши) |
 | --- | --- |
 | 1С | снимок `items` / `facts` / `metadata` → `an_onec_items`, `an_onec_facts`, `an_onec_meta` (+ версия и «предыдущий» для отката, как их `previous.sqlite3`); справочники `cities.json`, `studios_reference.json` → `an_onec_ref`; обработка: `an_onec_files` (выгрузки в закрытом хранилище), `an_onec_studios`, `an_onec_nomenclature`, `an_onec_break_even`, `an_onec_runs` |
-| ядро | `user_partner_cities` → `an_partner_cities`, `partner_profiles` / `partner_city_settings` → `an_partner_profiles` / `an_partner_city_settings`, `user_fitbase_connections` → `an_fb_user_studios`, `audit_log` → `an_audit`, `activity_samples` → `an_activity`, `analytics_api_keys` / `_requests` → `an_api_keys` / `an_api_requests` |
+| ядро | зеркало `portal.sqlite3` как есть — `an_legacy_users`, `an_legacy_dashboard_access`, `an_legacy_partner_cities`, `an_legacy_partner_profiles`, `an_legacy_partner_city_settings`, `an_legacy_fitbase_connections`, `an_legacy_sessions`, `an_legacy_activity`, `an_legacy_audit` (сделано, этап 0); свои после переноса людей — `an_partner_cities`, `an_partner_profiles`, `an_partner_city_settings`, `an_fb_user_studios`; журнал и активное время нового портала — `an_audit`, `an_activity`; `analytics_api_keys` / `_requests` → `an_api_keys` / `an_api_requests` |
 | amoCRM | `connections`, `connection_settings`, `pipeline_mappings`, `responsible_mappings`, `qualification_basis_mappings`, `marketing_leads`, `lead_events`, `marketing_versions`, `marketing_snapshots` (+ origins, history_state), `sync_state`, `sync_runs`, `metadata_cache` → `an_crm_*` |
 | VK Ads | `ad_accounts`, `account_balances`, `ad_plans`, `daily_campaign_statistics`, `lead_forms`, `lead_form_campaign_links`, `lead_submissions`, `lead_form_metric_leads`, `lead_form_daily_metrics`, `lead_collection_sources/settings`, `google_drive_settings`, `brand_community_message_sources`, `brand_community_message_daily_metrics`, `brand_target_monthly_plans` (+ changes), `brand_city_targetologists`, `budget_alert_settings`, `budget_alerts`, `telegram_bot_settings`, `partner_notification_channels`, `budget_alert_deliveries`, `sync_runs` → `an_vk_*` |
 | Авито | `accounts`, `entities`, `daily_campaign_statistics`, `monthly_plans` → `an_avito_*` |
@@ -517,7 +517,7 @@ Postgres вместо SQLite, префикс `an_<модуль>_`, секрет�
 
 | Этап | Что входит |
 | --- | --- |
-| **0. Фундамент** | Удаление старой «Аналитики сети»; каркас раздела и меню; права и стартовые роли; секреты; фоновые задачи; приём синхронизации и агент; экран «Синхронизация со старым порталом»; перенос людей |
+| **0. Фундамент** — сделано 2026-10-29 | Удаление старой «Аналитики сети»; каркас раздела и меню; права и стартовые роли; секреты; фоновые задачи; приём синхронизации и агент; экран «Синхронизация со старым порталом»; перенос людей |
 | **1. 1С: отчёты** | Зеркало снимка; шесть отчётов и главная; партнёры (города, карточки, доступ); посещаемость и журнал; API для GPT |
 | **2. 1С: инструменты** | «Обработка 1С» со справочниками и окном номенклатуры, проверка против зеркала, загрузка в оба портала; «Очистка Excel»; «Топ-10 городов» |
 | **3. Отзывы** | Зеркало, статистика клиентов и сотрудников, загрузка, ссылки, публичная форма |

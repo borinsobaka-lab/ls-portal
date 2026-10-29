@@ -30,8 +30,10 @@ Tailwind 4 + shadcn/radix. Пакетный менеджер — bun.
   `lib/kb/document.test.ts`, сравнение версий `lib/kb/diff.test.ts`,
   аналитика чтения `lib/kb/analytics.test.ts`, теги `lib/kb/tags.test.ts`;
   «Рабочий день» — время по Тбилиси, просрочка, порядок `lib/workday/logic.test.ts`;
-  «Аналитика» — города, недели, прогноз, точка 0, продажи, пробные, рейтинг
-  `lib/analytics/logic.test.ts`, разбор выгрузок `lib/analytics/import.test.ts`; «Академия» — подписи,
+  «Аналитика» — права `lib/analytics/access.test.ts`, перенос людей со
+  старого портала `lib/analytics/legacy-people.test.ts`, приём синхронизации
+  и ключи интеграций `lib/analytics/server/replica.test.ts` /
+  `secrets.test.ts`; «Академия» — подписи,
   проверка вопроса, сроки и напоминания `lib/academy/logic.test.ts`;
   Kate — инструменты,
   права, история и промпт `lib/assistant/*.test.ts`).
@@ -64,7 +66,7 @@ Tailwind 4 + shadcn/radix. Пакетный менеджер — bun.
 франшиза, город, собственники; удаление — общее окно
 `components/studio-delete-form.tsx`), собственники видны и меняются и в
 карточке пользователя (`components/access/club-owners.tsx`), клубы — в
-назначениях ролей («Аналитика сети: свои клубы»). Вернуть всё — build-переменная
+назначениях ролей. Вернуть всё — build-переменная
 `VITE_SHOW_CLUBS=true`. Тесты: режим «скрыто» — `lib/launch.test.ts`;
 логика разделов клубов (`admin-access.test.ts`, `access/logic.test.ts`)
 идёт отдельным прогоном с `VITE_SHOW_CLUBS=true` — `bun run test` (в
@@ -85,6 +87,10 @@ AI-переменные (`AI_GATEWAY_*`, `AI_CHAT_MODEL`, `AI_TRANSCRIBE_MODEL`)
 не задаются — ассистент и диктовка отвечают 503. Пуши (необязательно):
 `VAPID_SUBJECT` — контакт отправителя для служб доставки (по умолчанию
 `mailto:` + `MAIL_FROM`), `PUSH_WORKER=off` — не рассылать с этого сервера.
+«Аналитика» (DEPLOY.md, шаг 15): `ANALYTICS_REPLICA_SECRET` (подпись пачек
+агента старого портала), `ANALYTICS_SECRETS_KEY` (шифрование ключей
+интеграций), `ANALYTICS_REPLICA_PRIVATE_KEY` (RSA, PEM), `ANALYTICS_JOBS=off`
+— не выполнять её фоновые задачи на этом сервере.
 
 Бренд портала — Lady Stretch (`src/lib/brand.ts`: заголовки страниц, экран
 входа; значки `public/` — логотип Lady Stretch, favicon — «LS»).
@@ -666,30 +672,36 @@ kb`. Доступ — ролями «Пользователей и ролей» 
   «Настроить»: блоки и пункты (окна, «Выше / Ниже» — RPC `workday_reorder`),
   «Скопировать из клуба» (`workday_copy`). Логика — `lib/workday/logic.ts`
   (+ тест), запросы — `lib/workday/data.ts` (ключ `["workday", клуб, день]`).
-- **«Аналитика»** (2026-10-26; решения, правила, загрузка и что дальше —
-  ANALYTICS.md, схема — корневой CLAUDE.md) — отчёты для студий сети на
-  своих учётных системах (1С, FitBase, АДИС, Мобифитнес), **не по нашим
-  клубам** (у них «Дашборд»). Раздел рейки последним в списке (над
-  «Управлением»), меню «Аналитика сети»: блок «Отчёты» (`ANALYTICS_ITEMS` в
-  `lib/nav-sections.ts`: «Мой город» `/analytics`, «Выручка», «Продажи
-  абонементов», «Занятия», «Воронка пробных», «Нулевая номенклатура»,
-  «Рейтинг») и «Данные» (`ANALYTICS_DATA_ITEMS`: «Загрузка данных»,
-  «Студии сети», «Номенклатура», «Точка 0», «Доступ партнёров» — по праву
-  `analytics.manage`). Права — `useAdminAccess().analytics` (RPC
-  `an_access`, `anVisible` в `lib/analytics/types.ts`; заранее грузит
-  guard). Шапка — только заголовок (`ShellSkeleton network`). Каркас и
-  плашка фильтров (период или месяц, бренд, город, студия, статус; строка
-  «данные по …») — `components/analytics/analytics-shell.tsx` +
-  `hooks/use-analytics-filters.ts`; плитки — `components/analytics/parts.tsx`
-  (`KpiTile`), таблица «Город → студия» с итогом сети —
-  `components/analytics/city-tree.tsx`; запросы — `lib/analytics/data.ts`
-  (ключи `["analytics", …]`, после записи — `invalidateAnalytics`), расчёты
-  — `lib/analytics/logic.ts`, разбор выгрузок (заголовки по синонимам,
-  иерархия 1С, хэш кода клиента) — `import.ts`, отправка пачками —
-  `upload.ts`, подписи — `labels.ts` (их берут и скелетоны
-  `Analytics*PageSkeleton`). Excel читает `read-excel-file` (MIT, грузится
-  только со страницей загрузки). Графики — компоненты дашборда
-  (`chart-panel.tsx`).
+- **«Аналитика»** (2026-10-29; перенос портала аналитики Lady Stretch —
+  план ANALYTICS_PLAN.md, что сделано — ANALYTICS.md, схема — корневой
+  CLAUDE.md): весь их портал и отдельные программы, логика — как у них,
+  вид — наш. Старый портал работает дальше, данные приходят агентом
+  (`deploy/analytics-replica/`). Раздел рейки последним в списке (над
+  «Управлением»), шапка — только заголовок (`ShellSkeleton network`). Меню —
+  `ANALYTICS_GROUPS` в `lib/nav-sections.ts`: у пункта `need` (`home` /
+  `admin` / `inbox` / ключ отчёта), открыт по `anCan(access.analytics, need)`
+  (`lib/analytics/access.ts` + тест); `canOpenPath` для `/analytics/*` берёт
+  `need` самого длинного совпавшего пункта (`analyticsNavItemOf`). Права —
+  `useAdminAccess().analytics` (RPC `an_me`, `anMeQuery` в
+  `lib/analytics/data.ts`; заранее грузит guard; ключи `["analytics", …]`,
+  после записи — `invalidateAnalytics`). Главная `/analytics` — карточки
+  модулей (`AN_CARDS` в `lib/analytics/labels.ts`, добавляются с модулями;
+  тексты — там же, их берут скелетоны `Analytics*PageSkeleton`).
+  «Администрирование» → «Синхронизация со старым порталом»
+  (`/analytics/admin/sync`, администратору аналитики): режимы модулей
+  (`an_module_set`), приём (переменные — `getReplicaConfig` в
+  `lib/analytics/admin.functions.ts`, таблицы — `an_replica_status`, агент
+  на связи — `an_replica_agent`), «Пользователи со старого портала»
+  (`components/analytics/legacy-people.tsx`, перенос — `importLegacyPerson`
+  в `lib/analytics/legacy.functions.ts`, только суперадминистратор;
+  учётная запись — общий с `createPortalUser` помощник
+  `lib/access/accounts.server.ts`), фоновые задачи («Запустить» —
+  `runAnalyticsJob`). Сервер: приём `routes/api/analytics/replica.ts` →
+  `lib/analytics/server/replica.server.ts` (подпись HMAC, gzip, пачки в RPC
+  `an_replica_apply`), ключи интеграций — `secrets.server.ts` (AES-256-GCM,
+  ключи от агента — RSA-OAEP), задачи — `jobs.server.ts` (цикл раз в
+  минуту из `server.ts`, аренда в базе, `ANALYTICS_JOBS=off`). Excel читает
+  `read-excel-file` (MIT; оставлен под «Обработку 1С» и «Очистку Excel»).
 - **«Академия»** (2026-10-25; план и решения — ACADEMY.md, схема —
   корневой CLAUDE.md) — раздел рейки со своим меню (`ACADEMY_ITEMS` в
   `lib/nav-sections.ts`; пункт открыт по праву `need`: any / team / create /

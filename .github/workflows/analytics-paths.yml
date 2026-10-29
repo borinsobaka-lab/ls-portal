@@ -1,4 +1,4 @@
-# Pull Request из форка (разработчик «Аналитики сети», CLAUDE.md) — только
+# Pull Request разработчика «Аналитики» — из форка или не от владельца (CLAUDE.md) — только
 # файлы раздела. pull_request_target: workflow и скрипт берутся из main, а не
 # из Pull Request, поэтому подправить проверку в самом Pull Request нельзя.
 # Код Pull Request здесь не скачивается и не выполняется — только список
@@ -15,7 +15,8 @@ permissions:
 
 jobs:
   paths:
-    if: github.event.pull_request.head.repo.full_name != github.repository
+    # Из форка или не от владельца (разработчик аналитики с доступом к репозиторию).
+    if: github.event.pull_request.head.repo.full_name != github.repository || github.event.pull_request.user.login != github.repository_owner
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

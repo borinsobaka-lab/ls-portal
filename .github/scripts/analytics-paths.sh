@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Pull Request разработчика «Аналитики сети» (из форка) меняет только файлы
+# Pull Request разработчика «Аналитики» (из форка или своей ветки) меняет только файлы
 # раздела — CLAUDE.md, «Разработчик аналитики». Вход — строки
 # `git diff --name-status` (статус и пути через табуляцию), выход 1 — есть
 # файлы вне раздела. Это фильтр, а не граница безопасности: код и миграции
@@ -13,10 +13,12 @@ allowed() {
     apps/admin/src/components/analytics/* | \
     apps/admin/src/lib/analytics/* | \
     apps/admin/src/routes/_authenticated/analytics/* | \
-    apps/admin/src/hooks/use-analytics-filters.ts | \
+    apps/admin/src/routes/api/analytics/* | \
     apps/admin/src/routeTree.gen.ts | \
+    deploy/analytics-replica/* | \
     db/analytics.test.ts | \
-    ANALYTICS.md)
+    ANALYTICS.md | \
+    ANALYTICS_PLAN.md)
       return 0 ;;
   esac
   return 1
