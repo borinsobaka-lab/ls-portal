@@ -2533,6 +2533,43 @@ export function AnalyticsHomePageSkeleton() {
   );
 }
 
+/** «Обработка 1С»: табы на плашке, окно обработки, папки выгрузок. */
+export function AnalyticsOnecPageSkeleton() {
+  return (
+    <ShellSkeleton title={AN_TITLES.onec} network>
+      <div className="space-y-4">
+        <div className="rounded-lg border bg-background p-2">
+          <Skeleton className="h-9 w-80 max-w-full rounded-full" />
+        </div>
+        <div className="space-y-3 rounded-lg border bg-background p-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="space-y-2">
+              <Skeleton className="h-5 w-40" />
+              <Skeleton className="h-4 w-64" />
+            </div>
+            <div className="flex gap-2">
+              <Skeleton className="h-9 w-32 rounded-full" />
+              <Skeleton className="h-9 w-44 rounded-full" />
+            </div>
+          </div>
+          <Skeleton className="h-4 w-80 max-w-full" />
+          <Skeleton className="h-1.5 w-full rounded-full" />
+          <Skeleton className="h-64 w-full rounded-md" />
+        </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          {Array.from({ length: 4 }, (_, i) => (
+            <div key={i} className="space-y-3 rounded-lg border bg-background p-4">
+              <Skeleton className="h-4 w-48" />
+              <Skeleton className="h-3 w-64 max-w-full" />
+              <Skeleton className="h-4 w-56" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </ShellSkeleton>
+  );
+}
+
 export function AnalyticsJobsPageSkeleton() {
   return (
     <ShellSkeleton title={AN_TITLES.jobs} network>

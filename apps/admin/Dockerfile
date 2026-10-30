@@ -33,6 +33,10 @@ COPY --from=build /app/.output ./.output
 COPY db/migrate.ts db/bootstrap.ts db/*.sql ./db/
 COPY db/bootstrap ./db/bootstrap
 COPY db/migrations ./db/migrations
+# «Обработка 1С» — отдельный процесс (src/lib/analytics/onec/worker.ts):
+# сервер портала запускает его bun как есть, без сборки, когда в очереди
+# есть запуск (src/lib/analytics/server/onec.server.ts).
+COPY apps/admin/src/lib/analytics/onec ./onec
 
 EXPOSE 3000
 # Health check: Coolify ждёт «healthy» нового контейнера и только потом

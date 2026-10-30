@@ -256,4 +256,373 @@ describe.skipIf(!url)("аналитика: фундамент (база)", () =>
       expect(run.message).toBe("Готово");
     });
   });
+  // --- «Обработка 1С» (db/migrations/2026-10-30_analytics_onec.sql) ---------------
+
+  async function asService(tx: Tx) {
+    await tx`reset role`;
+    await tx`select set_config('request.jwt.claim.sub', '', true)`;
+    await tx`set local role service_role`;
+  }
+  /** Объект в бакете an-onec (его кладёт браузер через Storage API). */
+  async function storageObject(tx: Tx, path: string, size = 1000) {
+    await tx`reset role`;
+    await tx`insert into storage.objects (bucket_id, name, metadata)
+             values ('an-onec', ${path}, ${{ size }})`;
+  }
+  const filePath = (kind: string) => `${kind}/${crypto.randomUUID()}.xlsx`;
+  /** Пустая «Обработка 1С» внутри сценария (откатывается вместе с ним). */
+  async function onecReset(tx: Tx) {
+    await tx`reset role`;
+    await tx`delete from an_onec_snapshots`;
+    await tx`delete from an_onec_runs`;
+    await tx`delete from an_onec_files`;
+    await tx`delete from an_onec_studios`;
+    await tx`delete from an_onec_nomenclature`;
+    await tx`delete from an_onec_break_even`;
+    await tx`delete from an_onec_refs`;
+  }
+
+  test("1С: обработка и снимок закрыты всем, кроме администратора аналитики и сервера", async () => {
+    await scenario(async (tx) => {
+      await onecReset(tx);
+      const admin = await person(tx, "Админ", ["an.admin"]);
+      const staff = await person(tx, "Сотрудник", ["an.onec.revenue"]);
+      await as(tx, staff);
+      expect(await failure(tx, () => tx`select an_onec_overview()`)).toContain("an_forbidden");
+      expect(await failure(tx, () => tx`select an_onec_run_start()`)).toContain("an_forbidden");
+      expect(await failure(tx, () => tx`select * from an_onec_facts`)).toContain(
+        "permission denied",
+      );
+      expect(await failure(tx, () => tx`select * from an_onec_facts_1`)).toContain(
+        "permission denied",
+      );
+      expect(await failure(tx, () => tx`select * from an_onec_files`)).toContain(
+        "permission denied",
+      );
+      expect(await failure(tx, () => tx`select an_onec_run_claim()`)).toContain(
+        "permission denied",
+      );
+      await asServer(tx);
+      await as(tx, admin);
+      expect(await failure(tx, () => tx`select an_onec_run_claim()`)).toContain(
+        "permission denied",
+      );
+      expect(
+        await failure(
+          tx,
+          () =>
+            tx`select an_onec_snapshot_facts(1, 1, '{1}', '{2026-01-01}', '{1}', '{0}', '{0}', '{0}', '{0}', '{0}', '{0}', '{0}')`,
+        ),
+      ).toContain("permission denied");
+      const [{ o }] = await tx`select an_onec_overview() as o`;
+      expect(o.files).toEqual([]);
+      expect(o.refs.nomenclature.rows).toBe(0);
+      await asServer(tx);
+    });
+  });
+
+  test("1С: выгрузки — одно имя на вид без регистра, замена отдаёт прежний путь; при обработке не меняются", async () => {
+    await scenario(async (tx) => {
+      await onecReset(tx);
+      const admin = await person(tx, "Админ", ["an.admin"]);
+      const p1 = filePath("sales");
+      const p2 = filePath("sales");
+      await storageObject(tx, p1, 5000);
+      await storageObject(tx, p2, 6000);
+      await as(tx, admin);
+      expect(
+        await failure(
+          tx,
+          () =>
+            tx`select an_onec_file_register('sales', 'Продажи 2026г.xlsx', ${filePath("sales")}, null, false)`,
+        ),
+      ).toContain("an_onec_no_object");
+      expect(
+        await failure(
+          tx,
+          () => tx`select an_onec_file_register('cash', 'НДЯ.xlsx', ${p1}, null, false)`,
+        ),
+      ).toContain("an_onec_bad_file");
+      const [{ old1 }] =
+        await tx`select an_onec_file_register('sales', 'Продажи 2026г.xlsx', ${p1}, null, false) as old1`;
+      expect(old1).toBeNull();
+      const [{ old2 }] =
+        await tx`select an_onec_file_register('sales', 'ПРОДАЖИ 2026г.xlsx', ${p2}, ${"a".repeat(64)}, true) as old2`;
+      expect(old2).toBe(p1);
+      const [{ o }] = await tx`select an_onec_overview() as o`;
+      expect(o.files.length).toBe(1);
+      expect(o.files[0]).toMatchObject({
+        kind: "sales",
+        name: "ПРОДАЖИ 2026г.xlsx",
+        size: 6000,
+        cleaned: true,
+      });
+
+      const [{ run }] = await tx`select an_onec_run_start() as run`;
+      expect(Number(run)).toBeGreaterThan(0);
+      expect(await failure(tx, () => tx`select an_onec_run_start()`)).toContain("an_onec_busy");
+      expect(await failure(tx, () => tx`select an_onec_file_delete(${o.files[0].id})`)).toContain(
+        "an_onec_busy",
+      );
+      expect(
+        await failure(tx, () => tx`select an_onec_ref_replace('studios', '[]'::jsonb, 'edit')`),
+      ).toContain("an_onec_busy");
+      await asServer(tx);
+    });
+  });
+
+  test("1С: запуск — очередь, ход и журнал, отмена; зависший завершается ошибкой", async () => {
+    await scenario(async (tx) => {
+      await onecReset(tx);
+      const admin = await person(tx, "Админ", ["an.admin"]);
+      await as(tx, admin);
+      await tx`select an_onec_ref_replace('studios', ${[{ studio: "Абакан Ленина", status: "Открыта", city: "Абакан", partner: null, comment: null }]}::jsonb, 'import')`;
+      const [{ run }] = await tx`select an_onec_run_start() as run`;
+      await asService(tx);
+      const [{ c }] = await tx`select an_onec_run_claim() as c`;
+      expect(Number(c.id)).toBe(Number(run));
+      expect(c.studios).toEqual([
+        {
+          studio: "Абакан Ленина",
+          status: "Открыта",
+          city: "Абакан",
+          partner: null,
+          comment: null,
+        },
+      ]);
+      const [{ again }] = await tx`select an_onec_run_claim() as again`;
+      expect(again).toBeNull();
+      const [{ cancel }] =
+        await tx`select an_onec_run_progress(${run}, 'Читаю: Продажи/Продажи 2026г.xlsx', ${["Читаю: Продажи/Продажи 2026г.xlsx"]}) as cancel`;
+      expect(cancel).toBe(false);
+      // Журнал — не длиннее 1500 строк.
+      const many = Array.from({ length: 1600 }, (_, i) => `строка ${i}`);
+      await tx`select an_onec_run_progress(${run}, null, ${many})`;
+      await asServer(tx);
+      await as(tx, admin);
+      const [{ g }] = await tx`select an_onec_run_get(${run}) as g`;
+      expect(g.status).toBe("running");
+      expect(g.log.length).toBe(1500);
+      expect(g.log[1499]).toBe("строка 1599");
+      expect(g.progress).toBe("Читаю: Продажи/Продажи 2026г.xlsx");
+      await tx`select an_onec_run_cancel(${run})`;
+      await asService(tx);
+      const [{ cancel2 }] = await tx`select an_onec_run_progress(${run}, null, null) as cancel2`;
+      expect(cancel2).toBe(true);
+      await tx`select an_onec_run_fail(${run}, 'Обработка отменена.', true)`;
+      const [{ st }] = await tx`select status as st from an_onec_runs where id = ${run}`;
+      expect(st).toBe("cancelled");
+      expect(
+        await failure(tx, () => tx`select an_onec_run_progress(${run}, null, null)`),
+      ).toContain("an_onec_run_gone");
+
+      // Зависший: сервер перезапустился посреди обработки.
+      await asServer(tx);
+      await as(tx, admin);
+      const [{ run2 }] = await tx`select an_onec_run_start() as run2`;
+      await asService(tx);
+      await tx`select an_onec_run_claim()`;
+      await tx`reset role`;
+      await tx`update an_onec_runs set heartbeat_at = now() - interval '5 minutes' where id = ${run2}`;
+      await asService(tx);
+      const [{ none }] = await tx`select an_onec_run_claim() as none`;
+      expect(none).toBeNull();
+      const [r2] = await tx`select status, error from an_onec_runs where id = ${run2}`;
+      expect(r2.status).toBe("error");
+      expect(r2.error).toContain("перезапустился");
+      await asServer(tx);
+    });
+  });
+
+  test("1С: окно новых номенклатур — категории в справочник, обработка новым запуском с отвеченными", async () => {
+    await scenario(async (tx) => {
+      await onecReset(tx);
+      const admin = await person(tx, "Админ", ["an.admin"]);
+      await as(tx, admin);
+      const [{ run }] = await tx`select an_onec_run_start() as run`;
+      await asService(tx);
+      await tx`select an_onec_run_claim()`;
+      await tx`select an_onec_nomenclature_store(${run}, ${[
+        { code: "0001", names: "Абонемент 8", category: "Абонемент", direction: "" },
+        {
+          code: " 0009",
+          names: "Пробное 2 за 490 | Акция",
+          category: "Не определено",
+          direction: "",
+        },
+      ]}::jsonb)`;
+      const review = {
+        items: [
+          {
+            code: "0009",
+            name: "Пробное 2 за 490 | Акция",
+            reason: "Новая номенклатура",
+            suggested_designation: "Пробное занятие",
+          },
+        ],
+        choices: ["Абонемент", "Пробное занятие", "Не определено"],
+      };
+      await tx`select an_onec_run_review(${run}, ${review}::jsonb)`;
+      await asServer(tx);
+      await as(tx, admin);
+      expect(
+        await failure(tx, () => tx`select an_onec_review_submit(${run}, '{}'::jsonb)`),
+      ).toContain("an_onec_review_incomplete");
+      expect(
+        await failure(
+          tx,
+          () => tx`select an_onec_review_submit(${run}, '{"0009": "Не определено"}'::jsonb)`,
+        ),
+      ).toContain("an_onec_review_bad_category");
+      expect(
+        await failure(
+          tx,
+          () => tx`select an_onec_review_submit(${run}, '{"0009": "Что-то"}'::jsonb)`,
+        ),
+      ).toContain("an_onec_review_bad_category");
+      const [{ next }] =
+        await tx`select an_onec_review_submit(${run}, '{"0009": "Пробное занятие"}'::jsonb) as next`;
+      const [{ rows }] = await tx`select an_onec_ref_rows('nomenclature') as rows`;
+      expect(rows.map((r: { code: string; category: string }) => [r.code, r.category])).toEqual([
+        ["0001", "Абонемент"],
+        [" 0009", "Пробное занятие"],
+      ]);
+      await asServer(tx);
+      const [n] = await tx`select status, answered, log from an_onec_runs where id = ${next}`;
+      expect(n.status).toBe("queued");
+      expect(n.answered).toEqual([["0009", "Пробное 2 за 490 | Акция"]]);
+      expect(n.log).toEqual(["Категории сохранены в справочник. Продолжаем обработку."]);
+      const [{ old }] = await tx`select status as old from an_onec_runs where id = ${run}`;
+      expect(old).toBe("answered");
+    });
+  });
+
+  test("1С: снимок — пачки складываются, покрытие и meta как у них, загрузка, откат, слоты", async () => {
+    await scenario(async (tx) => {
+      await onecReset(tx);
+      const admin = await person(tx, "Админ", ["an.admin"]);
+
+      async function build(revenue: number): Promise<number> {
+        await as(tx, admin);
+        const [{ run }] = await tx`select an_onec_run_start() as run`;
+        await asService(tx);
+        await tx`select an_onec_run_claim()`;
+        const [{ s }] = await tx`select an_onec_snapshot_begin(${run}) as s`;
+        await tx`select an_onec_snapshot_items(${s.id}, '{1,2}', '{revenue,zero}', '{Абакан,Абакан}',
+          '{"Абакан Ленина","Абакан Ленина"}', '{Абонементы,Заморозка}', '{"",0003}', '{Открыта,Открыта}')`;
+        await tx`select an_onec_snapshot_facts(${s.id}, 1, '{1,1,2}', '{2026-10-01,2026-10-02,2026-10-03}',
+          ${[revenue, 10, 1]}, '{0,0,0}', ${[revenue, 10, 0]}, '{0,0,0}', '{0,0,0}', '{0,0,0}', '{0,0,0}', '{0,0,0}')`;
+        // Тот же (item, день) в следующей пачке — складывается; повтор пачки — нет.
+        for (let i = 0; i < 2; i++) {
+          await tx`select an_onec_snapshot_facts(${s.id}, 2, '{1}', '{2026-10-01}', '{0.5}', '{0}', '{0.5}',
+            '{0}', '{0}', '{0}', '{0}', '{0}')`;
+        }
+        expect(
+          await failure(
+            tx,
+            () =>
+              tx`select an_onec_snapshot_facts(${s.id}, 4, '{1}', '{2026-10-01}', '{1}', '{0}', '{0}', '{0}', '{0}', '{0}', '{0}', '{0}')`,
+          ),
+        ).toContain("an_onec_seq_gap");
+        const [{ meta }] = await tx`select an_onec_run_finish(${run}, ${s.id}, ${{
+          source_rows: { revenue: 3, zero: 1 },
+          issues: { zero_invalid_rows: 2 },
+          breakEven: { Абакан: 700000 },
+          zeroControls: { blankCostRows: 1, explicitZeroRows: 0, excludedTrialRows: 0 },
+          stats: {},
+        }}::jsonb) as meta`;
+        expect(meta.version).toBe(1);
+        expect(meta.coverage.revenue).toEqual({
+          rows: 2,
+          min: "2026-10-01",
+          max: "2026-10-02",
+          totals: [revenue + 10.5, 0, revenue + 10.5, 0, 0, 0, 0, 0],
+          source_rows: 3,
+        });
+        expect(meta.coverage.sales).toEqual({
+          rows: 0,
+          min: null,
+          max: null,
+          totals: [0, 0, 0, 0, 0, 0, 0, 0],
+          source_rows: 0,
+        });
+        expect(meta.coverage.zero.rows).toBe(1);
+        expect(meta.breakEven).toEqual({ Абакан: 700000 });
+        expect(meta.issues).toEqual({ zero_invalid_rows: 2 });
+        expect(Object.keys(meta.coverage).sort()).toEqual([
+          "activities",
+          "funnel",
+          "revenue",
+          "sales",
+          "trial_products",
+          "zero",
+        ]);
+        await asServer(tx);
+        return Number(s.id);
+      }
+      const state = async () =>
+        Object.fromEntries(
+          (await tx`select id, state, slot from an_onec_snapshots where state <> 'discarded'`).map(
+            (r: { id: number; state: string; slot: number }) => [r.state, [Number(r.id), r.slot]],
+          ),
+        );
+      const revenueOf = async (st: string) => {
+        const [{ v }] = await tx`select sum(f.v1) as v from an_onec_facts f
+          where f.slot = an_onec_slot(${st}) and f.item_id = 1`;
+        return Number(v);
+      };
+
+      const a = await build(100);
+      await as(tx, admin);
+      await tx`select an_onec_snapshot_activate(${a})`;
+      await asServer(tx);
+      const b = await build(200);
+      expect((await state()).ready[0]).toBe(b);
+      await as(tx, admin);
+      await tx`select an_onec_snapshot_activate(${b})`;
+      const [{ o }] = await tx`select an_onec_overview() as o`;
+      expect(o.snapshots.map((s: { state: string }) => s.state)).toEqual(["current", "previous"]);
+      expect(o.snapshots[0].coverage.revenue).toEqual({
+        rows: 2,
+        min: "2026-10-01",
+        max: "2026-10-02",
+        source_rows: 3,
+      });
+      expect(o.snapshots[0].breakEvenCities).toBe(1);
+      expect(o.snapshots[0].coverage.revenue.totals).toBeUndefined();
+      await asServer(tx);
+      expect(await revenueOf("current")).toBe(210.5);
+      expect(await revenueOf("previous")).toBe(110.5);
+
+      // Откат: предыдущий снова текущий — и обратно.
+      await as(tx, admin);
+      await tx`select an_onec_snapshot_rollback()`;
+      await asServer(tx);
+      expect((await state()).current[0]).toBe(a);
+      expect((await state()).previous[0]).toBe(b);
+      expect(await revenueOf("current")).toBe(110.5);
+
+      // Третий снимок — в свободный слот; после загрузки самый ранний уходит.
+      const c = await build(300);
+      const st = await state();
+      expect(new Set([st.current[1], st.previous[1], st.ready[1]]).size).toBe(3);
+      await as(tx, admin);
+      await tx`select an_onec_snapshot_activate(${c})`;
+      await asServer(tx);
+      const st2 = await state();
+      expect(st2.current[0]).toBe(c);
+      expect(st2.previous[0]).toBe(a);
+      // Четвёртый занимает освобождённый слот b — он очищен.
+      const freed = st[b === st.previous[0] ? "previous" : "current"][1];
+      const d = await build(400);
+      const st3 = await state();
+      expect(st3.ready).toEqual([d, freed]);
+      expect(await revenueOf("ready")).toBe(410.5);
+      // Новый «обработан, не загружен» вытесняется следующей обработкой.
+      const e = await build(500);
+      const st4 = await state();
+      expect(st4.ready[0]).toBe(e);
+      expect(Object.keys(st4).sort()).toEqual(["current", "previous", "ready"]);
+    });
+  });
 });

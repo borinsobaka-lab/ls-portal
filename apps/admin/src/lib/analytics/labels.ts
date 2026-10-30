@@ -7,7 +7,17 @@ import type { AnNeed } from "./access";
 export const AN_TITLES = {
   home: "Аналитика",
   jobs: "Фоновые задачи",
+  onec: "Обработка 1С",
 } as const;
+
+/** Вкладки «Обработки 1С»: обработка и справочники их обработчика. */
+export const AN_ONEC_TABS = [
+  { value: "processing", label: "Обработка" },
+  { value: "studios", label: "Студии" },
+  { value: "nomenclature", label: "Номенклатура" },
+  { value: "break_even", label: "Точка 0" },
+] as const;
+export type AnOnecTab = (typeof AN_ONEC_TABS)[number]["value"];
 
 /** Шапка главной — как у их главной. */
 export const AN_HOME_TEXT = {

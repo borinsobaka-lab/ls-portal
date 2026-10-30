@@ -996,6 +996,25 @@ DEPLOY.md.
   из профиля) — здесь, `an_job_set_enabled` — включить / выключить задачу
   (администратор аналитики). Все таблицы `an_*` закрыты браузеру, чтение —
   RPC. Тесты — `db/analytics.test.ts`.
+  «Обработка 1С» (2026-10-30, ANALYTICS.md):
+  `db/migrations/2026-10-30_analytics_onec.sql` — выгрузки `an_onec_files`
+  (файлы — закрытый бакет `an-onec`, только `an_is_admin`; коды клиентов
+  есть только в них), справочники их обработчика `an_onec_studios` /
+  `an_onec_nomenclature` / `an_onec_break_even` (`sort_order` — порядок их
+  файла) и `an_onec_refs`; запуски `an_onec_runs` (очередь, один активный,
+  heartbeat — зависший дольше 3 минут завершает `an_onec_run_claim`, журнал,
+  окно новых номенклатур `review`, `answered`); снимок — их items / facts /
+  metadata: `an_onec_snapshots` (`meta` — их metadata.snapshot; состояния
+  building / ready / current / previous / discarded, три слота),
+  `an_onec_items` / `an_onec_facts` — разделы по слоту, слот очищает
+  truncate при новой обработке; пачки фактов складываются (их ON CONFLICT
+  … v + excluded.v), повтор пачки не складывается (`facts_seq`). RPC
+  администратора — `an_onec_overview`, `an_onec_run_*`, `an_onec_ref_*`,
+  `an_onec_file_*`, `an_onec_review_submit`, `an_onec_snapshot_activate` /
+  `_rollback` / `_discard`; процессу обработки (service_role) —
+  `an_onec_run_claim` / `_progress` / `_review` / `_finish` / `_fail`,
+  `an_onec_snapshot_begin` / `_items` / `_facts`, `an_onec_nomenclature_store`,
+  `an_onec_file_plan`. Отчёты читают слот `current` (`an_onec_slot`).
   Клубы и собственники (решение владельца 2026-10-27, ACCESS.md):
   `db/migrations/2026-10-27_zz_studio_owners.sql` — `studio_owners`
   (клуб × пользователь портала; пишут только RPC `org_studio_owners_set` /

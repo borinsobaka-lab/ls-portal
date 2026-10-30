@@ -38,6 +38,7 @@ const MANUAL: Record<string, string> = {
   ChartLine: "ChartLineIcon",
   CheckCircle2: "CheckCircle",
   ChevronsUpDown: "UnfoldMoreIcon", // псевдоним — стрелки ↑↓, нужен «раскрыть»
+  FileSpreadsheet: "FileSpreadsheetIcon", // выгрузки 1С в «Аналитике»; псевдонима нет
   FolderInput: "FolderTransferIcon", // «Переместить…» в базе знаний; псевдонима нет
   GripVertical: "DragDropVerticalIcon", // псевдоним — рука, нужны точки-ручка
   HelpCircle: "HelpCircleIcon", // псевдонима под именем lucide нет

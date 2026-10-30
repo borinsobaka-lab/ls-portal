@@ -166,6 +166,12 @@ export type OnecDeps = {
   inflate: Inflate;
   writer: SnapshotWriter;
   log: (line: string) => void;
+  /**
+   * Справочник номенклатуры пересобран — сохранить. У них build_reference
+   * пишет файл сразу, до окна новых номенклатур и сводов: пересобранный
+   * справочник остаётся и после ошибки в сводах.
+   */
+  saveNomenclature?: (rows: NomenclatureRow[]) => Promise<void>;
 };
 
 // --- Порядок файлов --------------------------------------------------------------
@@ -292,6 +298,12 @@ class SnapshotBuilder {
     zero: 0,
   };
 
+  /**
+   * Свод занятий у них уже сгруппирован по (город, студия, дата, направление)
+   * — «прочитано строк» там = строк свода, то есть разных (позиция, день).
+   */
+  private activityKeys = new Set<number>();
+
   constructor(
     private ref: Map<string, { city: string; status: string }>,
     private writer: SnapshotWriter,
@@ -333,7 +345,14 @@ class SnapshotBuilder {
     const f = this.facts.get(fk);
     if (f) for (let i = 0; i < 8; i++) f[i + 2] = (f[i + 2] as number) + v[i];
     else this.facts.set(fk, [no, day, v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]]);
-    this.sourceRows[report]++;
+    if (report === "activities") {
+      const dayNo =
+        Date.UTC(+day.slice(0, 4), +day.slice(5, 7) - 1, +day.slice(8, 10)) / 86_400_000;
+      this.activityKeys.add(no * 100_000 + dayNo);
+      this.sourceRows.activities = this.activityKeys.size;
+    } else {
+      this.sourceRows[report]++;
+    }
     if (this.facts.size >= this.batch) await this.flush();
   }
 
@@ -791,6 +810,7 @@ export async function processOnec(input: OnecInputs, deps: OnecDeps): Promise<On
   // 3. Справочник номенклатуры и проверка новых.
   log("Проверка новых номенклатур…");
   const rebuilt = rebuildNomenclature(input.nomenclature, nomenclature, marked, input.sha256Hex);
+  await deps.saveNomenclature?.(rebuilt.rows);
   const answered = input.answeredReview ?? new Set<string>();
   if (rebuilt.review.some((item) => !answered.has(reviewKey(item)))) {
     return {

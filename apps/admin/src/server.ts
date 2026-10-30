@@ -1,5 +1,6 @@
 import { startAccessSync } from "./lib/access/sync.server";
 import { startAnalyticsJobs } from "./lib/analytics/server/jobs.server";
+import { startOnecWorker } from "./lib/analytics/server/onec.server";
 import { errorResponse } from "./lib/error-page";
 import { startKbTrashPurge } from "./lib/kb/trash-purge.server";
 import { startPushWorker } from "./lib/push/push-worker.server";
@@ -16,6 +17,8 @@ startKbTrashPurge();
 startAccessSync();
 // «Аналитика»: сборщики модулей и служебные задачи (ANALYTICS_PLAN.md).
 startAnalyticsJobs();
+// «Обработка 1С» — отдельным процессом, когда в очереди есть запуск.
+startOnecWorker();
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;

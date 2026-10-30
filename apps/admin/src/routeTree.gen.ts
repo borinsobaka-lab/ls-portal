@@ -71,6 +71,7 @@ import { Route as AuthenticatedKbBaseIdTrashRouteImport } from './routes/_authen
 import { Route as AuthenticatedKbBaseIdTemplatesRouteImport } from './routes/_authenticated/kb/$baseId/templates'
 import { Route as AuthenticatedKbBaseIdAnalyticsRouteImport } from './routes/_authenticated/kb/$baseId/analytics'
 import { Route as AuthenticatedKbBaseIdNodeIdRouteImport } from './routes/_authenticated/kb/$baseId/$nodeId'
+import { Route as AuthenticatedAnalyticsToolsOnecRouteImport } from './routes/_authenticated/analytics/tools/onec'
 import { Route as AuthenticatedAnalyticsAdminJobsRouteImport } from './routes/_authenticated/analytics/admin/jobs'
 import { Route as AuthenticatedAccessUsersUserIdRouteImport } from './routes/_authenticated/access/users/$userId'
 import { Route as AuthenticatedAccessRolesRoleIdRouteImport } from './routes/_authenticated/access/roles/$roleId'
@@ -420,6 +421,12 @@ const AuthenticatedKbBaseIdNodeIdRoute =
     path: '/kb/$baseId/$nodeId',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAnalyticsToolsOnecRoute =
+  AuthenticatedAnalyticsToolsOnecRouteImport.update({
+    id: '/analytics/tools/onec',
+    path: '/analytics/tools/onec',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAnalyticsAdminJobsRoute =
   AuthenticatedAnalyticsAdminJobsRouteImport.update({
     id: '/analytics/admin/jobs',
@@ -535,6 +542,7 @@ export interface FileRoutesByFullPath {
   '/access/roles/$roleId': typeof AuthenticatedAccessRolesRoleIdRoute
   '/access/users/$userId': typeof AuthenticatedAccessUsersUserIdRoute
   '/analytics/admin/jobs': typeof AuthenticatedAnalyticsAdminJobsRoute
+  '/analytics/tools/onec': typeof AuthenticatedAnalyticsToolsOnecRoute
   '/kb/$baseId/$nodeId': typeof AuthenticatedKbBaseIdNodeIdRoute
   '/kb/$baseId/analytics': typeof AuthenticatedKbBaseIdAnalyticsRoute
   '/kb/$baseId/templates': typeof AuthenticatedKbBaseIdTemplatesRoute
@@ -607,6 +615,7 @@ export interface FileRoutesByTo {
   '/access/roles/$roleId': typeof AuthenticatedAccessRolesRoleIdRoute
   '/access/users/$userId': typeof AuthenticatedAccessUsersUserIdRoute
   '/analytics/admin/jobs': typeof AuthenticatedAnalyticsAdminJobsRoute
+  '/analytics/tools/onec': typeof AuthenticatedAnalyticsToolsOnecRoute
   '/kb/$baseId/$nodeId': typeof AuthenticatedKbBaseIdNodeIdRoute
   '/kb/$baseId/analytics': typeof AuthenticatedKbBaseIdAnalyticsRoute
   '/kb/$baseId/templates': typeof AuthenticatedKbBaseIdTemplatesRoute
@@ -681,6 +690,7 @@ export interface FileRoutesById {
   '/_authenticated/access/roles/$roleId': typeof AuthenticatedAccessRolesRoleIdRoute
   '/_authenticated/access/users/$userId': typeof AuthenticatedAccessUsersUserIdRoute
   '/_authenticated/analytics/admin/jobs': typeof AuthenticatedAnalyticsAdminJobsRoute
+  '/_authenticated/analytics/tools/onec': typeof AuthenticatedAnalyticsToolsOnecRoute
   '/_authenticated/kb/$baseId/$nodeId': typeof AuthenticatedKbBaseIdNodeIdRoute
   '/_authenticated/kb/$baseId/analytics': typeof AuthenticatedKbBaseIdAnalyticsRoute
   '/_authenticated/kb/$baseId/templates': typeof AuthenticatedKbBaseIdTemplatesRoute
@@ -755,6 +765,7 @@ export interface FileRouteTypes {
     | '/access/roles/$roleId'
     | '/access/users/$userId'
     | '/analytics/admin/jobs'
+    | '/analytics/tools/onec'
     | '/kb/$baseId/$nodeId'
     | '/kb/$baseId/analytics'
     | '/kb/$baseId/templates'
@@ -827,6 +838,7 @@ export interface FileRouteTypes {
     | '/access/roles/$roleId'
     | '/access/users/$userId'
     | '/analytics/admin/jobs'
+    | '/analytics/tools/onec'
     | '/kb/$baseId/$nodeId'
     | '/kb/$baseId/analytics'
     | '/kb/$baseId/templates'
@@ -900,6 +912,7 @@ export interface FileRouteTypes {
     | '/_authenticated/access/roles/$roleId'
     | '/_authenticated/access/users/$userId'
     | '/_authenticated/analytics/admin/jobs'
+    | '/_authenticated/analytics/tools/onec'
     | '/_authenticated/kb/$baseId/$nodeId'
     | '/_authenticated/kb/$baseId/analytics'
     | '/_authenticated/kb/$baseId/templates'
@@ -1358,6 +1371,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedKbBaseIdNodeIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/analytics/tools/onec': {
+      id: '/_authenticated/analytics/tools/onec'
+      path: '/analytics/tools/onec'
+      fullPath: '/analytics/tools/onec'
+      preLoaderRoute: typeof AuthenticatedAnalyticsToolsOnecRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/analytics/admin/jobs': {
       id: '/_authenticated/analytics/admin/jobs'
       path: '/analytics/admin/jobs'
@@ -1479,6 +1499,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAccessRolesRoleIdRoute: typeof AuthenticatedAccessRolesRoleIdRoute
   AuthenticatedAccessUsersUserIdRoute: typeof AuthenticatedAccessUsersUserIdRoute
   AuthenticatedAnalyticsAdminJobsRoute: typeof AuthenticatedAnalyticsAdminJobsRoute
+  AuthenticatedAnalyticsToolsOnecRoute: typeof AuthenticatedAnalyticsToolsOnecRoute
   AuthenticatedKbBaseIdNodeIdRoute: typeof AuthenticatedKbBaseIdNodeIdRoute
   AuthenticatedKbBaseIdAnalyticsRoute: typeof AuthenticatedKbBaseIdAnalyticsRoute
   AuthenticatedKbBaseIdTemplatesRoute: typeof AuthenticatedKbBaseIdTemplatesRoute
@@ -1550,6 +1571,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAccessRolesRoleIdRoute: AuthenticatedAccessRolesRoleIdRoute,
   AuthenticatedAccessUsersUserIdRoute: AuthenticatedAccessUsersUserIdRoute,
   AuthenticatedAnalyticsAdminJobsRoute: AuthenticatedAnalyticsAdminJobsRoute,
+  AuthenticatedAnalyticsToolsOnecRoute: AuthenticatedAnalyticsToolsOnecRoute,
   AuthenticatedKbBaseIdNodeIdRoute: AuthenticatedKbBaseIdNodeIdRoute,
   AuthenticatedKbBaseIdAnalyticsRoute: AuthenticatedKbBaseIdAnalyticsRoute,
   AuthenticatedKbBaseIdTemplatesRoute: AuthenticatedKbBaseIdTemplatesRoute,

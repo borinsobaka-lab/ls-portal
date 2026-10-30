@@ -254,6 +254,18 @@ export const ANALYTICS_GROUPS: NavGroup<AnalyticsNavItem>[] = [
     items: [{ title: "Главная", url: ANALYTICS_URL, icon: HomeSmile, exact: true, need: "home" }],
   },
   {
+    key: "an-tools",
+    label: "Инструменты",
+    items: [
+      {
+        title: "Обработка 1С",
+        url: "/analytics/tools/onec",
+        icon: UploadMinimalistic,
+        need: "admin",
+      },
+    ],
+  },
+  {
     key: "an-admin",
     label: "Администрирование",
     items: [

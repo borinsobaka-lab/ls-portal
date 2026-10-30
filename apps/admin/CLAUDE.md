@@ -31,7 +31,8 @@ Tailwind 4 + shadcn/radix. Пакетный менеджер — bun.
   аналитика чтения `lib/kb/analytics.test.ts`, теги `lib/kb/tags.test.ts`;
   «Рабочий день» — время по Тбилиси, просрочка, порядок `lib/workday/logic.test.ts`;
   «Аналитика» — права `lib/analytics/access.test.ts`, ключи интеграций
-  `lib/analytics/server/secrets.test.ts`; «Академия» — подписи,
+  `lib/analytics/server/secrets.test.ts`, обработка 1С (чтение .xlsx,
+  правила, своды) `lib/analytics/onec/onec.test.ts`; «Академия» — подписи,
   проверка вопроса, сроки и напоминания `lib/academy/logic.test.ts`;
   Kate — инструменты,
   права, история и промпт `lib/assistant/*.test.ts`).
@@ -694,8 +695,23 @@ kb`. Доступ — ролями «Пользователей и ролей» 
   `lib/analytics/server/secrets.server.ts` (AES-256-GCM), задачи —
   `jobs.server.ts` (список задач модулей — `ANALYTICS_JOBS`, цикл раз в
   минуту из `server.ts`, аренда в базе; переменная `ANALYTICS_JOBS=off` —
-  не выполнять). Excel читает
-  `read-excel-file` (MIT; оставлен под «Обработку 1С» и «Очистку Excel»).
+  не выполнять). «Инструменты» → «Обработка 1С» (`/analytics/tools/onec`,
+  администратору аналитики; ANALYTICS.md): вкладки «Обработка» (выгрузки по
+  их папкам — загрузка в бакет `an-onec` из браузера, `uploadOnecFile`;
+  «1. Обработать», «2. Загрузить в отчёты», ход и журнал, окно «Новые
+  номенклатуры» `components/analytics/onec/review-dialog.tsx`, данные
+  отчётов с откатом) и справочники «Студии» / «Номенклатура» / «Точка 0»
+  (`refs-tab.tsx`: правка, Excel в их формате — `lib/analytics/onec/refs.ts`,
+  читает и пишет .xlsx свой код `onec/xlsx-read.ts` / `xlsx-write.ts`).
+  Запросы и подписи — `lib/analytics/onec-page.ts` (ключи `["analytics",
+  "onec", …]`, обзор раз в 2 секунды, пока идёт обработка). Считает
+  отдельный процесс `lib/analytics/onec/worker.ts` (каталог `onec/` —
+  только стандартные модули, Dockerfile копирует его в `/app/onec`): его
+  поднимает `lib/analytics/server/onec.server.ts` (из `server.ts`), когда в
+  очереди есть запуск; после «Обработать» страница зовёт
+  `kickOnecProcessing`. Логика сводов — их, построчно (`onec/process.ts`,
+  тест `onec/onec.test.ts`); не «чинить» — ANALYTICS_PLAN.md, §9.
+  `read-excel-file` (MIT) в зависимостях — под «Очистку Excel».
 - **«Академия»** (2026-10-25; план и решения — ACADEMY.md, схема —
   корневой CLAUDE.md) — раздел рейки со своим меню (`ACADEMY_ITEMS` в
   `lib/nav-sections.ts`; пункт открыт по праву `need`: any / team / create /

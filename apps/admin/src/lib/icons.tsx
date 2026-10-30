@@ -70,6 +70,7 @@ import {
   ExternalLink as ExternalLinkArt,
   Eye as EyeArt,
   FilePlus as FilePlusArt,
+  FileSpreadsheetIcon as FileSpreadsheetArt,
   FileText as FileTextArt,
   FileUp as FileUpArt,
   FlaskConical as FlaskConicalArt,
@@ -97,7 +98,6 @@ import {
   Lock as LockArt,
   LogIn as LogInArt,
   Mail as MailArt,
-  MapPin as MapPinArt,
   ArrowExpandIcon as MaximizeArt,
   Meh as MehArt,
   MessageCircle as MessageCircleArt,
@@ -220,6 +220,7 @@ export const Eraser = icon(EraserArt, "Eraser");
 export const ExternalLink = icon(ExternalLinkArt, "ExternalLink");
 export const Eye = icon(EyeArt, "Eye");
 export const FilePlus = icon(FilePlusArt, "FilePlus");
+export const FileSpreadsheet = icon(FileSpreadsheetArt, "FileSpreadsheet");
 export const FileText = icon(FileTextArt, "FileText");
 export const FileUp = icon(FileUpArt, "FileUp");
 export const FlaskConical = icon(FlaskConicalArt, "FlaskConical");
@@ -247,7 +248,6 @@ export const Loader2 = icon(Loader2Art, "Loader2");
 export const Lock = icon(LockArt, "Lock");
 export const LogIn = icon(LogInArt, "LogIn");
 export const Mail = icon(MailArt, "Mail");
-export const MapPin = icon(MapPinArt, "MapPin");
 export const Maximize = icon(MaximizeArt, "Maximize");
 export const Meh = icon(MehArt, "Meh");
 export const MessageCircle = icon(MessageCircleArt, "MessageCircle");

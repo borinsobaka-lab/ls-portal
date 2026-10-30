@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { ANALYTICS_JOBS, isJobEnabled, runJob } from "./server/jobs.server";
+import { kickOnecWorker } from "./server/onec.server";
 import { secretsReady } from "./server/secrets.server";
 
 /**
@@ -52,5 +53,14 @@ export const runAnalyticsJob = createServerFn({ method: "POST" })
     if (!(await isJobEnabled(job.key))) throw new Error("Задача выключена — сначала включите её");
     const started = await runJob(job);
     if (!started) throw new Error("Задача уже выполняется — подождите её окончания");
+    return { ok: true };
+  });
+
+/** «Обработка 1С»: запуск поставлен в очередь — поднять процесс обработки сразу. */
+export const kickOnecProcessing = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await requireAnAdmin(context.supabase);
+    kickOnecWorker();
     return { ok: true };
   });
