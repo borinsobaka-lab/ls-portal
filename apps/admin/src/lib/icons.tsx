@@ -89,6 +89,7 @@ import {
   Images as ImagesArt,
   Info as InfoArt,
   Italic as ItalicArt,
+  KeyRound as KeyRoundArt,
   LayoutTemplate as LayoutTemplateArt,
   Link as LinkArt,
   Link2 as Link2Art,
@@ -239,6 +240,7 @@ export const ImagePlus = icon(ImagePlusArt, "ImagePlus");
 export const Images = icon(ImagesArt, "Images");
 export const Info = icon(InfoArt, "Info");
 export const Italic = icon(ItalicArt, "Italic");
+export const KeyRound = icon(KeyRoundArt, "KeyRound");
 export const LayoutTemplate = icon(LayoutTemplateArt, "LayoutTemplate");
 export const Link = icon(LinkArt, "Link");
 export const Link2 = icon(Link2Art, "Link2");

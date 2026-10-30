@@ -75,6 +75,9 @@ import { Route as AuthenticatedKbBaseIdTrashRouteImport } from './routes/_authen
 import { Route as AuthenticatedKbBaseIdTemplatesRouteImport } from './routes/_authenticated/kb/$baseId/templates'
 import { Route as AuthenticatedKbBaseIdAnalyticsRouteImport } from './routes/_authenticated/kb/$baseId/analytics'
 import { Route as AuthenticatedKbBaseIdNodeIdRouteImport } from './routes/_authenticated/kb/$baseId/$nodeId'
+import { Route as AuthenticatedAnalyticsVkSpendRouteImport } from './routes/_authenticated/analytics/vk/spend'
+import { Route as AuthenticatedAnalyticsVkAccountsRouteImport } from './routes/_authenticated/analytics/vk/accounts'
+import { Route as AuthenticatedAnalyticsToolsVkRouteImport } from './routes/_authenticated/analytics/tools/vk'
 import { Route as AuthenticatedAnalyticsToolsTop10RouteImport } from './routes/_authenticated/analytics/tools/top10'
 import { Route as AuthenticatedAnalyticsToolsOnecRouteImport } from './routes/_authenticated/analytics/tools/onec'
 import { Route as AuthenticatedAnalyticsToolsExcelCleanerRouteImport } from './routes/_authenticated/analytics/tools/excel-cleaner'
@@ -463,6 +466,24 @@ const AuthenticatedKbBaseIdNodeIdRoute =
     path: '/kb/$baseId/$nodeId',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAnalyticsVkSpendRoute =
+  AuthenticatedAnalyticsVkSpendRouteImport.update({
+    id: '/analytics/vk/spend',
+    path: '/analytics/vk/spend',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAnalyticsVkAccountsRoute =
+  AuthenticatedAnalyticsVkAccountsRouteImport.update({
+    id: '/analytics/vk/accounts',
+    path: '/analytics/vk/accounts',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAnalyticsToolsVkRoute =
+  AuthenticatedAnalyticsToolsVkRouteImport.update({
+    id: '/analytics/tools/vk',
+    path: '/analytics/tools/vk',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAnalyticsToolsTop10Route =
   AuthenticatedAnalyticsToolsTop10RouteImport.update({
     id: '/analytics/tools/top10',
@@ -695,6 +716,9 @@ export interface FileRoutesByFullPath {
   '/analytics/tools/excel-cleaner': typeof AuthenticatedAnalyticsToolsExcelCleanerRoute
   '/analytics/tools/onec': typeof AuthenticatedAnalyticsToolsOnecRoute
   '/analytics/tools/top10': typeof AuthenticatedAnalyticsToolsTop10Route
+  '/analytics/tools/vk': typeof AuthenticatedAnalyticsToolsVkRoute
+  '/analytics/vk/accounts': typeof AuthenticatedAnalyticsVkAccountsRoute
+  '/analytics/vk/spend': typeof AuthenticatedAnalyticsVkSpendRoute
   '/kb/$baseId/$nodeId': typeof AuthenticatedKbBaseIdNodeIdRoute
   '/kb/$baseId/analytics': typeof AuthenticatedKbBaseIdAnalyticsRoute
   '/kb/$baseId/templates': typeof AuthenticatedKbBaseIdTemplatesRoute
@@ -788,6 +812,9 @@ export interface FileRoutesByTo {
   '/analytics/tools/excel-cleaner': typeof AuthenticatedAnalyticsToolsExcelCleanerRoute
   '/analytics/tools/onec': typeof AuthenticatedAnalyticsToolsOnecRoute
   '/analytics/tools/top10': typeof AuthenticatedAnalyticsToolsTop10Route
+  '/analytics/tools/vk': typeof AuthenticatedAnalyticsToolsVkRoute
+  '/analytics/vk/accounts': typeof AuthenticatedAnalyticsVkAccountsRoute
+  '/analytics/vk/spend': typeof AuthenticatedAnalyticsVkSpendRoute
   '/kb/$baseId/$nodeId': typeof AuthenticatedKbBaseIdNodeIdRoute
   '/kb/$baseId/analytics': typeof AuthenticatedKbBaseIdAnalyticsRoute
   '/kb/$baseId/templates': typeof AuthenticatedKbBaseIdTemplatesRoute
@@ -883,6 +910,9 @@ export interface FileRoutesById {
   '/_authenticated/analytics/tools/excel-cleaner': typeof AuthenticatedAnalyticsToolsExcelCleanerRoute
   '/_authenticated/analytics/tools/onec': typeof AuthenticatedAnalyticsToolsOnecRoute
   '/_authenticated/analytics/tools/top10': typeof AuthenticatedAnalyticsToolsTop10Route
+  '/_authenticated/analytics/tools/vk': typeof AuthenticatedAnalyticsToolsVkRoute
+  '/_authenticated/analytics/vk/accounts': typeof AuthenticatedAnalyticsVkAccountsRoute
+  '/_authenticated/analytics/vk/spend': typeof AuthenticatedAnalyticsVkSpendRoute
   '/_authenticated/kb/$baseId/$nodeId': typeof AuthenticatedKbBaseIdNodeIdRoute
   '/_authenticated/kb/$baseId/analytics': typeof AuthenticatedKbBaseIdAnalyticsRoute
   '/_authenticated/kb/$baseId/templates': typeof AuthenticatedKbBaseIdTemplatesRoute
@@ -978,6 +1008,9 @@ export interface FileRouteTypes {
     | '/analytics/tools/excel-cleaner'
     | '/analytics/tools/onec'
     | '/analytics/tools/top10'
+    | '/analytics/tools/vk'
+    | '/analytics/vk/accounts'
+    | '/analytics/vk/spend'
     | '/kb/$baseId/$nodeId'
     | '/kb/$baseId/analytics'
     | '/kb/$baseId/templates'
@@ -1071,6 +1104,9 @@ export interface FileRouteTypes {
     | '/analytics/tools/excel-cleaner'
     | '/analytics/tools/onec'
     | '/analytics/tools/top10'
+    | '/analytics/tools/vk'
+    | '/analytics/vk/accounts'
+    | '/analytics/vk/spend'
     | '/kb/$baseId/$nodeId'
     | '/kb/$baseId/analytics'
     | '/kb/$baseId/templates'
@@ -1165,6 +1201,9 @@ export interface FileRouteTypes {
     | '/_authenticated/analytics/tools/excel-cleaner'
     | '/_authenticated/analytics/tools/onec'
     | '/_authenticated/analytics/tools/top10'
+    | '/_authenticated/analytics/tools/vk'
+    | '/_authenticated/analytics/vk/accounts'
+    | '/_authenticated/analytics/vk/spend'
     | '/_authenticated/kb/$baseId/$nodeId'
     | '/_authenticated/kb/$baseId/analytics'
     | '/_authenticated/kb/$baseId/templates'
@@ -1660,6 +1699,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedKbBaseIdNodeIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/analytics/vk/spend': {
+      id: '/_authenticated/analytics/vk/spend'
+      path: '/analytics/vk/spend'
+      fullPath: '/analytics/vk/spend'
+      preLoaderRoute: typeof AuthenticatedAnalyticsVkSpendRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/analytics/vk/accounts': {
+      id: '/_authenticated/analytics/vk/accounts'
+      path: '/analytics/vk/accounts'
+      fullPath: '/analytics/vk/accounts'
+      preLoaderRoute: typeof AuthenticatedAnalyticsVkAccountsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/analytics/tools/vk': {
+      id: '/_authenticated/analytics/tools/vk'
+      path: '/analytics/tools/vk'
+      fullPath: '/analytics/tools/vk'
+      preLoaderRoute: typeof AuthenticatedAnalyticsToolsVkRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/analytics/tools/top10': {
       id: '/_authenticated/analytics/tools/top10'
       path: '/analytics/tools/top10'
@@ -1913,6 +1973,9 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAnalyticsToolsExcelCleanerRoute: typeof AuthenticatedAnalyticsToolsExcelCleanerRoute
   AuthenticatedAnalyticsToolsOnecRoute: typeof AuthenticatedAnalyticsToolsOnecRoute
   AuthenticatedAnalyticsToolsTop10Route: typeof AuthenticatedAnalyticsToolsTop10Route
+  AuthenticatedAnalyticsToolsVkRoute: typeof AuthenticatedAnalyticsToolsVkRoute
+  AuthenticatedAnalyticsVkAccountsRoute: typeof AuthenticatedAnalyticsVkAccountsRoute
+  AuthenticatedAnalyticsVkSpendRoute: typeof AuthenticatedAnalyticsVkSpendRoute
   AuthenticatedKbBaseIdNodeIdRoute: typeof AuthenticatedKbBaseIdNodeIdRoute
   AuthenticatedKbBaseIdAnalyticsRoute: typeof AuthenticatedKbBaseIdAnalyticsRoute
   AuthenticatedKbBaseIdTemplatesRoute: typeof AuthenticatedKbBaseIdTemplatesRoute
@@ -2008,6 +2071,9 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedAnalyticsToolsExcelCleanerRoute,
   AuthenticatedAnalyticsToolsOnecRoute: AuthenticatedAnalyticsToolsOnecRoute,
   AuthenticatedAnalyticsToolsTop10Route: AuthenticatedAnalyticsToolsTop10Route,
+  AuthenticatedAnalyticsToolsVkRoute: AuthenticatedAnalyticsToolsVkRoute,
+  AuthenticatedAnalyticsVkAccountsRoute: AuthenticatedAnalyticsVkAccountsRoute,
+  AuthenticatedAnalyticsVkSpendRoute: AuthenticatedAnalyticsVkSpendRoute,
   AuthenticatedKbBaseIdNodeIdRoute: AuthenticatedKbBaseIdNodeIdRoute,
   AuthenticatedKbBaseIdAnalyticsRoute: AuthenticatedKbBaseIdAnalyticsRoute,
   AuthenticatedKbBaseIdTemplatesRoute: AuthenticatedKbBaseIdTemplatesRoute,

@@ -13,6 +13,7 @@
  */
 import { getSupabaseAdmin, hasSupabaseAdmin } from "@/integrations/supabase/client.server";
 import { jobEnabled } from "@/lib/analytics/jobs";
+import { syncAllVk } from "./vk-ads.server";
 
 export type JobResult = {
   status: "success" | "partial" | "error";
@@ -32,7 +33,11 @@ export type AnalyticsJob = {
 const MINUTE = 60_000;
 
 /** Задачи модулей добавляются сюда по мере переноса (подписи — AN_JOBS). */
-export const ANALYTICS_JOBS: AnalyticsJob[] = [];
+export const ANALYTICS_JOBS: AnalyticsJob[] = [
+  // Их lady-vk-ads.timer: раз в час; 200 кабинетов идут по очереди несколько
+  // минут, аренда с запасом — второй запуск не начнётся, пока идёт первый.
+  { key: "vk_ads", everyMs: 60 * MINUTE, leaseSeconds: 2 * 60 * 60, run: syncAllVk },
+];
 
 const g = globalThis as typeof globalThis & {
   __lsAnalyticsJobs?: { started: boolean; running: Set<string> };

@@ -1579,4 +1579,253 @@ describe.skipIf(!url)("аналитика: фундамент (база)", () =>
       expect(events[5].details).toBe(`${link}: active=0`);
     });
   });
+  // ---- VK Ads (2026-10-30_zzzzz_analytics_vk.sql) ----
+
+  /** Шифртекст ключа, как его отдаёт сервер портала (base64, от 40 знаков). */
+  const vkCipher = () => Buffer.from(crypto.getRandomValues(new Uint8Array(48))).toString("base64");
+
+  test("VK Ads: кабинеты — создание, правила их кода, ключ, правка, вкл/выкл, удаление с историей", async () => {
+    await scenario(async (tx) => {
+      await tx`delete from an_vk_accounts`;
+      const admin = await person(tx, "Админ VK", ["an.admin"]);
+      const staff = await person(tx, "Таргетолог", ["an.vk.register"]);
+      await as(tx, admin);
+      const create = (
+        name: string,
+        vk: string,
+        city: string,
+        brand: string,
+        cipher: string,
+        partner = "",
+      ) =>
+        tx`select an_vk_account_create(${name}, ${vk}, ${city}, ${partner}, ${brand}, ${cipher}) as id`;
+      expect(await failure(tx, () => create(" ", "1", "Абакан", "Lady Stretch", vkCipher()))).toBe(
+        "Название, ID VK Ads, город и API-ключ обязательны.",
+      );
+      expect(await failure(tx, () => create("К", "1", "Абакан", "Lady Stretch", ""))).toBe(
+        "Название, ID VK Ads, город и API-ключ обязательны.",
+      );
+      expect(await failure(tx, () => create("К", "1", "Абакан", "Lady", vkCipher()))).toBe(
+        "Выберите допустимый бренд.",
+      );
+      expect(
+        await failure(tx, () => create("К", "1", "Абакан", "Lady Stretch", "plain-token")),
+      ).toBe("Ключ не зашифрован — сохраните его через портал.");
+      const [{ id: a }] = await create(
+        " Абакан ЛС ",
+        " 7000001 ",
+        "Абакан",
+        "Lady Stretch",
+        vkCipher(),
+        "Иванова",
+      );
+      const [{ id: b }] = await create("Казань ЛД", "7000002", " Казань ", "Lady Jump", vkCipher());
+      expect(
+        await failure(tx, () => create("Дубль", "7000001", "Абакан", "Lady Stretch", vkCipher())),
+      ).toBe("Кабинет с таким ID VK Ads уже есть.");
+
+      await asServer(tx);
+      const rows = await tx`select id, name, vk_account_id, city, brand, partner_name, is_active
+                              from an_vk_accounts order by id`;
+      expect(
+        rows.map((r: { name: string; vk_account_id: string; city: string; brand: string }) => [
+          r.name,
+          r.vk_account_id,
+          r.city,
+          r.brand,
+        ]),
+      ).toEqual([
+        ["Абакан ЛС", "7000001", "Абакан", "Lady Stretch"],
+        ["Казань ЛД", "7000002", "Казань · Вишневского", "Lady Jump"],
+      ]);
+      expect((await tx`select 1 from an_secrets where kind = 'vk_ads'`).length).toBe(2);
+      // Сбор (сервер): остаток, кампании, статистика, связь ЛФ.
+      await tx`insert into an_vk_balances (account_id, measured_at, balance) values
+        (${a}, now() - interval '2 hours', 100), (${a}, now(), 15234.50)`;
+      await tx`insert into an_vk_daily_stats (account_id, vk_plan_id, stat_date, spent) values
+        (${a}, '1', '2026-10-29', 100.25), (${a}, '2', '2026-10-29', 50.5), (${a}, '3', '2026-10-28', 7),
+        (${b}, '9', '2026-10-29', 10)`;
+      await tx`insert into an_vk_lead_form_links (account_id, vk_form_id, vk_plan_id) values (${a}, '11', '2')`;
+
+      await as(tx, admin);
+      const [{ list }] = await tx`select an_vk_accounts() as list`;
+      expect(list.accounts.map((r: { name: string }) => r.name)).toEqual([
+        "Казань ЛД",
+        "Абакан ЛС",
+      ]);
+      expect(list.accounts[1]).toMatchObject({
+        last_balance: "15234.50",
+        partner_name: "Иванова",
+        is_active: true,
+      });
+      expect(list.accounts[0].last_balance).toBeNull();
+      const [{ spend }] = await tx`select an_vk_spend('2026-10-29') as spend`;
+      expect(
+        spend.map(
+          (r: {
+            name: string;
+            platform_spent: number;
+            lead_form_spent: number;
+            campaign_rows: number;
+          }) => [r.name, r.platform_spent, r.lead_form_spent, r.campaign_rows],
+        ),
+      ).toEqual([
+        ["Абакан ЛС", 150.75, 50.5, 2],
+        ["Казань ЛД", 10, 0, 1],
+      ]);
+      const [{ empty }] = await tx`select an_vk_spend('2026-01-01') as empty`;
+      expect(empty.map((r: { campaign_rows: number }) => r.campaign_rows)).toEqual([0, 0]);
+
+      await tx`select an_vk_account_update(${a}, 'Казань', 'Петрова', 'Lady Jump')`;
+      expect(
+        await failure(tx, () => tx`select an_vk_account_update(-1, '', '', 'Lady Stretch')`),
+      ).toBe("Кабинет не найден.");
+      expect(await failure(tx, () => tx`select an_vk_account_update(${a}, '', '', 'X')`)).toBe(
+        "Выберите допустимый бренд.",
+      );
+      await asServer(tx);
+      await tx`update an_vk_accounts set last_verification_status = 200, last_verified_at = now() where id = ${a}`;
+      await as(tx, admin);
+      expect(await failure(tx, () => tx`select an_vk_account_set_token(${a}, '')`)).toBe(
+        "Введите API-ключ VK Ads.",
+      );
+      await tx`select an_vk_account_set_token(${a}, ${vkCipher()})`;
+      const [{ off }] = await tx`select an_vk_account_toggle(${a}) as off`;
+      const [{ on }] = await tx`select an_vk_account_toggle(${a}) as on`;
+      expect([off, on]).toEqual([false, true]);
+      await asServer(tx);
+      const [acc] =
+        await tx`select city, partner_name, brand, last_verification_status from an_vk_accounts where id = ${a}`;
+      expect(acc).toEqual({
+        city: "Казань · Вишневского",
+        partner_name: "Петрова",
+        brand: "Lady Jump",
+        last_verification_status: null,
+      });
+
+      await as(tx, admin);
+      await tx`select an_vk_account_delete(${a})`;
+      expect(await failure(tx, () => tx`select an_vk_account_delete(${a})`)).toBe(
+        "Кабинет не найден.",
+      );
+      await asServer(tx);
+      expect(
+        (await tx`select 1 from an_secrets where kind = 'vk_ads' and ref = ${String(a)}`).length,
+      ).toBe(0);
+      expect((await tx`select 1 from an_vk_balances where account_id = ${a}`).length).toBe(0);
+      expect((await tx`select 1 from an_vk_daily_stats where account_id = ${a}`).length).toBe(0);
+      const events =
+        await tx`select event from an_audit where user_id = ${admin} and event like 'vk_ads%' order by id`;
+      expect(events.map((e: { event: string }) => e.event)).toEqual([
+        "vk_ads_account_created",
+        "vk_ads_account_created",
+        "vk_ads_account_metadata_changed",
+        "vk_ads_account_token_changed",
+        "vk_ads_account_toggled",
+        "vk_ads_account_toggled",
+        "vk_ads_account_deleted",
+      ]);
+
+      await as(tx, staff);
+      expect(await failure(tx, () => tx`select an_vk_accounts()`)).toContain("an_forbidden");
+      expect(await failure(tx, () => tx`select an_vk_spend('2026-10-29')`)).toContain(
+        "an_forbidden",
+      );
+      expect(await failure(tx, () => tx`select * from an_vk_accounts`)).toContain(
+        "permission denied",
+      );
+      expect(await failure(tx, () => tx`select an_vk_store_token(${b}, ${vkCipher()})`)).toContain(
+        "permission denied",
+      );
+    });
+  });
+
+  test("VK Ads: импорт кабинетов — пропуски, обновление без стирания города, новые — Lady Stretch", async () => {
+    await scenario(async (tx) => {
+      await tx`delete from an_vk_accounts`;
+      const admin = await person(tx, "Админ VK", ["an.admin"]);
+      await as(tx, admin);
+      await tx`select an_vk_account_create('Старое имя', '7000001', 'Абакан', 'Иванова', 'Lady Jump', ${vkCipher()})`;
+      const [{ id: off }] =
+        await tx`select an_vk_account_create('Выключен', '7000009', 'Бийск', '', 'Lady Stretch', ${vkCipher()}) as id`;
+      await tx`select an_vk_account_toggle(${off})`;
+      const records = [
+        {
+          name: "Новое имя",
+          vk_account_id: "7000001",
+          token_cipher: vkCipher(),
+          city: "",
+          partner_name: "",
+          brand: "",
+        },
+        {
+          name: "Новый",
+          vk_account_id: "7000002",
+          token_cipher: vkCipher(),
+          city: "",
+          partner_name: "",
+          brand: "",
+        },
+        {
+          name: "Без ключа",
+          vk_account_id: "7000003",
+          token_cipher: "",
+          city: "",
+          partner_name: "",
+          brand: "",
+        },
+        {
+          name: "Чужой бренд",
+          vk_account_id: "7000004",
+          token_cipher: vkCipher(),
+          city: "",
+          partner_name: "",
+          brand: "Lady X",
+        },
+        {
+          name: "Выключен",
+          vk_account_id: "7000009",
+          token_cipher: vkCipher(),
+          city: "Барнаул",
+          partner_name: "",
+          brand: "",
+        },
+      ];
+      const [{ r }] = await tx`select an_vk_accounts_import(${records}::jsonb) as r`;
+      expect(r).toEqual({ created: 1, updated: 2, skipped: 2 });
+      await asServer(tx);
+      const rows =
+        await tx`select name, vk_account_id, city, partner_name, brand, is_active from an_vk_accounts order by vk_account_id`;
+      expect(rows).toEqual([
+        {
+          name: "Новое имя",
+          vk_account_id: "7000001",
+          city: "Абакан",
+          partner_name: "Иванова",
+          brand: "Lady Jump",
+          is_active: true,
+        },
+        {
+          name: "Новый",
+          vk_account_id: "7000002",
+          city: "",
+          partner_name: "",
+          brand: "Lady Stretch",
+          is_active: true,
+        },
+        {
+          name: "Выключен",
+          vk_account_id: "7000009",
+          city: "Барнаул",
+          partner_name: "",
+          brand: "Lady Stretch",
+          is_active: true,
+        },
+      ]);
+      expect((await tx`select 1 from an_secrets where kind = 'vk_ads'`).length).toBe(3);
+      const [{ details }] =
+        await tx`select details from an_audit where event = 'vk_ads_accounts_imported' and user_id = ${admin}`;
+      expect(details).toBe("created=1, updated=2, skipped=2");
+    });
+  });
 });

@@ -3040,6 +3040,72 @@ export function AnalyticsFeedbackPageSkeleton() {
   );
 }
 
+/** «VK Ads» → «Рекламные кабинеты»: пояснение, фильтры, таблица кабинетов. */
+export function AnalyticsVkAccountsPageSkeleton() {
+  return (
+    <TablePage
+      title={AN_TITLES.vkAccounts}
+      network
+      actions={["w-40"]}
+      toolbar={{ search: true, controls: ["w-48", "w-48"] }}
+      headers={["Кабинет", "Город и партнёр", "Остаток", "Обновлён", "Ключ", "Статус", ""]}
+      pagination={false}
+      rows={10}
+    />
+  );
+}
+
+/** «VK Ads» → «Расходы по кабинетам»: дата, четыре плитки, таблица. */
+export function AnalyticsVkSpendPageSkeleton() {
+  return (
+    <ShellSkeleton title={AN_TITLES.vkSpend} network>
+      <div className="space-y-4">
+        <ToolbarSkeleton search={false} controls={["w-48"]} />
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <StatTileSkeleton label="Всего за день" />
+          <StatTileSkeleton label="Расход ЛФ" />
+          <StatTileSkeleton label="Расход СС — остаток после ЛФ" />
+          <StatTileSkeleton label="Кабинетов с данными" />
+        </div>
+        <TableCardSkeleton
+          title="Все рекламные кабинеты"
+          headers={[
+            "Кабинет",
+            "Город",
+            "Партнёр",
+            "Всего",
+            "ЛФ",
+            "СС (остаток)",
+            "Кампаний",
+            "Обновлено",
+            "Статус",
+          ]}
+          rows={10}
+        />
+      </div>
+    </ShellSkeleton>
+  );
+}
+
+/** «Инструменты» → «Обслуживание VK Ads»: карточки действий. */
+export function AnalyticsVkToolsPageSkeleton() {
+  return (
+    <ShellSkeleton title={AN_TITLES.vkTools} network>
+      <div className="max-w-3xl space-y-4">
+        <Skeleton className="h-12 w-full rounded-lg" />
+        <div className="space-y-3 rounded-lg border bg-background p-4">
+          <Skeleton className="h-5 w-72 max-w-full" />
+          <Skeleton className="h-4 w-full" />
+          <div className="flex gap-2">
+            <Skeleton className="h-9 w-40 rounded-full" />
+            <Skeleton className="h-9 w-40 rounded-full" />
+          </div>
+        </div>
+      </div>
+    </ShellSkeleton>
+  );
+}
+
 export function AnalyticsJobsPageSkeleton() {
   return (
     <ShellSkeleton title={AN_TITLES.jobs} network>
