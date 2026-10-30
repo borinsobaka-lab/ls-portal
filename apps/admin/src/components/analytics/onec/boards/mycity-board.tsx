@@ -1,5 +1,6 @@
 import { lazy, Suspense, useMemo, useState, type ReactNode } from "react";
-import { ExternalLink } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { ExternalLink, Star } from "lucide-react";
 
 import {
   Change,
@@ -35,7 +36,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useAdminAccess } from "@/hooks/use-admin-access";
 import { useTableSort } from "@/hooks/use-table-sort";
+import { anCan } from "@/lib/analytics/access";
 import {
   DIRECTION_SORT,
   MARKETING_REPORT_URL,
@@ -117,6 +120,10 @@ export function PartnerBoard({
   const changeStudio = (value: string) =>
     controls.setFilters({ city: city || undefined, studio: value || undefined });
 
+  // Их «Оценки клиентов» (partner-reference.js): отзывы того же города за
+  // период доски.
+  const canReviews = anCan(useAdminAccess()?.analytics, "reviews");
+
   const be = summary.breakEven;
 
   return (
@@ -151,6 +158,17 @@ export function PartnerBoard({
             ))}
           </SelectContent>
         </Select>
+        {canReviews && (
+          <Button variant="outline" asChild>
+            <Link
+              to="/analytics/reviews"
+              search={{ city: city || undefined, from: payload.start, to: payload.end }}
+            >
+              <Star />
+              Оценки клиентов
+            </Link>
+          </Button>
+        )}
         <Button variant="outline" asChild className="toolbar-full">
           <a href={MARKETING_REPORT_URL} target="_blank" rel="noopener noreferrer">
             <ExternalLink />

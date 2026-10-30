@@ -16,6 +16,7 @@ import { Route as ApiVersionRouteImport } from './routes/api/version'
 import { Route as ApiTranscribeRouteImport } from './routes/api/transcribe'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as ApiAuthEmailRouteImport } from './routes/api/auth-email'
+import { Route as AnalyticsFeedbackTokenRouteImport } from './routes/analytics-feedback.$token'
 import { Route as AuthenticatedWorkoutsRouteImport } from './routes/_authenticated/workouts'
 import { Route as AuthenticatedTrainersRouteImport } from './routes/_authenticated/trainers'
 import { Route as AuthenticatedStudiosRouteImport } from './routes/_authenticated/studios'
@@ -65,6 +66,7 @@ import { Route as AuthenticatedAccessLogRouteImport } from './routes/_authentica
 import { Route as AuthenticatedAcademySettingsRouteImport } from './routes/_authenticated/academy/settings'
 import { Route as AuthenticatedAcademyReportRouteImport } from './routes/_authenticated/academy/report'
 import { Route as AuthenticatedKbBaseIdIndexRouteImport } from './routes/_authenticated/kb/$baseId/index'
+import { Route as AuthenticatedAnalyticsReviewsIndexRouteImport } from './routes/_authenticated/analytics/reviews/index'
 import { Route as AuthenticatedAccessRolesIndexRouteImport } from './routes/_authenticated/access/roles/index'
 import { Route as AuthenticatedAcademyReviewIndexRouteImport } from './routes/_authenticated/academy/review/index'
 import { Route as AuthenticatedAcademyCoursesIndexRouteImport } from './routes/_authenticated/academy/courses/index'
@@ -76,6 +78,7 @@ import { Route as AuthenticatedKbBaseIdNodeIdRouteImport } from './routes/_authe
 import { Route as AuthenticatedAnalyticsToolsTop10RouteImport } from './routes/_authenticated/analytics/tools/top10'
 import { Route as AuthenticatedAnalyticsToolsOnecRouteImport } from './routes/_authenticated/analytics/tools/onec'
 import { Route as AuthenticatedAnalyticsToolsExcelCleanerRouteImport } from './routes/_authenticated/analytics/tools/excel-cleaner'
+import { Route as AuthenticatedAnalyticsReviewsUploadRouteImport } from './routes/_authenticated/analytics/reviews/upload'
 import { Route as AuthenticatedAnalyticsOnecZeroRouteImport } from './routes/_authenticated/analytics/onec/zero'
 import { Route as AuthenticatedAnalyticsOnecSalesRouteImport } from './routes/_authenticated/analytics/onec/sales'
 import { Route as AuthenticatedAnalyticsOnecRevenueRouteImport } from './routes/_authenticated/analytics/onec/revenue'
@@ -91,8 +94,10 @@ import { Route as AuthenticatedAccessRolesRoleIdRouteImport } from './routes/_au
 import { Route as AuthenticatedAcademyReviewAttemptIdRouteImport } from './routes/_authenticated/academy/review/$attemptId'
 import { Route as AuthenticatedAcademyMyCourseIdRouteImport } from './routes/_authenticated/academy/my/$courseId'
 import { Route as AuthenticatedAcademyAttemptsAttemptIdRouteImport } from './routes/_authenticated/academy/attempts/$attemptId'
+import { Route as AuthenticatedAnalyticsReviewsStaffIndexRouteImport } from './routes/_authenticated/analytics/reviews/staff/index'
 import { Route as AuthenticatedAnalyticsAdminPartnersIndexRouteImport } from './routes/_authenticated/analytics/admin/partners/index'
 import { Route as AuthenticatedAcademyCoursesCourseIdIndexRouteImport } from './routes/_authenticated/academy/courses/$courseId/index'
+import { Route as AuthenticatedAnalyticsReviewsStaffStatisticsRouteImport } from './routes/_authenticated/analytics/reviews/staff/statistics'
 import { Route as AuthenticatedAnalyticsAdminPartnersUserIdRouteImport } from './routes/_authenticated/analytics/admin/partners/$userId'
 import { Route as AuthenticatedAcademyCoursesCourseIdPreviewRouteImport } from './routes/_authenticated/academy/courses/$courseId/preview'
 import { Route as AuthenticatedAcademyCoursesCourseIdStepIdRouteImport } from './routes/_authenticated/academy/courses/$courseId/$stepId'
@@ -129,6 +134,11 @@ const ApiChatRoute = ApiChatRouteImport.update({
 const ApiAuthEmailRoute = ApiAuthEmailRouteImport.update({
   id: '/api/auth-email',
   path: '/api/auth-email',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AnalyticsFeedbackTokenRoute = AnalyticsFeedbackTokenRouteImport.update({
+  id: '/analytics-feedback/$token',
+  path: '/analytics-feedback/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedWorkoutsRoute = AuthenticatedWorkoutsRouteImport.update({
@@ -400,6 +410,12 @@ const AuthenticatedKbBaseIdIndexRoute =
     path: '/kb/$baseId/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAnalyticsReviewsIndexRoute =
+  AuthenticatedAnalyticsReviewsIndexRouteImport.update({
+    id: '/analytics/reviews/',
+    path: '/analytics/reviews/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAccessRolesIndexRoute =
   AuthenticatedAccessRolesIndexRouteImport.update({
     id: '/access/roles/',
@@ -463,6 +479,12 @@ const AuthenticatedAnalyticsToolsExcelCleanerRoute =
   AuthenticatedAnalyticsToolsExcelCleanerRouteImport.update({
     id: '/analytics/tools/excel-cleaner',
     path: '/analytics/tools/excel-cleaner',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAnalyticsReviewsUploadRoute =
+  AuthenticatedAnalyticsReviewsUploadRouteImport.update({
+    id: '/analytics/reviews/upload',
+    path: '/analytics/reviews/upload',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedAnalyticsOnecZeroRoute =
@@ -555,6 +577,12 @@ const AuthenticatedAcademyAttemptsAttemptIdRoute =
     path: '/academy/attempts/$attemptId',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAnalyticsReviewsStaffIndexRoute =
+  AuthenticatedAnalyticsReviewsStaffIndexRouteImport.update({
+    id: '/analytics/reviews/staff/',
+    path: '/analytics/reviews/staff/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAnalyticsAdminPartnersIndexRoute =
   AuthenticatedAnalyticsAdminPartnersIndexRouteImport.update({
     id: '/analytics/admin/partners/',
@@ -565,6 +593,12 @@ const AuthenticatedAcademyCoursesCourseIdIndexRoute =
   AuthenticatedAcademyCoursesCourseIdIndexRouteImport.update({
     id: '/academy/courses/$courseId/',
     path: '/academy/courses/$courseId/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAnalyticsReviewsStaffStatisticsRoute =
+  AuthenticatedAnalyticsReviewsStaffStatisticsRouteImport.update({
+    id: '/analytics/reviews/staff/statistics',
+    path: '/analytics/reviews/staff/statistics',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedAnalyticsAdminPartnersUserIdRoute =
@@ -620,6 +654,7 @@ export interface FileRoutesByFullPath {
   '/studios': typeof AuthenticatedStudiosRoute
   '/trainers': typeof AuthenticatedTrainersRoute
   '/workouts': typeof AuthenticatedWorkoutsRoute
+  '/analytics-feedback/$token': typeof AnalyticsFeedbackTokenRoute
   '/api/auth-email': typeof ApiAuthEmailRoute
   '/api/chat': typeof ApiChatRoute
   '/api/transcribe': typeof ApiTranscribeRoute
@@ -656,6 +691,7 @@ export interface FileRoutesByFullPath {
   '/analytics/onec/revenue': typeof AuthenticatedAnalyticsOnecRevenueRoute
   '/analytics/onec/sales': typeof AuthenticatedAnalyticsOnecSalesRoute
   '/analytics/onec/zero': typeof AuthenticatedAnalyticsOnecZeroRoute
+  '/analytics/reviews/upload': typeof AuthenticatedAnalyticsReviewsUploadRoute
   '/analytics/tools/excel-cleaner': typeof AuthenticatedAnalyticsToolsExcelCleanerRoute
   '/analytics/tools/onec': typeof AuthenticatedAnalyticsToolsOnecRoute
   '/analytics/tools/top10': typeof AuthenticatedAnalyticsToolsTop10Route
@@ -667,12 +703,15 @@ export interface FileRoutesByFullPath {
   '/academy/courses/': typeof AuthenticatedAcademyCoursesIndexRoute
   '/academy/review/': typeof AuthenticatedAcademyReviewIndexRoute
   '/access/roles/': typeof AuthenticatedAccessRolesIndexRoute
+  '/analytics/reviews/': typeof AuthenticatedAnalyticsReviewsIndexRoute
   '/kb/$baseId/': typeof AuthenticatedKbBaseIdIndexRoute
   '/academy/courses/$courseId/$stepId': typeof AuthenticatedAcademyCoursesCourseIdStepIdRoute
   '/academy/courses/$courseId/preview': typeof AuthenticatedAcademyCoursesCourseIdPreviewRoute
   '/analytics/admin/partners/$userId': typeof AuthenticatedAnalyticsAdminPartnersUserIdRoute
+  '/analytics/reviews/staff/statistics': typeof AuthenticatedAnalyticsReviewsStaffStatisticsRoute
   '/academy/courses/$courseId/': typeof AuthenticatedAcademyCoursesCourseIdIndexRoute
   '/analytics/admin/partners/': typeof AuthenticatedAnalyticsAdminPartnersIndexRoute
+  '/analytics/reviews/staff/': typeof AuthenticatedAnalyticsReviewsStaffIndexRoute
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
@@ -707,6 +746,7 @@ export interface FileRoutesByTo {
   '/studios': typeof AuthenticatedStudiosRoute
   '/trainers': typeof AuthenticatedTrainersRoute
   '/workouts': typeof AuthenticatedWorkoutsRoute
+  '/analytics-feedback/$token': typeof AnalyticsFeedbackTokenRoute
   '/api/auth-email': typeof ApiAuthEmailRoute
   '/api/chat': typeof ApiChatRoute
   '/api/transcribe': typeof ApiTranscribeRoute
@@ -744,6 +784,7 @@ export interface FileRoutesByTo {
   '/analytics/onec/revenue': typeof AuthenticatedAnalyticsOnecRevenueRoute
   '/analytics/onec/sales': typeof AuthenticatedAnalyticsOnecSalesRoute
   '/analytics/onec/zero': typeof AuthenticatedAnalyticsOnecZeroRoute
+  '/analytics/reviews/upload': typeof AuthenticatedAnalyticsReviewsUploadRoute
   '/analytics/tools/excel-cleaner': typeof AuthenticatedAnalyticsToolsExcelCleanerRoute
   '/analytics/tools/onec': typeof AuthenticatedAnalyticsToolsOnecRoute
   '/analytics/tools/top10': typeof AuthenticatedAnalyticsToolsTop10Route
@@ -755,12 +796,15 @@ export interface FileRoutesByTo {
   '/academy/courses': typeof AuthenticatedAcademyCoursesIndexRoute
   '/academy/review': typeof AuthenticatedAcademyReviewIndexRoute
   '/access/roles': typeof AuthenticatedAccessRolesIndexRoute
+  '/analytics/reviews': typeof AuthenticatedAnalyticsReviewsIndexRoute
   '/kb/$baseId': typeof AuthenticatedKbBaseIdIndexRoute
   '/academy/courses/$courseId/$stepId': typeof AuthenticatedAcademyCoursesCourseIdStepIdRoute
   '/academy/courses/$courseId/preview': typeof AuthenticatedAcademyCoursesCourseIdPreviewRoute
   '/analytics/admin/partners/$userId': typeof AuthenticatedAnalyticsAdminPartnersUserIdRoute
+  '/analytics/reviews/staff/statistics': typeof AuthenticatedAnalyticsReviewsStaffStatisticsRoute
   '/academy/courses/$courseId': typeof AuthenticatedAcademyCoursesCourseIdIndexRoute
   '/analytics/admin/partners': typeof AuthenticatedAnalyticsAdminPartnersIndexRoute
+  '/analytics/reviews/staff': typeof AuthenticatedAnalyticsReviewsStaffIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -797,6 +841,7 @@ export interface FileRoutesById {
   '/_authenticated/studios': typeof AuthenticatedStudiosRoute
   '/_authenticated/trainers': typeof AuthenticatedTrainersRoute
   '/_authenticated/workouts': typeof AuthenticatedWorkoutsRoute
+  '/analytics-feedback/$token': typeof AnalyticsFeedbackTokenRoute
   '/api/auth-email': typeof ApiAuthEmailRoute
   '/api/chat': typeof ApiChatRoute
   '/api/transcribe': typeof ApiTranscribeRoute
@@ -834,6 +879,7 @@ export interface FileRoutesById {
   '/_authenticated/analytics/onec/revenue': typeof AuthenticatedAnalyticsOnecRevenueRoute
   '/_authenticated/analytics/onec/sales': typeof AuthenticatedAnalyticsOnecSalesRoute
   '/_authenticated/analytics/onec/zero': typeof AuthenticatedAnalyticsOnecZeroRoute
+  '/_authenticated/analytics/reviews/upload': typeof AuthenticatedAnalyticsReviewsUploadRoute
   '/_authenticated/analytics/tools/excel-cleaner': typeof AuthenticatedAnalyticsToolsExcelCleanerRoute
   '/_authenticated/analytics/tools/onec': typeof AuthenticatedAnalyticsToolsOnecRoute
   '/_authenticated/analytics/tools/top10': typeof AuthenticatedAnalyticsToolsTop10Route
@@ -845,12 +891,15 @@ export interface FileRoutesById {
   '/_authenticated/academy/courses/': typeof AuthenticatedAcademyCoursesIndexRoute
   '/_authenticated/academy/review/': typeof AuthenticatedAcademyReviewIndexRoute
   '/_authenticated/access/roles/': typeof AuthenticatedAccessRolesIndexRoute
+  '/_authenticated/analytics/reviews/': typeof AuthenticatedAnalyticsReviewsIndexRoute
   '/_authenticated/kb/$baseId/': typeof AuthenticatedKbBaseIdIndexRoute
   '/_authenticated/academy/courses/$courseId/$stepId': typeof AuthenticatedAcademyCoursesCourseIdStepIdRoute
   '/_authenticated/academy/courses/$courseId/preview': typeof AuthenticatedAcademyCoursesCourseIdPreviewRoute
   '/_authenticated/analytics/admin/partners/$userId': typeof AuthenticatedAnalyticsAdminPartnersUserIdRoute
+  '/_authenticated/analytics/reviews/staff/statistics': typeof AuthenticatedAnalyticsReviewsStaffStatisticsRoute
   '/_authenticated/academy/courses/$courseId/': typeof AuthenticatedAcademyCoursesCourseIdIndexRoute
   '/_authenticated/analytics/admin/partners/': typeof AuthenticatedAnalyticsAdminPartnersIndexRoute
+  '/_authenticated/analytics/reviews/staff/': typeof AuthenticatedAnalyticsReviewsStaffIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -888,6 +937,7 @@ export interface FileRouteTypes {
     | '/studios'
     | '/trainers'
     | '/workouts'
+    | '/analytics-feedback/$token'
     | '/api/auth-email'
     | '/api/chat'
     | '/api/transcribe'
@@ -924,6 +974,7 @@ export interface FileRouteTypes {
     | '/analytics/onec/revenue'
     | '/analytics/onec/sales'
     | '/analytics/onec/zero'
+    | '/analytics/reviews/upload'
     | '/analytics/tools/excel-cleaner'
     | '/analytics/tools/onec'
     | '/analytics/tools/top10'
@@ -935,12 +986,15 @@ export interface FileRouteTypes {
     | '/academy/courses/'
     | '/academy/review/'
     | '/access/roles/'
+    | '/analytics/reviews/'
     | '/kb/$baseId/'
     | '/academy/courses/$courseId/$stepId'
     | '/academy/courses/$courseId/preview'
     | '/analytics/admin/partners/$userId'
+    | '/analytics/reviews/staff/statistics'
     | '/academy/courses/$courseId/'
     | '/analytics/admin/partners/'
+    | '/analytics/reviews/staff/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/auth'
@@ -975,6 +1029,7 @@ export interface FileRouteTypes {
     | '/studios'
     | '/trainers'
     | '/workouts'
+    | '/analytics-feedback/$token'
     | '/api/auth-email'
     | '/api/chat'
     | '/api/transcribe'
@@ -1012,6 +1067,7 @@ export interface FileRouteTypes {
     | '/analytics/onec/revenue'
     | '/analytics/onec/sales'
     | '/analytics/onec/zero'
+    | '/analytics/reviews/upload'
     | '/analytics/tools/excel-cleaner'
     | '/analytics/tools/onec'
     | '/analytics/tools/top10'
@@ -1023,12 +1079,15 @@ export interface FileRouteTypes {
     | '/academy/courses'
     | '/academy/review'
     | '/access/roles'
+    | '/analytics/reviews'
     | '/kb/$baseId'
     | '/academy/courses/$courseId/$stepId'
     | '/academy/courses/$courseId/preview'
     | '/analytics/admin/partners/$userId'
+    | '/analytics/reviews/staff/statistics'
     | '/academy/courses/$courseId'
     | '/analytics/admin/partners'
+    | '/analytics/reviews/staff'
   id:
     | '__root__'
     | '/_authenticated'
@@ -1064,6 +1123,7 @@ export interface FileRouteTypes {
     | '/_authenticated/studios'
     | '/_authenticated/trainers'
     | '/_authenticated/workouts'
+    | '/analytics-feedback/$token'
     | '/api/auth-email'
     | '/api/chat'
     | '/api/transcribe'
@@ -1101,6 +1161,7 @@ export interface FileRouteTypes {
     | '/_authenticated/analytics/onec/revenue'
     | '/_authenticated/analytics/onec/sales'
     | '/_authenticated/analytics/onec/zero'
+    | '/_authenticated/analytics/reviews/upload'
     | '/_authenticated/analytics/tools/excel-cleaner'
     | '/_authenticated/analytics/tools/onec'
     | '/_authenticated/analytics/tools/top10'
@@ -1112,17 +1173,21 @@ export interface FileRouteTypes {
     | '/_authenticated/academy/courses/'
     | '/_authenticated/academy/review/'
     | '/_authenticated/access/roles/'
+    | '/_authenticated/analytics/reviews/'
     | '/_authenticated/kb/$baseId/'
     | '/_authenticated/academy/courses/$courseId/$stepId'
     | '/_authenticated/academy/courses/$courseId/preview'
     | '/_authenticated/analytics/admin/partners/$userId'
+    | '/_authenticated/analytics/reviews/staff/statistics'
     | '/_authenticated/academy/courses/$courseId/'
     | '/_authenticated/analytics/admin/partners/'
+    | '/_authenticated/analytics/reviews/staff/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  AnalyticsFeedbackTokenRoute: typeof AnalyticsFeedbackTokenRoute
   ApiAuthEmailRoute: typeof ApiAuthEmailRoute
   ApiChatRoute: typeof ApiChatRoute
   ApiTranscribeRoute: typeof ApiTranscribeRoute
@@ -1180,6 +1245,13 @@ declare module '@tanstack/react-router' {
       path: '/api/auth-email'
       fullPath: '/api/auth-email'
       preLoaderRoute: typeof ApiAuthEmailRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/analytics-feedback/$token': {
+      id: '/analytics-feedback/$token'
+      path: '/analytics-feedback/$token'
+      fullPath: '/analytics-feedback/$token'
+      preLoaderRoute: typeof AnalyticsFeedbackTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/workouts': {
@@ -1525,6 +1597,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedKbBaseIdIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/analytics/reviews/': {
+      id: '/_authenticated/analytics/reviews/'
+      path: '/analytics/reviews'
+      fullPath: '/analytics/reviews/'
+      preLoaderRoute: typeof AuthenticatedAnalyticsReviewsIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/access/roles/': {
       id: '/_authenticated/access/roles/'
       path: '/access/roles'
@@ -1600,6 +1679,13 @@ declare module '@tanstack/react-router' {
       path: '/analytics/tools/excel-cleaner'
       fullPath: '/analytics/tools/excel-cleaner'
       preLoaderRoute: typeof AuthenticatedAnalyticsToolsExcelCleanerRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/analytics/reviews/upload': {
+      id: '/_authenticated/analytics/reviews/upload'
+      path: '/analytics/reviews/upload'
+      fullPath: '/analytics/reviews/upload'
+      preLoaderRoute: typeof AuthenticatedAnalyticsReviewsUploadRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/analytics/onec/zero': {
@@ -1707,6 +1793,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAcademyAttemptsAttemptIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/analytics/reviews/staff/': {
+      id: '/_authenticated/analytics/reviews/staff/'
+      path: '/analytics/reviews/staff'
+      fullPath: '/analytics/reviews/staff/'
+      preLoaderRoute: typeof AuthenticatedAnalyticsReviewsStaffIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/analytics/admin/partners/': {
       id: '/_authenticated/analytics/admin/partners/'
       path: '/analytics/admin/partners'
@@ -1719,6 +1812,13 @@ declare module '@tanstack/react-router' {
       path: '/academy/courses/$courseId'
       fullPath: '/academy/courses/$courseId/'
       preLoaderRoute: typeof AuthenticatedAcademyCoursesCourseIdIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/analytics/reviews/staff/statistics': {
+      id: '/_authenticated/analytics/reviews/staff/statistics'
+      path: '/analytics/reviews/staff/statistics'
+      fullPath: '/analytics/reviews/staff/statistics'
+      preLoaderRoute: typeof AuthenticatedAnalyticsReviewsStaffStatisticsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/analytics/admin/partners/$userId': {
@@ -1809,6 +1909,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAnalyticsOnecRevenueRoute: typeof AuthenticatedAnalyticsOnecRevenueRoute
   AuthenticatedAnalyticsOnecSalesRoute: typeof AuthenticatedAnalyticsOnecSalesRoute
   AuthenticatedAnalyticsOnecZeroRoute: typeof AuthenticatedAnalyticsOnecZeroRoute
+  AuthenticatedAnalyticsReviewsUploadRoute: typeof AuthenticatedAnalyticsReviewsUploadRoute
   AuthenticatedAnalyticsToolsExcelCleanerRoute: typeof AuthenticatedAnalyticsToolsExcelCleanerRoute
   AuthenticatedAnalyticsToolsOnecRoute: typeof AuthenticatedAnalyticsToolsOnecRoute
   AuthenticatedAnalyticsToolsTop10Route: typeof AuthenticatedAnalyticsToolsTop10Route
@@ -1819,12 +1920,15 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAcademyCoursesIndexRoute: typeof AuthenticatedAcademyCoursesIndexRoute
   AuthenticatedAcademyReviewIndexRoute: typeof AuthenticatedAcademyReviewIndexRoute
   AuthenticatedAccessRolesIndexRoute: typeof AuthenticatedAccessRolesIndexRoute
+  AuthenticatedAnalyticsReviewsIndexRoute: typeof AuthenticatedAnalyticsReviewsIndexRoute
   AuthenticatedKbBaseIdIndexRoute: typeof AuthenticatedKbBaseIdIndexRoute
   AuthenticatedAcademyCoursesCourseIdStepIdRoute: typeof AuthenticatedAcademyCoursesCourseIdStepIdRoute
   AuthenticatedAcademyCoursesCourseIdPreviewRoute: typeof AuthenticatedAcademyCoursesCourseIdPreviewRoute
   AuthenticatedAnalyticsAdminPartnersUserIdRoute: typeof AuthenticatedAnalyticsAdminPartnersUserIdRoute
+  AuthenticatedAnalyticsReviewsStaffStatisticsRoute: typeof AuthenticatedAnalyticsReviewsStaffStatisticsRoute
   AuthenticatedAcademyCoursesCourseIdIndexRoute: typeof AuthenticatedAcademyCoursesCourseIdIndexRoute
   AuthenticatedAnalyticsAdminPartnersIndexRoute: typeof AuthenticatedAnalyticsAdminPartnersIndexRoute
+  AuthenticatedAnalyticsReviewsStaffIndexRoute: typeof AuthenticatedAnalyticsReviewsStaffIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -1898,6 +2002,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedAnalyticsOnecRevenueRoute,
   AuthenticatedAnalyticsOnecSalesRoute: AuthenticatedAnalyticsOnecSalesRoute,
   AuthenticatedAnalyticsOnecZeroRoute: AuthenticatedAnalyticsOnecZeroRoute,
+  AuthenticatedAnalyticsReviewsUploadRoute:
+    AuthenticatedAnalyticsReviewsUploadRoute,
   AuthenticatedAnalyticsToolsExcelCleanerRoute:
     AuthenticatedAnalyticsToolsExcelCleanerRoute,
   AuthenticatedAnalyticsToolsOnecRoute: AuthenticatedAnalyticsToolsOnecRoute,
@@ -1909,6 +2015,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAcademyCoursesIndexRoute: AuthenticatedAcademyCoursesIndexRoute,
   AuthenticatedAcademyReviewIndexRoute: AuthenticatedAcademyReviewIndexRoute,
   AuthenticatedAccessRolesIndexRoute: AuthenticatedAccessRolesIndexRoute,
+  AuthenticatedAnalyticsReviewsIndexRoute:
+    AuthenticatedAnalyticsReviewsIndexRoute,
   AuthenticatedKbBaseIdIndexRoute: AuthenticatedKbBaseIdIndexRoute,
   AuthenticatedAcademyCoursesCourseIdStepIdRoute:
     AuthenticatedAcademyCoursesCourseIdStepIdRoute,
@@ -1916,10 +2024,14 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedAcademyCoursesCourseIdPreviewRoute,
   AuthenticatedAnalyticsAdminPartnersUserIdRoute:
     AuthenticatedAnalyticsAdminPartnersUserIdRoute,
+  AuthenticatedAnalyticsReviewsStaffStatisticsRoute:
+    AuthenticatedAnalyticsReviewsStaffStatisticsRoute,
   AuthenticatedAcademyCoursesCourseIdIndexRoute:
     AuthenticatedAcademyCoursesCourseIdIndexRoute,
   AuthenticatedAnalyticsAdminPartnersIndexRoute:
     AuthenticatedAnalyticsAdminPartnersIndexRoute,
+  AuthenticatedAnalyticsReviewsStaffIndexRoute:
+    AuthenticatedAnalyticsReviewsStaffIndexRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
@@ -1928,6 +2040,7 @@ const AuthenticatedRouteRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  AnalyticsFeedbackTokenRoute: AnalyticsFeedbackTokenRoute,
   ApiAuthEmailRoute: ApiAuthEmailRoute,
   ApiChatRoute: ApiChatRoute,
   ApiTranscribeRoute: ApiTranscribeRoute,
