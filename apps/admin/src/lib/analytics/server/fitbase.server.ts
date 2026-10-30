@@ -48,6 +48,7 @@ import {
 import { casefold } from "../onec/rules";
 import { pyStr } from "../vk/lf";
 import { fbFetch, fbRequest, type FbParams, type FbSession } from "./fitbase-api.server";
+import { fbTrialRecompute } from "./fitbase-trials.server";
 import type { JobResult } from "./jobs.server";
 import { decryptBytes, encryptBytes, readSecret } from "./secrets.server";
 
@@ -90,7 +91,7 @@ async function putBlob(path: string, value: unknown) {
   if (error) throw new Error(`Хранилище FitBase: ${error.message}`);
 }
 
-async function getBlob<T>(path: string, fallback: T): Promise<T> {
+export async function getBlob<T>(path: string, fallback: T): Promise<T> {
   if (!path) return fallback;
   const { data, error } = await db().storage.from(BUCKET).download(path);
   if (error || !data) throw new Error(`Хранилище FitBase: ${error?.message ?? "файл не найден"}`);
@@ -136,7 +137,7 @@ export type FbConn = {
   attendance_state: string;
 };
 
-async function getConn(id: number): Promise<FbConn> {
+export async function getConn(id: number): Promise<FbConn> {
   const { data, error } = await db()
     .from("an_fb_connections")
     .select("*")
@@ -157,7 +158,7 @@ async function patchConn(id: number, fields: Record<string, unknown>) {
 }
 
 /** Все строки таблицы студии (PostgREST отдаёт не больше 1000 за раз). */
-async function selectAll<T>(
+export async function selectAll<T>(
   table: string,
   id: number,
   order: string,
@@ -1366,7 +1367,7 @@ async function syncRevenue(run: Run, id: number, startDate?: string, endDate?: s
 
 export type FbAction = "verify" | "sync" | "sales" | "attendance" | "revenue" | "all" | "trials";
 
-async function apiKey(id: number): Promise<string> {
+export async function apiKey(id: number): Promise<string> {
   const key = await readSecret({ kind: "fitbase", ref: String(id), name: "api_key" });
   if (!key) throw new FbError("Ключ API FitBase не сохранён: введите его в подключении студии.");
   return key;
@@ -1393,7 +1394,25 @@ export async function fbStartJob(
   return { done: runJob(begun, action, opts) };
 }
 
+/**
+ * Загрузка студии и после неё — их overrides() пробных: связи записей с
+ * услугами и итоговые типы записей (у них считаются при открытии отчёта).
+ */
 async function runJob(
+  begun: FbConn,
+  action: FbAction,
+  opts: { start?: string; end?: string; incrementalOnly?: boolean },
+): Promise<void> {
+  try {
+    await runJobPhases(begun, action, opts);
+  } finally {
+    await fbTrialRecompute(begun.id).catch((e) =>
+      console.error("[fitbase] типы пробных", begun.id, (e as Error).message),
+    );
+  }
+}
+
+async function runJobPhases(
   begun: FbConn,
   action: FbAction,
   opts: { start?: string; end?: string; incrementalOnly?: boolean },

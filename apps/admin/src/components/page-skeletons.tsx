@@ -3431,6 +3431,76 @@ export function AnalyticsFbAttendancePageSkeleton() {
   );
 }
 
+/** «FitBase» → «Воронка пробных»: восемь плиток, таблица городов, проверка, пояснения. */
+export function AnalyticsFbTrialsBodySkeleton() {
+  return (
+    <div className="space-y-4">
+      <Skeleton className="h-5 w-72 max-w-full" />
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
+          <Skeleton key={i} className="h-20 rounded-lg" />
+        ))}
+      </div>
+      <Skeleton className="h-80 rounded-lg" />
+      <Skeleton className="h-14 rounded-lg" />
+      <Skeleton className="h-14 rounded-lg" />
+    </div>
+  );
+}
+
+export function AnalyticsFbTrialsPageSkeleton() {
+  return (
+    <ShellSkeleton title={AN_TITLES.fbTrials} network>
+      <div className="space-y-4">
+        <ToolbarSkeleton search={false} controls={["w-56", "w-44", "w-48", "w-44"]} />
+        <AnalyticsFbTrialsBodySkeleton />
+      </div>
+    </ShellSkeleton>
+  );
+}
+
+/** «Воронка пробных» → «Записи без услуги»: счётчик, CSV, таблица. */
+export function AnalyticsFbTrialsReviewBodySkeleton() {
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between gap-3">
+        <Skeleton className="h-5 w-40" />
+        <Skeleton className="h-9 w-72 rounded-full" />
+      </div>
+      <Skeleton className="h-96 rounded-lg" />
+    </div>
+  );
+}
+
+export function AnalyticsFbTrialsReviewPageSkeleton() {
+  return (
+    <ShellSkeleton title={AN_TITLES.fbTrialsReview} network>
+      <div className="space-y-4">
+        <Skeleton className="h-8 w-48 rounded-full" />
+        <Skeleton className="h-10 w-full max-w-3xl" />
+        <ToolbarSkeleton search={false} controls={["w-56", "w-44", "w-48", "w-44", "w-48"]} />
+        <AnalyticsFbTrialsReviewBodySkeleton />
+      </div>
+    </ShellSkeleton>
+  );
+}
+
+/** «Интеграция FitBase» → «Пробные услуги»: ссылки, пояснение, режим, список услуг. */
+export function AnalyticsFbTrialServicesPageSkeleton() {
+  return (
+    <ShellSkeleton title={AN_TITLES.fbTrialServices} network>
+      <div className="max-w-4xl space-y-4">
+        <div className="flex gap-2">
+          <Skeleton className="h-8 w-44 rounded-full" />
+          <Skeleton className="h-8 w-36 rounded-full" />
+        </div>
+        <Skeleton className="h-7 w-72 max-w-full" />
+        <Skeleton className="h-96 rounded-lg" />
+      </div>
+    </ShellSkeleton>
+  );
+}
+
 /** «FitBase» → «Маркетинговый отчёт»: карточки городов. */
 export function AnalyticsFbMarketingBodySkeleton() {
   return (

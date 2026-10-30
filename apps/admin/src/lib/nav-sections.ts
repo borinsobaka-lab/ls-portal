@@ -449,6 +449,12 @@ export const ANALYTICS_GROUPS: NavGroup<AnalyticsNavItem>[] = [
         icon: Dumbbell,
         need: "fb.attendance",
       },
+      {
+        title: "Воронка пробных",
+        url: "/analytics/fitbase/trials",
+        icon: Target,
+        need: "fb.trials",
+      },
     ],
   },
   {

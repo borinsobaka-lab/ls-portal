@@ -41,6 +41,9 @@ export const AN_TITLES = {
   fbSales: "Продажи абонементов FitBase",
   fbMarketing: "Маркетинговый отчёт FitBase",
   fbAttendance: "Занятия и посещаемость FitBase",
+  fbTrials: "Воронка пробных FitBase",
+  fbTrialsReview: "Записи без услуги / абонемента",
+  fbTrialServices: "Настройка пробных услуг",
   quiz: "Квиз-лендинги",
   quizLeads: "Заявки квиза",
 } as const;
@@ -197,6 +200,13 @@ export const AN_CARDS: AnCard[] = [
     description: "Записи, посещения и доходимость по всей сети.",
     url: "/analytics/fitbase/attendance",
     need: "fb.attendance",
+  },
+  {
+    key: "fb.trials",
+    title: "Воронка пробных · FitBase",
+    description: "Записи, приходы и покупки после пробного по всей сети.",
+    url: "/analytics/fitbase/trials",
+    need: "fb.trials",
   },
 ];
 

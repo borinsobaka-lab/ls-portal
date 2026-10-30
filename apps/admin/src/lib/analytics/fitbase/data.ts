@@ -11,6 +11,7 @@ import { unwrap } from "@/lib/query";
 
 import { ANALYTICS_KEY } from "../data";
 import type { FbAttendanceData } from "./attendance";
+import type { FbReviewData, FbTrialsData } from "./trials";
 import type { FbMarketingData, FbRevenueData, FbSalesData } from "./reports";
 
 export const FB_KEY = [ANALYTICS_KEY, "fitbase"] as const;
@@ -148,6 +149,53 @@ export const fbAttendanceDataQuery = (f: {
       p_status: f.status,
     }),
   meta: { errorMessage: "Не удалось загрузить занятия FitBase" },
+});
+
+type FbTrialFilters = { from: string; to: string; city: string; studio: string; brand: string };
+
+/** «Воронка пробных»: пробные записи, покупки и оплаты студий (право fb.trials). */
+export const fbTrialsDataQuery = (f: FbTrialFilters) => ({
+  queryKey: [...FB_KEY, "trials", f.from, f.to, f.city, f.studio, f.brand],
+  queryFn: () =>
+    rpc<FbTrialsData>("an_fb_trials_data", {
+      p_from: f.from,
+      p_to: f.to,
+      p_city: f.city,
+      p_studio: f.studio,
+      p_brand: f.brand,
+    }),
+  meta: { errorMessage: "Не удалось загрузить воронку пробных FitBase" },
+});
+
+/** «Записи без услуги / абонемента»: записи периода с неопределённым типом (право fb.trials). */
+export const fbTrialsReviewQuery = (f: FbTrialFilters & { status: string }) => ({
+  queryKey: [...FB_KEY, "trials-review", f.from, f.to, f.city, f.studio, f.brand, f.status],
+  queryFn: () =>
+    rpc<FbReviewData>("an_fb_trials_review", {
+      p_from: f.from,
+      p_to: f.to,
+      p_city: f.city,
+      p_studio: f.studio,
+      p_brand: f.brand,
+      p_status: f.status,
+    }),
+  meta: { errorMessage: "Не удалось загрузить записи без услуги FitBase" },
+});
+
+export type FbTrialServicesView = {
+  id: number;
+  name: string;
+  club_id: string;
+  owner: string;
+  rule: { mode: "auto" | "selected"; selected: string[]; revision: number } | null;
+  catalog: { service_id: string; name: string; archived: number }[];
+};
+
+/** Пробные услуги филиала: выбор и каталог (администратору аналитики). */
+export const fbTrialServicesQuery = (id: number) => ({
+  queryKey: [...FB_KEY, "trial-services", id],
+  queryFn: () => rpc<FbTrialServicesView | null>("an_fb_trial_services", { p_id: id }),
+  meta: { errorMessage: "Не удалось загрузить пробные услуги FitBase" },
 });
 
 export const fbRpc = {

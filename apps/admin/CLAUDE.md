@@ -47,7 +47,9 @@ Tailwind 4 + shadcn/radix. Пакетный менеджер — bun.
   квиз (их _clean, проверка заявки, строка таблицы, тексты лендинга)
   `lib/analytics/quiz/quiz.test.ts`, FitBase (домен, суммы, даты, пробные,
   сокращение строк, периоды, ночная загрузка) `lib/analytics/fitbase/fitbase.test.ts`,
-  (отчёты: выручка, продажи, маркетинг, форматы Python) `lib/analytics/fitbase/reports.test.ts`;
+  (отчёты: выручка, продажи, маркетинг, форматы Python) `lib/analytics/fitbase/reports.test.ts`,
+  (занятия и посещаемость) `lib/analytics/fitbase/attendance.test.ts`, (воронка
+  пробных, пробные услуги, «Записи без услуги» и CSV) `lib/analytics/fitbase/trials.test.ts`;
   «Академия» — подписи,
   проверка вопроса, сроки и напоминания `lib/academy/logic.test.ts`;
   Kate — инструменты,
@@ -827,7 +829,15 @@ kb`. Доступ — ролями «Пользователей и ролей» 
   `startFitbaseAttendanceRefresh`); фильтры — в адресе, данные — RPC
   `an_fb_*_data` (`fitbase/data.ts`), их расчёты и форматы чисел —
   `lib/analytics/fitbase/reports.ts`, посещаемость —
-  `lib/analytics/fitbase/attendance.ts`.
+  `lib/analytics/fitbase/attendance.ts`; «Воронка пробных»
+  (`/trials`, право `fb.trials`; «Записи без услуги» + CSV —
+  `/trials/review`; «Уточнить пробные» — администратору,
+  `startFitbaseTrialsRefresh`), логика пробных — `lib/analytics/fitbase/trials.ts`.
+  Пробные услуги филиала — `/analytics/crm/fitbase/trial-services?id=…`
+  (каталог и сохранение — серверные функции `loadFitbaseTrialCatalog` /
+  `saveFitbaseTrialServices`); итоговые типы записей считает
+  `lib/analytics/server/fitbase-trials.server.ts` (после загрузки студии,
+  выбора услуг и каталога).
   Отчёты 1С — группа меню «1С · Lady Stretch» (`/analytics/onec/<доска>`,
   «Мой город» — `/mycity`): маршрут рисует `OnecReportFrame`
   (`components/analytics/onec/report-frame.tsx`: период, «С начала месяца /
