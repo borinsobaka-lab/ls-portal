@@ -82,12 +82,15 @@ export function KbStorageCard() {
           <ul className="mt-3 divide-y border-t text-sm">
             {data.bases.map((b) => (
               <li key={b.id} className="flex items-center gap-3 py-2">
-                <span className="min-w-0 flex-1 truncate font-medium">{b.title}</span>
-                <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
-                  {plural(b.articles, ["статья", "статьи", "статей"])} ·{" "}
-                  {plural(b.revisions, ["версия", "версии", "версий"])}
+                {/* На телефоне счётчики — под названием: в строку название не помещалось. */}
+                <span className="flex min-w-0 flex-1 flex-col sm:flex-row sm:items-center sm:gap-3">
+                  <span className="min-w-0 truncate font-medium sm:flex-1">{b.title}</span>
+                  <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+                    {plural(b.articles, ["статья", "статьи", "статей"])} ·{" "}
+                    {plural(b.revisions, ["версия", "версии", "версий"])}
+                  </span>
                 </span>
-                <span className="w-32 shrink-0 text-right tabular-nums">
+                <span className="w-24 shrink-0 text-right tabular-nums sm:w-32">
                   {bytes(b.bytes)}
                   <span className="block text-xs text-muted-foreground">
                     {plural(b.files, ["файл", "файла", "файлов"])}
@@ -97,11 +100,13 @@ export function KbStorageCard() {
             ))}
             {data.academy && (
               <li className="flex items-center gap-3 py-2">
-                <span className="min-w-0 flex-1 truncate font-medium">Академия</span>
-                <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
-                  {plural(data.academy.courses, ["курс", "курса", "курсов"])}
+                <span className="flex min-w-0 flex-1 flex-col sm:flex-row sm:items-center sm:gap-3">
+                  <span className="min-w-0 truncate font-medium sm:flex-1">Академия</span>
+                  <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+                    {plural(data.academy.courses, ["курс", "курса", "курсов"])}
+                  </span>
                 </span>
-                <span className="w-32 shrink-0 text-right tabular-nums">
+                <span className="w-24 shrink-0 text-right tabular-nums sm:w-32">
                   {bytes(data.academy.bytes)}
                   <span className="block text-xs text-muted-foreground">
                     {plural(data.academy.files, ["файл", "файла", "файлов"])}
@@ -111,7 +116,7 @@ export function KbStorageCard() {
             )}
             <li className="flex items-center gap-3 py-2">
               <span className="min-w-0 flex-1 truncate font-medium">Шаблоны</span>
-              <span className="w-32 shrink-0 text-right tabular-nums">
+              <span className="w-24 shrink-0 text-right tabular-nums sm:w-32">
                 {bytes(data.templates.bytes)}
                 <span className="block text-xs text-muted-foreground">
                   {plural(data.templates.files, ["файл", "файла", "файлов"])}

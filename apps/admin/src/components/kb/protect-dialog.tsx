@@ -61,6 +61,7 @@ export function KbProtectForm({
                   {
                     value: "inherit",
                     label: baseProtects ? "Как в базе (вкл.)" : "Как в базе (выкл.)",
+                    shortLabel: "Как в базе",
                   },
                   { value: "on", label: "Включена" },
                   { value: "off", label: "Выключена" },

@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState, type ReactNode } from "react";
+import { lazy, Suspense, useRef, useState, type ReactNode } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, ArrowRight, Loader2, Paperclip, X } from "lucide-react";
@@ -56,6 +56,7 @@ export function CoursePlayer({
   preview?: boolean;
 }) {
   const navigate = useNavigate();
+  const stepRef = useRef<HTMLDivElement>(null);
   const { data: loaded, isLoading, error } = useQuery(acadCourseViewQuery(courseId));
 
   if (isLoading) return null;
@@ -74,13 +75,23 @@ export function CoursePlayer({
     view.steps.find((s) => s.id === stepId) ??
     view.steps.find((s) => !s.locked && s.state !== "done" && s.state !== "passed") ??
     view.steps[0];
-  const go = (id: string) =>
+  // Переход к шагу — и к его началу: на телефоне шаг стоит под списком
+  // шагов, а «Дальше» — внизу длинного урока; иначе новый шаг открывался бы
+  // за краем экрана.
+  const go = (id: string) => {
     void navigate({
       to: preview ? "/academy/courses/$courseId/preview" : "/academy/my/$courseId",
       params: { courseId },
       search: { step: id },
       replace: true,
+    }).then(() => {
+      const el = stepRef.current;
+      if (!el) return;
+      // Начало шага и так в верхней половине экрана — не дёргаем страницу.
+      const top = el.getBoundingClientRect().top;
+      if (top < 0 || top > window.innerHeight / 2) el.scrollIntoView({ block: "start" });
     });
+  };
   const index = current ? view.steps.findIndex((s) => s.id === current.id) : -1;
   const next = index >= 0 ? view.steps[index + 1] : undefined;
   const prev = index > 0 ? view.steps[index - 1] : undefined;
@@ -97,7 +108,12 @@ export function CoursePlayer({
       ) : (
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
           <StepList steps={view.steps} currentId={current?.id} onSelect={go} />
-          <div className="min-w-0 flex-1 rounded-lg border bg-background p-4 sm:p-6">
+          {/* overflow-x-clip: поля редактора урока (-mx-[54px]) шире карточки —
+              на планшете рабочая область прокручивалась вбок. */}
+          <div
+            ref={stepRef}
+            className="min-w-0 flex-1 scroll-mt-4 overflow-x-clip rounded-lg border bg-background p-4 sm:p-6"
+          >
             {current?.locked ? (
               <div className="space-y-4">
                 <InfoNote variant="muted">
@@ -167,7 +183,7 @@ function CourseHeader({ view, preview }: { view: AcadCourseView; preview: boolea
     <div className="flex flex-col gap-4 rounded-lg border bg-background p-4 sm:flex-row sm:p-5">
       <CourseCover
         cover={view.course.cover}
-        className="aspect-[16/9] w-full shrink-0 self-start rounded-md sm:w-56"
+        className="hidden aspect-[16/9] w-56 shrink-0 self-start rounded-md sm:block"
       />
       <div className="min-w-0 flex-1 space-y-2">
         {preview ? (
@@ -292,7 +308,9 @@ function LessonView({
     <article className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         {/* Как название статьи базы знаний — крупнее заголовков внутри текста. */}
-        <h3 className="text-3xl leading-tight font-semibold break-words">{step.title}</h3>
+        <h3 className="text-2xl leading-tight font-semibold break-words sm:text-3xl">
+          {step.title}
+        </h3>
         {learner && step.state === "done" && (
           <span className="text-xs font-medium text-emerald-700">Урок пройден</span>
         )}
@@ -349,7 +367,9 @@ function QuizView({
   if (learner && !started) {
     return (
       <div className="space-y-4">
-        <h3 className="text-3xl leading-tight font-semibold break-words">{step.title}</h3>
+        <h3 className="text-2xl leading-tight font-semibold break-words sm:text-3xl">
+          {step.title}
+        </h3>
         <p className="text-sm text-muted-foreground">
           {step.questions} {plural(step.questions, ["вопрос", "вопроса", "вопросов"])} · сдан от{" "}
           {step.pass_percent}% верных
@@ -468,7 +488,9 @@ function QuizForm({
   return (
     <div className="space-y-5">
       <div>
-        <h3 className="text-3xl leading-tight font-semibold break-words">{step.title}</h3>
+        <h3 className="text-2xl leading-tight font-semibold break-words sm:text-3xl">
+          {step.title}
+        </h3>
         <p className="mt-1 text-sm text-muted-foreground">
           {quiz.questions.length < quiz.total
             ? `Пересдача: ${quiz.questions.length} из ${quiz.total} — только вопросы с ошибками`

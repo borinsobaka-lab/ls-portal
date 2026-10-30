@@ -38,5 +38,12 @@ export function useKbSidebarWidth() {
       // приватный режим — ширина вернётся к обычной при перезагрузке
     }
   }, []);
-  return { width, setWidth, cssWidth: `calc(var(--rail-width) + ${width}px)` };
+  // На планшете (md–lg) широкое меню съедало половину экрана — статье и
+  // таблицам аналитики оставалось ~400px. Меню не шире, чем оставляет
+  // рабочей области 40rem, но и не уже обычного (12rem).
+  return {
+    width,
+    setWidth,
+    cssWidth: `calc(var(--rail-width) + min(${width}px, max(12rem, 100vw - 40rem)))`,
+  };
 }

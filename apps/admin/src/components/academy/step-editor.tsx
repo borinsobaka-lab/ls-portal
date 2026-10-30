@@ -351,7 +351,8 @@ function QuizEditor({
       {changed && canEdit && (
         <InfoNote variant="warning" className="flex flex-wrap items-center gap-2">
           <AlertTriangle className="size-4 shrink-0" />
-          <span className="flex-1">
+          {/* min-w: на телефоне кнопка уходит на свою строку, а не сжимает текст. */}
+          <span className="min-w-48 flex-1">
             {recheckText(changed)}. Проверьте, что вопросы ещё совпадают с текстом.
           </span>
           <Button size="sm" variant="outline" onClick={() => void markChecked()}>

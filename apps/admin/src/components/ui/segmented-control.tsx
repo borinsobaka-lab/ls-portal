@@ -12,6 +12,11 @@ export type SegmentedOption<T extends string> = {
   /** Всплывающая подпись (полное название при короткой подписи). */
   title?: string;
   /**
+   * Подпись на телефоне (до sm), когда полные подписи не помещаются в ширину
+   * поля: равные сегменты `fullWidth` иначе наезжали друг на друга.
+   */
+  shortLabel?: string;
+  /**
    * Точка-отметка после подписи (язык, на котором уже есть перевод); строка —
    * её смысл для скринридера.
    */
@@ -106,7 +111,15 @@ export function SegmentedControl<T extends string>({
             )}
           >
             {o.icon && <o.icon />}
-            {!iconOnly && o.label}
+            {!iconOnly &&
+              (o.shortLabel ? (
+                <>
+                  <span className="sm:hidden">{o.shortLabel}</span>
+                  <span className="max-sm:hidden">{o.label}</span>
+                </>
+              ) : (
+                o.label
+              ))}
             {o.dot && (
               <span className="size-1.5 shrink-0 rounded-full bg-brand">
                 <span className="sr-only">{o.dot}</span>

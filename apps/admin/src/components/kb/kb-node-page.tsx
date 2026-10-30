@@ -284,7 +284,9 @@ function BaseHomeLists({ baseId, index }: { baseId: string; index: KbTreeIndex }
                     ) : (
                       <DocumentText className="size-4 shrink-0 text-muted-foreground" />
                     )}
-                    <span className="min-w-0 truncate">{n.title || "Без названия"}</span>
+                    <span className="line-clamp-2 min-w-0 break-words sm:line-clamp-1">
+                      {n.title || "Без названия"}
+                    </span>
                   </Link>
                 </li>
               ))}
@@ -429,7 +431,7 @@ function TaggedArticles({
                   <span className="min-w-0 flex-1">
                     <span
                       className={cn(
-                        "block truncate font-medium",
+                        "line-clamp-2 font-medium break-words sm:line-clamp-1",
                         n.status !== "published" && "text-muted-foreground",
                       )}
                     >
@@ -804,7 +806,7 @@ function FolderItems({
             )}
             <span
               className={cn(
-                "min-w-0 flex-1 truncate font-medium",
+                "line-clamp-2 min-w-0 flex-1 font-medium break-words sm:line-clamp-1",
                 n.status !== "published" && "text-muted-foreground",
               )}
             >
@@ -977,7 +979,7 @@ function NestedArticles({
                 <DocumentText className="size-5 shrink-0 text-muted-foreground" />
                 <span
                   className={cn(
-                    "min-w-0 flex-1 truncate font-medium",
+                    "line-clamp-2 min-w-0 flex-1 font-medium break-words sm:line-clamp-1",
                     n.status !== "published" && "text-muted-foreground",
                   )}
                 >
@@ -1248,16 +1250,39 @@ function ArticleView({
               canCopy={canEdit}
               className="px-5 py-5 sm:px-10 sm:py-8"
             >
-              <header className="flex items-start gap-3">
-                <div className="min-w-0 flex-1">
-                  <Crumbs baseId={baseId} baseTitle={baseTitle} index={index} nodeId={node.id} />
+              {/* Кнопки — в строке крошек, название — на всю ширину под ними:
+                  рядом с кнопками на телефоне названию оставалось ~190px, и
+                  длинные слова рвались посреди («администр-атора»). */}
+              <header>
+                <div className="flex items-center gap-3">
+                  <div className="min-w-0 flex-1">
+                    <Crumbs baseId={baseId} baseTitle={baseTitle} index={index} nodeId={node.id} />
+                  </div>
+                  <FavoriteButton baseId={baseId} nodeId={node.id} />
+                  <CopyLinkButton baseId={baseId} nodeId={node.id} />
+                  {canEdit && (
+                    <NodeMenu
+                      baseId={baseId}
+                      node={node}
+                      hasChildren={childrenOf(index, node.id).length > 0}
+                      onAddChild={() => setDialog("child")}
+                      onRename={() => setDialog("rename")}
+                      onMove={() => setDialog("move")}
+                      onVersions={() => setDialog("versions")}
+                      onSaveTemplate={() => setDialog("template")}
+                      onProtect={() => setDialog("protect")}
+                      onSettings={() => setDialog("settings")}
+                    />
+                  )}
+                </div>
+                <div>
                   {editing ? (
                     <TitleInput
                       value={node.title}
                       onSave={(title) => actions.update(node.id, { title })}
                     />
                   ) : (
-                    <h2 className="text-3xl leading-tight font-semibold break-words">
+                    <h2 className="text-2xl leading-tight font-semibold break-words sm:text-3xl">
                       {node.title || "Без названия"}
                     </h2>
                   )}
@@ -1295,22 +1320,6 @@ function ArticleView({
                     />
                   )}
                 </div>
-                <FavoriteButton baseId={baseId} nodeId={node.id} />
-                <CopyLinkButton baseId={baseId} nodeId={node.id} />
-                {canEdit && (
-                  <NodeMenu
-                    baseId={baseId}
-                    node={node}
-                    hasChildren={childrenOf(index, node.id).length > 0}
-                    onAddChild={() => setDialog("child")}
-                    onRename={() => setDialog("rename")}
-                    onMove={() => setDialog("move")}
-                    onVersions={() => setDialog("versions")}
-                    onSaveTemplate={() => setDialog("template")}
-                    onProtect={() => setDialog("protect")}
-                    onSettings={() => setDialog("settings")}
-                  />
-                )}
               </header>
 
               {canEdit && !editing && (hasDraft || node.status !== "published") && (
@@ -1756,7 +1765,7 @@ function TitleInput({
           (e.target as HTMLTextAreaElement).blur();
         }
       }}
-      className="field-sizing-content w-full resize-none rounded-md bg-transparent text-3xl leading-tight font-semibold outline-none placeholder:text-muted-foreground/60 focus-visible:bg-muted/40"
+      className="field-sizing-content w-full resize-none rounded-md bg-transparent text-2xl leading-tight sm:text-3xl font-semibold outline-none placeholder:text-muted-foreground/60 focus-visible:bg-muted/40"
     />
   );
 }

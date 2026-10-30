@@ -68,6 +68,13 @@ export const QUESTION_KIND_LABEL: Record<AcadQuestionKind, string> = {
   open: "Свободный ответ",
 };
 
+/** Вид вопроса на телефоне — в переключателе окна вопроса полные не помещаются. */
+export const QUESTION_KIND_SHORT: Record<AcadQuestionKind, string> = {
+  single: "Один",
+  multiple: "Несколько",
+  open: "Свободный",
+};
+
 export const QUESTION_KIND_HINT: Record<AcadQuestionKind, string> = {
   single: "Ученик выбирает один вариант; верный — ровно один.",
   multiple:

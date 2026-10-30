@@ -535,7 +535,10 @@ function StepRow({
   return (
     <li
       ref={drag.ref}
-      className={cn("relative flex items-center gap-1 pr-2", drag.dragging && "opacity-40")}
+      className={cn(
+        "relative flex flex-wrap items-center gap-1 pr-2",
+        drag.dragging && "opacity-40",
+      )}
     >
       <DropIndicator instruction={drag.instruction} />
       {canEdit && (
@@ -551,7 +554,8 @@ function StepRow({
         to="/academy/courses/$courseId/$stepId"
         params={{ courseId, stepId: step.id }}
         draggable={false}
-        className="flex min-w-0 flex-1 items-start gap-3 rounded-md p-3 outline-none hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring"
+        // basis: на телефоне кнопки шага уходят строкой ниже, а не сжимают текст.
+        className="flex min-w-0 flex-1 basis-60 items-start gap-3 rounded-md p-3 outline-none hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring"
       >
         <StepIcon kind={step.kind} className="mt-0.5" />
         <span className="min-w-0 flex-1">
@@ -581,26 +585,28 @@ function StepRow({
           )}
         </span>
       </Link>
-      {canEdit && recheck && (
-        // Напоминание снимается и отсюда, не заходя в тест.
-        <Button variant="outline" size="sm" onClick={onRechecked}>
-          <Check /> Вопросы проверены
-        </Button>
-      )}
-      {canEdit && stale && source?.available && (
-        <Button variant="outline" size="sm" onClick={() => onRefresh(source)}>
-          <RefreshCw /> Обновить
-        </Button>
-      )}
       {canEdit && (
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label={`Удалить «${step.title}»`}
-          onClick={onDelete}
-        >
-          <Trash2 />
-        </Button>
+        <div className="ml-auto flex items-center gap-1">
+          {recheck && (
+            // Напоминание снимается и отсюда, не заходя в тест.
+            <Button variant="outline" size="sm" onClick={onRechecked}>
+              <Check /> Вопросы проверены
+            </Button>
+          )}
+          {stale && source?.available && (
+            <Button variant="outline" size="sm" onClick={() => onRefresh(source)}>
+              <RefreshCw /> Обновить
+            </Button>
+          )}
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label={`Удалить «${step.title}»`}
+            onClick={onDelete}
+          >
+            <Trash2 />
+          </Button>
+        </div>
       )}
     </li>
   );

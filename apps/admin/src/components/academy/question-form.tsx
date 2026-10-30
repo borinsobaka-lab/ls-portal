@@ -24,6 +24,7 @@ import {
   newOption,
   QUESTION_KIND_HINT,
   QUESTION_KIND_LABEL,
+  QUESTION_KIND_SHORT,
   questionError,
 } from "@/lib/academy/logic";
 import type { AcadOption, AcadQuestion, AcadQuestionKind } from "@/lib/academy/types";
@@ -162,6 +163,7 @@ export function AcadQuestionForm({
               options={(["single", "multiple", "open"] as const).map((k) => ({
                 value: k,
                 label: QUESTION_KIND_LABEL[k],
+                shortLabel: QUESTION_KIND_SHORT[k],
               }))}
             />
             <FormField label="Вопрос" required>

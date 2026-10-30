@@ -36,12 +36,25 @@ const TabsList = React.forwardRef<
     "data-state",
     indicatorMemoryKey,
   );
+  // На телефоне длинная строка табов прокручивается вбок: выбранный таб
+  // (из адреса или после нажатия) — в видимой части, а не за краем.
+  const activeLeft = indicator?.left;
+  React.useLayoutEffect(() => {
+    const list = listRef.current;
+    if (!list || list.scrollWidth <= list.clientWidth) return;
+    const tab = list.querySelector<HTMLElement>('[role="tab"][data-state="active"]');
+    if (!tab) return;
+    const left = tab.offsetLeft - 8;
+    const right = tab.offsetLeft + tab.offsetWidth + 8;
+    if (left < list.scrollLeft) list.scrollLeft = left;
+    else if (right > list.scrollLeft + list.clientWidth) list.scrollLeft = right - list.clientWidth;
+  }, [activeLeft]);
 
   return (
     <TabsPrimitive.List
       ref={setRefs}
       className={cn(
-        "relative inline-flex h-10 items-center justify-center rounded-full bg-muted p-1 text-muted-foreground",
+        "relative inline-flex h-10 items-center justify-center-safe rounded-full bg-muted p-1 text-muted-foreground",
         className,
       )}
       {...props}
