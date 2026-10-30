@@ -1022,6 +1022,22 @@ DEPLOY.md.
   по ключу; без JIT — он компилировал дольше, чем шёл запрос) и base_meta
   (`an_onec_report_meta`: дата, покрытие, точка 0, контроль нулевых,
   студии городов).
+  «Администрирование» аналитики (2026-10-30, ANALYTICS.md):
+  `db/migrations/2026-10-30_zz_analytics_core_admin.sql` — журнал
+  `an_audit` (их audit_log; пишет `an_audit_add`, только service_role и
+  функции), посещаемость (их user_sessions / activity_samples:
+  `an_activity_sessions` — сессия = claim `session_id` токена, первый пульс
+  пишет «вход»; `an_activity` — засчитанные промежутки ≤ 45 с; пульс —
+  RPC `an_presence`, отчёт — `an_activity_report`, журнал — `an_audit_list`),
+  партнёры (RPC `an_partners`, `an_partner_candidates`,
+  `an_partner_city_options`, `an_partner_add` / `_set_cities` / `_remove`,
+  `an_partner_card` / `_card_save`; ИНН — 10 или 12 цифр), API для GPT
+  (`an_api_keys` — только SHA-256 ключа, `an_api_requests`; администратору —
+  `an_api_key_create` / `_set_active`, `an_api_overview`; серверу —
+  `an_api_key_check`, `an_api_log`). Загрузка снимка 1С в отчёты пишет в
+  журнал триггер `an_onec_snapshots_audit_au`. Актуальное определение
+  `an_onec_scope` — здесь: без `auth.uid()` (сервер, service_role) — вся
+  сеть. Таблицы закрыты браузеру, всё — через RPC администратора аналитики.
   Клубы и собственники (решение владельца 2026-10-27, ACCESS.md):
   `db/migrations/2026-10-27_zz_studio_owners.sql` — `studio_owners`
   (клуб × пользователь портала; пишут только RPC `org_studio_owners_set` /

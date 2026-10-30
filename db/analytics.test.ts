@@ -787,4 +787,284 @@ describe.skipIf(!url)("аналитика: фундамент (база)", () =>
       await asServer(tx);
     });
   });
+
+  // ---- Администрирование (2026-10-30_zz_analytics_core_admin.sql) ----
+
+  /** auth.jwt() читает claims, как в Supabase (заглушка тестов отдаёт {}). */
+  async function realJwt(tx: Tx) {
+    await tx`reset role`;
+    await tx`create or replace function auth.jwt() returns jsonb language sql stable as
+      $$ select coalesce(nullif(current_setting('request.jwt.claims', true), ''), '{}')::jsonb $$`;
+  }
+  async function pulse(tx: Tx, userId: string, session: string, dashboard = "Главная") {
+    await as(tx, userId);
+    await tx`select set_config('request.jwt.claims', ${JSON.stringify({ sub: userId, session_id: session })}, true)`;
+    const [{ ok }] = await tx`select an_presence(${dashboard}) as ok`;
+    await asServer(tx);
+    return ok as boolean;
+  }
+  /** Сдвинуть «последнюю активность» сессии на n секунд назад. */
+  async function idle(tx: Tx, session: string, seconds: number) {
+    await tx`update an_activity_sessions
+                set last_active_at = now() - make_interval(secs => ${seconds})
+              where session_id = ${session}`;
+  }
+
+  test("посещаемость: первый пульс — «вход», засчитывается промежуток до 45 секунд", async () => {
+    await scenario(async (tx) => {
+      await realJwt(tx);
+      const admin = await person(tx, "Админ", ["an.admin"]);
+      const staff = await person(tx, "Сотрудник", ["an.onec.revenue"]);
+      const outsider = await person(tx, "Без аналитики", []);
+      const s1 = crypto.randomUUID();
+      expect(await pulse(tx, staff, s1)).toBe(true);
+      const logins = await tx`select event from an_audit where user_id = ${staff}`;
+      expect(logins.map((r: { event: string }) => r.event)).toEqual(["login"]);
+      await idle(tx, s1, 20);
+      expect(await pulse(tx, staff, s1, "Выручка")).toBe(true);
+      await idle(tx, s1, 100);
+      expect(await pulse(tx, staff, s1, "Чужая страница")).toBe(true);
+      const samples =
+        await tx`select dashboard, active_seconds from an_activity where user_id = ${staff}`;
+      expect(samples).toEqual([{ dashboard: "Выручка", active_seconds: 20 }]);
+      const [sess] =
+        await tx`select active_seconds from an_activity_sessions where session_id = ${s1}`;
+      expect(sess.active_seconds).toBe(20);
+      // Вторая сессия — второй визит; «Портал» вместо неизвестной страницы.
+      const s2 = crypto.randomUUID();
+      await pulse(tx, staff, s2);
+      await idle(tx, s2, 30);
+      await pulse(tx, staff, s2, "Чужая страница");
+      // Без «Аналитики» пульс не пишется.
+      expect(await pulse(tx, outsider, crypto.randomUUID())).toBe(false);
+      expect((await tx`select 1 from an_audit where user_id = ${outsider}`).length).toBe(0);
+
+      await tx`insert into an_audit (user_id, event, details) values
+        (${staff}, 'dashboard_view', 'Отзывы и оценки'), (${staff}, 'dashboard_view', 'Выручка'),
+        (${staff}, 'dashboard_view', 'Выручка')`;
+      const [{ today }] =
+        await tx`select (now() at time zone 'Europe/Moscow')::date::text as today`;
+      await as(tx, staff);
+      expect(
+        await failure(tx, () => tx`select an_activity_report(${today}::date - 29, ${today}::date)`),
+      ).toContain("an_forbidden");
+      await asServer(tx);
+      await as(tx, admin);
+      const [{ r }] = await tx`select an_activity_report(${today}::date - 29, ${today}::date) as r`;
+      const row = r.find((x: { user_id: string }) => x.user_id === staff);
+      expect(row).toMatchObject({
+        full_name: "Сотрудник",
+        visits: 2,
+        seconds: 50,
+        views: 3,
+        dashboards: ["Выручка", "Отзывы и оценки"],
+      });
+      expect(row.last_active).not.toBeNull();
+      // Человек с «Аналитикой» без визитов — в отчёте нулём; без неё — нет.
+      expect(r.find((x: { user_id: string }) => x.user_id === admin)).toMatchObject({
+        visits: 0,
+        seconds: 0,
+      });
+      expect(r.some((x: { user_id: string }) => x.user_id === outsider)).toBe(false);
+      // Прошлый период — без этих визитов.
+      const [{ r: old }] = await tx`select an_activity_report('2020-01-01', '2020-01-31') as r`;
+      expect(old.find((x: { user_id: string }) => x.user_id === staff)).toMatchObject({
+        visits: 0,
+        views: 0,
+      });
+      expect(
+        await failure(tx, () => tx`select an_activity_report('2026-10-05', '2026-10-01')`),
+      ).toContain("Неверный период");
+      // Журнал — новые сверху, «Система» без человека.
+      const [{ j }] = await tx`select an_audit_list(2, 0) as j`;
+      expect(j.total).toBeGreaterThanOrEqual(5);
+      expect(j.rows.length).toBe(2);
+      await asServer(tx);
+      await as(tx, staff);
+      expect(await failure(tx, () => tx`select an_audit_list()`)).toContain("an_forbidden");
+      expect(await failure(tx, () => tx`select * from an_activity`)).toContain("permission denied");
+      expect(await failure(tx, () => tx`select * from an_audit`)).toContain("permission denied");
+      await asServer(tx);
+    });
+  });
+
+  test("партнёры: города из 1С, карточка, ИНН; только администратору; в журнал", async () => {
+    await scenario(async (tx) => {
+      await onecCurrentSnapshot(tx);
+      await tx`insert into an_onec_studios (sort_order, studio, status, city) values
+        (1, 'Абакан Ленина', 'Открыта', 'Абакан'), (2, 'Абакан Мира', 'Закрыта', 'Абакан'),
+        (3, 'Чита Центр', 'Открыта', 'Чита')`;
+      const admin = await person(tx, "Админ", ["an.admin"]);
+      const staff = await person(tx, "Сотрудник", ["an.onec.revenue"]);
+      const p = await person(tx, "Иванова Анна", ["an.partner", "an.mkt.ls", "an.reviews"]);
+      await as(tx, staff);
+      expect(await failure(tx, () => tx`select an_partners()`)).toContain("an_forbidden");
+      expect(await failure(tx, () => tx`select an_partner_add(${p}, '{Абакан}')`)).toContain(
+        "an_forbidden",
+      );
+      await asServer(tx);
+
+      await as(tx, admin);
+      const [{ cand }] = await tx`select an_partner_candidates() as cand`;
+      expect(cand.some((x: { user_id: string }) => x.user_id === p)).toBe(true);
+      const [{ c }] = await tx`select an_partner_city_options() as c`;
+      expect(c).toEqual(["Абакан", "Бийск", "Чита"]);
+      expect(await failure(tx, () => tx`select an_partner_add(${p}, '{}')`)).toContain(
+        "Выберите хотя бы один",
+      );
+      expect(await failure(tx, () => tx`select an_partner_add(${p}, '{Москва}')`)).toContain(
+        "нет данных 1С",
+      );
+      expect(
+        await failure(tx, () => tx`select an_partner_add(${crypto.randomUUID()}, '{Абакан}')`),
+      ).toContain("не найден");
+      await tx`select an_partner_add(${p}, '{Чита,Абакан}')`;
+      expect(await failure(tx, () => tx`select an_partner_add(${p}, '{Бийск}')`)).toContain(
+        "уже партнёр",
+      );
+      const [{ list }] = await tx`select an_partners() as list`;
+      expect(list).toEqual([
+        expect.objectContaining({
+          user_id: p,
+          full_name: "Иванова Анна",
+          active: true,
+          cities: ["Абакан", "Чита"],
+          reports: ["mkt.ls", "reviews"],
+        }),
+      ]);
+      await tx`select an_partner_set_cities(${p}, '{Абакан,Бийск}')`;
+      const [{ card }] = await tx`select an_partner_card(${p}) as card`;
+      expect(card.cities.map((x: { city: string }) => x.city)).toEqual(["Абакан", "Бийск"]);
+      expect(card.cities[0].studios).toEqual([
+        { name: "Абакан Ленина", status: "Открыта" },
+        { name: "Абакан Мира", status: "Закрыта" },
+      ]);
+      expect(card.profile.inn).toBe("");
+      const save = (inn: string, cities: string[]) =>
+        tx`select an_partner_card_save(${p}, ${{
+          phone: " +7 999 ",
+          telegram: "@anna",
+          max_messenger: "",
+          individual_entrepreneur: "ИП Иванова",
+          inn,
+          cities: cities.map((city) => ({
+            city,
+            trial_price: "500 ₽",
+            directions: "Lady Stretch",
+          })),
+        }}::jsonb)`;
+      expect(await failure(tx, () => save("123", ["Абакан", "Бийск"]))).toContain(
+        "ИНН должен состоять из 10 или 12 цифр.",
+      );
+      expect(await failure(tx, () => save("1234567890", ["Абакан"]))).toContain(
+        "Не удалось сопоставить",
+      );
+      await save("1234567890", ["Бийск", "Абакан"]);
+      const [{ card: saved }] = await tx`select an_partner_card(${p}) as card`;
+      expect(saved.profile).toEqual({
+        phone: "+7 999",
+        telegram: "@anna",
+        max_messenger: "",
+        individual_entrepreneur: "ИП Иванова",
+        inn: "1234567890",
+      });
+      expect(saved.cities[1]).toMatchObject({ trial_price: "500 ₽", directions: "Lady Stretch" });
+      await tx`select an_partner_remove(${p})`;
+      const [{ cand: after }] = await tx`select an_partner_candidates() as cand`;
+      expect(after.some((x: { user_id: string }) => x.user_id === p)).toBe(true);
+      const [{ list: none }] = await tx`select an_partners() as list`;
+      expect(none).toEqual([]);
+      await asServer(tx);
+      const events = await tx`select event from an_audit where user_id = ${admin} order by id`;
+      expect(events.map((r: { event: string }) => r.event)).toEqual([
+        "partner_created",
+        "partner_cities_changed",
+        "partner_profile_changed",
+        "partner_removed",
+      ]);
+    });
+  });
+
+  test("API для GPT: ключ по хешу, журнал запросов; отчёты 1С — серверу по всей сети", async () => {
+    await scenario(async (tx) => {
+      await onecCurrentSnapshot(tx);
+      const admin = await person(tx, "Админ", ["an.admin"]);
+      const staff = await person(tx, "Сотрудник", ["an.onec.revenue"]);
+      const hash = "a".repeat(64);
+      await as(tx, staff);
+      expect(await failure(tx, () => tx`select an_api_key_create('GPT', ${hash})`)).toContain(
+        "an_forbidden",
+      );
+      expect(await failure(tx, () => tx`select an_api_key_check(${hash})`)).toContain(
+        "permission denied",
+      );
+      await asServer(tx);
+      await as(tx, admin);
+      expect(await failure(tx, () => tx`select an_api_key_create(' ', ${hash})`)).toContain(
+        "Укажите название ключа.",
+      );
+      expect(await failure(tx, () => tx`select an_api_key_create('GPT', 'не хеш')`)).toContain(
+        "an_bad_key",
+      );
+      const [{ id }] = await tx`select an_api_key_create(' GPT ', ${hash}) as id`;
+      expect(
+        await failure(tx, () => tx`select an_api_key_create('GPT', ${"b".repeat(64)})`),
+      ).toContain("уже есть");
+      await asServer(tx);
+
+      await asService(tx);
+      const [{ k }] = await tx`select an_api_key_check(${hash}) as k`;
+      expect(Number(k)).toBe(Number(id));
+      const [{ k: nobody }] = await tx`select an_api_key_check(${"c".repeat(64)}) as k`;
+      expect(nobody).toBeNull();
+      await tx`select an_api_log(${id}, 'GET', '/api/analytics/v1/catalog', '', 200, 512)`;
+      await tx`select an_api_log(null, 'GET', '/api/analytics/v1/catalog', '', 401, 24)`;
+      // Сервер читает отчёты 1С по всей сети (у браузера — по правам).
+      const [{ r }] = await agg(tx, "revenue", "revenue", "studio");
+      expect(r.map((x: unknown[]) => x[1])).toEqual(["Абакан", "Бийск"]);
+      const [{ m }] = await tx`select an_onec_report_meta('revenue') as m`;
+      expect(m.breakEven).toEqual({ Абакан: 700000, Бийск: 500000 });
+      await tx`reset role`;
+
+      await as(tx, admin);
+      const [{ o }] = await tx`select an_api_overview() as o`;
+      expect(o.keys).toEqual([
+        expect.objectContaining({ label: "GPT", is_active: true, requests_30d: 1 }),
+      ]);
+      expect(o.keys[0].last_used_at).not.toBeNull();
+      expect(o.requests.map((x: { status_code: number }) => x.status_code).sort()).toEqual([
+        200, 401,
+      ]);
+      await tx`select an_api_key_set_active(${id}, false)`;
+      await asServer(tx);
+      await asService(tx);
+      const [{ k: off }] = await tx`select an_api_key_check(${hash}) as k`;
+      expect(off).toBeNull();
+      await tx`reset role`;
+      const events = await tx`select event from an_audit where user_id = ${admin} order by id`;
+      expect(events.map((x: { event: string }) => x.event)).toEqual([
+        "analytics_api_key_created",
+        "analytics_api_key_disabled",
+      ]);
+    });
+  });
+
+  test("загрузка снимка 1С в отчёты — в журнал (их onec_snapshot_imported)", async () => {
+    await scenario(async (tx) => {
+      await onecCurrentSnapshot(tx);
+      const admin = await person(tx, "Админ", ["an.admin"]);
+      const [{ s }] = await tx`select slot as s from an_onec_snapshots where state = 'current'`;
+      const free = [1, 2, 3].find((x) => x !== s);
+      const [{ id }] = await tx`
+        insert into an_onec_snapshots (slot, state, meta) values (${free}, 'ready', '{}') returning id`;
+      await as(tx, admin);
+      await tx`select an_onec_snapshot_activate(${id})`;
+      await asServer(tx);
+      const rows = await tx`select user_id, event, details from an_audit
+                             where event = 'onec_snapshot_imported' and user_id = ${admin}`;
+      expect(rows).toEqual([
+        { user_id: admin, event: "onec_snapshot_imported", details: `Снимок ${id}` },
+      ]);
+    });
+  });
 });

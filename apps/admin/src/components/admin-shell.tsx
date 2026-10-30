@@ -15,6 +15,8 @@ import { useKbDarkTheme } from "@/lib/kb/theme";
 import { isKbToolPath, kbBaseIdOf, railSectionKey } from "@/lib/nav-sections";
 import { cn } from "@/lib/utils";
 import { CLUBS_HIDDEN } from "@/lib/launch";
+import { AnalyticsPresence } from "@/components/analytics/presence";
+import { presenceDashboard } from "@/lib/analytics/core";
 
 // Kate (AI SDK, markdown) — отдельным чанком: в общем каркасе он прибавлял к
 // первой загрузке любой страницы ~80 kB, а открывают его редко. Наведение на
@@ -85,6 +87,8 @@ export function AdminShell({
   const network =
     ["academy", "analytics"].includes(railSectionKey(pathname)) || (CLUBS_HIDDEN && !kb);
   const kbBaseId = kb ? kbBaseIdOf(pathname) : null;
+  // «Посещаемость» «Аналитики»: страницы раздела шлют пульс (их /presence).
+  const presence = presenceDashboard(pathname);
   // Тёмная тема базы знаний: класс на <html> вешает StudioBranding.
   const [kbDarkTheme, toggleKbTheme] = useKbDarkTheme();
 
@@ -122,6 +126,7 @@ export function AdminShell({
 
   return (
     <>
+      {presence && <AnalyticsPresence dashboard={presence} />}
       {kb ? (
         // Раскладка — lib/kb/header-layout.ts: с lg три колонки, поиск ровно
         // по центру, справа от него тема, у края — «Обновить».

@@ -53,6 +53,7 @@ import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authe
 import { Route as AuthenticatedAnalyticsIndexRouteImport } from './routes/_authenticated/analytics/index'
 import { Route as AuthenticatedAccessIndexRouteImport } from './routes/_authenticated/access/index'
 import { Route as AuthenticatedAcademyIndexRouteImport } from './routes/_authenticated/academy/index'
+import { Route as ApiAnalyticsOpenapiDotjsonRouteImport } from './routes/api/analytics/openapi[.]json'
 import { Route as AuthenticatedScriptsSettingsRouteImport } from './routes/_authenticated/scripts/settings'
 import { Route as AuthenticatedScriptsSectionIdRouteImport } from './routes/_authenticated/scripts/$sectionId'
 import { Route as AuthenticatedDashboardSalesRouteImport } from './routes/_authenticated/dashboard/sales'
@@ -67,6 +68,7 @@ import { Route as AuthenticatedKbBaseIdIndexRouteImport } from './routes/_authen
 import { Route as AuthenticatedAccessRolesIndexRouteImport } from './routes/_authenticated/access/roles/index'
 import { Route as AuthenticatedAcademyReviewIndexRouteImport } from './routes/_authenticated/academy/review/index'
 import { Route as AuthenticatedAcademyCoursesIndexRouteImport } from './routes/_authenticated/academy/courses/index'
+import { Route as ApiAnalyticsV1SplatRouteImport } from './routes/api/analytics/v1/$'
 import { Route as AuthenticatedKbBaseIdTrashRouteImport } from './routes/_authenticated/kb/$baseId/trash'
 import { Route as AuthenticatedKbBaseIdTemplatesRouteImport } from './routes/_authenticated/kb/$baseId/templates'
 import { Route as AuthenticatedKbBaseIdAnalyticsRouteImport } from './routes/_authenticated/kb/$baseId/analytics'
@@ -78,13 +80,18 @@ import { Route as AuthenticatedAnalyticsOnecRevenueRouteImport } from './routes/
 import { Route as AuthenticatedAnalyticsOnecMycityRouteImport } from './routes/_authenticated/analytics/onec/mycity'
 import { Route as AuthenticatedAnalyticsOnecFunnelRouteImport } from './routes/_authenticated/analytics/onec/funnel'
 import { Route as AuthenticatedAnalyticsOnecActivitiesRouteImport } from './routes/_authenticated/analytics/onec/activities'
+import { Route as AuthenticatedAnalyticsAdminJournalRouteImport } from './routes/_authenticated/analytics/admin/journal'
 import { Route as AuthenticatedAnalyticsAdminJobsRouteImport } from './routes/_authenticated/analytics/admin/jobs'
+import { Route as AuthenticatedAnalyticsAdminApiRouteImport } from './routes/_authenticated/analytics/admin/api'
+import { Route as AuthenticatedAnalyticsAdminActivityRouteImport } from './routes/_authenticated/analytics/admin/activity'
 import { Route as AuthenticatedAccessUsersUserIdRouteImport } from './routes/_authenticated/access/users/$userId'
 import { Route as AuthenticatedAccessRolesRoleIdRouteImport } from './routes/_authenticated/access/roles/$roleId'
 import { Route as AuthenticatedAcademyReviewAttemptIdRouteImport } from './routes/_authenticated/academy/review/$attemptId'
 import { Route as AuthenticatedAcademyMyCourseIdRouteImport } from './routes/_authenticated/academy/my/$courseId'
 import { Route as AuthenticatedAcademyAttemptsAttemptIdRouteImport } from './routes/_authenticated/academy/attempts/$attemptId'
+import { Route as AuthenticatedAnalyticsAdminPartnersIndexRouteImport } from './routes/_authenticated/analytics/admin/partners/index'
 import { Route as AuthenticatedAcademyCoursesCourseIdIndexRouteImport } from './routes/_authenticated/academy/courses/$courseId/index'
+import { Route as AuthenticatedAnalyticsAdminPartnersUserIdRouteImport } from './routes/_authenticated/analytics/admin/partners/$userId'
 import { Route as AuthenticatedAcademyCoursesCourseIdPreviewRouteImport } from './routes/_authenticated/academy/courses/$courseId/preview'
 import { Route as AuthenticatedAcademyCoursesCourseIdStepIdRouteImport } from './routes/_authenticated/academy/courses/$courseId/$stepId'
 
@@ -320,6 +327,12 @@ const AuthenticatedAcademyIndexRoute =
     path: '/academy/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const ApiAnalyticsOpenapiDotjsonRoute =
+  ApiAnalyticsOpenapiDotjsonRouteImport.update({
+    id: '/api/analytics/openapi.json',
+    path: '/api/analytics/openapi.json',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthenticatedScriptsSettingsRoute =
   AuthenticatedScriptsSettingsRouteImport.update({
     id: '/scripts/settings',
@@ -403,6 +416,11 @@ const AuthenticatedAcademyCoursesIndexRoute =
     path: '/academy/courses/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const ApiAnalyticsV1SplatRoute = ApiAnalyticsV1SplatRouteImport.update({
+  id: '/api/analytics/v1/$',
+  path: '/api/analytics/v1/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedKbBaseIdTrashRoute =
   AuthenticatedKbBaseIdTrashRouteImport.update({
     id: '/kb/$baseId/trash',
@@ -469,10 +487,28 @@ const AuthenticatedAnalyticsOnecActivitiesRoute =
     path: '/analytics/onec/activities',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAnalyticsAdminJournalRoute =
+  AuthenticatedAnalyticsAdminJournalRouteImport.update({
+    id: '/analytics/admin/journal',
+    path: '/analytics/admin/journal',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAnalyticsAdminJobsRoute =
   AuthenticatedAnalyticsAdminJobsRouteImport.update({
     id: '/analytics/admin/jobs',
     path: '/analytics/admin/jobs',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAnalyticsAdminApiRoute =
+  AuthenticatedAnalyticsAdminApiRouteImport.update({
+    id: '/analytics/admin/api',
+    path: '/analytics/admin/api',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAnalyticsAdminActivityRoute =
+  AuthenticatedAnalyticsAdminActivityRouteImport.update({
+    id: '/analytics/admin/activity',
+    path: '/analytics/admin/activity',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedAccessUsersUserIdRoute =
@@ -505,10 +541,22 @@ const AuthenticatedAcademyAttemptsAttemptIdRoute =
     path: '/academy/attempts/$attemptId',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAnalyticsAdminPartnersIndexRoute =
+  AuthenticatedAnalyticsAdminPartnersIndexRouteImport.update({
+    id: '/analytics/admin/partners/',
+    path: '/analytics/admin/partners/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAcademyCoursesCourseIdIndexRoute =
   AuthenticatedAcademyCoursesCourseIdIndexRouteImport.update({
     id: '/academy/courses/$courseId/',
     path: '/academy/courses/$courseId/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAnalyticsAdminPartnersUserIdRoute =
+  AuthenticatedAnalyticsAdminPartnersUserIdRouteImport.update({
+    id: '/analytics/admin/partners/$userId',
+    path: '/analytics/admin/partners/$userId',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedAcademyCoursesCourseIdPreviewRoute =
@@ -572,6 +620,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/sales': typeof AuthenticatedDashboardSalesRoute
   '/scripts/$sectionId': typeof AuthenticatedScriptsSectionIdRoute
   '/scripts/settings': typeof AuthenticatedScriptsSettingsRoute
+  '/api/analytics/openapi.json': typeof ApiAnalyticsOpenapiDotjsonRoute
   '/academy/': typeof AuthenticatedAcademyIndexRoute
   '/access/': typeof AuthenticatedAccessIndexRoute
   '/analytics/': typeof AuthenticatedAnalyticsIndexRoute
@@ -583,7 +632,10 @@ export interface FileRoutesByFullPath {
   '/academy/review/$attemptId': typeof AuthenticatedAcademyReviewAttemptIdRoute
   '/access/roles/$roleId': typeof AuthenticatedAccessRolesRoleIdRoute
   '/access/users/$userId': typeof AuthenticatedAccessUsersUserIdRoute
+  '/analytics/admin/activity': typeof AuthenticatedAnalyticsAdminActivityRoute
+  '/analytics/admin/api': typeof AuthenticatedAnalyticsAdminApiRoute
   '/analytics/admin/jobs': typeof AuthenticatedAnalyticsAdminJobsRoute
+  '/analytics/admin/journal': typeof AuthenticatedAnalyticsAdminJournalRoute
   '/analytics/onec/activities': typeof AuthenticatedAnalyticsOnecActivitiesRoute
   '/analytics/onec/funnel': typeof AuthenticatedAnalyticsOnecFunnelRoute
   '/analytics/onec/mycity': typeof AuthenticatedAnalyticsOnecMycityRoute
@@ -595,13 +647,16 @@ export interface FileRoutesByFullPath {
   '/kb/$baseId/analytics': typeof AuthenticatedKbBaseIdAnalyticsRoute
   '/kb/$baseId/templates': typeof AuthenticatedKbBaseIdTemplatesRoute
   '/kb/$baseId/trash': typeof AuthenticatedKbBaseIdTrashRoute
+  '/api/analytics/v1/$': typeof ApiAnalyticsV1SplatRoute
   '/academy/courses/': typeof AuthenticatedAcademyCoursesIndexRoute
   '/academy/review/': typeof AuthenticatedAcademyReviewIndexRoute
   '/access/roles/': typeof AuthenticatedAccessRolesIndexRoute
   '/kb/$baseId/': typeof AuthenticatedKbBaseIdIndexRoute
   '/academy/courses/$courseId/$stepId': typeof AuthenticatedAcademyCoursesCourseIdStepIdRoute
   '/academy/courses/$courseId/preview': typeof AuthenticatedAcademyCoursesCourseIdPreviewRoute
+  '/analytics/admin/partners/$userId': typeof AuthenticatedAnalyticsAdminPartnersUserIdRoute
   '/academy/courses/$courseId/': typeof AuthenticatedAcademyCoursesCourseIdIndexRoute
+  '/analytics/admin/partners/': typeof AuthenticatedAnalyticsAdminPartnersIndexRoute
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
@@ -651,6 +706,7 @@ export interface FileRoutesByTo {
   '/dashboard/sales': typeof AuthenticatedDashboardSalesRoute
   '/scripts/$sectionId': typeof AuthenticatedScriptsSectionIdRoute
   '/scripts/settings': typeof AuthenticatedScriptsSettingsRoute
+  '/api/analytics/openapi.json': typeof ApiAnalyticsOpenapiDotjsonRoute
   '/academy': typeof AuthenticatedAcademyIndexRoute
   '/access': typeof AuthenticatedAccessIndexRoute
   '/analytics': typeof AuthenticatedAnalyticsIndexRoute
@@ -662,7 +718,10 @@ export interface FileRoutesByTo {
   '/academy/review/$attemptId': typeof AuthenticatedAcademyReviewAttemptIdRoute
   '/access/roles/$roleId': typeof AuthenticatedAccessRolesRoleIdRoute
   '/access/users/$userId': typeof AuthenticatedAccessUsersUserIdRoute
+  '/analytics/admin/activity': typeof AuthenticatedAnalyticsAdminActivityRoute
+  '/analytics/admin/api': typeof AuthenticatedAnalyticsAdminApiRoute
   '/analytics/admin/jobs': typeof AuthenticatedAnalyticsAdminJobsRoute
+  '/analytics/admin/journal': typeof AuthenticatedAnalyticsAdminJournalRoute
   '/analytics/onec/activities': typeof AuthenticatedAnalyticsOnecActivitiesRoute
   '/analytics/onec/funnel': typeof AuthenticatedAnalyticsOnecFunnelRoute
   '/analytics/onec/mycity': typeof AuthenticatedAnalyticsOnecMycityRoute
@@ -674,13 +733,16 @@ export interface FileRoutesByTo {
   '/kb/$baseId/analytics': typeof AuthenticatedKbBaseIdAnalyticsRoute
   '/kb/$baseId/templates': typeof AuthenticatedKbBaseIdTemplatesRoute
   '/kb/$baseId/trash': typeof AuthenticatedKbBaseIdTrashRoute
+  '/api/analytics/v1/$': typeof ApiAnalyticsV1SplatRoute
   '/academy/courses': typeof AuthenticatedAcademyCoursesIndexRoute
   '/academy/review': typeof AuthenticatedAcademyReviewIndexRoute
   '/access/roles': typeof AuthenticatedAccessRolesIndexRoute
   '/kb/$baseId': typeof AuthenticatedKbBaseIdIndexRoute
   '/academy/courses/$courseId/$stepId': typeof AuthenticatedAcademyCoursesCourseIdStepIdRoute
   '/academy/courses/$courseId/preview': typeof AuthenticatedAcademyCoursesCourseIdPreviewRoute
+  '/analytics/admin/partners/$userId': typeof AuthenticatedAnalyticsAdminPartnersUserIdRoute
   '/academy/courses/$courseId': typeof AuthenticatedAcademyCoursesCourseIdIndexRoute
+  '/analytics/admin/partners': typeof AuthenticatedAnalyticsAdminPartnersIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -732,6 +794,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard/sales': typeof AuthenticatedDashboardSalesRoute
   '/_authenticated/scripts/$sectionId': typeof AuthenticatedScriptsSectionIdRoute
   '/_authenticated/scripts/settings': typeof AuthenticatedScriptsSettingsRoute
+  '/api/analytics/openapi.json': typeof ApiAnalyticsOpenapiDotjsonRoute
   '/_authenticated/academy/': typeof AuthenticatedAcademyIndexRoute
   '/_authenticated/access/': typeof AuthenticatedAccessIndexRoute
   '/_authenticated/analytics/': typeof AuthenticatedAnalyticsIndexRoute
@@ -743,7 +806,10 @@ export interface FileRoutesById {
   '/_authenticated/academy/review/$attemptId': typeof AuthenticatedAcademyReviewAttemptIdRoute
   '/_authenticated/access/roles/$roleId': typeof AuthenticatedAccessRolesRoleIdRoute
   '/_authenticated/access/users/$userId': typeof AuthenticatedAccessUsersUserIdRoute
+  '/_authenticated/analytics/admin/activity': typeof AuthenticatedAnalyticsAdminActivityRoute
+  '/_authenticated/analytics/admin/api': typeof AuthenticatedAnalyticsAdminApiRoute
   '/_authenticated/analytics/admin/jobs': typeof AuthenticatedAnalyticsAdminJobsRoute
+  '/_authenticated/analytics/admin/journal': typeof AuthenticatedAnalyticsAdminJournalRoute
   '/_authenticated/analytics/onec/activities': typeof AuthenticatedAnalyticsOnecActivitiesRoute
   '/_authenticated/analytics/onec/funnel': typeof AuthenticatedAnalyticsOnecFunnelRoute
   '/_authenticated/analytics/onec/mycity': typeof AuthenticatedAnalyticsOnecMycityRoute
@@ -755,13 +821,16 @@ export interface FileRoutesById {
   '/_authenticated/kb/$baseId/analytics': typeof AuthenticatedKbBaseIdAnalyticsRoute
   '/_authenticated/kb/$baseId/templates': typeof AuthenticatedKbBaseIdTemplatesRoute
   '/_authenticated/kb/$baseId/trash': typeof AuthenticatedKbBaseIdTrashRoute
+  '/api/analytics/v1/$': typeof ApiAnalyticsV1SplatRoute
   '/_authenticated/academy/courses/': typeof AuthenticatedAcademyCoursesIndexRoute
   '/_authenticated/academy/review/': typeof AuthenticatedAcademyReviewIndexRoute
   '/_authenticated/access/roles/': typeof AuthenticatedAccessRolesIndexRoute
   '/_authenticated/kb/$baseId/': typeof AuthenticatedKbBaseIdIndexRoute
   '/_authenticated/academy/courses/$courseId/$stepId': typeof AuthenticatedAcademyCoursesCourseIdStepIdRoute
   '/_authenticated/academy/courses/$courseId/preview': typeof AuthenticatedAcademyCoursesCourseIdPreviewRoute
+  '/_authenticated/analytics/admin/partners/$userId': typeof AuthenticatedAnalyticsAdminPartnersUserIdRoute
   '/_authenticated/academy/courses/$courseId/': typeof AuthenticatedAcademyCoursesCourseIdIndexRoute
+  '/_authenticated/analytics/admin/partners/': typeof AuthenticatedAnalyticsAdminPartnersIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -813,6 +882,7 @@ export interface FileRouteTypes {
     | '/dashboard/sales'
     | '/scripts/$sectionId'
     | '/scripts/settings'
+    | '/api/analytics/openapi.json'
     | '/academy/'
     | '/access/'
     | '/analytics/'
@@ -824,7 +894,10 @@ export interface FileRouteTypes {
     | '/academy/review/$attemptId'
     | '/access/roles/$roleId'
     | '/access/users/$userId'
+    | '/analytics/admin/activity'
+    | '/analytics/admin/api'
     | '/analytics/admin/jobs'
+    | '/analytics/admin/journal'
     | '/analytics/onec/activities'
     | '/analytics/onec/funnel'
     | '/analytics/onec/mycity'
@@ -836,13 +909,16 @@ export interface FileRouteTypes {
     | '/kb/$baseId/analytics'
     | '/kb/$baseId/templates'
     | '/kb/$baseId/trash'
+    | '/api/analytics/v1/$'
     | '/academy/courses/'
     | '/academy/review/'
     | '/access/roles/'
     | '/kb/$baseId/'
     | '/academy/courses/$courseId/$stepId'
     | '/academy/courses/$courseId/preview'
+    | '/analytics/admin/partners/$userId'
     | '/academy/courses/$courseId/'
+    | '/analytics/admin/partners/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/auth'
@@ -892,6 +968,7 @@ export interface FileRouteTypes {
     | '/dashboard/sales'
     | '/scripts/$sectionId'
     | '/scripts/settings'
+    | '/api/analytics/openapi.json'
     | '/academy'
     | '/access'
     | '/analytics'
@@ -903,7 +980,10 @@ export interface FileRouteTypes {
     | '/academy/review/$attemptId'
     | '/access/roles/$roleId'
     | '/access/users/$userId'
+    | '/analytics/admin/activity'
+    | '/analytics/admin/api'
     | '/analytics/admin/jobs'
+    | '/analytics/admin/journal'
     | '/analytics/onec/activities'
     | '/analytics/onec/funnel'
     | '/analytics/onec/mycity'
@@ -915,13 +995,16 @@ export interface FileRouteTypes {
     | '/kb/$baseId/analytics'
     | '/kb/$baseId/templates'
     | '/kb/$baseId/trash'
+    | '/api/analytics/v1/$'
     | '/academy/courses'
     | '/academy/review'
     | '/access/roles'
     | '/kb/$baseId'
     | '/academy/courses/$courseId/$stepId'
     | '/academy/courses/$courseId/preview'
+    | '/analytics/admin/partners/$userId'
     | '/academy/courses/$courseId'
+    | '/analytics/admin/partners'
   id:
     | '__root__'
     | '/_authenticated'
@@ -972,6 +1055,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard/sales'
     | '/_authenticated/scripts/$sectionId'
     | '/_authenticated/scripts/settings'
+    | '/api/analytics/openapi.json'
     | '/_authenticated/academy/'
     | '/_authenticated/access/'
     | '/_authenticated/analytics/'
@@ -983,7 +1067,10 @@ export interface FileRouteTypes {
     | '/_authenticated/academy/review/$attemptId'
     | '/_authenticated/access/roles/$roleId'
     | '/_authenticated/access/users/$userId'
+    | '/_authenticated/analytics/admin/activity'
+    | '/_authenticated/analytics/admin/api'
     | '/_authenticated/analytics/admin/jobs'
+    | '/_authenticated/analytics/admin/journal'
     | '/_authenticated/analytics/onec/activities'
     | '/_authenticated/analytics/onec/funnel'
     | '/_authenticated/analytics/onec/mycity'
@@ -995,13 +1082,16 @@ export interface FileRouteTypes {
     | '/_authenticated/kb/$baseId/analytics'
     | '/_authenticated/kb/$baseId/templates'
     | '/_authenticated/kb/$baseId/trash'
+    | '/api/analytics/v1/$'
     | '/_authenticated/academy/courses/'
     | '/_authenticated/academy/review/'
     | '/_authenticated/access/roles/'
     | '/_authenticated/kb/$baseId/'
     | '/_authenticated/academy/courses/$courseId/$stepId'
     | '/_authenticated/academy/courses/$courseId/preview'
+    | '/_authenticated/analytics/admin/partners/$userId'
     | '/_authenticated/academy/courses/$courseId/'
+    | '/_authenticated/analytics/admin/partners/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1011,6 +1101,8 @@ export interface RootRouteChildren {
   ApiChatRoute: typeof ApiChatRoute
   ApiTranscribeRoute: typeof ApiTranscribeRoute
   ApiVersionRoute: typeof ApiVersionRoute
+  ApiAnalyticsOpenapiDotjsonRoute: typeof ApiAnalyticsOpenapiDotjsonRoute
+  ApiAnalyticsV1SplatRoute: typeof ApiAnalyticsV1SplatRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -1323,6 +1415,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAcademyIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/analytics/openapi.json': {
+      id: '/api/analytics/openapi.json'
+      path: '/api/analytics/openapi.json'
+      fullPath: '/api/analytics/openapi.json'
+      preLoaderRoute: typeof ApiAnalyticsOpenapiDotjsonRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/scripts/settings': {
       id: '/_authenticated/scripts/settings'
       path: '/scripts/settings'
@@ -1421,6 +1520,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAcademyCoursesIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/analytics/v1/$': {
+      id: '/api/analytics/v1/$'
+      path: '/api/analytics/v1/$'
+      fullPath: '/api/analytics/v1/$'
+      preLoaderRoute: typeof ApiAnalyticsV1SplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/kb/$baseId/trash': {
       id: '/_authenticated/kb/$baseId/trash'
       path: '/kb/$baseId/trash'
@@ -1498,11 +1604,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAnalyticsOnecActivitiesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/analytics/admin/journal': {
+      id: '/_authenticated/analytics/admin/journal'
+      path: '/analytics/admin/journal'
+      fullPath: '/analytics/admin/journal'
+      preLoaderRoute: typeof AuthenticatedAnalyticsAdminJournalRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/analytics/admin/jobs': {
       id: '/_authenticated/analytics/admin/jobs'
       path: '/analytics/admin/jobs'
       fullPath: '/analytics/admin/jobs'
       preLoaderRoute: typeof AuthenticatedAnalyticsAdminJobsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/analytics/admin/api': {
+      id: '/_authenticated/analytics/admin/api'
+      path: '/analytics/admin/api'
+      fullPath: '/analytics/admin/api'
+      preLoaderRoute: typeof AuthenticatedAnalyticsAdminApiRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/analytics/admin/activity': {
+      id: '/_authenticated/analytics/admin/activity'
+      path: '/analytics/admin/activity'
+      fullPath: '/analytics/admin/activity'
+      preLoaderRoute: typeof AuthenticatedAnalyticsAdminActivityRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/access/users/$userId': {
@@ -1540,11 +1667,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAcademyAttemptsAttemptIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/analytics/admin/partners/': {
+      id: '/_authenticated/analytics/admin/partners/'
+      path: '/analytics/admin/partners'
+      fullPath: '/analytics/admin/partners/'
+      preLoaderRoute: typeof AuthenticatedAnalyticsAdminPartnersIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/academy/courses/$courseId/': {
       id: '/_authenticated/academy/courses/$courseId/'
       path: '/academy/courses/$courseId'
       fullPath: '/academy/courses/$courseId/'
       preLoaderRoute: typeof AuthenticatedAcademyCoursesCourseIdIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/analytics/admin/partners/$userId': {
+      id: '/_authenticated/analytics/admin/partners/$userId'
+      path: '/analytics/admin/partners/$userId'
+      fullPath: '/analytics/admin/partners/$userId'
+      preLoaderRoute: typeof AuthenticatedAnalyticsAdminPartnersUserIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/academy/courses/$courseId/preview': {
@@ -1618,7 +1759,10 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAcademyReviewAttemptIdRoute: typeof AuthenticatedAcademyReviewAttemptIdRoute
   AuthenticatedAccessRolesRoleIdRoute: typeof AuthenticatedAccessRolesRoleIdRoute
   AuthenticatedAccessUsersUserIdRoute: typeof AuthenticatedAccessUsersUserIdRoute
+  AuthenticatedAnalyticsAdminActivityRoute: typeof AuthenticatedAnalyticsAdminActivityRoute
+  AuthenticatedAnalyticsAdminApiRoute: typeof AuthenticatedAnalyticsAdminApiRoute
   AuthenticatedAnalyticsAdminJobsRoute: typeof AuthenticatedAnalyticsAdminJobsRoute
+  AuthenticatedAnalyticsAdminJournalRoute: typeof AuthenticatedAnalyticsAdminJournalRoute
   AuthenticatedAnalyticsOnecActivitiesRoute: typeof AuthenticatedAnalyticsOnecActivitiesRoute
   AuthenticatedAnalyticsOnecFunnelRoute: typeof AuthenticatedAnalyticsOnecFunnelRoute
   AuthenticatedAnalyticsOnecMycityRoute: typeof AuthenticatedAnalyticsOnecMycityRoute
@@ -1636,7 +1780,9 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedKbBaseIdIndexRoute: typeof AuthenticatedKbBaseIdIndexRoute
   AuthenticatedAcademyCoursesCourseIdStepIdRoute: typeof AuthenticatedAcademyCoursesCourseIdStepIdRoute
   AuthenticatedAcademyCoursesCourseIdPreviewRoute: typeof AuthenticatedAcademyCoursesCourseIdPreviewRoute
+  AuthenticatedAnalyticsAdminPartnersUserIdRoute: typeof AuthenticatedAnalyticsAdminPartnersUserIdRoute
   AuthenticatedAcademyCoursesCourseIdIndexRoute: typeof AuthenticatedAcademyCoursesCourseIdIndexRoute
+  AuthenticatedAnalyticsAdminPartnersIndexRoute: typeof AuthenticatedAnalyticsAdminPartnersIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -1696,7 +1842,12 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedAcademyReviewAttemptIdRoute,
   AuthenticatedAccessRolesRoleIdRoute: AuthenticatedAccessRolesRoleIdRoute,
   AuthenticatedAccessUsersUserIdRoute: AuthenticatedAccessUsersUserIdRoute,
+  AuthenticatedAnalyticsAdminActivityRoute:
+    AuthenticatedAnalyticsAdminActivityRoute,
+  AuthenticatedAnalyticsAdminApiRoute: AuthenticatedAnalyticsAdminApiRoute,
   AuthenticatedAnalyticsAdminJobsRoute: AuthenticatedAnalyticsAdminJobsRoute,
+  AuthenticatedAnalyticsAdminJournalRoute:
+    AuthenticatedAnalyticsAdminJournalRoute,
   AuthenticatedAnalyticsOnecActivitiesRoute:
     AuthenticatedAnalyticsOnecActivitiesRoute,
   AuthenticatedAnalyticsOnecFunnelRoute: AuthenticatedAnalyticsOnecFunnelRoute,
@@ -1718,8 +1869,12 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedAcademyCoursesCourseIdStepIdRoute,
   AuthenticatedAcademyCoursesCourseIdPreviewRoute:
     AuthenticatedAcademyCoursesCourseIdPreviewRoute,
+  AuthenticatedAnalyticsAdminPartnersUserIdRoute:
+    AuthenticatedAnalyticsAdminPartnersUserIdRoute,
   AuthenticatedAcademyCoursesCourseIdIndexRoute:
     AuthenticatedAcademyCoursesCourseIdIndexRoute,
+  AuthenticatedAnalyticsAdminPartnersIndexRoute:
+    AuthenticatedAnalyticsAdminPartnersIndexRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
@@ -1732,6 +1887,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiChatRoute: ApiChatRoute,
   ApiTranscribeRoute: ApiTranscribeRoute,
   ApiVersionRoute: ApiVersionRoute,
+  ApiAnalyticsOpenapiDotjsonRoute: ApiAnalyticsOpenapiDotjsonRoute,
+  ApiAnalyticsV1SplatRoute: ApiAnalyticsV1SplatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
