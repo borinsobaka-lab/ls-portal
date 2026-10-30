@@ -33,7 +33,7 @@ import type {
   AcadViewStep,
 } from "@/lib/academy/types";
 import { formatDate, todayISO } from "@/lib/format";
-import { formatFileSize, KbFileTooLarge, uploadKbFile } from "@/lib/kb/files";
+import { formatFileSize, KB_MAX_FILE_BYTES, KbFileTooLarge, uploadKbFile } from "@/lib/kb/files";
 import { cn } from "@/lib/utils";
 
 const KbDocument = lazy(() =>
@@ -633,7 +633,7 @@ function OpenAnswer({
             <Paperclip /> Приложить файл
           </Button>
           <span className="text-xs text-muted-foreground">
-            до {formatFileSize(50 * 1024 * 1024)}
+            до {formatFileSize(KB_MAX_FILE_BYTES)}
           </span>
         </div>
       )}
@@ -670,7 +670,7 @@ function OpenAnswer({
             </Button>
           )}
           <span className="text-xs text-muted-foreground">
-            до {formatFileSize(50 * 1024 * 1024)}
+            до {formatFileSize(KB_MAX_FILE_BYTES)}
           </span>
         </div>
       )}

@@ -14,8 +14,11 @@ import { fitImage } from "@/lib/storage";
 
 export const KB_BUCKET = "kb-media";
 export const KB_FILE_PREFIX = "kbfile:";
-/** Лимит бакета — 50 МБ на файл (маленький лимит на видео — решение владельца). */
-export const KB_MAX_FILE_BYTES = 50 * 1024 * 1024;
+/**
+ * Лимит бакета — 200 МБ на файл (решение владельца 2026-10-30, было 50 МБ;
+ * бакет — db/migrations/2026-10-30_zz_kb_media_200mb.sql).
+ */
+export const KB_MAX_FILE_BYTES = 200 * 1024 * 1024;
 
 const SIGNED_TTL_S = 60 * 60;
 const cache = new Map<string, { url: string; expires: number }>();
@@ -75,7 +78,7 @@ export async function shrinkKbImage(file: File): Promise<File> {
 
 /**
  * Загрузить файл статьи; вернуть ссылку для документа (`kbfile:…`).
- * `onProgress` — доля отправленного (0…1): видео до 50 МБ грузится заметно
+ * `onProgress` — доля отправленного (0…1): видео до 200 МБ грузится заметно
  * долго, без полосы казалось, что всё зависло. supabase-js прогресс не
  * отдаёт (fetch), поэтому тот же запрос к Storage — через XMLHttpRequest.
  */

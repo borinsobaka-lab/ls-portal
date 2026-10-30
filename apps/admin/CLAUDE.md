@@ -647,7 +647,7 @@ kb`. Доступ — ролями «Пользователей и ролей» 
   блока в `lib/kb/upload-progress.ts`, её рисуют панель файла и галерея); картинки из
   вставленного текста (Word, Google Docs) перезаливаются в бакет. Файлы —
   `lib/kb/files.ts` (`kbfile:<путь>` в документе, подписанная ссылка на
-  показ, лимит 50 МБ). Классы Tailwind редактора — `@source` на
+  показ, лимит 200 МБ). Классы Tailwind редактора — `@source` на
   `@blocknote/shadcn` в `styles.css` (там же стили `.kb-document`); его
   импорты `lucide-react` подменяет тот же шим — `scripts/gen-icons.ts`
   сканирует и `VENDOR`. Платные пакеты BlockNote (`@blocknote/xl-*`) не
