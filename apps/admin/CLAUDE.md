@@ -41,7 +41,9 @@ Tailwind 4 + shadcn/radix. Пакетный менеджер — bun.
   таргета, планы, источники СС) `lib/analytics/vk/vk-register.test.ts`, (лид-формы)
   `lib/analytics/vk/lf.test.ts`, (контроль бюджетов: их Decimal, уровни, Telegram)
   `lib/analytics/vk/budget.test.ts`, amoCRM (адрес, поля сделки, источник,
-  квалификация) `lib/analytics/amo/amo.test.ts`; «Академия» — подписи,
+  квалификация) `lib/analytics/amo/amo.test.ts`, (маркетинговые отчёты:
+  бюджеты каналов, проценты, блоки, плитки) `lib/analytics/amo/marketing.test.ts`;
+  «Академия» — подписи,
   проверка вопроса, сроки и напоминания `lib/academy/logic.test.ts`;
   Kate — инструменты,
   права, история и промпт `lib/assistant/*.test.ts`).
@@ -765,7 +767,11 @@ kb`. Доступ — ролями «Пользователей и ролей» 
   только стенд) и отправка — `lib/analytics/server/vk-budget.server.ts`
   (пересчёт — в задаче `vk_ads` после сбора, отправка — задача
   `vk_budget_tg`, внешняя), действия — `lib/analytics/vk-budget.functions.ts`.
-  «CRM» (2026-10-30, ANALYTICS.md) — «Интеграция amoCRM»
+  «CRM» (2026-10-30, ANALYTICS.md) — «Маркетинг Lady Stretch / Lady Jump»
+  (`/analytics/crm/marketing/lady-stretch` и `/lady-jump`, права
+  `mkt.ls` / `mkt.lj`: общий экран `components/analytics/amo/marketing-report.tsx`,
+  фильтры — в адресе, данные — RPC `an_amo_marketing`, их расчёты страницы —
+  `lib/analytics/amo/marketing.ts`), «Интеграция amoCRM»
   (`/analytics/crm/amocrm`, подключение — `/amocrm/$connectionId`: токен,
   справочники, ответственные → города, правила, квалификация, сбор);
   правила их кода — `lib/analytics/amo/rules.ts`, запросы — `amo/data.ts`,

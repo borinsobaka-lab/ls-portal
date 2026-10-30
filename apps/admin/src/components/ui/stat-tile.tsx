@@ -11,12 +11,14 @@ import { cn } from "@/lib/utils";
  *
  * tone — цвет числа, только когда оно требует внимания (страница сама решает,
  * когда: обычно при значении больше нуля). loading — болванка вместо числа при
- * настоящей подписи (system.md, «Скелетоны»).
+ * настоящей подписи (system.md, «Скелетоны»). note — строка пояснения под
+ * числом («80% от всех лидов»).
  */
 export function StatTile({
   label,
   icon,
   value,
+  note,
   tone = "default",
   loading = false,
   className,
@@ -24,6 +26,7 @@ export function StatTile({
   label: React.ReactNode;
   icon?: React.ReactNode;
   value?: React.ReactNode;
+  note?: React.ReactNode;
   tone?: "default" | "warning" | "negative";
   loading?: boolean;
   className?: string;
@@ -47,6 +50,7 @@ export function StatTile({
           {value}
         </p>
       )}
+      {note && !loading && <p className="mt-1 text-xs text-muted-foreground">{note}</p>}
     </div>
   );
 }

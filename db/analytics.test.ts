@@ -2856,4 +2856,127 @@ describe.skipIf(!url)("аналитика: фундамент (база)", () =>
       expect(q).toEqual({ Абакан: [2, 1], "": [0, 0] });
     });
   });
+
+  test("amoCRM: маркетинговые отчёты — когорта месяца МСК, срез, города партнёра и таргетолога, права", async () => {
+    await scenario(async (tx) => {
+      await tx`delete from an_vk_accounts`;
+      await tx`delete from an_amo_snapshots`;
+      // Без начала учёта срезы не замораживаются — срез сентября задаём сами.
+      await tx`delete from an_amo_history_state`;
+      const admin = await person(tx, "Админ маркетинга", ["an.admin"]);
+      const staff = await person(tx, "Сотрудник LJ", ["an.mkt.lj"]);
+      const partner = await person(tx, "Партнёр маркетинга", ["an.partner", "an.mkt.ls"]);
+      const target = await person(tx, "Таргет Маркетинга", ["an.targetologist"]);
+      await asServer(tx);
+      await tx`insert into an_partner_cities (user_id, city) values (${partner}, 'Абакан')`;
+      await tx`insert into an_vk_targetologists (brand, city, targetologist_name)
+               values ('Lady Stretch', 'Самара', 'Таргет Маркетинга')`;
+      const [{ id }] =
+        await tx`insert into an_amo_connections (name, base_url) values ('CRM', 'https://m.amocrm.ru') returning id`;
+      await tx`insert into an_amo_pipeline_brands (connection_id, pipeline_id, brand) values (${id}, '111', 'Lady Stretch')`;
+      await tx`insert into an_amo_responsibles (connection_id, amo_user_id, amo_user_name, brand, city, partner_name)
+               values (${id}, '9', 'Анна', 'Lady Stretch', 'Абакан', 'ИП А')`;
+      await tx`insert into an_amo_basis (connection_id, field_value_id, field_value_name, is_unqualified)
+               values (${id}, '1', 'Спам', true), (${id}, '2', 'Дорого', false), (${id}, '3', 'Дубль', true)`;
+      let n = 0;
+      const lead = async (at: string, brand: string, city: string, partnerName: string, source: string, f = [1, 0, 0, 0]) =>
+        tx`insert into an_amo_leads (connection_id, amo_lead_id, created_at, updated_at, pipeline_id, status_id,
+                                     brand, city, partner_name, effective_source, is_qualified, is_booked, is_attended, is_paid)
+           values (${id}, ${String(++n)}, ${at}::timestamptz, now(), '111', '1', ${brand}, ${city}, ${partnerName},
+                   ${source}, ${f[0]}, ${f[1]}, ${f[2]}, ${f[3]})`;
+      // 01.10 00:30 МСК — октябрь (их когорта по Москве).
+      await lead("2026-09-30 21:30+00", "Lady Stretch", "Абакан", "ИП А", "ВКонтакте сообщения", [1, 1, 1, 1]);
+      await lead("2026-10-10 12:00+03", "Lady Stretch", "Абакан", "ИП А", "ВКонтакте сообщения", [1, 1, 0, 0]);
+      await lead("2026-10-11 12:00+03", "Lady Stretch", "Абакан", "ИП А", "Сайт", [0, 1, 1, 1]);
+      await lead("2026-10-12 12:00+03", "Lady Stretch", "Самара", "", "Авито");
+      await lead("2026-10-13 12:00+03", "Lady Stretch", "", "", "");
+      await lead("2026-09-30 20:30+00", "Lady Stretch", "Пермь", "ИП Б", "Сайт");
+      await lead("2026-10-14 12:00+03", "Lady Jump", "Казань · Вишневского", "ИП Д", "Сайт");
+      await tx`insert into an_amo_snapshots (brand, month, cutoff_at, rows, budgets)
+               values ('Lady Stretch', '2026-09', '2026-10-01 00:00+03',
+                       ${[
+                         { city: "Абакан", partner_name: "ИП Старый", source: "ВКонтакте ЛФ НК", leads: 3, qualified: 2, booked: 1, attended: 1, paid: 0 },
+                         { city: "Город не сопоставлен", partner_name: "—", source: "Сайт", leads: 1, qualified: 1, booked: 0, attended: 0, paid: 0 },
+                       ]}::jsonb,
+                       ${{ Абакан: { lead_forms: 1220.5, community_messages: 0 }, Пермь: { lead_forms: 5, community_messages: 7 } }}::jsonb)`;
+
+      const report = async (user: string, brand: string, month: string | null, city: string | null,
+                            partnerName: string | null, result = "today") => {
+        await as(tx, user);
+        const [{ r }] =
+          await tx`select an_amo_marketing(${brand}, ${month}, ${city}, ${partnerName}, ${result}) as r`;
+        await asServer(tx);
+        return r;
+      };
+
+      // Администратор: все города, «на сегодня», октябрь по умолчанию.
+      const all = await report(admin, "Lady Stretch", null, null, null);
+      expect([all.months, all.cities, all.partners, all.month, all.result]).toEqual([
+        ["2026-10", "2026-09"],
+        ["Абакан", "Пермь", "Самара"],
+        ["ИП А", "ИП Б", "ИП Старый"],
+        "2026-10",
+        "today",
+      ]);
+      expect([all.is_partner, all.limited, all.snapshot]).toEqual([false, false, false]);
+      expect(all.rows.map((r: { city: string; partner_name: string; source: string; leads: number; qualified: number; booked: number; paid: number }) =>
+        [r.city, r.partner_name, r.source, r.leads, r.qualified, r.booked, r.paid])).toEqual([
+        ["Абакан", "ИП А", "ВКонтакте сообщения", 2, 2, 2, 1],
+        ["Абакан", "ИП А", "Сайт", 1, 0, 0, 0],
+        ["Город не сопоставлен", "—", "Не присвоен источник", 1, 1, 0, 0],
+        ["Самара", "—", "Авито", 1, 1, 0, 0],
+      ]);
+      expect(all.qualification).toEqual({ Абакан: ["Дубль", "Спам"], Самара: [], "Город не сопоставлен": [] });
+      expect(all.budgets).toEqual({});
+      // Город и партнёр не из списка — «все»; месяц не из списка — последний.
+      const odd = await report(admin, "Lady Stretch", "2031-01", "Нет такого", "Нет такого");
+      expect([odd.month, odd.city, odd.partner, odd.rows.length]).toEqual(["2026-10", "", "", 4]);
+      const abakan = await report(admin, "Lady Stretch", "2026-10", "Абакан", "ИП А");
+      expect(abakan.rows).toHaveLength(2);
+
+      // Срез «на 1-е число»: строки и бюджеты среза, наружу — только города отчёта.
+      const first = await report(admin, "Lady Stretch", "2026-09", null, null, "first");
+      expect([first.snapshot, first.rows.length]).toEqual([true, 2]);
+      expect(first.budgets).toEqual({ Абакан: { lead_forms: 1220.5, community_messages: 0 } });
+      // «На сегодня» за месяц со срезом — сделки месяца, бюджеты — из среза (как у них).
+      const sepToday = await report(admin, "Lady Stretch", "2026-09", null, null);
+      expect(sepToday.rows.map((r: { city: string }) => r.city)).toEqual(["Пермь"]);
+      expect(sepToday.budgets).toEqual({ Пермь: { lead_forms: 5, community_messages: 7 } });
+      const octFirst = await report(admin, "Lady Stretch", "2026-10", null, null, "first");
+      expect([octFirst.snapshot, octFirst.rows]).toEqual([false, []]);
+
+      // Партнёр: только свои города, без выбора партнёра.
+      const p = await report(partner, "Lady Stretch", null, null, "ИП А");
+      expect([p.is_partner, p.limited, p.cities, p.partners, p.partner]).toEqual([
+        true, true, ["Абакан"], ["ИП А", "ИП Старый"], "",
+      ]);
+      expect(p.rows.map((r: { city: string }) => r.city)).toEqual(["Абакан", "Абакан"]);
+      const pFirst = await report(partner, "Lady Stretch", "2026-09", null, null, "first");
+      expect(pFirst.rows.map((r: { city: string }) => r.city)).toEqual(["Абакан"]);
+      expect(await failure(tx, () => report(partner, "Lady Jump", null, null, null))).toContain("an_forbidden");
+
+      // Таргетолог: маркетинг всегда, города — его назначения бренда.
+      const t = await report(target, "Lady Stretch", null, null, null);
+      expect([t.is_partner, t.limited, t.cities, t.rows.map((r: { city: string }) => r.city)]).toEqual([
+        false, true, ["Самара"], ["Самара"],
+      ]);
+      const tj = await report(target, "Lady Jump", null, null, null);
+      expect([tj.months, tj.cities, tj.rows]).toEqual([[], [], []]);
+
+      // Сотрудник с правом на Lady Jump — все города бренда; Lady Stretch закрыт.
+      const j = await report(staff, "Lady Jump", null, null, null);
+      expect(j.rows.map((r: { city: string }) => r.city)).toEqual(["Казань · Вишневского"]);
+      expect(await failure(tx, () => report(staff, "Lady Stretch", null, null, null))).toContain("an_forbidden");
+      expect(await failure(tx, () => report(admin, "Lady Bounce", null, null, null))).toContain("an_bad_brand");
+
+      // Журнал: «открыл дашборд» — только не администратор.
+      const views = await tx`select user_id::text as u, details from an_audit where event = 'dashboard_view'
+                             and details like 'Маркетинг%' and user_id in (${admin}, ${staff}, ${partner}, ${target})`;
+      expect(views.some((v) => v.u === admin)).toBe(false);
+      expect(views.filter((v) => v.u === partner).map((v) => v.details)).toEqual([
+        "Маркетинг Lady Stretch",
+        "Маркетинг Lady Stretch",
+      ]);
+    });
+  });
 });

@@ -1131,6 +1131,16 @@ DEPLOY.md.
   `an_amo_responsibles_clear`, `an_amo_basis_save`. «Квалификация VK» в
   реестре — `an_amo_vk_qualification`; актуальное определение
   `an_vk_register` — здесь. Задача сбора `amo` — раз в 15 минут.
+  «Маркетинг Lady Stretch / Lady Jump» (amoCRM, часть 2; 2026-10-30,
+  ANALYTICS.md): `db/migrations/2026-10-30_zzzzzzzzzz_analytics_marketing.sql`
+  — RPC `an_amo_marketing` (их report_filters + marketing_report +
+  marketing_snapshot + qualification_rule_labels: месяцы, города, партнёры —
+  из сделок и срезов; «на сегодня» — когорта месяца создания по МСК из
+  `an_amo_leads`, «на 1-е число» — `an_amo_snapshots`, перед этим
+  `an_amo_freeze_snapshots`; бюджеты — из среза или `an_amo_month_budgets`,
+  наружу — только города отчёта). Права `mkt.ls` / `mkt.lj`: таргетологу — его
+  города `an_vk_targetologists`, партнёру — `an_partner_cities` (без выбора
+  партнёра); не администратору — «открыл дашборд» в `an_audit`.
   Клубы и собственники (решение владельца 2026-10-27, ACCESS.md):
   `db/migrations/2026-10-27_zz_studio_owners.sql` — `studio_owners`
   (клуб × пользователь портала; пишут только RPC `org_studio_owners_set` /

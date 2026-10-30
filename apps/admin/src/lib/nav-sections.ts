@@ -362,6 +362,18 @@ export const ANALYTICS_GROUPS: NavGroup<AnalyticsNavItem>[] = [
     label: "CRM",
     items: [
       {
+        title: "Маркетинг Lady Stretch",
+        url: "/analytics/crm/marketing/lady-stretch",
+        icon: ChartSquare,
+        need: "mkt.ls",
+      },
+      {
+        title: "Маркетинг Lady Jump",
+        url: "/analytics/crm/marketing/lady-jump",
+        icon: ChartSquare,
+        need: "mkt.lj",
+      },
+      {
         title: "Интеграция amoCRM",
         url: "/analytics/crm/amocrm",
         icon: Structure,

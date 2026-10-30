@@ -30,6 +30,8 @@ export const AN_TITLES = {
   vkTools: "Обслуживание VK Ads",
   amo: "Интеграция amoCRM",
   amoConnection: "Настройка amoCRM",
+  mktStretch: "Маркетинг Lady Stretch",
+  mktJump: "Маркетинг Lady Jump",
 } as const;
 
 /** «Очистка Excel» — тексты их ExcelCleaner 1.1-fast (окно, статусы, предупреждения). */
@@ -122,11 +124,32 @@ export const AN_CARDS: AnCard[] = [
     need: "onec.zero",
   },
   {
+    key: "vk.register",
+    title: "Реестр таргета",
+    description: "Факт по городам за выбранный период: бюджет, ЛФ, СС, лиды и заявки.",
+    url: "/analytics/vk/register",
+    need: "vk.register",
+  },
+  {
     key: "reviews",
     title: "Отзывы и оценки",
     description: "Статистика оценок и комментарии клиентов по загруженной выгрузке.",
     url: "/analytics/reviews",
     need: "reviews",
+  },
+  {
+    key: "mkt.ls",
+    title: "Маркетинг Lady Stretch",
+    description: "Маркетинговая воронка, квалификация и конверсии по городам.",
+    url: "/analytics/crm/marketing/lady-stretch",
+    need: "mkt.ls",
+  },
+  {
+    key: "mkt.lj",
+    title: "Маркетинг Lady Jump",
+    description: "Маркетинговая воронка, квалификация и конверсии по городам.",
+    url: "/analytics/crm/marketing/lady-jump",
+    need: "mkt.lj",
   },
 ];
 
