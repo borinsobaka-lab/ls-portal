@@ -3250,6 +3250,65 @@ export const AnalyticsMktJumpPageSkeleton = () => (
   <AnalyticsMktPageSkeleton title={AN_TITLES.mktJump} />
 );
 
+/** «Авито» → «Кабинеты Авито»: пояснение и таблица кабинетов. */
+export function AnalyticsAvitoAccountsPageSkeleton() {
+  return (
+    <ShellSkeleton title={AN_TITLES.avitoAccounts} network>
+      <div className="space-y-4">
+        <Skeleton className="h-16 w-full rounded-lg" />
+        <TableCardSkeleton
+          title="Подключённые кабинеты"
+          headers={["Кабинет", "Направление", "Город", "API", "Структура", "Статистика", ""]}
+          rows={4}
+        />
+      </div>
+    </ShellSkeleton>
+  );
+}
+
+/** «Авито» → «Планы Авито»: месяц и планы городов. */
+export function AnalyticsAvitoPlansPageSkeleton() {
+  return (
+    <ShellSkeleton title={AN_TITLES.avitoPlans} network>
+      <div className="space-y-4">
+        <Skeleton className="h-12 w-full rounded-lg" />
+        <ToolbarSkeleton search={false} controls={["w-44"]} />
+        <TableCardSkeleton
+          title="Планы на месяц"
+          headers={["Город", "План заявок и CPL", "Плановый бюджет"]}
+          rows={6}
+        />
+      </div>
+    </ShellSkeleton>
+  );
+}
+
+/** «Реестр Авито»: три плитки и города. */
+export function AnalyticsAvitoRegisterBodySkeleton() {
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-3 sm:grid-cols-3">
+        {[0, 1, 2].map((i) => (
+          <Skeleton key={i} className="h-24 rounded-lg" />
+        ))}
+      </div>
+      <Skeleton className="h-72 rounded-lg" />
+    </div>
+  );
+}
+
+export function AnalyticsAvitoRegisterPageSkeleton() {
+  return (
+    <ShellSkeleton title={AN_TITLES.avitoRegister} network>
+      <div className="space-y-4">
+        <Skeleton className="h-12 w-full rounded-lg" />
+        <ToolbarSkeleton search={false} controls={["w-56"]} />
+        <AnalyticsAvitoRegisterBodySkeleton />
+      </div>
+    </ShellSkeleton>
+  );
+}
+
 /** «VK Ads» → «Контроль бюджетов»: бот, каналы, плитки порогов, кабинеты. */
 export function AnalyticsVkAlertsPageSkeleton() {
   return (

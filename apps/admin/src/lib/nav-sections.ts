@@ -358,6 +358,20 @@ export const ANALYTICS_GROUPS: NavGroup<AnalyticsNavItem>[] = [
     ],
   },
   {
+    key: "an-avito",
+    label: "Авито",
+    items: [
+      { title: "Кабинеты Авито", url: "/analytics/avito/accounts", icon: Card, need: "admin" },
+      {
+        title: "Реестр Авито",
+        url: "/analytics/avito/register",
+        icon: GraphUp,
+        need: "avito.register",
+      },
+      { title: "Планы Авито", url: "/analytics/avito/plans", icon: Flag, need: "admin" },
+    ],
+  },
+  {
     key: "an-crm",
     label: "CRM",
     items: [

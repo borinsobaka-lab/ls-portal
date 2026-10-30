@@ -113,6 +113,7 @@ import {
   MonitorPlay as MonitorPlayArt,
   Moon as MoonArt,
   Music as MusicArt,
+  Network as NetworkArt,
   PanelLeft as PanelLeftArt,
   Paperclip as PaperclipArt,
   PencilEdit02Icon as PencilArt,
@@ -267,6 +268,7 @@ export const Minus = icon(MinusArt, "Minus");
 export const MonitorPlay = icon(MonitorPlayArt, "MonitorPlay");
 export const Moon = icon(MoonArt, "Moon");
 export const Music = icon(MusicArt, "Music");
+export const Network = icon(NetworkArt, "Network");
 export const PanelLeft = icon(PanelLeftArt, "PanelLeft");
 export const Paperclip = icon(PaperclipArt, "Paperclip");
 export const Pencil = icon(PencilArt, "Pencil");

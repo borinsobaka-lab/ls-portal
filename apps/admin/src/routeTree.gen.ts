@@ -94,6 +94,9 @@ import { Route as AuthenticatedAnalyticsOnecRevenueRouteImport } from './routes/
 import { Route as AuthenticatedAnalyticsOnecMycityRouteImport } from './routes/_authenticated/analytics/onec/mycity'
 import { Route as AuthenticatedAnalyticsOnecFunnelRouteImport } from './routes/_authenticated/analytics/onec/funnel'
 import { Route as AuthenticatedAnalyticsOnecActivitiesRouteImport } from './routes/_authenticated/analytics/onec/activities'
+import { Route as AuthenticatedAnalyticsAvitoRegisterRouteImport } from './routes/_authenticated/analytics/avito/register'
+import { Route as AuthenticatedAnalyticsAvitoPlansRouteImport } from './routes/_authenticated/analytics/avito/plans'
+import { Route as AuthenticatedAnalyticsAvitoAccountsRouteImport } from './routes/_authenticated/analytics/avito/accounts'
 import { Route as AuthenticatedAnalyticsAdminJournalRouteImport } from './routes/_authenticated/analytics/admin/journal'
 import { Route as AuthenticatedAnalyticsAdminJobsRouteImport } from './routes/_authenticated/analytics/admin/jobs'
 import { Route as AuthenticatedAnalyticsAdminApiRouteImport } from './routes/_authenticated/analytics/admin/api'
@@ -590,6 +593,24 @@ const AuthenticatedAnalyticsOnecActivitiesRoute =
     path: '/analytics/onec/activities',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAnalyticsAvitoRegisterRoute =
+  AuthenticatedAnalyticsAvitoRegisterRouteImport.update({
+    id: '/analytics/avito/register',
+    path: '/analytics/avito/register',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAnalyticsAvitoPlansRoute =
+  AuthenticatedAnalyticsAvitoPlansRouteImport.update({
+    id: '/analytics/avito/plans',
+    path: '/analytics/avito/plans',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAnalyticsAvitoAccountsRoute =
+  AuthenticatedAnalyticsAvitoAccountsRouteImport.update({
+    id: '/analytics/avito/accounts',
+    path: '/analytics/avito/accounts',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAnalyticsAdminJournalRoute =
   AuthenticatedAnalyticsAdminJournalRouteImport.update({
     id: '/analytics/admin/journal',
@@ -776,6 +797,9 @@ export interface FileRoutesByFullPath {
   '/analytics/admin/api': typeof AuthenticatedAnalyticsAdminApiRoute
   '/analytics/admin/jobs': typeof AuthenticatedAnalyticsAdminJobsRoute
   '/analytics/admin/journal': typeof AuthenticatedAnalyticsAdminJournalRoute
+  '/analytics/avito/accounts': typeof AuthenticatedAnalyticsAvitoAccountsRoute
+  '/analytics/avito/plans': typeof AuthenticatedAnalyticsAvitoPlansRoute
+  '/analytics/avito/register': typeof AuthenticatedAnalyticsAvitoRegisterRoute
   '/analytics/onec/activities': typeof AuthenticatedAnalyticsOnecActivitiesRoute
   '/analytics/onec/funnel': typeof AuthenticatedAnalyticsOnecFunnelRoute
   '/analytics/onec/mycity': typeof AuthenticatedAnalyticsOnecMycityRoute
@@ -882,6 +906,9 @@ export interface FileRoutesByTo {
   '/analytics/admin/api': typeof AuthenticatedAnalyticsAdminApiRoute
   '/analytics/admin/jobs': typeof AuthenticatedAnalyticsAdminJobsRoute
   '/analytics/admin/journal': typeof AuthenticatedAnalyticsAdminJournalRoute
+  '/analytics/avito/accounts': typeof AuthenticatedAnalyticsAvitoAccountsRoute
+  '/analytics/avito/plans': typeof AuthenticatedAnalyticsAvitoPlansRoute
+  '/analytics/avito/register': typeof AuthenticatedAnalyticsAvitoRegisterRoute
   '/analytics/onec/activities': typeof AuthenticatedAnalyticsOnecActivitiesRoute
   '/analytics/onec/funnel': typeof AuthenticatedAnalyticsOnecFunnelRoute
   '/analytics/onec/mycity': typeof AuthenticatedAnalyticsOnecMycityRoute
@@ -990,6 +1017,9 @@ export interface FileRoutesById {
   '/_authenticated/analytics/admin/api': typeof AuthenticatedAnalyticsAdminApiRoute
   '/_authenticated/analytics/admin/jobs': typeof AuthenticatedAnalyticsAdminJobsRoute
   '/_authenticated/analytics/admin/journal': typeof AuthenticatedAnalyticsAdminJournalRoute
+  '/_authenticated/analytics/avito/accounts': typeof AuthenticatedAnalyticsAvitoAccountsRoute
+  '/_authenticated/analytics/avito/plans': typeof AuthenticatedAnalyticsAvitoPlansRoute
+  '/_authenticated/analytics/avito/register': typeof AuthenticatedAnalyticsAvitoRegisterRoute
   '/_authenticated/analytics/onec/activities': typeof AuthenticatedAnalyticsOnecActivitiesRoute
   '/_authenticated/analytics/onec/funnel': typeof AuthenticatedAnalyticsOnecFunnelRoute
   '/_authenticated/analytics/onec/mycity': typeof AuthenticatedAnalyticsOnecMycityRoute
@@ -1098,6 +1128,9 @@ export interface FileRouteTypes {
     | '/analytics/admin/api'
     | '/analytics/admin/jobs'
     | '/analytics/admin/journal'
+    | '/analytics/avito/accounts'
+    | '/analytics/avito/plans'
+    | '/analytics/avito/register'
     | '/analytics/onec/activities'
     | '/analytics/onec/funnel'
     | '/analytics/onec/mycity'
@@ -1204,6 +1237,9 @@ export interface FileRouteTypes {
     | '/analytics/admin/api'
     | '/analytics/admin/jobs'
     | '/analytics/admin/journal'
+    | '/analytics/avito/accounts'
+    | '/analytics/avito/plans'
+    | '/analytics/avito/register'
     | '/analytics/onec/activities'
     | '/analytics/onec/funnel'
     | '/analytics/onec/mycity'
@@ -1311,6 +1347,9 @@ export interface FileRouteTypes {
     | '/_authenticated/analytics/admin/api'
     | '/_authenticated/analytics/admin/jobs'
     | '/_authenticated/analytics/admin/journal'
+    | '/_authenticated/analytics/avito/accounts'
+    | '/_authenticated/analytics/avito/plans'
+    | '/_authenticated/analytics/avito/register'
     | '/_authenticated/analytics/onec/activities'
     | '/_authenticated/analytics/onec/funnel'
     | '/_authenticated/analytics/onec/mycity'
@@ -1962,6 +2001,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAnalyticsOnecActivitiesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/analytics/avito/register': {
+      id: '/_authenticated/analytics/avito/register'
+      path: '/analytics/avito/register'
+      fullPath: '/analytics/avito/register'
+      preLoaderRoute: typeof AuthenticatedAnalyticsAvitoRegisterRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/analytics/avito/plans': {
+      id: '/_authenticated/analytics/avito/plans'
+      path: '/analytics/avito/plans'
+      fullPath: '/analytics/avito/plans'
+      preLoaderRoute: typeof AuthenticatedAnalyticsAvitoPlansRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/analytics/avito/accounts': {
+      id: '/_authenticated/analytics/avito/accounts'
+      path: '/analytics/avito/accounts'
+      fullPath: '/analytics/avito/accounts'
+      preLoaderRoute: typeof AuthenticatedAnalyticsAvitoAccountsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/analytics/admin/journal': {
       id: '/_authenticated/analytics/admin/journal'
       path: '/analytics/admin/journal'
@@ -2163,6 +2223,9 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAnalyticsAdminApiRoute: typeof AuthenticatedAnalyticsAdminApiRoute
   AuthenticatedAnalyticsAdminJobsRoute: typeof AuthenticatedAnalyticsAdminJobsRoute
   AuthenticatedAnalyticsAdminJournalRoute: typeof AuthenticatedAnalyticsAdminJournalRoute
+  AuthenticatedAnalyticsAvitoAccountsRoute: typeof AuthenticatedAnalyticsAvitoAccountsRoute
+  AuthenticatedAnalyticsAvitoPlansRoute: typeof AuthenticatedAnalyticsAvitoPlansRoute
+  AuthenticatedAnalyticsAvitoRegisterRoute: typeof AuthenticatedAnalyticsAvitoRegisterRoute
   AuthenticatedAnalyticsOnecActivitiesRoute: typeof AuthenticatedAnalyticsOnecActivitiesRoute
   AuthenticatedAnalyticsOnecFunnelRoute: typeof AuthenticatedAnalyticsOnecFunnelRoute
   AuthenticatedAnalyticsOnecMycityRoute: typeof AuthenticatedAnalyticsOnecMycityRoute
@@ -2267,6 +2330,11 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAnalyticsAdminJobsRoute: AuthenticatedAnalyticsAdminJobsRoute,
   AuthenticatedAnalyticsAdminJournalRoute:
     AuthenticatedAnalyticsAdminJournalRoute,
+  AuthenticatedAnalyticsAvitoAccountsRoute:
+    AuthenticatedAnalyticsAvitoAccountsRoute,
+  AuthenticatedAnalyticsAvitoPlansRoute: AuthenticatedAnalyticsAvitoPlansRoute,
+  AuthenticatedAnalyticsAvitoRegisterRoute:
+    AuthenticatedAnalyticsAvitoRegisterRoute,
   AuthenticatedAnalyticsOnecActivitiesRoute:
     AuthenticatedAnalyticsOnecActivitiesRoute,
   AuthenticatedAnalyticsOnecFunnelRoute: AuthenticatedAnalyticsOnecFunnelRoute,
