@@ -167,7 +167,8 @@ const ROOT_RELS =
 // --- zip --------------------------------------------------------------------------
 
 let CRC_TABLE: Uint32Array | null = null;
-function crc32(data: Uint8Array): number {
+/** CRC-32 zip; `crc` — значение по предыдущим кускам (для потока). */
+export function crc32(data: Uint8Array, crc = 0): number {
   if (!CRC_TABLE) {
     CRC_TABLE = new Uint32Array(256);
     for (let n = 0; n < 256; n++) {
@@ -176,33 +177,57 @@ function crc32(data: Uint8Array): number {
       CRC_TABLE[n] = c >>> 0;
     }
   }
-  let crc = 0xffffffff;
-  for (let i = 0; i < data.length; i++) crc = CRC_TABLE[(crc ^ data[i]) & 0xff] ^ (crc >>> 8);
-  return (crc ^ 0xffffffff) >>> 0;
+  let c = (crc ^ 0xffffffff) >>> 0;
+  for (let i = 0; i < data.length; i++) c = CRC_TABLE[(c ^ data[i]) & 0xff] ^ (c >>> 8);
+  return (c ^ 0xffffffff) >>> 0;
 }
+
+/** Часть zip, уже сжатая (deflate-raw) или без сжатия: CRC и размер — исходных данных. */
+export type ZipPart = {
+  name: string;
+  packed: Uint8Array[];
+  crc: number;
+  size: number;
+  deflated: boolean;
+};
 
 export async function zip(
   files: { name: string; data: Uint8Array }[],
   deflate?: Deflate,
 ): Promise<Uint8Array> {
+  const parts: ZipPart[] = [];
+  for (const f of files) {
+    parts.push({
+      name: f.name,
+      packed: [deflate ? await deflate(f.data) : f.data],
+      crc: crc32(f.data),
+      size: f.data.length,
+      deflated: !!deflate,
+    });
+  }
+  return zipParts(parts);
+}
+
+/** Собрать zip из готовых частей (без zip64: до 4 ГБ). */
+export function zipParts(parts: ZipPart[]): Uint8Array {
   const chunks: Uint8Array[] = [];
   const central: Uint8Array[] = [];
   let offset = 0;
-  for (const f of files) {
+  for (const f of parts) {
     const name = enc.encode(f.name);
-    const crc = crc32(f.data);
-    const packed = deflate ? await deflate(f.data) : f.data;
-    const method = deflate ? 8 : 0;
+    const crc = f.crc;
+    const packedSize = f.packed.reduce((n, c) => n + c.length, 0);
+    const method = f.deflated ? 8 : 0;
     const local = new DataView(new ArrayBuffer(30));
     local.setUint32(0, 0x04034b50, true);
     local.setUint16(4, 20, true);
     local.setUint16(6, 0x0800, true); // имена в UTF-8
     local.setUint16(8, method, true);
     local.setUint32(14, crc, true);
-    local.setUint32(18, packed.length, true);
-    local.setUint32(22, f.data.length, true);
+    local.setUint32(18, packedSize, true);
+    local.setUint32(22, f.size, true);
     local.setUint16(26, name.length, true);
-    chunks.push(new Uint8Array(local.buffer), name, packed);
+    chunks.push(new Uint8Array(local.buffer), name, ...f.packed);
     const c = new DataView(new ArrayBuffer(46));
     c.setUint32(0, 0x02014b50, true);
     c.setUint16(4, 20, true);
@@ -210,18 +235,18 @@ export async function zip(
     c.setUint16(8, 0x0800, true);
     c.setUint16(10, method, true);
     c.setUint32(16, crc, true);
-    c.setUint32(20, packed.length, true);
-    c.setUint32(24, f.data.length, true);
+    c.setUint32(20, packedSize, true);
+    c.setUint32(24, f.size, true);
     c.setUint16(28, name.length, true);
     c.setUint32(42, offset, true);
     central.push(new Uint8Array(c.buffer), name);
-    offset += 30 + name.length + packed.length;
+    offset += 30 + name.length + packedSize;
   }
   const centralSize = central.reduce((n, c) => n + c.length, 0);
   const end = new DataView(new ArrayBuffer(22));
   end.setUint32(0, 0x06054b50, true);
-  end.setUint16(8, files.length, true);
-  end.setUint16(10, files.length, true);
+  end.setUint16(8, parts.length, true);
+  end.setUint16(10, parts.length, true);
   end.setUint32(12, centralSize, true);
   end.setUint32(16, offset, true);
   const all = [...chunks, ...central, new Uint8Array(end.buffer)];

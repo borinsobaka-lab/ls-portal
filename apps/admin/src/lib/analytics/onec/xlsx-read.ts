@@ -342,6 +342,25 @@ export type XlsxBook = {
   rows: () => AsyncIterable<XlsxRow>;
   /** Наибольший столбец по `<dimension>` (с единицы), если указан. */
   maxColumn: number | null;
+  /** Наибольшая строка по `<dimension>`, если указана. */
+  maxRow?: number | null;
+};
+
+/** Лист книги (как `workbook.worksheets` у openpyxl: без листов-диаграмм). */
+export type XlsxSheetInfo = { name: string; path: string };
+
+/** Объединения и группировки листа — их count_sheet_xml_features (ExcelCleaner). */
+export type XlsxSheetFeatures = { merged: number; outline: number };
+
+export type XlsxWorkbook = {
+  sheets: XlsxSheetInfo[];
+  /**
+   * Лист по номеру. `formulas` — как openpyxl с `data_only=False`: у ячейки
+   * с формулой значение «=формула» (у зависимой ячейки общей формулы без
+   * текста — сохранённый результат).
+   */
+  open: (index: number, opts?: { formulas?: boolean }) => Promise<XlsxBook>;
+  features: (index: number) => Promise<XlsxSheetFeatures>;
 };
 
 function resolveTarget(base: string, target: string) {
@@ -354,46 +373,133 @@ function resolveTarget(base: string, target: string) {
   return parts.join("/");
 }
 
-export async function openXlsx(
-  bytes: Uint8Array,
-  inflate: Inflate,
-  opts: { sheet?: "active" | "first" } = {},
-): Promise<XlsxBook> {
+type SheetEntryRef = { name: string; rid: string | null; worksheet: boolean; path: string | null };
+
+/** Книга: оглавление zip, листы с путями, стили дат и общие строки — один раз. */
+async function loadBook(bytes: Uint8Array, inflate: Inflate) {
   const entries = zipEntries(bytes);
   const get = (name: string) => entries.get(name);
   const workbook = get("xl/workbook.xml");
   if (!workbook) throw new Error("В .xlsx нет книги (xl/workbook.xml)");
   const wbXml = await entryString(bytes, workbook, inflate);
   const date1904 = /<workbookPr\b[^>]*\bdate1904="(1|true)"/.test(wbXml);
-  const sheets = [...wbXml.matchAll(/<sheet\b[^>]*>/g)].map((m) => ({
-    rid: attr(m[0], "r:id") ?? attr(m[0], "id"),
-    state: attr(m[0], "state"),
-  }));
-  const activeTab =
-    opts.sheet === "first"
-      ? 0
-      : Number(/<workbookView\b[^>]*\bactiveTab="(\d+)"/.exec(wbXml)?.[1] ?? 0);
-  const sheet = sheets[activeTab] ?? sheets[0];
-  let sheetPath = "xl/worksheets/sheet1.xml";
+  const rels = new Map<string, { target: string; type: string }>();
   const relsEntry = get("xl/_rels/workbook.xml.rels");
-  if (sheet?.rid && relsEntry) {
-    const rels = await entryString(bytes, relsEntry, inflate);
-    for (const m of rels.matchAll(/<Relationship\b[^>]*>/g)) {
-      if (attr(m[0], "Id") === sheet.rid) {
-        const target = attr(m[0], "Target");
-        if (target) sheetPath = resolveTarget("xl/workbook.xml", target);
+  if (relsEntry) {
+    for (const m of (await entryString(bytes, relsEntry, inflate)).matchAll(
+      /<Relationship\b[^>]*>/g,
+    )) {
+      const id = attr(m[0], "Id");
+      const target = attr(m[0], "Target");
+      if (id && target) {
+        rels.set(id, {
+          target: resolveTarget("xl/workbook.xml", target),
+          type: attr(m[0], "Type") ?? "",
+        });
       }
     }
   }
-  const found = get(sheetPath);
+  const sheets: SheetEntryRef[] = [...wbXml.matchAll(/<sheet\b[^>]*>/g)].map((m) => {
+    const rid = attr(m[0], "r:id") ?? attr(m[0], "id");
+    const rel = rid ? rels.get(rid) : undefined;
+    return {
+      name: xmlUnescape(attr(m[0], "name") ?? "Лист"),
+      rid,
+      worksheet: !rel || !/\/(chartsheet|dialogsheet)$/.test(rel.type),
+      path: rel?.target ?? null,
+    };
+  });
+  const activeTab = Number(/<workbookView\b[^>]*\bactiveTab="(\d+)"/.exec(wbXml)?.[1] ?? 0);
+  let styles: boolean[] | null = null;
+  let strings: string[] | null = null;
+  const shared = async () => {
+    if (!styles) {
+      const stylesEntry = get("xl/styles.xml");
+      styles = stylesEntry ? parseStyles(await entryString(bytes, stylesEntry, inflate)) : [];
+    }
+    if (!strings) strings = await sharedStrings(bytes, get("xl/sharedStrings.xml"), inflate);
+    return { dateStyles: styles, strings };
+  };
+  return { get, sheets, activeTab, date1904, shared };
+}
+
+export async function openXlsx(
+  bytes: Uint8Array,
+  inflate: Inflate,
+  opts: { sheet?: "active" | "first" } = {},
+): Promise<XlsxBook> {
+  const book = await loadBook(bytes, inflate);
+  const activeTab = opts.sheet === "first" ? 0 : book.activeTab;
+  const sheet = book.sheets[activeTab] ?? book.sheets[0];
+  const sheetPath = (sheet?.rid && sheet.path) || "xl/worksheets/sheet1.xml";
+  return sheetReader(bytes, inflate, book, sheetPath, false);
+}
+
+/** Все листы книги — для «Очистки Excel» (их ExcelCleaner обходит каждый лист). */
+export async function openWorkbook(bytes: Uint8Array, inflate: Inflate): Promise<XlsxWorkbook> {
+  const book = await loadBook(bytes, inflate);
+  const sheets = book.sheets
+    .filter((s) => s.worksheet && s.path && book.get(s.path))
+    .map((s) => ({ name: s.name, path: s.path! }));
+  return {
+    sheets,
+    open: (index, opts = {}) =>
+      sheetReader(bytes, inflate, book, sheets[index].path, !!opts.formulas),
+    features: async (index) => {
+      const entry = book.get(sheets[index].path);
+      return entry ? sheetFeatures(bytes, entry, inflate) : { merged: 0, outline: 0 };
+    },
+  };
+}
+
+/** Их count_sheet_xml_features: `<mergeCell>`, строки и столбцы с группировкой или скрытые. */
+async function sheetFeatures(
+  bytes: Uint8Array,
+  entry: ZipEntry,
+  inflate: Inflate,
+): Promise<XlsxSheetFeatures> {
+  let merged = 0;
+  let outline = 0;
+  const grouped = (tag: string) =>
+    !["", "0"].includes(attr(tag, "outlineLevel") ?? "0") ||
+    attr(tag, "hidden") === "1" ||
+    attr(tag, "collapsed") === "1";
+  for await (const { data, tags } of xmlChunks(bytes, entry, inflate)) {
+    for (const [, lt, gt] of tags) {
+      const { closing, name } = tagInfo(data, lt + 1, gt);
+      if (closing) continue;
+      if (name === "mergeCell") merged++;
+      else if (name === "row") {
+        if (grouped(tagText(data, lt + 1, gt))) outline++;
+      } else if (name === "col") {
+        const tag = tagText(data, lt + 1, gt);
+        if (grouped(tag)) {
+          const min = Math.trunc(Number(attr(tag, "min") ?? "1"));
+          const max = Math.trunc(Number(attr(tag, "max") ?? String(min)));
+          outline += max - min + 1;
+        }
+      }
+    }
+  }
+  return { merged, outline };
+}
+
+async function sheetReader(
+  bytes: Uint8Array,
+  inflate: Inflate,
+  book: Awaited<ReturnType<typeof loadBook>>,
+  sheetPath: string,
+  formulas: boolean,
+): Promise<XlsxBook> {
+  const found = book.get(sheetPath);
   if (!found) throw new Error("В .xlsx нет листа");
   const sheetEntry: ZipEntry = found;
-  const stylesEntry = get("xl/styles.xml");
-  const dateStyles = stylesEntry ? parseStyles(await entryString(bytes, stylesEntry, inflate)) : [];
-  const strings = await sharedStrings(bytes, get("xl/sharedStrings.xml"), inflate);
+  const date1904 = book.date1904;
+  const { dateStyles, strings } = await book.shared();
 
   // <dimension ref="A1:F220766"> (у 1С бывает просто «F220766»).
   let maxColumn: number | null = null;
+  let maxRow: number | null = null;
   {
     let head = "";
     for await (const t of entryText(bytes, sheetEntry, inflate)) {
@@ -401,7 +507,12 @@ export async function openXlsx(
       if (head.length > 4096 || head.includes("<sheetData")) break;
     }
     const dim = /<dimension\b[^>]*\bref="([^"]+)"/.exec(head)?.[1];
-    if (dim) maxColumn = columnIndex(dim.split(":").pop()!) + 1;
+    if (dim) {
+      const last = dim.split(":").pop()!;
+      maxColumn = columnIndex(last) + 1;
+      const rowPart = /\d+$/.exec(last)?.[0];
+      maxRow = rowPart ? Number(rowPart) : null;
+    }
   }
 
   async function* rows(): AsyncIterable<XlsxRow> {
@@ -417,10 +528,13 @@ export async function openXlsx(
     let raw: string | null = null;
     let text = "";
     let hasValue = false;
+    let inF = false;
+    let formula = "";
 
     const finishCell = () => {
       let value: Cell = null;
-      if (type === "inlineStr") value = hasValue ? xmlUnescape(text) : null;
+      if (formulas && formula !== "") value = "=" + xmlUnescape(formula);
+      else if (type === "inlineStr") value = hasValue ? xmlUnescape(text) : null;
       else if (raw !== null) {
         const v = raw;
         if (type === "s") value = strings[Number(v)] ?? null;
@@ -445,6 +559,7 @@ export async function openXlsx(
       for (const [pos, lt, gt] of tags) {
         if (lt > pos) {
           if (inV) raw = (raw ?? "") + utf8.decode(data.subarray(pos, lt));
+          else if (inF) formula += utf8.decode(data.subarray(pos, lt));
           else if (inT && skip === 0) {
             text += utf8.decode(data.subarray(pos, lt));
             hasValue = true;
@@ -453,6 +568,7 @@ export async function openXlsx(
         const { closing, name, empty } = tagInfo(data, lt + 1, gt);
         if (closing) {
           if (name === "v") inV = false;
+          else if (name === "f") inF = false;
           else if (name === "t") inT = false;
           else if (name === "rPh") skip--;
           else if (name === "c") finishCell();
@@ -471,7 +587,10 @@ export async function openXlsx(
           raw = null;
           text = "";
           hasValue = false;
+          formula = "";
           if (empty) finishCell();
+        } else if (name === "f") {
+          inF = formulas && !empty;
         } else if (name === "v") {
           raw = "";
           inV = !empty;
@@ -493,7 +612,7 @@ export async function openXlsx(
     if (inRow) yield { r: rowNo, cells };
   }
 
-  return { rows, maxColumn };
+  return { rows, maxColumn, maxRow };
 }
 
 /**

@@ -74,6 +74,7 @@ import { Route as AuthenticatedKbBaseIdTemplatesRouteImport } from './routes/_au
 import { Route as AuthenticatedKbBaseIdAnalyticsRouteImport } from './routes/_authenticated/kb/$baseId/analytics'
 import { Route as AuthenticatedKbBaseIdNodeIdRouteImport } from './routes/_authenticated/kb/$baseId/$nodeId'
 import { Route as AuthenticatedAnalyticsToolsOnecRouteImport } from './routes/_authenticated/analytics/tools/onec'
+import { Route as AuthenticatedAnalyticsToolsExcelCleanerRouteImport } from './routes/_authenticated/analytics/tools/excel-cleaner'
 import { Route as AuthenticatedAnalyticsOnecZeroRouteImport } from './routes/_authenticated/analytics/onec/zero'
 import { Route as AuthenticatedAnalyticsOnecSalesRouteImport } from './routes/_authenticated/analytics/onec/sales'
 import { Route as AuthenticatedAnalyticsOnecRevenueRouteImport } from './routes/_authenticated/analytics/onec/revenue'
@@ -451,6 +452,12 @@ const AuthenticatedAnalyticsToolsOnecRoute =
     path: '/analytics/tools/onec',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAnalyticsToolsExcelCleanerRoute =
+  AuthenticatedAnalyticsToolsExcelCleanerRouteImport.update({
+    id: '/analytics/tools/excel-cleaner',
+    path: '/analytics/tools/excel-cleaner',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAnalyticsOnecZeroRoute =
   AuthenticatedAnalyticsOnecZeroRouteImport.update({
     id: '/analytics/onec/zero',
@@ -642,6 +649,7 @@ export interface FileRoutesByFullPath {
   '/analytics/onec/revenue': typeof AuthenticatedAnalyticsOnecRevenueRoute
   '/analytics/onec/sales': typeof AuthenticatedAnalyticsOnecSalesRoute
   '/analytics/onec/zero': typeof AuthenticatedAnalyticsOnecZeroRoute
+  '/analytics/tools/excel-cleaner': typeof AuthenticatedAnalyticsToolsExcelCleanerRoute
   '/analytics/tools/onec': typeof AuthenticatedAnalyticsToolsOnecRoute
   '/kb/$baseId/$nodeId': typeof AuthenticatedKbBaseIdNodeIdRoute
   '/kb/$baseId/analytics': typeof AuthenticatedKbBaseIdAnalyticsRoute
@@ -728,6 +736,7 @@ export interface FileRoutesByTo {
   '/analytics/onec/revenue': typeof AuthenticatedAnalyticsOnecRevenueRoute
   '/analytics/onec/sales': typeof AuthenticatedAnalyticsOnecSalesRoute
   '/analytics/onec/zero': typeof AuthenticatedAnalyticsOnecZeroRoute
+  '/analytics/tools/excel-cleaner': typeof AuthenticatedAnalyticsToolsExcelCleanerRoute
   '/analytics/tools/onec': typeof AuthenticatedAnalyticsToolsOnecRoute
   '/kb/$baseId/$nodeId': typeof AuthenticatedKbBaseIdNodeIdRoute
   '/kb/$baseId/analytics': typeof AuthenticatedKbBaseIdAnalyticsRoute
@@ -816,6 +825,7 @@ export interface FileRoutesById {
   '/_authenticated/analytics/onec/revenue': typeof AuthenticatedAnalyticsOnecRevenueRoute
   '/_authenticated/analytics/onec/sales': typeof AuthenticatedAnalyticsOnecSalesRoute
   '/_authenticated/analytics/onec/zero': typeof AuthenticatedAnalyticsOnecZeroRoute
+  '/_authenticated/analytics/tools/excel-cleaner': typeof AuthenticatedAnalyticsToolsExcelCleanerRoute
   '/_authenticated/analytics/tools/onec': typeof AuthenticatedAnalyticsToolsOnecRoute
   '/_authenticated/kb/$baseId/$nodeId': typeof AuthenticatedKbBaseIdNodeIdRoute
   '/_authenticated/kb/$baseId/analytics': typeof AuthenticatedKbBaseIdAnalyticsRoute
@@ -904,6 +914,7 @@ export interface FileRouteTypes {
     | '/analytics/onec/revenue'
     | '/analytics/onec/sales'
     | '/analytics/onec/zero'
+    | '/analytics/tools/excel-cleaner'
     | '/analytics/tools/onec'
     | '/kb/$baseId/$nodeId'
     | '/kb/$baseId/analytics'
@@ -990,6 +1001,7 @@ export interface FileRouteTypes {
     | '/analytics/onec/revenue'
     | '/analytics/onec/sales'
     | '/analytics/onec/zero'
+    | '/analytics/tools/excel-cleaner'
     | '/analytics/tools/onec'
     | '/kb/$baseId/$nodeId'
     | '/kb/$baseId/analytics'
@@ -1077,6 +1089,7 @@ export interface FileRouteTypes {
     | '/_authenticated/analytics/onec/revenue'
     | '/_authenticated/analytics/onec/sales'
     | '/_authenticated/analytics/onec/zero'
+    | '/_authenticated/analytics/tools/excel-cleaner'
     | '/_authenticated/analytics/tools/onec'
     | '/_authenticated/kb/$baseId/$nodeId'
     | '/_authenticated/kb/$baseId/analytics'
@@ -1562,6 +1575,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAnalyticsToolsOnecRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/analytics/tools/excel-cleaner': {
+      id: '/_authenticated/analytics/tools/excel-cleaner'
+      path: '/analytics/tools/excel-cleaner'
+      fullPath: '/analytics/tools/excel-cleaner'
+      preLoaderRoute: typeof AuthenticatedAnalyticsToolsExcelCleanerRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/analytics/onec/zero': {
       id: '/_authenticated/analytics/onec/zero'
       path: '/analytics/onec/zero'
@@ -1769,6 +1789,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAnalyticsOnecRevenueRoute: typeof AuthenticatedAnalyticsOnecRevenueRoute
   AuthenticatedAnalyticsOnecSalesRoute: typeof AuthenticatedAnalyticsOnecSalesRoute
   AuthenticatedAnalyticsOnecZeroRoute: typeof AuthenticatedAnalyticsOnecZeroRoute
+  AuthenticatedAnalyticsToolsExcelCleanerRoute: typeof AuthenticatedAnalyticsToolsExcelCleanerRoute
   AuthenticatedAnalyticsToolsOnecRoute: typeof AuthenticatedAnalyticsToolsOnecRoute
   AuthenticatedKbBaseIdNodeIdRoute: typeof AuthenticatedKbBaseIdNodeIdRoute
   AuthenticatedKbBaseIdAnalyticsRoute: typeof AuthenticatedKbBaseIdAnalyticsRoute
@@ -1856,6 +1877,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedAnalyticsOnecRevenueRoute,
   AuthenticatedAnalyticsOnecSalesRoute: AuthenticatedAnalyticsOnecSalesRoute,
   AuthenticatedAnalyticsOnecZeroRoute: AuthenticatedAnalyticsOnecZeroRoute,
+  AuthenticatedAnalyticsToolsExcelCleanerRoute:
+    AuthenticatedAnalyticsToolsExcelCleanerRoute,
   AuthenticatedAnalyticsToolsOnecRoute: AuthenticatedAnalyticsToolsOnecRoute,
   AuthenticatedKbBaseIdNodeIdRoute: AuthenticatedKbBaseIdNodeIdRoute,
   AuthenticatedKbBaseIdAnalyticsRoute: AuthenticatedKbBaseIdAnalyticsRoute,
