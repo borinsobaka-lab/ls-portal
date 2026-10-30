@@ -4,7 +4,9 @@ import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { getSupabaseAdmin } from "@/integrations/supabase/client.server";
-import { FB_BRANDS, FbError, fbConnectionInput } from "./fitbase/rules";
+import { casefold } from "./onec/rules";
+import { fbRevenueToday } from "./fitbase/reports";
+import { FB_BRANDS, FbError, fbConnectionInput, fbRevenuePeriod } from "./fitbase/rules";
 import { fbStartAll, fbStartJob, removeFbBlobs, type FbAction } from "./server/fitbase.server";
 import { encryptSecret } from "./server/secrets.server";
 
@@ -146,4 +148,58 @@ export const saveFitbaseRules = createServerFn({ method: "POST" })
       shown(e);
     }
     return { ok: true };
+  });
+
+/**
+ * Их refresh_revenue («Обновить выручку»): выручка студий с клубом под
+ * фильтрами отчёта за его период (история и текущий месяц по вчера) — в фоне;
+ * занятая студия пропускается («busy»).
+ */
+export const startFitbaseRevenueRefresh = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data) =>
+    z
+      .object({
+        offset: z.number().int(),
+        search: z.string().max(200),
+        status: z.string().max(20),
+      })
+      .strict()
+      .parse(data),
+  )
+  .handler(async ({ context, data }) => {
+    await requireAnAdmin(context.supabase);
+    let period;
+    try {
+      period = fbRevenuePeriod(data.offset, fbRevenueToday());
+      if (!["", "active", "archived"].includes(data.status)) {
+        throw new FbError("Проверьте фильтр студий.");
+      }
+    } catch (e) {
+      shown(e);
+    }
+    const { data: rows, error } = await getSupabaseAdmin()
+      .from("an_fb_connections")
+      .select("id, name, city, club_id, studio_status")
+      .order("id");
+    if (error) throw new Error(error.message);
+    const search = casefold(data.search.trim());
+    const selected = (rows ?? []).filter(
+      (c) =>
+        c.club_id &&
+        (!data.status || c.studio_status === data.status) &&
+        (!search || casefold(c.city).includes(search) || casefold(c.name).includes(search)),
+    );
+    if (!selected.length) throw new Error("Нет подключённых студий для выбранных фильтров.");
+    let busy = false;
+    for (const c of selected) {
+      try {
+        await fbStartJob(c.id as number, "revenue", { start: period.fromDate, end: period.cutoff });
+      } catch (e) {
+        if (!(e instanceof FbError)) throw e;
+        busy = true;
+      }
+    }
+    await audit(context.userId, "fitbase_revenue_refresh", String(selected.length));
+    return { busy, ids: selected.map((c) => c.id as number) };
   });

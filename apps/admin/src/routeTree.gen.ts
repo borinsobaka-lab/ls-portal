@@ -99,6 +99,9 @@ import { Route as AuthenticatedAnalyticsOnecRevenueRouteImport } from './routes/
 import { Route as AuthenticatedAnalyticsOnecMycityRouteImport } from './routes/_authenticated/analytics/onec/mycity'
 import { Route as AuthenticatedAnalyticsOnecFunnelRouteImport } from './routes/_authenticated/analytics/onec/funnel'
 import { Route as AuthenticatedAnalyticsOnecActivitiesRouteImport } from './routes/_authenticated/analytics/onec/activities'
+import { Route as AuthenticatedAnalyticsFitbaseSalesRouteImport } from './routes/_authenticated/analytics/fitbase/sales'
+import { Route as AuthenticatedAnalyticsFitbaseRevenueRouteImport } from './routes/_authenticated/analytics/fitbase/revenue'
+import { Route as AuthenticatedAnalyticsFitbaseMarketingRouteImport } from './routes/_authenticated/analytics/fitbase/marketing'
 import { Route as AuthenticatedAnalyticsAvitoRegisterRouteImport } from './routes/_authenticated/analytics/avito/register'
 import { Route as AuthenticatedAnalyticsAvitoPlansRouteImport } from './routes/_authenticated/analytics/avito/plans'
 import { Route as AuthenticatedAnalyticsAvitoAccountsRouteImport } from './routes/_authenticated/analytics/avito/accounts'
@@ -627,6 +630,24 @@ const AuthenticatedAnalyticsOnecActivitiesRoute =
     path: '/analytics/onec/activities',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAnalyticsFitbaseSalesRoute =
+  AuthenticatedAnalyticsFitbaseSalesRouteImport.update({
+    id: '/analytics/fitbase/sales',
+    path: '/analytics/fitbase/sales',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAnalyticsFitbaseRevenueRoute =
+  AuthenticatedAnalyticsFitbaseRevenueRouteImport.update({
+    id: '/analytics/fitbase/revenue',
+    path: '/analytics/fitbase/revenue',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAnalyticsFitbaseMarketingRoute =
+  AuthenticatedAnalyticsFitbaseMarketingRouteImport.update({
+    id: '/analytics/fitbase/marketing',
+    path: '/analytics/fitbase/marketing',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAnalyticsAvitoRegisterRoute =
   AuthenticatedAnalyticsAvitoRegisterRouteImport.update({
     id: '/analytics/avito/register',
@@ -848,6 +869,9 @@ export interface FileRoutesByFullPath {
   '/analytics/avito/accounts': typeof AuthenticatedAnalyticsAvitoAccountsRoute
   '/analytics/avito/plans': typeof AuthenticatedAnalyticsAvitoPlansRoute
   '/analytics/avito/register': typeof AuthenticatedAnalyticsAvitoRegisterRoute
+  '/analytics/fitbase/marketing': typeof AuthenticatedAnalyticsFitbaseMarketingRoute
+  '/analytics/fitbase/revenue': typeof AuthenticatedAnalyticsFitbaseRevenueRoute
+  '/analytics/fitbase/sales': typeof AuthenticatedAnalyticsFitbaseSalesRoute
   '/analytics/onec/activities': typeof AuthenticatedAnalyticsOnecActivitiesRoute
   '/analytics/onec/funnel': typeof AuthenticatedAnalyticsOnecFunnelRoute
   '/analytics/onec/mycity': typeof AuthenticatedAnalyticsOnecMycityRoute
@@ -964,6 +988,9 @@ export interface FileRoutesByTo {
   '/analytics/avito/accounts': typeof AuthenticatedAnalyticsAvitoAccountsRoute
   '/analytics/avito/plans': typeof AuthenticatedAnalyticsAvitoPlansRoute
   '/analytics/avito/register': typeof AuthenticatedAnalyticsAvitoRegisterRoute
+  '/analytics/fitbase/marketing': typeof AuthenticatedAnalyticsFitbaseMarketingRoute
+  '/analytics/fitbase/revenue': typeof AuthenticatedAnalyticsFitbaseRevenueRoute
+  '/analytics/fitbase/sales': typeof AuthenticatedAnalyticsFitbaseSalesRoute
   '/analytics/onec/activities': typeof AuthenticatedAnalyticsOnecActivitiesRoute
   '/analytics/onec/funnel': typeof AuthenticatedAnalyticsOnecFunnelRoute
   '/analytics/onec/mycity': typeof AuthenticatedAnalyticsOnecMycityRoute
@@ -1082,6 +1109,9 @@ export interface FileRoutesById {
   '/_authenticated/analytics/avito/accounts': typeof AuthenticatedAnalyticsAvitoAccountsRoute
   '/_authenticated/analytics/avito/plans': typeof AuthenticatedAnalyticsAvitoPlansRoute
   '/_authenticated/analytics/avito/register': typeof AuthenticatedAnalyticsAvitoRegisterRoute
+  '/_authenticated/analytics/fitbase/marketing': typeof AuthenticatedAnalyticsFitbaseMarketingRoute
+  '/_authenticated/analytics/fitbase/revenue': typeof AuthenticatedAnalyticsFitbaseRevenueRoute
+  '/_authenticated/analytics/fitbase/sales': typeof AuthenticatedAnalyticsFitbaseSalesRoute
   '/_authenticated/analytics/onec/activities': typeof AuthenticatedAnalyticsOnecActivitiesRoute
   '/_authenticated/analytics/onec/funnel': typeof AuthenticatedAnalyticsOnecFunnelRoute
   '/_authenticated/analytics/onec/mycity': typeof AuthenticatedAnalyticsOnecMycityRoute
@@ -1200,6 +1230,9 @@ export interface FileRouteTypes {
     | '/analytics/avito/accounts'
     | '/analytics/avito/plans'
     | '/analytics/avito/register'
+    | '/analytics/fitbase/marketing'
+    | '/analytics/fitbase/revenue'
+    | '/analytics/fitbase/sales'
     | '/analytics/onec/activities'
     | '/analytics/onec/funnel'
     | '/analytics/onec/mycity'
@@ -1316,6 +1349,9 @@ export interface FileRouteTypes {
     | '/analytics/avito/accounts'
     | '/analytics/avito/plans'
     | '/analytics/avito/register'
+    | '/analytics/fitbase/marketing'
+    | '/analytics/fitbase/revenue'
+    | '/analytics/fitbase/sales'
     | '/analytics/onec/activities'
     | '/analytics/onec/funnel'
     | '/analytics/onec/mycity'
@@ -1433,6 +1469,9 @@ export interface FileRouteTypes {
     | '/_authenticated/analytics/avito/accounts'
     | '/_authenticated/analytics/avito/plans'
     | '/_authenticated/analytics/avito/register'
+    | '/_authenticated/analytics/fitbase/marketing'
+    | '/_authenticated/analytics/fitbase/revenue'
+    | '/_authenticated/analytics/fitbase/sales'
     | '/_authenticated/analytics/onec/activities'
     | '/_authenticated/analytics/onec/funnel'
     | '/_authenticated/analytics/onec/mycity'
@@ -2127,6 +2166,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAnalyticsOnecActivitiesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/analytics/fitbase/sales': {
+      id: '/_authenticated/analytics/fitbase/sales'
+      path: '/analytics/fitbase/sales'
+      fullPath: '/analytics/fitbase/sales'
+      preLoaderRoute: typeof AuthenticatedAnalyticsFitbaseSalesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/analytics/fitbase/revenue': {
+      id: '/_authenticated/analytics/fitbase/revenue'
+      path: '/analytics/fitbase/revenue'
+      fullPath: '/analytics/fitbase/revenue'
+      preLoaderRoute: typeof AuthenticatedAnalyticsFitbaseRevenueRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/analytics/fitbase/marketing': {
+      id: '/_authenticated/analytics/fitbase/marketing'
+      path: '/analytics/fitbase/marketing'
+      fullPath: '/analytics/fitbase/marketing'
+      preLoaderRoute: typeof AuthenticatedAnalyticsFitbaseMarketingRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/analytics/avito/register': {
       id: '/_authenticated/analytics/avito/register'
       path: '/analytics/avito/register'
@@ -2366,6 +2426,9 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAnalyticsAvitoAccountsRoute: typeof AuthenticatedAnalyticsAvitoAccountsRoute
   AuthenticatedAnalyticsAvitoPlansRoute: typeof AuthenticatedAnalyticsAvitoPlansRoute
   AuthenticatedAnalyticsAvitoRegisterRoute: typeof AuthenticatedAnalyticsAvitoRegisterRoute
+  AuthenticatedAnalyticsFitbaseMarketingRoute: typeof AuthenticatedAnalyticsFitbaseMarketingRoute
+  AuthenticatedAnalyticsFitbaseRevenueRoute: typeof AuthenticatedAnalyticsFitbaseRevenueRoute
+  AuthenticatedAnalyticsFitbaseSalesRoute: typeof AuthenticatedAnalyticsFitbaseSalesRoute
   AuthenticatedAnalyticsOnecActivitiesRoute: typeof AuthenticatedAnalyticsOnecActivitiesRoute
   AuthenticatedAnalyticsOnecFunnelRoute: typeof AuthenticatedAnalyticsOnecFunnelRoute
   AuthenticatedAnalyticsOnecMycityRoute: typeof AuthenticatedAnalyticsOnecMycityRoute
@@ -2479,6 +2542,12 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAnalyticsAvitoPlansRoute: AuthenticatedAnalyticsAvitoPlansRoute,
   AuthenticatedAnalyticsAvitoRegisterRoute:
     AuthenticatedAnalyticsAvitoRegisterRoute,
+  AuthenticatedAnalyticsFitbaseMarketingRoute:
+    AuthenticatedAnalyticsFitbaseMarketingRoute,
+  AuthenticatedAnalyticsFitbaseRevenueRoute:
+    AuthenticatedAnalyticsFitbaseRevenueRoute,
+  AuthenticatedAnalyticsFitbaseSalesRoute:
+    AuthenticatedAnalyticsFitbaseSalesRoute,
   AuthenticatedAnalyticsOnecActivitiesRoute:
     AuthenticatedAnalyticsOnecActivitiesRoute,
   AuthenticatedAnalyticsOnecFunnelRoute: AuthenticatedAnalyticsOnecFunnelRoute,

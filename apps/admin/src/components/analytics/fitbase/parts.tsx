@@ -36,7 +36,7 @@ import { FB_BRANDS, fbAttendanceStateLabel, fbScheduleLabel } from "@/lib/analyt
 const fbTime = (sec: number | null | undefined) =>
   sec ? formatMsk(new Date(sec * 1000).toISOString()) : "";
 
-/** Их итог карточки студии. */
+/** Их итог карточки студии — как его ставит их fitbase-ui.js (опрос раз в 4 секунды). */
 function fbSummary(c: FbConnectionRow): {
   text: string;
   tone: "info" | "positive" | "negative" | "neutral";
@@ -45,10 +45,11 @@ function fbSummary(c: FbConnectionRow): {
   if (c.sync_state === "Обновление завершено" || c.sync_state === "Синхронизация завершена") {
     return { text: "Данные обновлены", tone: "positive" };
   }
-  if (c.sync_state === "Доступ подтверждён")
+  if (c.sync_state === "Доступ подтверждён") {
     return { text: "Подключение подтверждено", tone: "positive" };
-  if (c.synced_at || c.sync_attempt_at) return { text: "Требует внимания", tone: "negative" };
-  return { text: "Ожидает загрузки", tone: "neutral" };
+  }
+  if (c.sync_state === "Не синхронизировано") return { text: "Ожидает загрузки", tone: "neutral" };
+  return { text: "Требует внимания", tone: "negative" };
 }
 
 /** Их карточка студии: итог, «Обновить всё», подробности загрузки. */

@@ -3342,6 +3342,91 @@ export function AnalyticsFitbaseConnectionPageSkeleton() {
   );
 }
 
+/** «FitBase» → «Выручка по городам»: шесть плиток, кнопки, таблица городов. */
+export function AnalyticsFbRevenueBodySkeleton() {
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
+        {[0, 1, 2, 3, 4, 5].map((i) => (
+          <Skeleton key={i} className="h-24 rounded-lg" />
+        ))}
+      </div>
+      <Skeleton className="h-8 w-96 max-w-full" />
+      <Skeleton className="h-80 rounded-lg" />
+    </div>
+  );
+}
+
+export function AnalyticsFbRevenuePageSkeleton() {
+  return (
+    <ShellSkeleton title={AN_TITLES.fbRevenue} network>
+      <div className="space-y-4">
+        <Skeleton className="h-5 w-80 max-w-full" />
+        <ToolbarSkeleton controls={["w-48", "w-40", "w-40"]} />
+        <AnalyticsFbRevenueBodySkeleton />
+      </div>
+    </ShellSkeleton>
+  );
+}
+
+/** «FitBase» → «Продажи абонементов»: плитки, средние чеки, графики, таблица. */
+export function AnalyticsFbSalesBodySkeleton() {
+  return (
+    <div className="space-y-4">
+      <Skeleton className="h-5 w-64" />
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        {[0, 1, 2, 3, 4, 5].map((i) => (
+          <Skeleton key={i} className="h-32 rounded-lg" />
+        ))}
+      </div>
+      <div className="grid gap-3 sm:grid-cols-3">
+        {[0, 1, 2].map((i) => (
+          <Skeleton key={i} className="h-20 rounded-lg" />
+        ))}
+      </div>
+      <div className="grid gap-3 lg:grid-cols-3">
+        {[0, 1, 2].map((i) => (
+          <Skeleton key={i} className="h-52 rounded-lg" />
+        ))}
+      </div>
+      <Skeleton className="h-64 rounded-lg" />
+    </div>
+  );
+}
+
+export function AnalyticsFbSalesPageSkeleton() {
+  return (
+    <ShellSkeleton title={AN_TITLES.fbSales} network>
+      <div className="space-y-4">
+        <ToolbarSkeleton controls={["w-56", "w-44", "w-48", "w-44"]} />
+        <AnalyticsFbSalesBodySkeleton />
+      </div>
+    </ShellSkeleton>
+  );
+}
+
+/** «FitBase» → «Маркетинговый отчёт»: карточки городов. */
+export function AnalyticsFbMarketingBodySkeleton() {
+  return (
+    <div className="space-y-4">
+      {[0, 1].map((i) => (
+        <Skeleton key={i} className="h-80 rounded-lg" />
+      ))}
+    </div>
+  );
+}
+
+export function AnalyticsFbMarketingPageSkeleton() {
+  return (
+    <ShellSkeleton title={AN_TITLES.fbMarketing} network>
+      <div className="space-y-4">
+        <ToolbarSkeleton search={false} controls={["w-56", "w-44", "w-48"]} />
+        <AnalyticsFbMarketingBodySkeleton />
+      </div>
+    </ShellSkeleton>
+  );
+}
+
 /** «Квиз» → «Квиз-лендинги»: пояснение, четыре плитки, города. */
 export function AnalyticsQuizPageSkeleton() {
   return (

@@ -37,6 +37,9 @@ export const AN_TITLES = {
   avitoRegister: "Реестр Авито",
   fitbase: "Интеграция FitBase",
   fitbaseConnection: "Настройки студии FitBase",
+  fbRevenue: "Выручка по городам",
+  fbSales: "Продажи абонементов FitBase",
+  fbMarketing: "Маркетинговый отчёт FitBase",
   quiz: "Квиз-лендинги",
   quizLeads: "Заявки квиза",
 } as const;
@@ -164,6 +167,28 @@ export const AN_CARDS: AnCard[] = [
     description: "Маркетинговая воронка, квалификация и конверсии по городам.",
     url: "/analytics/crm/marketing/lady-jump",
     need: "mkt.lj",
+  },
+  // Отчёты FitBase — их fitbase_staff_reports.REPORTS: вся сеть.
+  {
+    key: "fb.revenue",
+    title: "Выручка · FitBase",
+    description: "Оплаты, возвраты и прогноз по всей сети.",
+    url: "/analytics/fitbase/revenue",
+    need: "fb.revenue",
+  },
+  {
+    key: "fb.marketing",
+    title: "Маркетинг · FitBase",
+    description: "Лиды, приходы и покупки по всей сети.",
+    url: "/analytics/fitbase/marketing",
+    need: "fb.marketing",
+  },
+  {
+    key: "fb.sales",
+    title: "Продажи абонементов · FitBase",
+    description: "Новые и повторные покупки по всей сети.",
+    url: "/analytics/fitbase/sales",
+    need: "fb.sales",
   },
 ];
 
