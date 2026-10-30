@@ -218,10 +218,12 @@ describe.skipIf(!url)("аналитика: фундамент (база)", () =>
 
       await as(tx, staff);
       expect(await failure(tx, () => tx`select * from an_secrets`)).toContain("permission denied");
-      expect(await failure(tx, () => tx`select * from an_job_state`)).toContain("permission denied");
-      expect(
-        await failure(tx, () => tx`select an_job_set_enabled('vk.telegram', true)`),
-      ).toContain("an_forbidden");
+      expect(await failure(tx, () => tx`select * from an_job_state`)).toContain(
+        "permission denied",
+      );
+      expect(await failure(tx, () => tx`select an_job_set_enabled('vk.telegram', true)`)).toContain(
+        "an_forbidden",
+      );
       const [{ jobs }] = await tx`select an_jobs_list() as jobs`;
       expect(jobs).toBeNull();
       await asServer(tx);
@@ -230,9 +232,9 @@ describe.skipIf(!url)("аналитика: фундамент (база)", () =>
       await tx`select an_job_set_enabled('vk.telegram', true)`;
       await tx`select an_job_set_enabled('vk.telegram', false)`;
       const [{ list }] = await tx`select an_jobs_list() as list`;
-      expect((list as { job: string; enabled: boolean }[]).find((j) => j.job === "vk.telegram")?.enabled).toBe(
-        false,
-      );
+      expect(
+        (list as { job: string; enabled: boolean }[]).find((j) => j.job === "vk.telegram")?.enabled,
+      ).toBe(false);
       await asServer(tx);
       // Выключенную задачу сервер не берёт.
       const [{ claimed }] = await tx`select an_job_claim('vk.telegram', 60) as claimed`;
