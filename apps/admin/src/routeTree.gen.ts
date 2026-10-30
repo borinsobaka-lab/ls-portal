@@ -112,12 +112,14 @@ import { Route as AuthenticatedAcademyReviewAttemptIdRouteImport } from './route
 import { Route as AuthenticatedAcademyMyCourseIdRouteImport } from './routes/_authenticated/academy/my/$courseId'
 import { Route as AuthenticatedAcademyAttemptsAttemptIdRouteImport } from './routes/_authenticated/academy/attempts/$attemptId'
 import { Route as AuthenticatedAnalyticsReviewsStaffIndexRouteImport } from './routes/_authenticated/analytics/reviews/staff/index'
+import { Route as AuthenticatedAnalyticsCrmFitbaseIndexRouteImport } from './routes/_authenticated/analytics/crm/fitbase/index'
 import { Route as AuthenticatedAnalyticsCrmAmocrmIndexRouteImport } from './routes/_authenticated/analytics/crm/amocrm/index'
 import { Route as AuthenticatedAnalyticsAdminPartnersIndexRouteImport } from './routes/_authenticated/analytics/admin/partners/index'
 import { Route as AuthenticatedAcademyCoursesCourseIdIndexRouteImport } from './routes/_authenticated/academy/courses/$courseId/index'
 import { Route as AuthenticatedAnalyticsReviewsStaffStatisticsRouteImport } from './routes/_authenticated/analytics/reviews/staff/statistics'
 import { Route as AuthenticatedAnalyticsCrmMarketingLadyStretchRouteImport } from './routes/_authenticated/analytics/crm/marketing/lady-stretch'
 import { Route as AuthenticatedAnalyticsCrmMarketingLadyJumpRouteImport } from './routes/_authenticated/analytics/crm/marketing/lady-jump'
+import { Route as AuthenticatedAnalyticsCrmFitbaseConnectionIdRouteImport } from './routes/_authenticated/analytics/crm/fitbase/$connectionId'
 import { Route as AuthenticatedAnalyticsCrmAmocrmConnectionIdRouteImport } from './routes/_authenticated/analytics/crm/amocrm/$connectionId'
 import { Route as AuthenticatedAnalyticsAdminPartnersUserIdRouteImport } from './routes/_authenticated/analytics/admin/partners/$userId'
 import { Route as AuthenticatedAcademyCoursesCourseIdPreviewRouteImport } from './routes/_authenticated/academy/courses/$courseId/preview'
@@ -703,6 +705,12 @@ const AuthenticatedAnalyticsReviewsStaffIndexRoute =
     path: '/analytics/reviews/staff/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAnalyticsCrmFitbaseIndexRoute =
+  AuthenticatedAnalyticsCrmFitbaseIndexRouteImport.update({
+    id: '/analytics/crm/fitbase/',
+    path: '/analytics/crm/fitbase/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAnalyticsCrmAmocrmIndexRoute =
   AuthenticatedAnalyticsCrmAmocrmIndexRouteImport.update({
     id: '/analytics/crm/amocrm/',
@@ -737,6 +745,12 @@ const AuthenticatedAnalyticsCrmMarketingLadyJumpRoute =
   AuthenticatedAnalyticsCrmMarketingLadyJumpRouteImport.update({
     id: '/analytics/crm/marketing/lady-jump',
     path: '/analytics/crm/marketing/lady-jump',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAnalyticsCrmFitbaseConnectionIdRoute =
+  AuthenticatedAnalyticsCrmFitbaseConnectionIdRouteImport.update({
+    id: '/analytics/crm/fitbase/$connectionId',
+    path: '/analytics/crm/fitbase/$connectionId',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedAnalyticsCrmAmocrmConnectionIdRoute =
@@ -870,12 +884,14 @@ export interface FileRoutesByFullPath {
   '/academy/courses/$courseId/preview': typeof AuthenticatedAcademyCoursesCourseIdPreviewRoute
   '/analytics/admin/partners/$userId': typeof AuthenticatedAnalyticsAdminPartnersUserIdRoute
   '/analytics/crm/amocrm/$connectionId': typeof AuthenticatedAnalyticsCrmAmocrmConnectionIdRoute
+  '/analytics/crm/fitbase/$connectionId': typeof AuthenticatedAnalyticsCrmFitbaseConnectionIdRoute
   '/analytics/crm/marketing/lady-jump': typeof AuthenticatedAnalyticsCrmMarketingLadyJumpRoute
   '/analytics/crm/marketing/lady-stretch': typeof AuthenticatedAnalyticsCrmMarketingLadyStretchRoute
   '/analytics/reviews/staff/statistics': typeof AuthenticatedAnalyticsReviewsStaffStatisticsRoute
   '/academy/courses/$courseId/': typeof AuthenticatedAcademyCoursesCourseIdIndexRoute
   '/analytics/admin/partners/': typeof AuthenticatedAnalyticsAdminPartnersIndexRoute
   '/analytics/crm/amocrm/': typeof AuthenticatedAnalyticsCrmAmocrmIndexRoute
+  '/analytics/crm/fitbase/': typeof AuthenticatedAnalyticsCrmFitbaseIndexRoute
   '/analytics/reviews/staff/': typeof AuthenticatedAnalyticsReviewsStaffIndexRoute
 }
 export interface FileRoutesByTo {
@@ -984,12 +1000,14 @@ export interface FileRoutesByTo {
   '/academy/courses/$courseId/preview': typeof AuthenticatedAcademyCoursesCourseIdPreviewRoute
   '/analytics/admin/partners/$userId': typeof AuthenticatedAnalyticsAdminPartnersUserIdRoute
   '/analytics/crm/amocrm/$connectionId': typeof AuthenticatedAnalyticsCrmAmocrmConnectionIdRoute
+  '/analytics/crm/fitbase/$connectionId': typeof AuthenticatedAnalyticsCrmFitbaseConnectionIdRoute
   '/analytics/crm/marketing/lady-jump': typeof AuthenticatedAnalyticsCrmMarketingLadyJumpRoute
   '/analytics/crm/marketing/lady-stretch': typeof AuthenticatedAnalyticsCrmMarketingLadyStretchRoute
   '/analytics/reviews/staff/statistics': typeof AuthenticatedAnalyticsReviewsStaffStatisticsRoute
   '/academy/courses/$courseId': typeof AuthenticatedAcademyCoursesCourseIdIndexRoute
   '/analytics/admin/partners': typeof AuthenticatedAnalyticsAdminPartnersIndexRoute
   '/analytics/crm/amocrm': typeof AuthenticatedAnalyticsCrmAmocrmIndexRoute
+  '/analytics/crm/fitbase': typeof AuthenticatedAnalyticsCrmFitbaseIndexRoute
   '/analytics/reviews/staff': typeof AuthenticatedAnalyticsReviewsStaffIndexRoute
 }
 export interface FileRoutesById {
@@ -1100,12 +1118,14 @@ export interface FileRoutesById {
   '/_authenticated/academy/courses/$courseId/preview': typeof AuthenticatedAcademyCoursesCourseIdPreviewRoute
   '/_authenticated/analytics/admin/partners/$userId': typeof AuthenticatedAnalyticsAdminPartnersUserIdRoute
   '/_authenticated/analytics/crm/amocrm/$connectionId': typeof AuthenticatedAnalyticsCrmAmocrmConnectionIdRoute
+  '/_authenticated/analytics/crm/fitbase/$connectionId': typeof AuthenticatedAnalyticsCrmFitbaseConnectionIdRoute
   '/_authenticated/analytics/crm/marketing/lady-jump': typeof AuthenticatedAnalyticsCrmMarketingLadyJumpRoute
   '/_authenticated/analytics/crm/marketing/lady-stretch': typeof AuthenticatedAnalyticsCrmMarketingLadyStretchRoute
   '/_authenticated/analytics/reviews/staff/statistics': typeof AuthenticatedAnalyticsReviewsStaffStatisticsRoute
   '/_authenticated/academy/courses/$courseId/': typeof AuthenticatedAcademyCoursesCourseIdIndexRoute
   '/_authenticated/analytics/admin/partners/': typeof AuthenticatedAnalyticsAdminPartnersIndexRoute
   '/_authenticated/analytics/crm/amocrm/': typeof AuthenticatedAnalyticsCrmAmocrmIndexRoute
+  '/_authenticated/analytics/crm/fitbase/': typeof AuthenticatedAnalyticsCrmFitbaseIndexRoute
   '/_authenticated/analytics/reviews/staff/': typeof AuthenticatedAnalyticsReviewsStaffIndexRoute
 }
 export interface FileRouteTypes {
@@ -1216,12 +1236,14 @@ export interface FileRouteTypes {
     | '/academy/courses/$courseId/preview'
     | '/analytics/admin/partners/$userId'
     | '/analytics/crm/amocrm/$connectionId'
+    | '/analytics/crm/fitbase/$connectionId'
     | '/analytics/crm/marketing/lady-jump'
     | '/analytics/crm/marketing/lady-stretch'
     | '/analytics/reviews/staff/statistics'
     | '/academy/courses/$courseId/'
     | '/analytics/admin/partners/'
     | '/analytics/crm/amocrm/'
+    | '/analytics/crm/fitbase/'
     | '/analytics/reviews/staff/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -1330,12 +1352,14 @@ export interface FileRouteTypes {
     | '/academy/courses/$courseId/preview'
     | '/analytics/admin/partners/$userId'
     | '/analytics/crm/amocrm/$connectionId'
+    | '/analytics/crm/fitbase/$connectionId'
     | '/analytics/crm/marketing/lady-jump'
     | '/analytics/crm/marketing/lady-stretch'
     | '/analytics/reviews/staff/statistics'
     | '/academy/courses/$courseId'
     | '/analytics/admin/partners'
     | '/analytics/crm/amocrm'
+    | '/analytics/crm/fitbase'
     | '/analytics/reviews/staff'
   id:
     | '__root__'
@@ -1445,12 +1469,14 @@ export interface FileRouteTypes {
     | '/_authenticated/academy/courses/$courseId/preview'
     | '/_authenticated/analytics/admin/partners/$userId'
     | '/_authenticated/analytics/crm/amocrm/$connectionId'
+    | '/_authenticated/analytics/crm/fitbase/$connectionId'
     | '/_authenticated/analytics/crm/marketing/lady-jump'
     | '/_authenticated/analytics/crm/marketing/lady-stretch'
     | '/_authenticated/analytics/reviews/staff/statistics'
     | '/_authenticated/academy/courses/$courseId/'
     | '/_authenticated/analytics/admin/partners/'
     | '/_authenticated/analytics/crm/amocrm/'
+    | '/_authenticated/analytics/crm/fitbase/'
     | '/_authenticated/analytics/reviews/staff/'
   fileRoutesById: FileRoutesById
 }
@@ -2192,6 +2218,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAnalyticsReviewsStaffIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/analytics/crm/fitbase/': {
+      id: '/_authenticated/analytics/crm/fitbase/'
+      path: '/analytics/crm/fitbase'
+      fullPath: '/analytics/crm/fitbase/'
+      preLoaderRoute: typeof AuthenticatedAnalyticsCrmFitbaseIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/analytics/crm/amocrm/': {
       id: '/_authenticated/analytics/crm/amocrm/'
       path: '/analytics/crm/amocrm'
@@ -2232,6 +2265,13 @@ declare module '@tanstack/react-router' {
       path: '/analytics/crm/marketing/lady-jump'
       fullPath: '/analytics/crm/marketing/lady-jump'
       preLoaderRoute: typeof AuthenticatedAnalyticsCrmMarketingLadyJumpRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/analytics/crm/fitbase/$connectionId': {
+      id: '/_authenticated/analytics/crm/fitbase/$connectionId'
+      path: '/analytics/crm/fitbase/$connectionId'
+      fullPath: '/analytics/crm/fitbase/$connectionId'
+      preLoaderRoute: typeof AuthenticatedAnalyticsCrmFitbaseConnectionIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/analytics/crm/amocrm/$connectionId': {
@@ -2360,12 +2400,14 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAcademyCoursesCourseIdPreviewRoute: typeof AuthenticatedAcademyCoursesCourseIdPreviewRoute
   AuthenticatedAnalyticsAdminPartnersUserIdRoute: typeof AuthenticatedAnalyticsAdminPartnersUserIdRoute
   AuthenticatedAnalyticsCrmAmocrmConnectionIdRoute: typeof AuthenticatedAnalyticsCrmAmocrmConnectionIdRoute
+  AuthenticatedAnalyticsCrmFitbaseConnectionIdRoute: typeof AuthenticatedAnalyticsCrmFitbaseConnectionIdRoute
   AuthenticatedAnalyticsCrmMarketingLadyJumpRoute: typeof AuthenticatedAnalyticsCrmMarketingLadyJumpRoute
   AuthenticatedAnalyticsCrmMarketingLadyStretchRoute: typeof AuthenticatedAnalyticsCrmMarketingLadyStretchRoute
   AuthenticatedAnalyticsReviewsStaffStatisticsRoute: typeof AuthenticatedAnalyticsReviewsStaffStatisticsRoute
   AuthenticatedAcademyCoursesCourseIdIndexRoute: typeof AuthenticatedAcademyCoursesCourseIdIndexRoute
   AuthenticatedAnalyticsAdminPartnersIndexRoute: typeof AuthenticatedAnalyticsAdminPartnersIndexRoute
   AuthenticatedAnalyticsCrmAmocrmIndexRoute: typeof AuthenticatedAnalyticsCrmAmocrmIndexRoute
+  AuthenticatedAnalyticsCrmFitbaseIndexRoute: typeof AuthenticatedAnalyticsCrmFitbaseIndexRoute
   AuthenticatedAnalyticsReviewsStaffIndexRoute: typeof AuthenticatedAnalyticsReviewsStaffIndexRoute
 }
 
@@ -2482,6 +2524,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedAnalyticsAdminPartnersUserIdRoute,
   AuthenticatedAnalyticsCrmAmocrmConnectionIdRoute:
     AuthenticatedAnalyticsCrmAmocrmConnectionIdRoute,
+  AuthenticatedAnalyticsCrmFitbaseConnectionIdRoute:
+    AuthenticatedAnalyticsCrmFitbaseConnectionIdRoute,
   AuthenticatedAnalyticsCrmMarketingLadyJumpRoute:
     AuthenticatedAnalyticsCrmMarketingLadyJumpRoute,
   AuthenticatedAnalyticsCrmMarketingLadyStretchRoute:
@@ -2494,6 +2538,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedAnalyticsAdminPartnersIndexRoute,
   AuthenticatedAnalyticsCrmAmocrmIndexRoute:
     AuthenticatedAnalyticsCrmAmocrmIndexRoute,
+  AuthenticatedAnalyticsCrmFitbaseIndexRoute:
+    AuthenticatedAnalyticsCrmFitbaseIndexRoute,
   AuthenticatedAnalyticsReviewsStaffIndexRoute:
     AuthenticatedAnalyticsReviewsStaffIndexRoute,
 }

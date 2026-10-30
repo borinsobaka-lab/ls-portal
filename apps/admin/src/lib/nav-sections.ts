@@ -413,6 +413,12 @@ export const ANALYTICS_GROUPS: NavGroup<AnalyticsNavItem>[] = [
         icon: Structure,
         need: "admin",
       },
+      {
+        title: "Интеграция FitBase",
+        url: "/analytics/crm/fitbase",
+        icon: Structure,
+        need: "admin",
+      },
     ],
   },
   {

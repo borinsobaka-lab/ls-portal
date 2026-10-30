@@ -3309,6 +3309,39 @@ export function AnalyticsAvitoRegisterPageSkeleton() {
   );
 }
 
+/** «CRM» → «Интеграция FitBase»: пояснение, загрузка всех студий, карточки студий. */
+export function AnalyticsFitbasePageSkeleton() {
+  return (
+    <ShellSkeleton title={AN_TITLES.fitbase} network actions={["w-44"]}>
+      <div className="space-y-4">
+        <Skeleton className="h-16 w-full rounded-lg" />
+        <Skeleton className="h-36 w-full rounded-lg" />
+        <Skeleton className="h-6 w-56" />
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {[0, 1, 2].map((i) => (
+            <Skeleton key={i} className="h-44 rounded-lg" />
+          ))}
+        </div>
+      </div>
+    </ShellSkeleton>
+  );
+}
+
+/** «Интеграция FitBase» → студия: карточка, проверка, правила, посещаемость. */
+export function AnalyticsFitbaseConnectionPageSkeleton() {
+  return (
+    <ShellSkeleton title={AN_TITLES.fitbaseConnection} network>
+      <div className="max-w-5xl space-y-4">
+        <Skeleton className="h-9 w-32 rounded-full" />
+        <Skeleton className="h-44 w-full rounded-lg" />
+        <Skeleton className="h-28 w-full rounded-lg" />
+        <Skeleton className="h-72 w-full rounded-lg" />
+        <Skeleton className="h-56 w-full rounded-lg" />
+      </div>
+    </ShellSkeleton>
+  );
+}
+
 /** «Квиз» → «Квиз-лендинги»: пояснение, четыре плитки, города. */
 export function AnalyticsQuizPageSkeleton() {
   return (

@@ -47,6 +47,25 @@ export function decryptSecret(stored: string): string {
   ]).toString("utf8");
 }
 
+/** Двоичные данные (кэш выгрузок): iv 12 ‖ шифртекст ‖ тег 16. */
+export function encryptBytes(plain: Buffer): Buffer {
+  const key = secretsKey();
+  if (!key) throw new Error("На сервере не задан ANALYTICS_SECRETS_KEY (от 32 символов).");
+  const iv = randomBytes(12);
+  const cipher = createCipheriv("aes-256-gcm", key, iv);
+  const body = Buffer.concat([cipher.update(plain), cipher.final()]);
+  return Buffer.concat([iv, body, cipher.getAuthTag()]);
+}
+
+export function decryptBytes(raw: Buffer): Buffer {
+  const key = secretsKey();
+  if (!key) throw new Error("На сервере не задан ANALYTICS_SECRETS_KEY (от 32 символов).");
+  if (raw.length < 28) throw new Error("Зашифрованные данные повреждены.");
+  const decipher = createDecipheriv("aes-256-gcm", key, raw.subarray(0, 12));
+  decipher.setAuthTag(raw.subarray(raw.length - 16));
+  return Buffer.concat([decipher.update(raw.subarray(12, raw.length - 16)), decipher.final()]);
+}
+
 export type SecretRef = { kind: string; ref: string; name: string };
 
 export async function saveSecret(s: SecretRef, plain: string, userId: string | null = null) {

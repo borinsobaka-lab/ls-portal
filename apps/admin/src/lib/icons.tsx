@@ -129,6 +129,7 @@ import {
   Save as SaveArt,
   Search as SearchArt,
   SentIcon as SendArt,
+  Settings as SettingsArt,
   Settings2 as Settings2Art,
   Shapes as ShapesArt,
   ShieldCheck as ShieldCheckArt,
@@ -284,6 +285,7 @@ export const Ruler = icon(RulerArt, "Ruler");
 export const Save = icon(SaveArt, "Save");
 export const Search = icon(SearchArt, "Search");
 export const Send = icon(SendArt, "Send");
+export const Settings = icon(SettingsArt, "Settings");
 export const Settings2 = icon(Settings2Art, "Settings2");
 export const Shapes = icon(ShapesArt, "Shapes");
 export const ShieldCheck = icon(ShieldCheckArt, "ShieldCheck");
