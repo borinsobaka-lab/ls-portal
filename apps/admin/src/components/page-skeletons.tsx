@@ -3215,6 +3215,41 @@ export function AnalyticsAmoConnectionPageSkeleton() {
   );
 }
 
+/** «Маркетинг Lady Stretch / Lady Jump»: пять плиток, блоки городов. */
+export function AnalyticsMktBodySkeleton() {
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
+        {[0, 1, 2, 3, 4].map((i) => (
+          <Skeleton key={i} className="h-24 rounded-lg" />
+        ))}
+      </div>
+      <Skeleton className="h-72 rounded-lg" />
+      <Skeleton className="h-56 rounded-lg" />
+    </div>
+  );
+}
+
+function AnalyticsMktPageSkeleton({ title }: { title: string }) {
+  return (
+    <ShellSkeleton title={title} network>
+      <div className="space-y-4">
+        <Skeleton className="h-12 w-full rounded-lg" />
+        <ToolbarSkeleton search={false} controls={["w-36", "w-56", "w-56", "w-80"]} />
+        <Skeleton className="h-4 w-full max-w-xl" />
+        <AnalyticsMktBodySkeleton />
+      </div>
+    </ShellSkeleton>
+  );
+}
+
+export const AnalyticsMktStretchPageSkeleton = () => (
+  <AnalyticsMktPageSkeleton title={AN_TITLES.mktStretch} />
+);
+export const AnalyticsMktJumpPageSkeleton = () => (
+  <AnalyticsMktPageSkeleton title={AN_TITLES.mktJump} />
+);
+
 /** «VK Ads» → «Контроль бюджетов»: бот, каналы, плитки порогов, кабинеты. */
 export function AnalyticsVkAlertsPageSkeleton() {
   return (

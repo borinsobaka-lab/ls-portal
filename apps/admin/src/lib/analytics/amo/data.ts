@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/query";
 
 import { ANALYTICS_KEY } from "../data";
+import type { MktPayload, MktResult } from "./marketing";
 import type { AmoField, AmoPipeline, AmoSettings, AmoUser } from "./rules";
 
 export const AMO_KEY = [ANALYTICS_KEY, "amo"] as const;
@@ -76,6 +77,37 @@ export const amoConnectionQuery = (id: number) => ({
   refetchInterval: (q: { state: { data?: AmoConnectionView } }) =>
     q.state.data?.running ? 3000 : false,
   meta: { errorMessage: "Не удалось загрузить подключение amoCRM" },
+});
+
+export type AmoMarketingArgs = {
+  brand: string;
+  month?: string;
+  city?: string;
+  partner?: string;
+  result: MktResult;
+};
+
+/** «Маркетинг Lady Stretch / Lady Jump» — фильтры, строки, бюджеты и подсказки (RPC an_amo_marketing). */
+export const amoMarketingQuery = (a: AmoMarketingArgs) => ({
+  queryKey: [
+    ...AMO_KEY,
+    "marketing",
+    a.brand,
+    a.month ?? "",
+    a.city ?? "",
+    a.partner ?? "",
+    a.result,
+  ],
+  queryFn: () =>
+    rpc<MktPayload>("an_amo_marketing", {
+      p_brand: a.brand,
+      p_month: a.month ?? null,
+      p_city: a.city ?? null,
+      p_partner: a.partner ?? null,
+      p_result: a.result,
+    }),
+  placeholderData: (prev: MktPayload | undefined) => (prev?.brand === a.brand ? prev : undefined),
+  meta: { errorMessage: "Не удалось загрузить маркетинговый отчёт" },
 });
 
 export const amoRpc = {

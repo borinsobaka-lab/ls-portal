@@ -108,6 +108,8 @@ import { Route as AuthenticatedAnalyticsCrmAmocrmIndexRouteImport } from './rout
 import { Route as AuthenticatedAnalyticsAdminPartnersIndexRouteImport } from './routes/_authenticated/analytics/admin/partners/index'
 import { Route as AuthenticatedAcademyCoursesCourseIdIndexRouteImport } from './routes/_authenticated/academy/courses/$courseId/index'
 import { Route as AuthenticatedAnalyticsReviewsStaffStatisticsRouteImport } from './routes/_authenticated/analytics/reviews/staff/statistics'
+import { Route as AuthenticatedAnalyticsCrmMarketingLadyStretchRouteImport } from './routes/_authenticated/analytics/crm/marketing/lady-stretch'
+import { Route as AuthenticatedAnalyticsCrmMarketingLadyJumpRouteImport } from './routes/_authenticated/analytics/crm/marketing/lady-jump'
 import { Route as AuthenticatedAnalyticsCrmAmocrmConnectionIdRouteImport } from './routes/_authenticated/analytics/crm/amocrm/$connectionId'
 import { Route as AuthenticatedAnalyticsAdminPartnersUserIdRouteImport } from './routes/_authenticated/analytics/admin/partners/$userId'
 import { Route as AuthenticatedAcademyCoursesCourseIdPreviewRouteImport } from './routes/_authenticated/academy/courses/$courseId/preview'
@@ -672,6 +674,18 @@ const AuthenticatedAnalyticsReviewsStaffStatisticsRoute =
     path: '/analytics/reviews/staff/statistics',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAnalyticsCrmMarketingLadyStretchRoute =
+  AuthenticatedAnalyticsCrmMarketingLadyStretchRouteImport.update({
+    id: '/analytics/crm/marketing/lady-stretch',
+    path: '/analytics/crm/marketing/lady-stretch',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAnalyticsCrmMarketingLadyJumpRoute =
+  AuthenticatedAnalyticsCrmMarketingLadyJumpRouteImport.update({
+    id: '/analytics/crm/marketing/lady-jump',
+    path: '/analytics/crm/marketing/lady-jump',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAnalyticsCrmAmocrmConnectionIdRoute =
   AuthenticatedAnalyticsCrmAmocrmConnectionIdRouteImport.update({
     id: '/analytics/crm/amocrm/$connectionId',
@@ -795,6 +809,8 @@ export interface FileRoutesByFullPath {
   '/academy/courses/$courseId/preview': typeof AuthenticatedAcademyCoursesCourseIdPreviewRoute
   '/analytics/admin/partners/$userId': typeof AuthenticatedAnalyticsAdminPartnersUserIdRoute
   '/analytics/crm/amocrm/$connectionId': typeof AuthenticatedAnalyticsCrmAmocrmConnectionIdRoute
+  '/analytics/crm/marketing/lady-jump': typeof AuthenticatedAnalyticsCrmMarketingLadyJumpRoute
+  '/analytics/crm/marketing/lady-stretch': typeof AuthenticatedAnalyticsCrmMarketingLadyStretchRoute
   '/analytics/reviews/staff/statistics': typeof AuthenticatedAnalyticsReviewsStaffStatisticsRoute
   '/academy/courses/$courseId/': typeof AuthenticatedAcademyCoursesCourseIdIndexRoute
   '/analytics/admin/partners/': typeof AuthenticatedAnalyticsAdminPartnersIndexRoute
@@ -899,6 +915,8 @@ export interface FileRoutesByTo {
   '/academy/courses/$courseId/preview': typeof AuthenticatedAcademyCoursesCourseIdPreviewRoute
   '/analytics/admin/partners/$userId': typeof AuthenticatedAnalyticsAdminPartnersUserIdRoute
   '/analytics/crm/amocrm/$connectionId': typeof AuthenticatedAnalyticsCrmAmocrmConnectionIdRoute
+  '/analytics/crm/marketing/lady-jump': typeof AuthenticatedAnalyticsCrmMarketingLadyJumpRoute
+  '/analytics/crm/marketing/lady-stretch': typeof AuthenticatedAnalyticsCrmMarketingLadyStretchRoute
   '/analytics/reviews/staff/statistics': typeof AuthenticatedAnalyticsReviewsStaffStatisticsRoute
   '/academy/courses/$courseId': typeof AuthenticatedAcademyCoursesCourseIdIndexRoute
   '/analytics/admin/partners': typeof AuthenticatedAnalyticsAdminPartnersIndexRoute
@@ -1005,6 +1023,8 @@ export interface FileRoutesById {
   '/_authenticated/academy/courses/$courseId/preview': typeof AuthenticatedAcademyCoursesCourseIdPreviewRoute
   '/_authenticated/analytics/admin/partners/$userId': typeof AuthenticatedAnalyticsAdminPartnersUserIdRoute
   '/_authenticated/analytics/crm/amocrm/$connectionId': typeof AuthenticatedAnalyticsCrmAmocrmConnectionIdRoute
+  '/_authenticated/analytics/crm/marketing/lady-jump': typeof AuthenticatedAnalyticsCrmMarketingLadyJumpRoute
+  '/_authenticated/analytics/crm/marketing/lady-stretch': typeof AuthenticatedAnalyticsCrmMarketingLadyStretchRoute
   '/_authenticated/analytics/reviews/staff/statistics': typeof AuthenticatedAnalyticsReviewsStaffStatisticsRoute
   '/_authenticated/academy/courses/$courseId/': typeof AuthenticatedAcademyCoursesCourseIdIndexRoute
   '/_authenticated/analytics/admin/partners/': typeof AuthenticatedAnalyticsAdminPartnersIndexRoute
@@ -1111,6 +1131,8 @@ export interface FileRouteTypes {
     | '/academy/courses/$courseId/preview'
     | '/analytics/admin/partners/$userId'
     | '/analytics/crm/amocrm/$connectionId'
+    | '/analytics/crm/marketing/lady-jump'
+    | '/analytics/crm/marketing/lady-stretch'
     | '/analytics/reviews/staff/statistics'
     | '/academy/courses/$courseId/'
     | '/analytics/admin/partners/'
@@ -1215,6 +1237,8 @@ export interface FileRouteTypes {
     | '/academy/courses/$courseId/preview'
     | '/analytics/admin/partners/$userId'
     | '/analytics/crm/amocrm/$connectionId'
+    | '/analytics/crm/marketing/lady-jump'
+    | '/analytics/crm/marketing/lady-stretch'
     | '/analytics/reviews/staff/statistics'
     | '/academy/courses/$courseId'
     | '/analytics/admin/partners'
@@ -1320,6 +1344,8 @@ export interface FileRouteTypes {
     | '/_authenticated/academy/courses/$courseId/preview'
     | '/_authenticated/analytics/admin/partners/$userId'
     | '/_authenticated/analytics/crm/amocrm/$connectionId'
+    | '/_authenticated/analytics/crm/marketing/lady-jump'
+    | '/_authenticated/analytics/crm/marketing/lady-stretch'
     | '/_authenticated/analytics/reviews/staff/statistics'
     | '/_authenticated/academy/courses/$courseId/'
     | '/_authenticated/analytics/admin/partners/'
@@ -2034,6 +2060,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAnalyticsReviewsStaffStatisticsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/analytics/crm/marketing/lady-stretch': {
+      id: '/_authenticated/analytics/crm/marketing/lady-stretch'
+      path: '/analytics/crm/marketing/lady-stretch'
+      fullPath: '/analytics/crm/marketing/lady-stretch'
+      preLoaderRoute: typeof AuthenticatedAnalyticsCrmMarketingLadyStretchRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/analytics/crm/marketing/lady-jump': {
+      id: '/_authenticated/analytics/crm/marketing/lady-jump'
+      path: '/analytics/crm/marketing/lady-jump'
+      fullPath: '/analytics/crm/marketing/lady-jump'
+      preLoaderRoute: typeof AuthenticatedAnalyticsCrmMarketingLadyJumpRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/analytics/crm/amocrm/$connectionId': {
       id: '/_authenticated/analytics/crm/amocrm/$connectionId'
       path: '/analytics/crm/amocrm/$connectionId'
@@ -2155,6 +2195,8 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAcademyCoursesCourseIdPreviewRoute: typeof AuthenticatedAcademyCoursesCourseIdPreviewRoute
   AuthenticatedAnalyticsAdminPartnersUserIdRoute: typeof AuthenticatedAnalyticsAdminPartnersUserIdRoute
   AuthenticatedAnalyticsCrmAmocrmConnectionIdRoute: typeof AuthenticatedAnalyticsCrmAmocrmConnectionIdRoute
+  AuthenticatedAnalyticsCrmMarketingLadyJumpRoute: typeof AuthenticatedAnalyticsCrmMarketingLadyJumpRoute
+  AuthenticatedAnalyticsCrmMarketingLadyStretchRoute: typeof AuthenticatedAnalyticsCrmMarketingLadyStretchRoute
   AuthenticatedAnalyticsReviewsStaffStatisticsRoute: typeof AuthenticatedAnalyticsReviewsStaffStatisticsRoute
   AuthenticatedAcademyCoursesCourseIdIndexRoute: typeof AuthenticatedAcademyCoursesCourseIdIndexRoute
   AuthenticatedAnalyticsAdminPartnersIndexRoute: typeof AuthenticatedAnalyticsAdminPartnersIndexRoute
@@ -2268,6 +2310,10 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedAnalyticsAdminPartnersUserIdRoute,
   AuthenticatedAnalyticsCrmAmocrmConnectionIdRoute:
     AuthenticatedAnalyticsCrmAmocrmConnectionIdRoute,
+  AuthenticatedAnalyticsCrmMarketingLadyJumpRoute:
+    AuthenticatedAnalyticsCrmMarketingLadyJumpRoute,
+  AuthenticatedAnalyticsCrmMarketingLadyStretchRoute:
+    AuthenticatedAnalyticsCrmMarketingLadyStretchRoute,
   AuthenticatedAnalyticsReviewsStaffStatisticsRoute:
     AuthenticatedAnalyticsReviewsStaffStatisticsRoute,
   AuthenticatedAcademyCoursesCourseIdIndexRoute:
