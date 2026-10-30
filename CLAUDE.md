@@ -1186,6 +1186,15 @@ DEPLOY.md.
   `an_fb_commit`, `an_fb_batch_begin`. Загрузка «жива» 15 минут без отметки
   (`an_fb_busy`). Задача `fitbase` — ночью в 01:00 МСК. Таблицы закрыты
   браузеру.
+  FitBase, часть 2 (2026-10-30, ANALYTICS.md):
+  `db/migrations/2026-10-30_zzzzzzzzzzzzzz_analytics_fitbase_reports.sql` —
+  данные сетевых отчётов: `an_fb_revenue_data` (выручка по дням за
+  период), `an_fb_sales_data` (продажи, история, оплаты), `an_fb_marketing_data`
+  (лиды направления за период, правила и источники студий, бюджеты VK —
+  `an_vk_register_base`; направление по умолчанию — первой студии по
+  ORDER BY brand); право — отчёт из `an_me` (`an_fb_report_allowed`:
+  `fb.revenue` / `fb.sales` / `fb.marketing`, администратору — всё), вся
+  сеть. Считает страница (`lib/analytics/fitbase/reports.ts`).
   Клубы и собственники (решение владельца 2026-10-27, ACCESS.md):
   `db/migrations/2026-10-27_zz_studio_owners.sql` — `studio_owners`
   (клуб × пользователь портала; пишут только RPC `org_studio_owners_set` /

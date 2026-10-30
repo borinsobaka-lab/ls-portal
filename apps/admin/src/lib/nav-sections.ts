@@ -422,6 +422,30 @@ export const ANALYTICS_GROUPS: NavGroup<AnalyticsNavItem>[] = [
     ],
   },
   {
+    key: "an-fitbase",
+    label: "FitBase",
+    items: [
+      {
+        title: "Выручка по городам",
+        url: "/analytics/fitbase/revenue",
+        icon: WalletMoney,
+        need: "fb.revenue",
+      },
+      {
+        title: "Маркетинговый отчёт",
+        url: "/analytics/fitbase/marketing",
+        icon: ChartSquare,
+        need: "fb.marketing",
+      },
+      {
+        title: "Продажи абонементов",
+        url: "/analytics/fitbase/sales",
+        icon: TicketSale,
+        need: "fb.sales",
+      },
+    ],
+  },
+  {
     key: "an-tools",
     label: "Инструменты",
     items: [

@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/query";
 
 import { ANALYTICS_KEY } from "../data";
+import type { FbMarketingData, FbRevenueData, FbSalesData } from "./reports";
 
 export const FB_KEY = [ANALYTICS_KEY, "fitbase"] as const;
 
@@ -102,6 +103,28 @@ export const fbConnectionQuery = (id: number) => ({
   refetchInterval: (q: { state: { data?: FbConnectionView } }) =>
     q.state.data?.busy ? 3000 : false,
   meta: { errorMessage: "Не удалось загрузить подключение FitBase" },
+});
+
+/** «Выручка по городам»: подключения и выручка по дням за период (право fb.revenue). */
+export const fbRevenueDataQuery = (from: string, to: string) => ({
+  queryKey: [...FB_KEY, "revenue", from, to],
+  queryFn: () => rpc<FbRevenueData>("an_fb_revenue_data", { p_from: from, p_to: to }),
+  meta: { errorMessage: "Не удалось загрузить выручку FitBase" },
+});
+
+/** «Продажи абонементов»: продажи, история и оплаты студий (право fb.sales). */
+export const fbSalesDataQuery = {
+  queryKey: [...FB_KEY, "sales"],
+  queryFn: () => rpc<FbSalesData>("an_fb_sales_data"),
+  meta: { errorMessage: "Не удалось загрузить продажи FitBase" },
+};
+
+/** «Маркетинговый отчёт»: лиды направления за период и бюджеты VK (право fb.marketing). */
+export const fbMarketingDataQuery = (brand: string, from: string, to: string) => ({
+  queryKey: [...FB_KEY, "marketing", brand, from, to],
+  queryFn: () =>
+    rpc<FbMarketingData>("an_fb_marketing_data", { p_brand: brand, p_from: from, p_to: to }),
+  meta: { errorMessage: "Не удалось загрузить маркетинговый отчёт FitBase" },
 });
 
 export const fbRpc = {

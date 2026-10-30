@@ -3485,4 +3485,90 @@ describe.skipIf(!url)("аналитика: фундамент (база)", () =>
       ]);
     });
   });
+
+  test("FitBase: данные отчётов — право отчёта (вся сеть), период, направление по умолчанию", async () => {
+    await scenario(async (tx) => {
+      const admin = await person(tx, "Админ отчётов FitBase", ["an.admin"]);
+      const viewer = await person(tx, "Отчёты FitBase", ["an.fb.revenue", "an.fb.sales", "an.fb.marketing"]);
+      const other = await person(tx, "Без отчётов FitBase", ["an.mkt.ls"]);
+      await asServer(tx);
+      const [{ id: a }] = await tx`
+        insert into an_fb_connections (name, brand, city, domain, club_id, step_rules, source_rules, metadata, sales_payments_at)
+        values ('С1', 'Lady Stretch', 'Самара', 'aaa', '1', '{"1": "paid"}', '{"11": "community_messages"}',
+                '{"sources": [{"id": 11, "name": "VK", "extra": 1}]}', 100) returning id`;
+      const [{ id: b }] = await tx`
+        insert into an_fb_connections (name, brand, city, domain, club_id) values ('С2', 'Lady Jump', 'Уфа', 'bbb', '2') returning id`;
+      const [{ id: c }] = await tx`
+        insert into an_fb_connections (name, brand, city, domain) values ('С0', 'Lady Stretch', 'Самара', 'ccc') returning id`;
+      await tx`insert into an_fb_revenue_daily values (${a}, '2026-10-01', 500), (${a}, '2026-09-30', 100), (${c}, '2026-10-01', 1)`;
+      await tx`insert into an_fb_sales values (${a}, '10', 'k1', 1790900000, 5000, 0), (${c}, '11', 'k2', 1790900000, 5000, 0)`;
+      await tx`insert into an_fb_history values (${a}, '10', 'k1', 1790900000, 5000), (${c}, '11', 'k2', 1790900000, 5000)`;
+      await tx`insert into an_fb_payments values (${a}, 'purchase', 's1', '10', 'k1', 1790900100, '2026-10-02', 5000)`;
+      // Границы суток — МСК: 2026-10-01 00:00 = 1790802000.
+      await tx`insert into an_fb_leads values
+        (${a}, 'L1', 'client:1', 1790802000, '1', '11'),
+        (${a}, 'L0', 'client:1', 1790801999, '1', '11'),
+        (${a}, 'L9', 'client:2', 1793394000, '1', '11'),
+        (${b}, 'J1', 'client:3', 1790900000, '1', '')`;
+
+      for (const call of [
+        () => tx`select an_fb_revenue_data('2026-10-01', '2026-10-29')`,
+        () => tx`select an_fb_sales_data()`,
+        () => tx`select an_fb_marketing_data('Lady Stretch', '2026-10-01', '2026-10-30')`,
+      ]) {
+        expect(
+          await failure(tx, async () => {
+            await as(tx, other);
+            await call();
+          }),
+        ).toContain("an_forbidden");
+      }
+
+      await as(tx, viewer);
+      const [{ r }] = await tx`select an_fb_revenue_data('2026-10-01', '2026-10-29') as r`;
+      expect(r.admin).toBe(false);
+      expect(r.connections.map((x: { name: string }) => x.name)).toEqual(["С2", "С0", "С1"]);
+      expect(r.connections[2]).not.toHaveProperty("metadata");
+      expect(r.daily).toEqual([[Number(a), "2026-10-01", 500]]);
+      expect(
+        await failure(tx, async () => {
+          await as(tx, viewer);
+          await tx`select an_fb_revenue_data('2026-10-02', '2026-10-01')`;
+        }),
+      ).toContain("Проверьте фильтры и период выручки.");
+
+      await as(tx, viewer);
+      const [{ s }] = await tx`select an_fb_sales_data() as s`;
+      expect([s.sales, s.history, s.payments]).toEqual([
+        [[Number(a), "10", "k1", 1790900000, 5000, 0]],
+        [[Number(a), "10", "k1", 1790900000, 5000]],
+        [[Number(a), "purchase", "s1", "10", "k1", 1790900100, "2026-10-02", 5000]],
+      ]);
+
+      await as(tx, viewer);
+      const [{ m }] = await tx`select an_fb_marketing_data('', '2026-10-01', '2026-10-30') as m`;
+      // Их направление по умолчанию — первой студии по ORDER BY brand.
+      expect(m.brand).toBe("Lady Jump");
+      expect(m.leads).toEqual([[Number(b), "J1", "client:3", 1790900000, "1", ""]]);
+      const [{ m: ls }] = await tx`select an_fb_marketing_data('Lady Stretch', '2026-10-01', '2026-10-30') as m`;
+      expect(ls.leads).toEqual([[Number(a), "L1", "client:1", 1790802000, "1", "11"]]);
+      const first = ls.connections.find((x: { id: number }) => x.id === Number(a));
+      expect([first.step_rules, first.source_rules, first.sources]).toEqual([
+        { "1": "paid" },
+        { "11": "community_messages" },
+        [{ id: 11, name: "VK" }],
+      ]);
+      expect(ls.budgets).toEqual([]);
+      expect(
+        await failure(tx, async () => {
+          await as(tx, viewer);
+          await tx`select an_fb_marketing_data('Lady Stretch', '2025-09-30', '2026-10-01')`;
+        }),
+      ).toContain("Выберите корректный период: начало не позже конца, не больше 366 дней.");
+
+      await as(tx, admin);
+      const [{ r: ar }] = await tx`select an_fb_revenue_data('2026-10-01', '2026-10-29') as r`;
+      expect(ar.admin).toBe(true);
+    });
+  });
 });
