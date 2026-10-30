@@ -2,13 +2,12 @@ import { describe, expect, test } from "bun:test";
 
 import {
   DIRECTION_SORT,
-  cityChangeReloads,
   directionRows,
   directionValue,
   dotDate,
   filtersPending,
   fmt,
-  initialCity,
+  boardCity,
   nextDirectionSort,
   partnerRows,
   partnerSummary,
@@ -151,20 +150,26 @@ describe("форматирование — их fmt / rub / pct", () => {
 });
 
 describe("город и студия", () => {
-  test("город из адреса, если он в списке, иначе первый", () => {
-    expect(initialCity(payload({ selectedCity: "Бийск" }))).toBe("Бийск");
-    expect(initialCity(payload({ selectedCity: "Нет такого" }))).toBe("Абакан");
-    expect(initialCity(payload())).toBe("Абакан");
-    expect(initialCity(payload({ cities: [] }))).toBe("");
+  test("город — из адреса, если он в списке, иначе первый; при студии — город базы", () => {
+    expect(boardCity(payload(), "Бийск")).toBe("Бийск");
+    expect(boardCity(payload(), "Нет такого")).toBe("Абакан");
+    expect(boardCity(payload(), undefined)).toBe("Абакан");
+    expect(boardCity(payload({ cities: [] }), "Бийск")).toBe("");
+    const withStudio = payload({ selectedCity: "Бийск", selectedStudio: "Бийск 1" });
+    expect(boardCity(withStudio, "Абакан")).toBe("Бийск");
   });
 
-  test("студии города — «Все студии» первой; смена города при студии — перезагрузка", () => {
+  test("студии города — «Все студии» первой", () => {
     expect(studioChoices(payload(), "Бийск")).toEqual(["", "Бийск 1", "Бийск 2"]);
     expect(studioChoices(payload(), "Омск")).toEqual([""]);
+  });
+
+  test("ожидание данных: город без студии данные не меняет", () => {
+    const p = payload();
+    expect(filtersPending({ city: "Бийск" }, p)).toBe(false);
+    expect(filtersPending({ city: "Бийск", studio: "Бийск 1" }, p)).toBe(true);
     const withStudio = payload({ selectedCity: "Бийск", selectedStudio: "Бийск 1" });
-    expect(cityChangeReloads(withStudio, "Абакан")).toBe(true);
-    expect(cityChangeReloads(withStudio, "Бийск")).toBe(false);
-    expect(cityChangeReloads(payload(), "Бийск")).toBe(false);
+    expect(filtersPending({ city: "Бийск", studio: "Бийск 1" }, withStudio)).toBe(false);
   });
 });
 

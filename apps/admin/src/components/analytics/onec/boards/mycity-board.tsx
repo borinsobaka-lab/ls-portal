@@ -41,11 +41,10 @@ import {
   MARKETING_REPORT_URL,
   PRODUCT_SEGMENTS,
   TREND_CHART_HEIGHT,
-  cityChangeReloads,
   directionRows,
   filtersPending,
   fmt,
-  initialCity,
+  boardCity,
   nextDirectionSort,
   partnerRows,
   partnerSummary,
@@ -100,15 +99,7 @@ export function PartnerBoard({
 }) {
   const rows = useMemo(() => partnerRows(payload), [payload]);
 
-  // Город — свой на доске; заново из адреса, когда отчёт пришёл с другими
-  // городом или студией (смена студии, переход по другой ссылке).
-  const urlKey = `${payload.selectedCity}\u0001${payload.selectedStudio}`;
-  const [seenKey, setSeenKey] = useState(urlKey);
-  const [city, setCity] = useState(() => initialCity(payload));
-  if (seenKey !== urlKey) {
-    setSeenKey(urlKey);
-    setCity(initialCity(payload));
-  }
+  const city = boardCity(payload, controls.search.city);
 
   const summary = useMemo(() => partnerSummary(payload, city, rows), [payload, city, rows]);
   const trend = useMemo(() => salesTrend(payload, city, rows), [payload, city, rows]);
@@ -119,10 +110,10 @@ export function PartnerBoard({
   const wantedStudio = controls.search.studio ?? "";
   const studio = studioOptions.includes(wantedStudio) ? wantedStudio : "";
 
-  const changeCity = (next: string) => {
-    setCity(next);
-    if (cityChangeReloads(payload, next)) controls.setFilters({ city: next, studio: undefined });
-  };
+  // Город — в адресе (переживает смену периода и перезагрузку, как их
+  // select #city). Без студии данные не перезапрашиваются; при студии смена
+  // города сбрасывает её (их changeStudio("")).
+  const changeCity = (next: string) => controls.setFilters({ city: next, studio: undefined });
   const changeStudio = (value: string) =>
     controls.setFilters({ city: city || undefined, studio: value || undefined });
 

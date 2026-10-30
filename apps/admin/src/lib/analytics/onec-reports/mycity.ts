@@ -84,13 +84,13 @@ export function sumTotals(items: Record<string, unknown>[]): PartnerTotals {
 export const boardPeriod = (payload: PartnerPayload) => payload.periods[0] ?? "";
 
 /**
- * Город при открытии: из адреса (их selectedCity), если он есть в списке,
- * иначе первый в списке (их выпадающий список без выбора).
+ * Город доски: из адреса (их select #city; server-controls.js переносил его
+ * через смену периода), при выбранной студии — город, с которым база
+ * отфильтровала данные; нет такого — первый город.
  */
-export function initialCity(payload: PartnerPayload): string {
-  return payload.cities.includes(payload.selectedCity)
-    ? payload.selectedCity
-    : (payload.cities[0] ?? "");
+export function boardCity(payload: PartnerPayload, wanted: string | undefined): string {
+  const want = payload.selectedStudio ? payload.selectedCity : (wanted ?? "");
+  return payload.cities.includes(want) ? want : (payload.cities[0] ?? "");
 }
 
 /** Варианты студии города: «Все студии» (пусто) и студии из studioOptions. */
@@ -99,22 +99,14 @@ export function studioChoices(payload: PartnerPayload, city: string): string[] {
 }
 
 /**
- * Смена города (их partner-reference): при выбранной студии другой город
- * перезагружает доску без студии, иначе город меняется на месте.
- */
-export function cityChangeReloads(payload: PartnerPayload, city: string): boolean {
-  return !!payload.selectedStudio && city !== payload.selectedCity;
-}
-
-/**
  * Доска ещё показывает прежние данные: адрес уже просит другую студию,
- * город при студии или период (рамка перезагружает данные, прежние остаются
+ * город при студии или период (город без студии данные не меняет) (рамка перезагружает данные, прежние остаются
  * на экране).
  */
 export function filtersPending(search: OnecSearch, payload: PartnerPayload): boolean {
   return (
     (search.studio ?? "") !== payload.selectedStudio ||
-    (search.city ?? "") !== payload.selectedCity ||
+    (!!search.studio && (search.city ?? "") !== payload.selectedCity) ||
     (search.start !== undefined && search.start !== payload.start) ||
     (search.end !== undefined && search.end !== payload.end)
   );

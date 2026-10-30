@@ -33,9 +33,25 @@ export const ONEC_BOARD_NOTICE: Record<OnecBoard, string> = {
 
 export const ONEC_BOARD_TITLES = BOARD_NAMES;
 
+/**
+ * Кнопки «С начала месяца / квартала / года»: их *-reference.js убирают их у
+ * «Продаж», «Занятий», «Воронки» и «Моего города»; у «Выручки» и «Нулевой
+ * номенклатуры» они остаются.
+ */
+export const ONEC_BOARD_PRESETS: Record<OnecBoard, boolean> = {
+  revenue: true,
+  zero: true,
+  sales: false,
+  activities: false,
+  funnel: false,
+  partner: false,
+};
+
 export function onecReportQuery(board: OnecBoard, params: OnecParams) {
   const studio = board === "partner" ? (params.studio ?? "") : "";
-  const city = board === "partner" ? (params.city ?? "") : "";
+  // Город без студии данные не меняет (их partner_payload фильтрует по
+  // городу только вместе со студией) — и не перезапрашивает их.
+  const city = studio ? (params.city ?? "") : "";
   return {
     queryKey: [
       ANALYTICS_KEY,

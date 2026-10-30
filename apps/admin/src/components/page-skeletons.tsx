@@ -53,6 +53,8 @@ import {
   WORKOUT_COLUMNS,
 } from "@/lib/dashboard-stats";
 import { AN_HOME_TEXT, AN_TITLES } from "@/lib/analytics/labels";
+import { ONEC_BOARD_PRESETS } from "@/lib/analytics/onec-reports/data";
+import { BOARD_NAMES, type OnecBoard } from "@/lib/analytics/onec-reports/payload";
 import { CLUBS_HIDDEN } from "@/lib/launch";
 
 /*
@@ -2533,40 +2535,131 @@ export function AnalyticsHomePageSkeleton() {
   );
 }
 
-/** Отчёт 1С: плашка периода, плитки показателей и таблица доски. */
-function OnecReportPageSkeleton({ title }: { title: string }) {
+/** Плашка фильтров доски 1С: поля заданной ширины (пилюли — rounded-full). */
+function OnecToolbarSkeleton({ items }: { items: string[] }) {
   return (
-    <ShellSkeleton title={title} network>
+    <div className="flex flex-wrap gap-2 rounded-lg border bg-background p-2 sm:px-3">
+      {items.map((cls, i) => (
+        <Skeleton key={i} className={cn("h-9", cls)} />
+      ))}
+    </div>
+  );
+}
+
+function OnecTilesSkeleton({ count, grid }: { count: number; grid: string }) {
+  return (
+    <div className={cn("grid gap-3", grid)}>
+      {Array.from({ length: count }, (_, i) => (
+        <Skeleton key={i} className="h-24 rounded-lg" />
+      ))}
+    </div>
+  );
+}
+
+/**
+ * Тело доски 1С, пока считаются данные: раскладка своей доски (их блоки по
+ * порядку) — и в скелетоне страницы, и в рамке отчёта.
+ */
+export function OnecBoardBodySkeleton({ board }: { board: OnecBoard }) {
+  const table = <Skeleton className="h-96 w-full rounded-lg" />;
+  switch (board) {
+    case "revenue":
+      return (
+        <div className="space-y-4">
+          <OnecTilesSkeleton count={6} grid="grid-cols-2 md:grid-cols-3 2xl:grid-cols-6" />
+          <OnecToolbarSkeleton
+            items={["w-full sm:w-72", "w-48", ...Array<string>(6).fill("w-32 rounded-full")]}
+          />
+          {table}
+        </div>
+      );
+    case "sales":
+      return (
+        <div className="space-y-4">
+          <OnecTilesSkeleton count={6} grid="grid-cols-2 lg:grid-cols-3 xl:grid-cols-6" />
+          <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-[1fr_1fr_1fr_1.6fr]">
+            {Array.from({ length: 4 }, (_, i) => (
+              <Skeleton key={i} className="h-24 rounded-lg" />
+            ))}
+          </div>
+          <div className="grid gap-4 xl:grid-cols-3">
+            {Array.from({ length: 3 }, (_, i) => (
+              <Skeleton key={i} className="h-56 rounded-lg" />
+            ))}
+          </div>
+          <OnecToolbarSkeleton items={["w-full sm:w-72", "w-48", "w-48"]} />
+          {table}
+        </div>
+      );
+    case "activities":
+      return (
+        <div className="space-y-4">
+          <OnecToolbarSkeleton items={["w-48", "w-48", "w-48", "w-48"]} />
+          <OnecTilesSkeleton count={6} grid="sm:grid-cols-2 lg:grid-cols-3" />
+          {table}
+        </div>
+      );
+    case "funnel":
+      return (
+        <div className="space-y-4">
+          <OnecToolbarSkeleton items={["w-48", "w-48", "w-48", "w-48"]} />
+          <OnecTilesSkeleton count={8} grid="grid-cols-2 xl:grid-cols-4" />
+          {table}
+        </div>
+      );
+    case "zero":
+      return (
+        <div className="space-y-4">
+          <Skeleton className="h-3 w-56" />
+          <OnecToolbarSkeleton items={["w-full sm:w-72", "w-48", "w-48"]} />
+          <OnecTilesSkeleton count={4} grid="grid-cols-2 lg:grid-cols-4" />
+          {table}
+        </div>
+      );
+    case "partner":
+      return (
+        <div className="space-y-4">
+          <OnecToolbarSkeleton items={["w-48", "w-48", "w-44 rounded-full"]} />
+          <div className="space-y-2">
+            <Skeleton className="h-6 w-64" />
+            <Skeleton className="h-3 w-80 max-w-full" />
+          </div>
+          <OnecTilesSkeleton count={4} grid="grid-cols-2 lg:grid-cols-4" />
+          <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
+            <Skeleton className="h-56 rounded-lg" />
+            <Skeleton className="h-56 rounded-lg" />
+          </div>
+        </div>
+      );
+  }
+}
+
+/** Страница отчёта 1С: плашка периода (у части досок — без «С начала …»), подпись, доска. */
+function OnecReportPageSkeleton({ board }: { board: OnecBoard }) {
+  return (
+    <ShellSkeleton title={BOARD_NAMES[board]} network>
       <div className="space-y-4">
-        <div className="flex flex-wrap gap-2 rounded-lg border bg-background p-2">
-          <Skeleton className="h-9 w-56" />
-          <Skeleton className="h-9 w-36 rounded-full" />
-          <Skeleton className="h-9 w-40 rounded-full" />
-          <Skeleton className="h-9 w-32 rounded-full" />
-        </div>
+        <OnecToolbarSkeleton
+          items={
+            ONEC_BOARD_PRESETS[board]
+              ? ["w-56", "w-36 rounded-full", "w-40 rounded-full", "w-32 rounded-full"]
+              : ["w-56"]
+          }
+        />
         <Skeleton className="h-3 w-96 max-w-full" />
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          {Array.from({ length: 4 }, (_, i) => (
-            <Skeleton key={i} className="h-24 rounded-lg" />
-          ))}
-        </div>
-        <Skeleton className="h-96 w-full rounded-lg" />
+        <OnecBoardBodySkeleton board={board} />
       </div>
     </ShellSkeleton>
   );
 }
-export const AnalyticsOnecRevenuePageSkeleton = () => <OnecReportPageSkeleton title="Выручка" />;
-export const AnalyticsOnecSalesPageSkeleton = () => (
-  <OnecReportPageSkeleton title="Продажи абонементов" />
+export const AnalyticsOnecRevenuePageSkeleton = () => <OnecReportPageSkeleton board="revenue" />;
+export const AnalyticsOnecSalesPageSkeleton = () => <OnecReportPageSkeleton board="sales" />;
+export const AnalyticsOnecActivitiesPageSkeleton = () => (
+  <OnecReportPageSkeleton board="activities" />
 );
-export const AnalyticsOnecActivitiesPageSkeleton = () => <OnecReportPageSkeleton title="Занятия" />;
-export const AnalyticsOnecFunnelPageSkeleton = () => (
-  <OnecReportPageSkeleton title="Воронка пробных" />
-);
-export const AnalyticsOnecZeroPageSkeleton = () => (
-  <OnecReportPageSkeleton title="Нулевая номенклатура" />
-);
-export const AnalyticsOnecMycityPageSkeleton = () => <OnecReportPageSkeleton title="Мой город" />;
+export const AnalyticsOnecFunnelPageSkeleton = () => <OnecReportPageSkeleton board="funnel" />;
+export const AnalyticsOnecZeroPageSkeleton = () => <OnecReportPageSkeleton board="zero" />;
+export const AnalyticsOnecMycityPageSkeleton = () => <OnecReportPageSkeleton board="partner" />;
 
 /** «Обработка 1С»: табы на плашке, окно обработки, папки выгрузок. */
 export function AnalyticsOnecPageSkeleton() {

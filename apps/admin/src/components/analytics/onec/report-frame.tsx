@@ -2,13 +2,14 @@ import { useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 import { AdminShell } from "@/components/admin-shell";
+import { OnecBoardBodySkeleton } from "@/components/page-skeletons";
 import { DateRangeFilter, type DateRange } from "@/components/date-range-filter";
 import { TableToolbar } from "@/components/table-toolbar";
 import { Button } from "@/components/ui/button";
 import { InfoNote } from "@/components/ui/form-field";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   ONEC_BOARD_NOTICE,
+  ONEC_BOARD_PRESETS,
   ONEC_BOARD_TITLES,
   onecReportErrorText,
   onecReportQuery,
@@ -87,15 +88,19 @@ export function OnecReportFrame({
               else setDraft(r);
             }}
           />
-          <Button variant="outline" disabled={!payload} onClick={() => preset("month")}>
-            С начала месяца
-          </Button>
-          <Button variant="outline" disabled={!payload} onClick={() => preset("quarter")}>
-            С начала квартала
-          </Button>
-          <Button variant="outline" disabled={!payload} onClick={() => preset("year")}>
-            С начала года
-          </Button>
+          {ONEC_BOARD_PRESETS[board] && (
+            <>
+              <Button variant="outline" disabled={!payload} onClick={() => preset("month")}>
+                С начала месяца
+              </Button>
+              <Button variant="outline" disabled={!payload} onClick={() => preset("quarter")}>
+                С начала квартала
+              </Button>
+              <Button variant="outline" disabled={!payload} onClick={() => preset("year")}>
+                С начала года
+              </Button>
+            </>
+          )}
         </TableToolbar>
         {payload && (
           <p className="text-xs text-muted-foreground">
@@ -110,25 +115,11 @@ export function OnecReportFrame({
             Данных ещё нет: их загружает администратор аналитики в «Инструменты» → «Обработка 1С».
           </InfoNote>
         ) : isPending || !payload ? (
-          <OnecBoardSkeleton />
+          <OnecBoardBodySkeleton board={board} />
         ) : (
           children(payload, controls)
         )}
       </div>
     </AdminShell>
-  );
-}
-
-/** Болванка доски: плитки показателей и таблица. */
-export function OnecBoardSkeleton() {
-  return (
-    <div className="space-y-4">
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {Array.from({ length: 4 }, (_, i) => (
-          <Skeleton key={i} className="h-24 rounded-lg" />
-        ))}
-      </div>
-      <Skeleton className="h-96 w-full rounded-lg" />
-    </div>
   );
 }
