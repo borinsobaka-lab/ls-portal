@@ -45,7 +45,8 @@ Tailwind 4 + shadcn/radix. Пакетный менеджер — bun.
   бюджеты каналов, проценты, блоки, плитки) `lib/analytics/amo/marketing.test.ts`,
   Авито (разбор ответов API, UTM, план периода, реестр) `lib/analytics/avito/avito.test.ts`,
   квиз (их _clean, проверка заявки, строка таблицы, тексты лендинга)
-  `lib/analytics/quiz/quiz.test.ts`;
+  `lib/analytics/quiz/quiz.test.ts`, FitBase (домен, суммы, даты, пробные,
+  сокращение строк, периоды, ночная загрузка) `lib/analytics/fitbase/fitbase.test.ts`;
   «Академия» — подписи,
   проверка вопроса, сроки и напоминания `lib/academy/logic.test.ts`;
   Kate — инструменты,
@@ -803,6 +804,18 @@ kb`. Доступ — ролями «Пользователей и ролей» 
   `kickAnalyticsJob` после приёма — и «Запустить», `onDemand` в
   `jobs.server.ts`); правила их кода — `lib/analytics/quiz/rules.ts`,
   запросы — `quiz/data.ts`.
+  «Интеграция FitBase» (2026-10-30, ANALYTICS.md; группа «CRM») —
+  `/analytics/crm/fitbase` (загрузка всех студий, карточки студий,
+  «Подключить студию») и `/analytics/crm/fitbase/$connectionId` (проверка
+  подключения, правила этапов и источников, коды записей и статус студии);
+  карточка и форма — `components/analytics/fitbase/parts.tsx`, правила их
+  кода — `lib/analytics/fitbase/rules.ts`, запросы — `fitbase/data.ts`,
+  действия (ключ шифрует сервер, загрузки — в фоне) —
+  `lib/analytics/fitbase.functions.ts`. Сервер — API
+  `lib/analytics/server/fitbase-api.server.ts`, загрузка студии, общая
+  очередь и ночной запуск — `server/fitbase.server.ts` (задача `fitbase`:
+  01:00 МСК, только изменения; прошлые выгрузки — бакет `an-fitbase`;
+  `ANALYTICS_FITBASE_ORIGIN` — только стенд).
   Отчёты 1С — группа меню «1С · Lady Stretch» (`/analytics/onec/<доска>`,
   «Мой город» — `/mycity`): маршрут рисует `OnecReportFrame`
   (`components/analytics/onec/report-frame.tsx`: период, «С начала месяца /

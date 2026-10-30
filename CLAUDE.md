@@ -1166,6 +1166,26 @@ DEPLOY.md.
   администратору аналитики — `an_quiz_overview`, `an_quiz_city_save` /
   `_delete`, `an_quiz_leads`, `an_quiz_lead_delete`. Таблицы закрыты
   браузеру.
+  FitBase, часть 1 (2026-10-30, ANALYTICS.md):
+  `db/migrations/2026-10-30_zzzzzzzzzzzzz_analytics_fitbase.sql` —
+  подключения студий `an_fb_connections` (ключ API — `an_secrets` kind
+  `fitbase`, ref = id; клуб, правила этапов, источников и кодов записей,
+  состояния разделов; `UNIQUE(domain, club_id)`, как у них), факты их
+  SQLite: лиды `an_fb_leads`, абонементы `an_fb_sales` / `an_fb_history` /
+  `an_fb_payments` / `an_fb_refund_audit`, занятия `an_fb_events` /
+  `an_fb_records`, пробные `an_fb_trial_products` / `_snapshots` /
+  `_evidence` / `_quality`, выручка `an_fb_revenue_payments` /
+  `an_fb_revenue_daily` (время — секунды Unix); прошлые выгрузки разделов —
+  файлы закрытого бакета `an-fitbase` (шифрует сервер), метки —
+  `an_fb_incremental`; общая очередь `an_fb_batch`, ночной запуск
+  `an_fb_nightly`. Факты раздела сервер кладёт пачками в `an_fb_staging` и
+  заменяет одной транзакцией `an_fb_commit`. Администратору аналитики —
+  `an_fb_connections`, `an_fb_connection`, `an_fb_connection_save`,
+  `an_fb_rules_save`, `an_fb_attendance_settings`; серверу (service_role) —
+  `an_fb_job_begin`, `an_fb_incremental_open`, `an_fb_stage`,
+  `an_fb_commit`, `an_fb_batch_begin`. Загрузка «жива» 15 минут без отметки
+  (`an_fb_busy`). Задача `fitbase` — ночью в 01:00 МСК. Таблицы закрыты
+  браузеру.
   Клубы и собственники (решение владельца 2026-10-27, ACCESS.md):
   `db/migrations/2026-10-27_zz_studio_owners.sql` — `studio_owners`
   (клуб × пользователь портала; пишут только RPC `org_studio_owners_set` /

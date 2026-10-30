@@ -3292,4 +3292,197 @@ describe.skipIf(!url)("аналитика: фундамент (база)", () =>
       ]);
     });
   });
+
+  // --- FitBase, часть 1 (db/migrations/2026-10-30_zzzzzzzzzzzzz_analytics_fitbase.sql) ---
+
+  test("FitBase: подключения, правила, коды статусов — их проверки; загрузка — только сервер", async () => {
+    await scenario(async (tx) => {
+      const admin = await person(tx, "Админ FitBase", ["an.admin"]);
+      const staff = await person(tx, "Сотрудник FitBase", ["an.mkt.lj"]);
+      const key = "A".repeat(38) + "==";
+      const save = (id: number | null, name: string, brand: string, city: string, domain: string, cipher = key, partner = "") =>
+        failure(tx, async () => {
+          await as(tx, admin);
+          await tx`select an_fb_connection_save(${id}, ${name}, ${brand}, ${city}, ${domain}, ${partner}, false, ${cipher})`;
+        });
+      expect(await save(null, "Студия", "Lady Stretch", "Самара", "Bad Domain")).toContain("Нужен поддомен клуба FitBase");
+      expect(await save(null, "Студия", "Lady Stretch", "Самара", "club", key, "п".repeat(151))).toContain("Имя партнёра — не больше 150 символов.");
+      expect(await save(null, " ", "Lady Stretch", "Самара", "club")).toContain("Заполните студию, направление и город.");
+      expect(await save(null, "Студия", "Lady Bounce", "Самара", "club")).toContain("Заполните студию, направление и город.");
+      expect(await save(null, "Студия", "Lady Stretch", "Самара", "club", "")).toContain("Введите API-ключ.");
+      expect(await save(null, "Студия", "Lady Stretch", "Самара", "club", "plain")).toContain("Ключ не зашифрован");
+      expect(await save(null, " Студия ", "Lady Jump", " Казань ", "club")).toBeNull();
+      expect(await save(null, "Вторая", "Lady Stretch", "Самара", "club")).toContain("Студия с этим доменом FitBase уже подключена.");
+      await asServer(tx);
+      const [c] = await tx`select id, name, city, domain from an_fb_connections where domain = 'club'`;
+      expect([c.name, c.city]).toEqual(["Студия", "Казань · Вишневского"]);
+      const id = Number(c.id);
+      expect((await tx`select count(*)::int as n from an_secrets where kind = 'fitbase' and ref = ${String(id)}`)[0].n).toBe(1);
+      expect(
+        await failure(tx, async () => {
+          await as(tx, staff);
+          await tx`select an_fb_connections()`;
+        }),
+      ).toContain("an_forbidden");
+      for (const run of [
+        async () => { await as(tx, admin); await tx`select an_fb_job_begin(${id}, 'all')`; },
+        async () => { await as(tx, admin); await tx`select an_fb_incremental_open(${id}, 's', 'lead', '{}')`; },
+        async () => { await as(tx, admin); await tx`select an_fb_commit(gen_random_uuid(), ${id}, 'leads', '{}', '[]')`; },
+        async () => { await as(tx, admin); await tx`select * from an_fb_leads`; },
+        async () => { await asServer(tx); await tx`set local role anon`; await tx`select an_fb_connections()`; },
+      ]) {
+        expect(await failure(tx, run)).toMatch(/permission denied/);
+      }
+
+      // Загрузка (service_role): одна на студию; «всё» — полная сверка.
+      await asService(tx);
+      const [{ b }] = await tx`select an_fb_job_begin(${id}, 'all') as b`;
+      expect([b.sync_state, b.full_sync, b.job_progress]).toEqual(["Выполняется", true, "Подключаемся к FitBase…"]);
+      expect(
+        await failure(tx, async () => {
+          await asService(tx);
+          await tx`select an_fb_job_begin(${id}, 'sync')`;
+        }),
+      ).toContain("Для студии уже выполняется загрузка.");
+      expect(await save(id, "Студия", "Lady Jump", "Казань", "club", "")).toContain("Дождитесь завершения загрузки");
+      // Оборванная перезапуском (отметка старше 15 минут) — снова можно, в списке — их текст.
+      await asServer(tx);
+      await tx`update an_fb_connections set job_started_at = extract(epoch from now())::bigint - 3600 where id = ${id}`;
+      await as(tx, admin);
+      const [{ list }] = await tx`select an_fb_connections() as list`;
+      const row = list.connections.find((x: { id: number }) => Number(x.id) === id);
+      expect([row.busy, row.sync_state, row.has_key]).toEqual([false, "Загрузка прервана перезапуском. Повторите обновление.", true]);
+
+      // Справочники после проверки (их verify пишет сервер).
+      await asServer(tx);
+      await tx`update an_fb_connections set sync_state = 'Доступ подтверждён', job_started_at = null,
+               metadata = ${{ clubs: [{ id: 10, name: "Клуб" }, { id: 11, name: "Второй" }], steps: [{ id: 1, name: "Новая сделка" }, { id: 2, name: "Оплатили" }], sources: [{ id: 5, name: "VK" }] }}::jsonb
+               where id = ${id}`;
+      const rules = (club: string, steps: object, sources: object) =>
+        failure(tx, async () => {
+          await as(tx, admin);
+          await tx`select an_fb_rules_save(${id}, ${club}, ${steps}::jsonb, ${sources}::jsonb)`;
+        });
+      const okSteps = { "1": "new", "2": "paid" };
+      expect(await rules("99", okSteps, { "5": "none" })).toContain("Выберите клуб из FitBase.");
+      expect(await rules("10", { "1": "new" }, { "5": "none" })).toContain("Обновите список этапов и проверьте правила.");
+      expect(await rules("10", { "1": "new", "2": "bought" }, { "5": "none" })).toContain("Обновите список этапов и проверьте правила.");
+      expect(await rules("10", okSteps, {})).toContain("Некорректное сопоставление бюджетов.");
+      expect(await rules("10", okSteps, { "5": "tv" })).toContain("Некорректное сопоставление бюджетов.");
+      expect(await rules("10", okSteps, { "5": "lead_forms" })).toBeNull();
+      // Тот же домен — можно с другим клубом; тот же клуб — их UNIQUE(domain, club_id).
+      expect(await save(null, "Вторая", "Lady Stretch", "Самара", "club")).toBeNull();
+      await asServer(tx);
+      const [second] = await tx`select id from an_fb_connections where name = 'Вторая'`;
+      await tx`update an_fb_connections set metadata = (select metadata from an_fb_connections where id = ${id})
+               where id = ${second.id}`;
+      expect(
+        await failure(tx, async () => {
+          await as(tx, admin);
+          await tx`select an_fb_rules_save(${second.id}, '10', ${okSteps}::jsonb, ${{ "5": "none" }}::jsonb)`;
+        }),
+      ).toContain("Этот клуб FitBase уже подключён другой студией с тем же доменом.");
+
+      // Факты разделов: пачки и одна транзакция замены.
+      const commit = async (phase: string, staged: Record<string, unknown[][]>, state: object, incremental: object[] = []) => {
+        await asService(tx);
+        const [{ run }] = await tx`select gen_random_uuid() as run`;
+        for (const [kind, rows] of Object.entries(staged)) {
+          await tx`select an_fb_stage(${run}, ${kind}, ${JSON.stringify(rows)}::text::jsonb)`;
+        }
+        const [{ r }] = await tx`select an_fb_commit(${run}, ${id}, ${phase}, ${state}::jsonb, ${JSON.stringify(incremental)}::text::jsonb) as r`;
+        return r.removed_paths as string[];
+      };
+      await asService(tx);
+      const [{ none }] = await tx`select an_fb_incremental_open(${id}, 'scope-lead', 'lead', '{}') as none`;
+      expect(none).toBeNull();
+      expect(
+        await commit("leads", { leads: [["L1", "client:7", 1700000000, "1", "5"], ["L2", "lead:L2", 1700000100, "2", ""]] },
+          { synced_at: 1700000200, job_progress: "Загружено сделок клуба: 2" },
+          [{ scope: "scope-lead", endpoint: "lead", params: {}, path: "1/inc/a.bin", cursor_at: 100, full_at: 100 }]),
+      ).toEqual([]);
+      const [{ old }] = await tx`select an_fb_incremental_open(${id}, 'scope-lead', 'lead', '{}') as old`;
+      expect([old.object_path, Number(old.cursor_at), old.pending_at]).toEqual(["1/inc/a.bin", 100, null]);
+      expect(
+        await commit("leads", { leads: [["L1", "client:7", 1700000000, "1", "5"]] }, {},
+          [{ scope: "scope-lead", endpoint: "lead", params: {}, path: "1/inc/b.bin", cursor_at: 200, full_at: 100 }]),
+      ).toEqual(["1/inc/a.bin"]);
+      await commit("sales", { history: [["C1", "7", 1700000000, 500000], ["C2", "8", 1700000000, 0]], products: [["C1", "Абонемент", 0], ["C2", "Пробное", 1]], sales: [["C1", "7", 1700000000, 500000, 500000]] },
+        { sales_synced_at: 1700000300, sales_state: "Продажи загружены" });
+      await commit("refund", { audit: [["C1", 500000, 500000, 100000, 400000, 400000, "deducted"]], payments: [["purchase", "P1", "C1", "7", 1700000000, "2023-11-15", 500000], ["refund", "R1", "C1", "7", 1700000500, "2023-11-15", 100000]] },
+        { sales_payments_at: 1700000400, refund_checked_at: 1700000400, refund_state: "Возвраты сверены: уже учтены — 0, вычтены — 1, требуют проверки — 0" });
+      await commit("attendance", { events: [["E1", "2026-10-01", 1700000000, "T1", "Растяжка", false]], records: [["R1", "E1", "7", "3"], ["R2", "E1", "", "9"]], products: [["R1", "Пробное", 1], ["R2", "", -1]] },
+        { trial_snapshot: true, attendance_synced_at: 1700000500, attendance_state: "Занятия загружены · сопоставьте статусы записей в настройках", attendance_from: "2025-10-01", attendance_to: "2026-10-30", attendance_rules: { "3": "visited" }, checks_path: "1/checks/x.bin" });
+      expect(await commit("attendance", { events: [["E1", "2026-10-01", 1700000000, "T1", "Растяжка", false]], records: [["R1", "E1", "7", "3"], ["R2", "E1", "", "9"]], products: [["R1", "Пробное", 1], ["R2", "", -1]] },
+        { trial_snapshot: false, checks_path: "1/checks/y.bin" })).toEqual(["1/checks/x.bin"]);
+      await commit("revenue", { revenue: [["purchase", "P1", 1700000000, "2026-10-01", 30000, "contract"], ["purchase", "P2", 1700000000, "2026-10-01", 20000, "service"], ["refund", "R1", 1700000000, "2026-10-02", -5000, "contract"]] },
+        { revenue_synced_at: 1700000600, revenue_state: "Выручка загружена", revenue_from: "2026-04-01", revenue_to: "2026-10-29" });
+      await commit("trials", { products: [["R1", "Пробное", 1], ["R2", "Обычное", 0]], evidence: [["R1", "sig1", "Пробное", 1]] },
+        { trial_snapshot: true, quality: { unknown: 0, received: 3, reported: 3, exhausted: true } });
+      await asServer(tx);
+      const facts = async (table: string) =>
+        (await tx.unsafe(`select count(*)::int as n from ${table} where connection_id = ${id}`))[0].n;
+      expect(await Promise.all(["an_fb_leads", "an_fb_history", "an_fb_sales", "an_fb_payments", "an_fb_refund_audit", "an_fb_events", "an_fb_records", "an_fb_revenue_payments", "an_fb_trial_evidence"].map(facts))).toEqual([1, 2, 1, 2, 1, 1, 2, 3, 1]);
+      expect((await tx`select count(*)::int as n from an_fb_staging`)[0].n).toBe(0);
+      const daily = await tx`select day, amount_cents::int as a from an_fb_revenue_daily where connection_id = ${id} order by day`;
+      expect(daily.map((d) => [d.day, d.a])).toEqual([["2026-10-01", 50000], ["2026-10-02", -5000]]);
+      const products = await tx`select kind, item_id, is_trial from an_fb_trial_products where connection_id = ${id} order by kind, item_id`;
+      expect(products.map((p) => [p.kind, p.item_id, p.is_trial])).toEqual([["contract", "C1", 0], ["contract", "C2", 1], ["registration", "R1", 1], ["registration", "R2", 0]]);
+      const snaps = await tx`select kind from an_fb_trial_snapshots where connection_id = ${id} order by kind`;
+      expect(snaps.map((x) => x.kind)).toEqual(["contract", "registration"]);
+      const [conn] = await tx`select synced_at::int as s, sales_state, refund_state, checks_path, revenue_to, club_id from an_fb_connections where id = ${id}`;
+      expect([conn.s, conn.sales_state, conn.checks_path, conn.revenue_to, conn.club_id]).toEqual([1700000200, "Продажи загружены", "1/checks/y.bin", "2026-10-29", "10"]);
+
+      // Коды статусов записей: ровно встреченные коды, их значения.
+      const attendance = (status: string, map: object) =>
+        failure(tx, async () => {
+          await as(tx, admin);
+          await tx`select an_fb_attendance_settings(${id}, ${status}, ${map}::jsonb)`;
+        });
+      expect(await attendance("closed", { "3": "visited", "9": "" })).toContain("Выберите статус студии.");
+      expect(await attendance("active", { "3": "visited" })).toContain("Обновите страницу и проверьте статусы записей.");
+      expect(await attendance("active", { "3": "visited", "9": "gone" })).toContain("Обновите страницу и проверьте статусы записей.");
+      expect(await attendance("archived", { "3": "visited", "9": "late_cancel" })).toBeNull();
+      await as(tx, admin);
+      const [{ v }] = await tx`select an_fb_connection(${id}) as v`;
+      expect([v.studio_status, v.attendance_state, v.status_details.map((d: { status: string; count: number }) => [d.status, d.count])]).toEqual([
+        "archived", "Занятия загружены", [["3", 1], ["9", 1]],
+      ]);
+      expect(v.status_details[0].examples[0]).toEqual({ registration_id: "R1", client_key: "7", event_id: "E1", day: "2026-10-01", training_name: "Растяжка" });
+
+      // Смена клуба и домена стирает загруженное и отдаёт пути файлов.
+      const [{ moved }] = await tx`select an_fb_rules_save(${id}, '11', ${okSteps}::jsonb, ${{ "5": "none" }}::jsonb) as moved`;
+      expect(moved.removed_paths).toEqual(["1/inc/b.bin", "1/checks/y.bin"]);
+      await asServer(tx);
+      expect(await Promise.all(["an_fb_leads", "an_fb_records", "an_fb_trial_products", "an_fb_incremental"].map(facts))).toEqual([0, 0, 0, 0]);
+      expect(await save(id, "Студия", "Lady Jump", "Казань", "club2", "")).toContain("При изменении домена введите его API-ключ.");
+      expect(await save(id, "Студия", "Lady Jump", "Казань", "club2")).toBeNull();
+      await asServer(tx);
+      const [after] = await tx`select club_id, metadata, sync_state from an_fb_connections where id = ${id}`;
+      expect([after.club_id, after.metadata, after.sync_state]).toEqual(["", {}, "Не синхронизировано"]);
+
+      // Общая загрузка — одна; оборванная (без отметки 30 минут) — снова можно.
+      await asService(tx);
+      expect((await tx`select an_fb_batch_begin('{"total": 1}') as ok`)[0].ok).toBe(true);
+      expect((await tx`select an_fb_batch_begin('{"total": 1}') as ok`)[0].ok).toBe(false);
+      await asServer(tx);
+      await tx`update an_fb_batch set updated_at = now() - interval '1 hour' where id = 1`;
+      await as(tx, admin);
+      const [{ l2 }] = await tx`select an_fb_connections() as l2`;
+      expect([l2.batch.active, l2.batch.interrupted]).toEqual([false, true]);
+      await asService(tx);
+      expect((await tx`select an_fb_batch_begin('{"total": 2}') as ok`)[0].ok).toBe(true);
+
+      await asServer(tx);
+      const events = await tx`select event from an_audit where user_id = ${admin} and event like 'fitbase%' order by id`;
+      expect(events.map((e) => e.event)).toEqual([
+        "fitbase_save",
+        "fitbase_rules",
+        "fitbase_save",
+        "fitbase_attendance_rules",
+        "fitbase_rules",
+        "fitbase_save",
+      ]);
+    });
+  });
 });

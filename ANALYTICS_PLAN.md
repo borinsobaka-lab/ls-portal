@@ -247,7 +247,7 @@ Postgres вместо SQLite, префикс `an_<модуль>_`, секрет�
 | amoCRM | `connections`, `connection_settings`, `pipeline_mappings`, `responsible_mappings`, `qualification_basis_mappings`, `marketing_leads`, `lead_events`, `marketing_versions`, `marketing_snapshots` (+ origins, history_state), `sync_state`, `sync_runs`, `metadata_cache` → `an_crm_*` |
 | VK Ads | `ad_accounts`, `account_balances`, `ad_plans`, `daily_campaign_statistics`, `lead_forms`, `lead_form_campaign_links`, `lead_submissions`, `lead_form_metric_leads`, `lead_form_daily_metrics`, `lead_collection_sources/settings`, `google_drive_settings`, `brand_community_message_sources`, `brand_community_message_daily_metrics`, `brand_target_monthly_plans` (+ changes), `brand_city_targetologists`, `budget_alert_settings`, `budget_alerts`, `telegram_bot_settings`, `partner_notification_channels`, `budget_alert_deliveries`, `sync_runs` → `an_vk_*` |
 | Авито | `accounts`, `entities`, `daily_campaign_statistics`, `monthly_plans` → `an_avito_*` |
-| FitBase | `connections` и все таблицы фактов и классификации, `trial_service_*`, `trial_browser_basis`, очередь сборщика (`jobs`, `seen`, `evidence`) → `an_fb_*` (их зашифрованные кэши DTO не нужны) |
+| FitBase | `connections` и все таблицы фактов и классификации, `trial_service_*`, `trial_browser_basis`, очередь сборщика (`jobs`, `seen`, `evidence`) → `an_fb_*` (их зашифрованные выгрузки разделов — файлы закрытого бакета `an-fitbase`: на них держится загрузка изменений по `updated_at`) |
 | Отзывы | `review_uploads`, `review_rows`, `staff_feedback_links`, `staff_feedback_responses` → `an_rv_*` |
 | Квиз | `quiz_leads` → `an_quiz_leads`; города лендингов (`config.js`, `CITY_SHEETS`) → `an_quiz_cities` |
 | Inbox | 11 таблиц `vk_inbox_*` → `an_inbox_*` |
@@ -493,7 +493,7 @@ VK» → «Подключения». ФИО таргетолога в новом
 | **3. Отзывы** — сделано 2026-10-30 | Загрузка выгрузки, статистика клиентов и сотрудников, ссылки, публичная форма |
 | **4. VK Ads** — часть 1 сделана 2026-10-30 (кабинеты, сбор, расходы, импорт кабинетов), часть 2 — 2026-10-30 (реестр таргета, планы, таргетологи, источники СС), часть 3 — 2026-10-30 (сбор лид-форм, счётчики ЛФ, кнопки панели), часть 4 — 2026-10-30 (контроль бюджетов, Telegram) — **этап сделан** | Кабинеты, расходы, реестр, планы, таргетологи, СС, лид-формы, контроль бюджетов, Telegram, обслуживание |
 | **5. amoCRM, Авито, квиз** — часть 1 сделана 2026-10-30 (интеграция amoCRM, сбор сделок, срезы, квалификация VK), часть 2 — 2026-10-30 (отчёты «Маркетинг Lady Stretch / Lady Jump»), часть 3 — 2026-10-30 (Авито: кабинеты, сбор, реестр, планы), часть 4 — 2026-10-30 (квиз: лендинг, приём заявок, запись в таблицы городов) — **сделано** | Интеграция amoCRM, маркетинговые отчёты, реестр и кабинеты Авито, квиз |
-| **6. FitBase** | Интеграция, пробные услуги, шесть отчётов, сборщик оснований |
+| **6. FitBase** — часть 1 сделана 2026-10-30 (подключения, загрузка из API, изменения, общая и ночная очередь, правила этапов, источников и статусов) | Интеграция, пробные услуги, шесть отчётов, сборщик оснований |
 | **7. Диалоги VK** | Подключения, приём Callback, очередь, ответы, шаблоны, статистика |
 | **8. Контент и пилот amoCRM** | Контент-план, «Операционная аналитика amoCRM» |
 

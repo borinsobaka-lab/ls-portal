@@ -15,6 +15,7 @@ import { getSupabaseAdmin, hasSupabaseAdmin } from "@/integrations/supabase/clie
 import { jobEnabled } from "@/lib/analytics/jobs";
 import { syncAllAmo } from "./amocrm.server";
 import { syncAllAvito } from "./avito.server";
+import { fbNightlyDue, fbNightlyRun } from "./fitbase.server";
 import { deliverQuizLeads } from "./quiz.server";
 import { syncAllVk } from "./vk-ads.server";
 import { dispatchBudgetJob, evaluateBudgetAlerts } from "./vk-budget.server";
@@ -33,6 +34,8 @@ export type AnalyticsJob = {
   everyMs: number;
   /** Только по событию (kickAnalyticsJob) и «Запустить»: по расписанию не запускается. */
   onDemand?: boolean;
+  /** Пора ли запускать (проверка без аренды и журнала; по умолчанию — по everyMs). */
+  isDue?: () => Promise<boolean>;
   /** На сколько занять задачу (секунды): дольше этого считается зависшей. */
   leaseSeconds: number;
   run: () => Promise<JobResult>;
@@ -89,6 +92,16 @@ export const ANALYTICS_JOBS: AnalyticsJob[] = [
   // (внешнее действие, выключена по умолчанию). Как у них — только сразу
   // после новой заявки (kickAnalyticsJob из приёма): неотправленные уходят
   // со следующей заявкой, повтора по расписанию нет (ANALYTICS_PLAN.md, §9).
+  // Их FitBaseIntegration.sync_due: раз в минуту — после 01:00 МСК, если
+  // сегодня ещё не запускалась, общая загрузка всех студий (только
+  // изменения: их incremental_only). Только чтение FitBase.
+  {
+    key: "fitbase",
+    everyMs: MINUTE,
+    leaseSeconds: 10 * 60,
+    isDue: fbNightlyDue,
+    run: fbNightlyRun,
+  },
   {
     key: "quiz_sheets",
     everyMs: 0,
@@ -135,6 +148,14 @@ async function tick() {
     if (!jobEnabled(job.key, s)) continue;
     if (s?.at && Date.now() - new Date(s.at).getTime() < job.everyMs) continue;
     if (state.running.has(job.key)) continue;
+    if (job.isDue) {
+      try {
+        if (!(await job.isDue())) continue;
+      } catch (e) {
+        console.error("[analytics] задача", job.key, (e as Error).message);
+        continue;
+      }
+    }
     void runJob(job);
   }
 }

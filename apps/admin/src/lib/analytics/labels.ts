@@ -35,6 +35,8 @@ export const AN_TITLES = {
   avitoAccounts: "Кабинеты Авито",
   avitoPlans: "Планы Авито",
   avitoRegister: "Реестр Авито",
+  fitbase: "Интеграция FitBase",
+  fitbaseConnection: "Настройки студии FitBase",
   quiz: "Квиз-лендинги",
   quizLeads: "Заявки квиза",
 } as const;
