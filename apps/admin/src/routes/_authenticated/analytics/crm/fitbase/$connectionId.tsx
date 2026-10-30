@@ -39,6 +39,7 @@ import {
   fbAttendanceRules,
   fbAttendanceStateLabel,
 } from "@/lib/analytics/fitbase/rules";
+import { FB_TRIAL_SERVICES_TEXT } from "@/lib/analytics/fitbase/trials";
 import { AN_TITLES } from "@/lib/analytics/labels";
 
 export const Route = createFileRoute("/_authenticated/analytics/crm/fitbase/$connectionId")({
@@ -87,6 +88,14 @@ function AnalyticsFitbaseConnectionPage() {
               c={data}
             />
             <AttendanceSection key={JSON.stringify(data.attendance_rules)} c={data} />
+            {/* Их settings_link (fitbase_trial_services). */}
+            <Card title="Какие услуги считать пробными" hint={FB_TRIAL_SERVICES_TEXT.link}>
+              <Button asChild variant="outline">
+                <Link to="/analytics/crm/fitbase/trial-services" search={{ id }}>
+                  Настроить пробные услуги
+                </Link>
+              </Button>
+            </Card>
           </>
         )}
       </div>

@@ -3654,4 +3654,131 @@ describe.skipIf(!url)("аналитика: фундамент (база)", () =>
       ).toContain("Проверьте фильтры.");
     });
   });
+
+  test("FitBase: пробные — выбор услуг, типы записей по владельцу, воронка и записи без услуги, право", async () => {
+    await scenario(async (tx) => {
+      const admin = await person(tx, "Админ пробных FitBase", ["an.admin"]);
+      const viewer = await person(tx, "Воронка FitBase", ["an.fb.trials"]);
+      const other = await person(tx, "Без воронки FitBase", ["an.fb.sales"]);
+      await asServer(tx);
+      const [{ id: a }] = await tx`
+        insert into an_fb_connections (name, brand, city, domain, club_id, attendance_synced_at,
+                                       attendance_from, attendance_to, sales_payments_at, sales_synced_at)
+        values ('С1', 'Lady Stretch', 'Самара', 'trl', '1', 100, '2025-01-01', '2026-10-29', 200, 150)
+        returning id`;
+      const owner = '["trl", "1"]';
+      await tx`insert into an_fb_events values
+        (${a}, 'e1', '2026-10-05', 1000, 't', 'Стретчинг', false),
+        (${a}, 'e2', '2026-10-06', 1000, 't', 'Стретчинг', true)`;
+      await tx`insert into an_fb_records values
+        (${a}, 'r1', 'e1', 'k1', '3'), (${a}, 'r2', 'e1', 'k2', '2'), (${a}, 'r3', 'e1', 'k3', '3'),
+        (${a}, 'r4', 'e1', 'k4', '3'), (${a}, 'r5', 'e2', 'k1', '3')`;
+      await tx`insert into an_fb_trial_products values
+        (${a}, 'registration', 'r1', 'Пробное', 1), (${a}, 'registration', 'r3', 'Пробное', 1),
+        (${a}, 'registration', 'r5', 'Пробное', 1), (${a}, 'contract', 's1', 'Абонемент', 0),
+        (${a}, 'contract', 's2', 'Абонемент', 0)`;
+      // r2 — пробная по выбранным услугам; r3 — обычная (тип прежнего владельца не действует).
+      await tx`insert into an_fb_trial_overrides values
+        (${a}, ${owner}, 'r2', 1), (${a}, ${owner}, 'r3', 0), (${a}, '["old", "1"]', 'r4', 1)`;
+      await tx`insert into an_fb_sales values
+        (${a}, 's1', 'k1', 1790900000, 500000, 0), (${a}, 's2', 'k9', 1790900000, 500000, 0)`;
+      await tx`insert into an_fb_payments values
+        (${a}, 'purchase', 'p1', 's1', 'k1', 1790900100, '2026-10-05', 500000),
+        (${a}, 'purchase', 'p2', 's2', 'k9', 1790900100, '2026-10-05', 500000)`;
+
+      expect(
+        await failure(tx, async () => {
+          await as(tx, other);
+          await tx`select an_fb_trials_data('2026-10-01', '2026-10-29', '', '', '')`;
+        }),
+      ).toContain("an_forbidden");
+
+      await as(tx, viewer);
+      const [{ d }] = await tx`select an_fb_trials_data('2026-10-01', '2026-10-29', '', '', '') as d`;
+      expect(d.admin).toBe(false);
+      expect(d.selected.map((x: { id: number }) => x.id)).toEqual([Number(a)]);
+      // Пробные — r1 и r2 (отказ тоже запись); r5 — на отменённое занятие.
+      expect([...d.records].sort()).toEqual([
+        [Number(a), "r1", "k1", true, "2026-10-05", 1000],
+        [Number(a), "r2", "k2", false, "2026-10-05", 1000],
+      ]);
+      // Покупки — только клиентов с посещённым пробным.
+      expect(d.sales).toEqual([[Number(a), "s1", "k1", 1790900000, 500000]]);
+      expect(d.payments).toEqual([[Number(a), "s1", "purchase", 500000, 1790900100]]);
+      // Неопределённый тип: r4 (тип прежнего владельца не действует).
+      expect(d.review_count).toBe(1);
+      expect(
+        await failure(tx, async () => {
+          await as(tx, viewer);
+          await tx`select an_fb_trials_data('2026-10-01', '2026-10-29', '', '', 'Lady Fit')`;
+        }),
+      ).toContain("Проверьте направление.");
+      expect(
+        await failure(tx, async () => {
+          await as(tx, viewer);
+          await tx`select an_fb_trials_data('2025-09-30', '2026-10-01', '', '', '')`;
+        }),
+      ).toContain("Выберите период не больше 366 дней.");
+
+      await as(tx, viewer);
+      const [{ v }] = await tx`select an_fb_trials_review('2026-10-01', '2026-10-29', '', '', '', '') as v`;
+      expect(v.rows).toEqual([["С1", "Самара", "Lady Stretch", "2026-10-05", 1000, "Стретчинг", "visited", "e1", "r4"]]);
+      expect(
+        await failure(tx, async () => {
+          await as(tx, viewer);
+          await tx`select an_fb_trials_review('2026-10-01', '2026-10-29', '', '', '', 'odd')`;
+        }),
+      ).toContain("Проверьте направление и статус.");
+
+      // Выбор услуг — администратору; их проверки и тексты.
+      expect(
+        await failure(tx, async () => {
+          await as(tx, viewer);
+          await tx`select an_fb_trial_services(${a})`;
+        }),
+      ).toContain("an_forbidden");
+      expect(
+        await failure(tx, async () => {
+          await as(tx, viewer);
+          await tx`select an_fb_trial_catalog_store(${a}, ${owner}, '[]'::jsonb)`;
+        }),
+      ).toContain("permission denied");
+      await asServer(tx);
+      expect(
+        await failure(tx, async () => {
+          await asServer(tx);
+          await tx`select an_fb_trial_catalog_store(${a}, '["other", "1"]', '[]'::jsonb)`;
+        }),
+      ).toContain("Подключение изменилось. Откройте настройки заново.");
+      await asServer(tx);
+      await tx`select an_fb_trial_catalog_store(${a}, ${owner},
+        '[{"service_id": "7", "name": "Пробное", "is_trial": 1, "archived": 0},
+          {"service_id": "8", "name": "Разовое", "is_trial": 0, "archived": 1}]'::jsonb)`;
+      const save = (mode: string, ids: string[], rev: string, own = owner) => async () => {
+        await as(tx, admin);
+        await tx`select an_fb_trial_services_save(${a}, ${own}, ${mode}, ${ids}::jsonb, ${rev})`;
+      };
+      expect(await failure(tx, save("odd", [], "0"))).toContain("Проверьте режим.");
+      expect(await failure(tx, save("selected", [], "0", '["x", "1"]'))).toContain(
+        "Подключение изменилось. Откройте настройки заново.",
+      );
+      expect(await failure(tx, save("selected", ["9"], "0"))).toContain(
+        "Услуга отсутствует в каталоге этого филиала.",
+      );
+      expect(await failure(tx, save("selected", [], "0"))).toContain(
+        "Выберите хотя бы одну пробную услугу.",
+      );
+      expect(await failure(tx, save("selected", ["7"], "3"))).toContain(
+        "Настройки уже изменены. Обновите страницу.",
+      );
+      await save("selected", ["7", "7"], "0")();
+      await as(tx, admin);
+      const [{ s }] = await tx`select an_fb_trial_services(${a}) as s`;
+      expect(s.rule).toEqual({ mode: "selected", selected: ["7"], revision: 1 });
+      expect(s.catalog.map((k: { service_id: string }) => k.service_id)).toEqual(["7", "8"]);
+      expect(await failure(tx, save("auto", ["7"], "0"))).toContain(
+        "Настройки уже изменены. Обновите страницу.",
+      );
+    });
+  });
 });

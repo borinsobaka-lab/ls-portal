@@ -14,6 +14,7 @@ import {
   fbRevenuePeriod,
 } from "./fitbase/rules";
 import { fbStartAll, fbStartJob, removeFbBlobs, type FbAction } from "./server/fitbase.server";
+import { fbTrialLoadCatalog, fbTrialRecompute } from "./server/fitbase-trials.server";
 import { encryptSecret } from "./server/secrets.server";
 
 /**
@@ -260,4 +261,100 @@ export const startFitbaseAttendanceRefresh = createServerFn({ method: "POST" })
     }
     await audit(context.userId, "fitbase_attendance_refresh", String(selected.length));
     return { busy, ids: selected.map((c) => c.id as number) };
+  });
+
+/**
+ * Их «Уточнить пробные по выбранным студиям» (fitbase_trials.route): общая
+ * очередь «trials» (их repair_metadata) для студий воронки под фильтрами.
+ */
+export const startFitbaseTrialsRefresh = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data) =>
+    z
+      .object({
+        from: z.string().max(10),
+        to: z.string().max(10),
+        city: z.string().max(200),
+        studio: z.string().max(20),
+        brand: z.string().max(20),
+      })
+      .strict()
+      .parse(data),
+  )
+  .handler(async ({ context, data }) => {
+    await requireAnAdmin(context.supabase);
+    try {
+      fbAttendanceWindow(data.from, data.to);
+      if (!["", "Lady Jump", "Lady Stretch"].includes(data.brand)) {
+        throw new FbError("Проверьте направление.");
+      }
+    } catch (e) {
+      shown(e);
+    }
+    const { data: rows, error } = await getSupabaseAdmin()
+      .from("an_fb_connections")
+      .select("id, city, brand, club_id")
+      .order("id");
+    if (error) throw new Error(error.message);
+    const ids = (rows ?? [])
+      .filter(
+        (c) =>
+          c.club_id &&
+          (!data.city || c.city === data.city) &&
+          (!data.studio || String(c.id) === data.studio) &&
+          (!data.brand || c.brand === data.brand),
+      )
+      .map((c) => c.id as number);
+    try {
+      await fbStartAll({ action: "trials", ids });
+    } catch (e) {
+      shown(e);
+    }
+    return { ids };
+  });
+
+/** Их «Обновить список услуг из FitBase» (load_catalog): каталог услуг клуба. */
+export const loadFitbaseTrialCatalog = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data) => z.object({ id: z.number().int().positive() }).strict().parse(data))
+  .handler(async ({ context, data }) => {
+    await requireAnAdmin(context.supabase);
+    try {
+      await fbTrialLoadCatalog(data.id);
+    } catch (e) {
+      shown(e);
+    }
+    return { ok: true };
+  });
+
+/**
+ * Их «Сохранить пробные услуги» (save): проверки и запись — RPC от имени
+ * администратора, затем типы записей студии пересчитываются по новому выбору.
+ */
+export const saveFitbaseTrialServices = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data) =>
+    z
+      .object({
+        id: z.number().int().positive(),
+        owner: z.string().max(400),
+        mode: z.string().max(20),
+        selected: z.array(z.string().max(100)).max(5000),
+        revision: z.string().max(20),
+      })
+      .strict()
+      .parse(data),
+  )
+  .handler(async ({ context, data }) => {
+    await requireAnAdmin(context.supabase);
+    const { error } = await context.supabase.rpc("an_fb_trial_services_save", {
+      p_id: data.id,
+      p_owner: data.owner,
+      p_mode: data.mode,
+      p_selected: data.selected,
+      p_revision: data.revision,
+    });
+    if (error) throw new Error(error.message);
+    await fbTrialRecompute(data.id);
+    return { ok: true };
   });

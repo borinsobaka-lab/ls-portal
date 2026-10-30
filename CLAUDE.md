@@ -1204,6 +1204,21 @@ DEPLOY.md.
   `an_fb_effective_rules` (коды FitBase + сохранённые соответствия,
   внутренняя); покрытие, средние, доходимость и промежуточные итоги —
   страница (`lib/analytics/fitbase/attendance.ts`).
+  FitBase, часть 4 (2026-10-30, ANALYTICS.md):
+  `db/migrations/2026-10-30_zzzzzzzzzzzzzzzz_analytics_fitbase_trials.sql`
+  — пробные: выбор пробных услуг филиала `an_fb_trial_service_rules`
+  (режим auto / selected, revision), каталог `an_fb_trial_service_catalog`,
+  связи записей с услугами `an_fb_trial_service_refs` + метка
+  `an_fb_trial_service_index`, основания из веб-интерфейса FitBase
+  `an_fb_trial_basis` (заполнит сборщик) и итог их overrides —
+  `an_fb_trial_overrides` (все — на владельца подключения `an_fb_owner`:
+  домен + клуб). Тип записи в отчётах — coalesce(override,
+  `an_fb_trial_products`, -1); итог пишет сервер портала после загрузки
+  студии, сохранения выбора и каталога. RPC: воронка `an_fb_trials_data`
+  и «Записи без услуги» `an_fb_trials_review` (право `fb.trials`, вся сеть),
+  выбор услуг `an_fb_trial_services` / `_save` (администратор аналитики),
+  серверу (service_role) — `an_fb_trial_catalog_store`, `_refs_store`,
+  `_overrides_store`. Таблицы закрыты браузеру.
   Клубы и собственники (решение владельца 2026-10-27, ACCESS.md):
   `db/migrations/2026-10-27_zz_studio_owners.sql` — `studio_owners`
   (клуб × пользователь портала; пишут только RPC `org_studio_owners_set` /
