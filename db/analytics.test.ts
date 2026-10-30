@@ -12,6 +12,7 @@
  */
 import { SQL } from "bun";
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { createHash } from "node:crypto";
 
 const url = process.env.TEST_SCHEMA_DATABASE_URL;
 
@@ -1179,6 +1180,403 @@ describe.skipIf(!url)("аналитика: фундамент (база)", () =>
       expect(rows).toEqual([
         { user_id: admin, event: "onec_snapshot_imported", details: `Снимок ${id}` },
       ]);
+    });
+  });
+  // ---- «Отзывы» (2026-10-30_zzzz_analytics_reviews.sql) ----
+
+  type RvRow = {
+    client_name: string;
+    studio: string;
+    trainer: string;
+    rating_date: string;
+    rating: number;
+    comment: string;
+  };
+  /** Строка выгрузки, как её отдаёт разбор в браузере (отпечаток — SHA-256). */
+  function rvRow(r: RvRow) {
+    const row = {
+      ...r,
+      service: "Stretching",
+      class_date: r.rating_date,
+      class_time: "19:00",
+      client_group: "",
+      age: "",
+      gender: "",
+    };
+    const fp = [
+      r.client_name,
+      r.studio,
+      row.service,
+      row.class_date,
+      "19:00",
+      r.trainer,
+      r.rating_date,
+      String(r.rating),
+      r.comment,
+    ].join("\x1f");
+    return { ...row, source_hash: createHash("sha256").update(fp).digest("hex") };
+  }
+  async function rvImport(tx: Tx, rows: ReturnType<typeof rvRow>[], name = "оценки.xlsx") {
+    const [{ id }] = await tx`select an_rv_import_start(${name}, '2026-09-01', '2026-09-30') as id`;
+    await tx`select an_rv_import_rows(${id}, ${rows}::jsonb)`;
+    const [{ r }] = await tx`select an_rv_import_finish(${id}, ${rows.length}) as r`;
+    return r as { id: number; rows: number; duplicates: number };
+  }
+  async function rvStudios(tx: Tx) {
+    await onecReset(tx);
+    await tx`delete from an_rv_rows`;
+    await tx`delete from an_rv_uploads`;
+    await tx`insert into an_onec_studios (sort_order, studio, status, city) values
+      (1, 'Абакан Ленина', 'Открыта', 'Абакан'),
+      (2, 'Самара Ёлочная', 'Открыта', 'Самара'),
+      (3, 'Бийск Мира', 'Закрыта', 'Бийск')`;
+  }
+
+  test("Отзывы: статистика клиентов — город по студиям 1С, расчёты как у них; кому какие города", async () => {
+    await scenario(async (tx) => {
+      await rvStudios(tx);
+      const admin = await person(tx, "Админ", ["an.admin"]);
+      const partner = await person(tx, "Партнёр", ["an.partner", "an.reviews"]);
+      await tx`insert into an_partner_cities (user_id, city) values (${partner}, 'Самара')`;
+      const staff = await person(tx, "Сотрудник", ["an.reviews"]);
+      const outsider = await person(tx, "Без отзывов", ["an.onec.revenue"]);
+
+      await as(tx, admin);
+      const r = await rvImport(tx, [
+        rvRow({
+          client_name: "Иванова Анна",
+          studio: "Абакан Ленина",
+          trainer: "Петрова (Группа)",
+          rating_date: "2026-09-02",
+          rating: 5,
+          comment: "Супер",
+        }),
+        rvRow({
+          client_name: "Сидорова Мария",
+          studio: "АБАКАН  ленина!",
+          trainer: "Петрова",
+          rating_date: "2026-09-03",
+          rating: 3,
+          comment: "Холодно",
+        }),
+        rvRow({
+          client_name: "Кузнецова Ольга",
+          studio: "Абакан Ленина",
+          trainer: "Орлова",
+          rating_date: "2026-09-04",
+          rating: 4.5,
+          comment: "",
+        }),
+        rvRow({
+          client_name: "Вне периода",
+          studio: "Абакан Ленина",
+          trainer: "Орлова",
+          rating_date: "2026-08-31",
+          rating: 1,
+          comment: "Старое",
+        }),
+        rvRow({
+          client_name: "Ёлкина Вера",
+          studio: "Самара Елочная",
+          trainer: "Орлова",
+          rating_date: "2026-09-05",
+          rating: 2,
+          comment: "Тесно",
+        }),
+        rvRow({
+          client_name: "Закрытая",
+          studio: "Бийск Мира",
+          trainer: "Орлова",
+          rating_date: "2026-09-05",
+          rating: 5,
+          comment: "",
+        }),
+      ]);
+      expect(r).toMatchObject({ rows: 6, duplicates: 0 });
+
+      const [{ rep }] = await tx`select an_rv_report('Абакан', '2026-09-01', '2026-09-30') as rep`;
+      expect(rep.cities).toEqual(["Абакан", "Самара"]);
+      expect(rep.city).toBe("Абакан");
+      expect(rep.report).toMatchObject({
+        total: 3,
+        period_from: "2026-09-02",
+        period_to: "2026-09-04",
+        negative: 1,
+        ratings: [
+          { rating: 5, count: 1 },
+          { rating: 4.5, count: 1 },
+          { rating: 3, count: 1 },
+        ],
+      });
+      expect(rep.report.average).toBeCloseTo(12.5 / 3, 12);
+      expect(rep.report.trainers).toEqual([
+        { trainer: "Петрова", count: 2, average: 4, negative: 1, comments: 2 },
+        { trainer: "Орлова", count: 1, average: 4.5, negative: 0, comments: 0 },
+      ]);
+      expect(rep.report.comments.map((c: { comment: string }) => c.comment)).toEqual([
+        "Холодно",
+        "Супер",
+      ]);
+      // Город не из разрешённых — первый разрешённый (как у них).
+      const [{ other }] =
+        await tx`select an_rv_report('Бийск', '2026-09-01', '2026-09-30') as other`;
+      expect(other.city).toBe("Абакан");
+      const [{ empty }] =
+        await tx`select an_rv_report('Самара', '2026-10-01', '2026-10-30') as empty`;
+      expect(empty.report.total).toBe(0);
+      expect(
+        await failure(tx, () => tx`select an_rv_report('Абакан', '1.09.2026', '2026-09-30')`),
+      ).toContain("Неверный период");
+
+      await as(tx, partner);
+      const [{ p }] = await tx`select an_rv_report('Абакан', '2026-09-01', '2026-09-30') as p`;
+      expect(p.cities).toEqual(["Самара"]);
+      expect(p.city).toBe("Самара");
+      expect(p.report.comments.map((c: { client_name: string }) => c.client_name)).toEqual([
+        "Ёлкина Вера",
+      ]);
+
+      // У них сотруднику с правом без городов — пустая страница.
+      await as(tx, staff);
+      const [{ st }] = await tx`select an_rv_report('Абакан', '2026-09-01', '2026-09-30') as st`;
+      expect(st).toEqual({ cities: [], city: "", report: null });
+      expect(await failure(tx, () => tx`select an_rv_uploads()`)).toContain("an_forbidden");
+
+      await as(tx, outsider);
+      expect(
+        await failure(tx, () => tx`select an_rv_report('Абакан', '2026-09-01', '2026-09-30')`),
+      ).toContain("an_forbidden");
+      expect(await failure(tx, () => tx`select * from an_rv_rows`)).toContain("permission denied");
+
+      await asServer(tx);
+      const views =
+        await tx`select details from an_audit where user_id = ${partner} and event = 'dashboard_view'`;
+      expect(views).toEqual([{ details: "Отзывы и оценки" }]);
+    });
+  });
+
+  test("Отзывы: загрузка — повторы не добавляются, удаление записи оставляет строки; только администратору", async () => {
+    await scenario(async (tx) => {
+      await rvStudios(tx);
+      const admin = await person(tx, "Админ Отзывов", ["an.admin"]);
+      const staff = await person(tx, "Сотрудник", ["an.reviews"]);
+      const rows = [1, 2, 3].map((i) =>
+        rvRow({
+          client_name: `Клиентка ${i}`,
+          studio: "Абакан Ленина",
+          trainer: "Орлова",
+          rating_date: `2026-09-0${i}`,
+          rating: 5,
+          comment: "",
+        }),
+      );
+      await as(tx, admin);
+      expect(await rvImport(tx, rows, "первая.xlsx")).toMatchObject({ rows: 3, duplicates: 0 });
+      const second = await rvImport(
+        tx,
+        [...rows, rvRow({ ...rows[0], client_name: "Новая", comment: "" })],
+        "вторая.xls",
+      );
+      expect(second).toMatchObject({ rows: 1, duplicates: 3, period_from: "2026-09-01" });
+      // Строка с неверным отпечатком не пишется.
+      const [{ id: third }] = await tx`select an_rv_import_start('третья.xlsx', '', '') as id`;
+      const [{ n }] =
+        await tx`select an_rv_import_rows(${third}, ${[{ ...rows[0], source_hash: "x" }]}::jsonb) as n`;
+      expect(n).toBe(0);
+      expect(await failure(tx, () => tx`select an_rv_import_rows(-1, '[]'::jsonb)`)).toContain(
+        "Загрузка не найдена",
+      );
+
+      const [{ list }] = await tx`select an_rv_uploads() as list`;
+      expect(
+        list.map((u: { filename: string; row_count: number; imported_by: string }) => [
+          u.filename,
+          u.row_count,
+          u.imported_by,
+        ]),
+      ).toEqual([
+        ["третья.xlsx", 0, "Админ Отзывов"],
+        ["вторая.xls", 1, "Админ Отзывов"],
+        ["первая.xlsx", 3, "Админ Отзывов"],
+      ]);
+      await tx`select an_rv_upload_delete(${second.id})`;
+      const [{ after }] = await tx`select an_rv_uploads() as after`;
+      expect(after.length).toBe(2);
+      await asServer(tx);
+      expect((await tx`select 1 from an_rv_rows`).length).toBe(4);
+      const events = await tx`select event, details from an_audit
+                              where user_id = ${admin} and event like 'reviews%' order by id`;
+      expect(events).toEqual([
+        { event: "reviews_imported", details: "3 новых строк: первая.xlsx" },
+        { event: "reviews_imported", details: "1 новых строк: вторая.xls" },
+        { event: "reviews_upload_deleted", details: String(second.id) },
+      ]);
+
+      await as(tx, staff);
+      expect(await failure(tx, () => tx`select an_rv_import_start('x.xlsx', '', '')`)).toContain(
+        "an_forbidden",
+      );
+      expect(
+        await failure(tx, () => tx`select an_rv_import_rows(${third}, '[]'::jsonb)`),
+      ).toContain("an_forbidden");
+      expect(await failure(tx, () => tx`select an_rv_upload_delete(${third})`)).toContain(
+        "an_forbidden",
+      );
+    });
+  });
+
+  test("Отзывы сотрудников: ссылки, публичная форма без входа, проверки их текстами, статистика", async () => {
+    await scenario(async (tx) => {
+      await rvStudios(tx);
+      const admin = await person(tx, "Админ", ["an.admin"]);
+      const emp = await person(tx, "Яковлева Ирина", ["an.reviews"]);
+      const partner = await person(tx, "Партнёр Город", ["an.partner"]);
+      await tx`insert into an_partner_cities (user_id, city) values (${partner}, 'Самара')`;
+
+      await as(tx, admin);
+      const [{ name }] = await tx`select an_rv_staff_link_create(${emp}) as name`;
+      expect(name).toBe("Яковлева Ирина");
+      await tx`select an_rv_staff_link_create(${emp})`;
+      expect(await failure(tx, () => tx`select an_rv_staff_link_create(${partner})`)).toContain(
+        "Выберите действующего сотрудника.",
+      );
+      const [{ links }] = await tx`select an_rv_staff_links() as links`;
+      type L = {
+        user_id: string;
+        link_id: number | null;
+        token: string | null;
+        is_active: boolean | null;
+      };
+      const mine = (links as L[]).filter((l) => l.user_id === emp);
+      expect(mine).toHaveLength(1);
+      expect(mine[0].token).toMatch(/^[A-Za-z0-9_-]{43}$/);
+      expect((links as L[]).some((l) => l.user_id === partner)).toBe(false);
+      expect((links as L[]).find((l) => l.user_id === admin)?.link_id).toBeNull();
+      const { token, link_id: link } = mine[0];
+
+      // Форма — без входа.
+      await asServer(tx);
+      await tx`set local role anon`;
+      const [{ form }] = await tx`select an_rv_feedback_form(${token}) as form`;
+      expect(form).toEqual({ full_name: "Яковлева Ирина", position: null });
+      const [{ none }] = await tx`select an_rv_feedback_form('нет-такой-ссылки-123') as none`;
+      expect(none).toBeNull();
+      const submit = (
+        who: string,
+        city: string,
+        prof: string,
+        profText: string,
+        next: string,
+        nextText: string,
+      ) =>
+        tx`select an_rv_feedback_submit(${token}, ${who}, ${city}, ${prof}, ${profText}, ${next}, ${nextText}) as r`;
+      const cases: [Parameters<typeof submit>, string][] = [
+        [[" ", "Самара", "5", "", "5", ""], "Укажите имя партнёра."],
+        [["Партнёр", "\t", "5", "", "5", ""], "Укажите город."],
+        [
+          ["П".repeat(201), "Самара", "5", "", "5", ""],
+          "Имя партнёра и город не должны быть длиннее 200 символов.",
+        ],
+        [["Партнёр", "Самара", "", "", "5", ""], "Поставьте оценку по каждому вопросу."],
+        [["Партнёр", "Самара", "пять", "", "5", ""], "Поставьте оценку по каждому вопросу."],
+        [
+          ["Партнёр", "Самара", "6", "", "5", ""],
+          "Оценка по каждому вопросу должна быть от 1 до 5.",
+        ],
+        [["Партнёр", "Самара", "4", "  ", "5", ""], "Добавьте рекомендацию к первому вопросу."],
+        [["Партнёр", "Самара", "5", "", "3", ""], "Добавьте рекомендацию ко второму вопросу."],
+        [
+          ["Партнёр", "Самара", "5", "x".repeat(4001), "5", ""],
+          "Рекомендация не должна быть длиннее 4 000 символов.",
+        ],
+      ];
+      for (const [args, message] of cases) {
+        expect(await failure(tx, () => submit(...args))).toBe(message);
+      }
+      const [{ r: ok1 }] = await submit(
+        " Петров Олег ",
+        " Самара ",
+        " 4 ",
+        " Короче вступление ",
+        "5",
+        "",
+      );
+      expect(ok1).toEqual({ full_name: "Яковлева Ирина" });
+      await submit("Смирнова Анна", "Казань", "5", "", "2", "Неясно, кто звонит");
+      expect(await failure(tx, () => tx`select an_rv_staff_links()`)).toContain(
+        "permission denied",
+      );
+      expect(await failure(tx, () => tx`select * from an_rv_staff_responses`)).toContain(
+        "permission denied",
+      );
+
+      // Статистика — за день по Москве.
+      await as(tx, admin);
+      const [{ today }] =
+        await tx`select (now() at time zone 'Europe/Moscow')::date::text as today`;
+      const [{ rep }] = await tx`select an_rv_staff_report(${today}::date, ${today}::date) as rep`;
+      expect(rep.total).toBe(2);
+      expect(rep.employees).toEqual([
+        {
+          name: "Яковлева Ирина",
+          position: "",
+          count: 2,
+          professionalism_average: 4.5,
+          next_steps_average: 3.5,
+          overall_average: 4,
+          comments: 2,
+        },
+      ]);
+      expect(rep.responses.map((x: { partner_name: string }) => x.partner_name)).toEqual([
+        "Смирнова Анна",
+        "Петров Олег",
+      ]);
+      expect(rep.responses[1]).toMatchObject({
+        partner_city: "Самара",
+        professionalism_rating: 4,
+        professionalism_comment: "Короче вступление",
+        next_steps_rating: 5,
+        next_steps_comment: "",
+      });
+      const [{ before }] =
+        await tx`select an_rv_staff_report('2026-01-01', '2026-01-31') as before`;
+      expect(before).toEqual({ total: 0, employees: [], responses: [] });
+
+      // Приостановленная ссылка — формы нет.
+      await tx`select an_rv_staff_link_set_active(${link}, false)`;
+      await asServer(tx);
+      await tx`set local role anon`;
+      expect(await failure(tx, () => submit("П", "Самара", "5", "", "5", ""))).toBe(
+        "an_rv_link_gone",
+      );
+      const [{ paused }] = await tx`select an_rv_feedback_form(${token}) as paused`;
+      expect(paused).toBeNull();
+
+      // Сверх их формы: не больше 50 ответов по ссылке за час.
+      await as(tx, admin);
+      await tx`select an_rv_staff_link_set_active(${link}, true)`;
+      await asServer(tx);
+      await tx`insert into an_rv_staff_responses (link_id, rating, partner_name, partner_city,
+                 professionalism_rating, next_steps_rating)
+               select ${link}, 10, 'Бот', 'Город', 5, 5 from generate_series(1, 48)`;
+      await tx`set local role anon`;
+      expect(await failure(tx, () => submit("П", "Самара", "5", "", "5", ""))).toBe(
+        "Слишком много ответов по этой ссылке — попробуйте позже.",
+      );
+
+      await asServer(tx);
+      const events = await tx`select event, details from an_audit where user_id = ${admin}
+                               and event like 'staff_feedback%' order by id`;
+      expect(events.map((e: { event: string }) => e.event)).toEqual([
+        "staff_feedback_link_created",
+        "staff_feedback_link_created",
+        "staff_feedback_links_view",
+        "staff_feedback_view",
+        "staff_feedback_view",
+        "staff_feedback_link_updated",
+        "staff_feedback_link_updated",
+      ]);
+      expect(events[5].details).toBe(`${link}: active=0`);
     });
   });
 });

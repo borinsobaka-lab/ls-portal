@@ -188,6 +188,19 @@ export function columnIndex(ref: string): number {
   return n - 1;
 }
 
+/** str.strip() Python (пробельные символы str.isspace). */
+const PY_WS =
+  "[\\t\\n\\v\\f\\r\\x1c-\\x1f \\x85\\xa0\\u1680\\u2000-\\u200a\\u2028\\u2029\\u202f\\u205f\\u3000]";
+const PY_STRIP_RE = new RegExp(`^${PY_WS}+|${PY_WS}+$`, "g");
+export function pyStrip(s: string): string {
+  if (!s) return s;
+  // Частый случай без пробелов по краям — без регулярного выражения.
+  const a = s.charCodeAt(0);
+  const b = s.charCodeAt(s.length - 1);
+  const plain = (c: number) => c > 0x20 && c !== 0x85 && c !== 0xa0 && c < 0x1680;
+  return plain(a) && plain(b) ? s : s.replace(PY_STRIP_RE, "");
+}
+
 // --- Форматы дат (openpyxl.styles.numbers.is_date_format) ---------------------------
 
 const BUILTIN_DATE_FORMATS = new Set([14, 15, 16, 17, 18, 19, 20, 21, 22, 45, 46, 47]);
@@ -357,9 +370,11 @@ export type XlsxWorkbook = {
   /**
    * Лист по номеру. `formulas` — как openpyxl с `data_only=False`: у ячейки
    * с формулой значение «=формула» (у зависимой ячейки общей формулы без
-   * текста — сохранённый результат).
+   * текста — сохранённый результат). `raw` — текст ячейки как в XML (общая
+   * строка, строка в ячейке или `<v>` без разбора чисел и дат; пустая — ""),
+   * без пробелов по краям — так читал выгрузку оценок их reviews.py.
    */
-  open: (index: number, opts?: { formulas?: boolean }) => Promise<XlsxBook>;
+  open: (index: number, opts?: { formulas?: boolean; raw?: boolean }) => Promise<XlsxBook>;
   features: (index: number) => Promise<XlsxSheetFeatures>;
 };
 
@@ -444,7 +459,7 @@ export async function openWorkbook(bytes: Uint8Array, inflate: Inflate): Promise
   return {
     sheets,
     open: (index, opts = {}) =>
-      sheetReader(bytes, inflate, book, sheets[index].path, !!opts.formulas),
+      sheetReader(bytes, inflate, book, sheets[index].path, !!opts.formulas, !!opts.raw),
     features: async (index) => {
       const entry = book.get(sheets[index].path);
       return entry ? sheetFeatures(bytes, entry, inflate) : { merged: 0, outline: 0 };
@@ -490,6 +505,7 @@ async function sheetReader(
   book: Awaited<ReturnType<typeof loadBook>>,
   sheetPath: string,
   formulas: boolean,
+  rawText = false,
 ): Promise<XlsxBook> {
   const found = book.get(sheetPath);
   if (!found) throw new Error("В .xlsx нет листа");
@@ -533,7 +549,12 @@ async function sheetReader(
 
     const finishCell = () => {
       let value: Cell = null;
-      if (formulas && formula !== "") value = "=" + xmlUnescape(formula);
+      if (rawText) {
+        // Их _xlsx_cell_value: inlineStr — текст, s — общая строка, иначе <v>.
+        if (type === "inlineStr") value = pyStrip(xmlUnescape(text));
+        else if (type === "s") value = pyStrip(strings[Number(raw ?? "")] ?? "");
+        else value = pyStrip(xmlUnescape(raw ?? ""));
+      } else if (formulas && formula !== "") value = "=" + xmlUnescape(formula);
       else if (type === "inlineStr") value = hasValue ? xmlUnescape(text) : null;
       else if (raw !== null) {
         const v = raw;

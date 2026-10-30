@@ -2878,6 +2878,168 @@ export function AnalyticsTop10PageSkeleton() {
   );
 }
 
+/** Отзыв клиента или партнёра — карточка с аватаркой, текстом и подписями. */
+function ReviewCardSkeleton() {
+  return (
+    <div className="space-y-3 rounded-lg border bg-background p-4">
+      <div className="flex items-center gap-3">
+        <Skeleton className="size-9 rounded-full" />
+        <div className="flex-1 space-y-1.5">
+          <Skeleton className="h-4 w-40" />
+          <Skeleton className="h-3 w-28" />
+        </div>
+        <Skeleton className="h-6 w-14 rounded-full" />
+      </div>
+      <Skeleton className="h-3 w-full" />
+      <Skeleton className="h-3 w-4/5" />
+      <div className="grid grid-cols-3 gap-2 border-t pt-3">
+        {Array.from({ length: 3 }, (_, i) => (
+          <Skeleton key={i} className="h-8 w-full" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function AnalyticsReviewsBodySkeleton() {
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-4 rounded-lg border bg-background p-4 md:grid-cols-[1fr_1.5fr_1fr]">
+        <div className="space-y-2">
+          <Skeleton className="h-10 w-20" />
+          <Skeleton className="h-4 w-28" />
+          <Skeleton className="h-3 w-44" />
+        </div>
+        <div className="space-y-2">
+          {Array.from({ length: 5 }, (_, i) => (
+            <Skeleton key={i} className="h-3 w-full" />
+          ))}
+        </div>
+        <div className="space-y-2">
+          <Skeleton className="h-8 w-16" />
+          <Skeleton className="h-3 w-40" />
+        </div>
+      </div>
+      <TableCardSkeleton
+        title="Статистика по тренерам"
+        headers={["Тренер", "Оценок", "Средняя", "≤ 3", "Комментариев"]}
+        rows={5}
+      />
+      <div className="grid gap-3 lg:grid-cols-2">
+        {Array.from({ length: 4 }, (_, i) => (
+          <ReviewCardSkeleton key={i} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function AnalyticsReviewsPageSkeleton() {
+  return (
+    <ShellSkeleton title={AN_TITLES.reviews} network>
+      <div className="space-y-4">
+        <div className="flex gap-2 rounded-lg border bg-background p-2 sm:px-3">
+          <Skeleton className="h-9 w-48 rounded-md" />
+          <Skeleton className="h-9 w-56 rounded-md" />
+        </div>
+        <AnalyticsReviewsBodySkeleton />
+      </div>
+    </ShellSkeleton>
+  );
+}
+
+export function AnalyticsReviewsUploadPageSkeleton() {
+  return (
+    <ShellSkeleton title={AN_TITLES.reviewsUpload} network>
+      <div className="max-w-3xl space-y-4">
+        <Skeleton className="h-12 w-full rounded-lg" />
+        <div className="space-y-3 rounded-lg border bg-background p-4">
+          <Skeleton className="h-5 w-56" />
+          <Skeleton className="h-4 w-72 max-w-full" />
+          <div className="flex gap-2">
+            <Skeleton className="h-9 w-36 rounded-full" />
+            <Skeleton className="h-9 w-44 rounded-full" />
+          </div>
+        </div>
+        <div className="space-y-3 rounded-lg border bg-background p-4">
+          <Skeleton className="h-5 w-40" />
+          {Array.from({ length: 4 }, (_, i) => (
+            <div key={i} className="flex items-center justify-between gap-3 border-t pt-3">
+              <div className="space-y-1.5">
+                <Skeleton className="h-4 w-48" />
+                <Skeleton className="h-3 w-64 max-w-full" />
+              </div>
+              <Skeleton className="h-8 w-24 rounded-full" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </ShellSkeleton>
+  );
+}
+
+export function AnalyticsStaffLinksPageSkeleton() {
+  return (
+    <ShellSkeleton title={AN_TITLES.staffLinks} network>
+      <div className="space-y-3">
+        <Skeleton className="h-12 w-full rounded-lg" />
+        <div className="flex gap-2 rounded-lg border bg-background p-2 sm:px-3">
+          <Skeleton className="h-9 w-72 max-w-full rounded-md" />
+          <Skeleton className="h-9 w-48 rounded-md" />
+        </div>
+        <TableCardSkeleton headers={["Сотрудник", "Ссылка", ""]} rows={8} />
+      </div>
+    </ShellSkeleton>
+  );
+}
+
+export function AnalyticsStaffStatsPageSkeleton() {
+  return (
+    <ShellSkeleton title={AN_TITLES.staffStats} network>
+      <div className="space-y-4">
+        <div className="flex gap-2 rounded-lg border bg-background p-2 sm:px-3">
+          <Skeleton className="h-9 w-72 max-w-full rounded-md" />
+          <Skeleton className="h-9 w-56 rounded-md" />
+        </div>
+        <TableCardSkeleton
+          title="Статистика сотрудников"
+          headers={["Сотрудник", "Ответов", "Вопрос 1", "Вопрос 2", "NPS", "Рекомендаций"]}
+          rows={4}
+        />
+        <div className="grid gap-3 lg:grid-cols-2">
+          {Array.from({ length: 4 }, (_, i) => (
+            <ReviewCardSkeleton key={i} />
+          ))}
+        </div>
+      </div>
+    </ShellSkeleton>
+  );
+}
+
+/** Публичная форма отзыва о сотруднике — без каркаса портала. */
+export function AnalyticsFeedbackPageSkeleton() {
+  return (
+    <div className="grid min-h-dvh place-items-center bg-canvas p-4">
+      <div className="w-full max-w-xl space-y-5 rounded-xl border bg-background p-6 sm:p-8">
+        <Skeleton className="h-8 w-64 max-w-full" />
+        <Skeleton className="h-4 w-48" />
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Skeleton className="h-10 w-full rounded-md" />
+          <Skeleton className="h-10 w-full rounded-md" />
+        </div>
+        {Array.from({ length: 2 }, (_, i) => (
+          <div key={i} className="space-y-2">
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-8 w-48" />
+            <Skeleton className="h-20 w-full rounded-md" />
+          </div>
+        ))}
+        <Skeleton className="mx-auto h-10 w-32 rounded-full" />
+      </div>
+    </div>
+  );
+}
+
 export function AnalyticsJobsPageSkeleton() {
   return (
     <ShellSkeleton title={AN_TITLES.jobs} network>

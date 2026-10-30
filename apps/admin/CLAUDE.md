@@ -35,7 +35,8 @@ Tailwind 4 + shadcn/radix. Пакетный менеджер — bun.
   правила, своды) `lib/analytics/onec/onec.test.ts`, отчёты 1С (их
   full_reports.py и расчёты досок) `lib/analytics/onec-reports/*.test.ts`,
   ядро (журнал, посещаемость, ключ API, API для GPT) `lib/analytics/core.test.ts`,
-  инструменты `lib/analytics/excel-cleaner.test.ts`, `lib/analytics/top10.test.ts`; «Академия» — подписи,
+  инструменты `lib/analytics/excel-cleaner.test.ts`, `lib/analytics/top10.test.ts`,
+  отзывы (разбор выгрузки .xls/.xlsx, подписи) `lib/analytics/reviews/*.test.ts`; «Академия» — подписи,
   проверка вопроса, сроки и напоминания `lib/academy/logic.test.ts`;
   Kate — инструменты,
   права, история и промпт `lib/assistant/*.test.ts`).
@@ -723,6 +724,15 @@ kb`. Доступ — ролями «Пользователей и ролей» 
   (`/analytics/tools/top10`): данные — `anTop10Query` (`tools.ts`, RPC
   `an_onec_top10`), рейтинги и их книга Excel — `lib/analytics/top10.ts`
   (+ тест; свой писатель .xlsx со стилями их файла).
+  «Отзывы» (2026-10-30, ANALYTICS.md) — группа меню: «Статистика клиентов»
+  (`/analytics/reviews`, город и период в адресе), «Загрузка выгрузки»
+  (выгрузка 1С разбирается в браузере — `lib/analytics/reviews/parse.ts`,
+  .xls — `xls-read.ts`; в базу пачками), «Ссылки на отзывы сотрудников»,
+  «Статистика сотрудников»; запросы — `lib/analytics/reviews/data.ts`,
+  подписи — `view.ts`. Форма отзыва партнёра о сотруднике — публичная
+  страница без входа и без каркаса портала `routes/analytics-feedback.$token.tsx`
+  (`/analytics-feedback/<токен>`, RPC для anon). С доски «Мой город» —
+  «Оценки клиентов» (право на отзывы).
   Отчёты 1С — группа меню «1С · Lady Stretch» (`/analytics/onec/<доска>`,
   «Мой город» — `/mycity`): маршрут рисует `OnecReportFrame`
   (`components/analytics/onec/report-frame.tsx`: период, «С начала месяца /

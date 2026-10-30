@@ -15,6 +15,10 @@ export const AN_TITLES = {
   api: "API для GPT",
   excelCleaner: "Очистка Excel",
   top10: "Топ-10 городов",
+  reviews: "Отзывы и оценки",
+  reviewsUpload: "Загрузка выгрузки",
+  staffLinks: "Ссылки на отзывы сотрудников",
+  staffStats: "Отзывы партнёров",
 } as const;
 
 /** «Очистка Excel» — тексты их ExcelCleaner 1.1-fast (окно, статусы, предупреждения). */
@@ -105,6 +109,13 @@ export const AN_CARDS: AnCard[] = [
     description: "Номенклатуры, проданные с нулевой стоимостью.",
     url: "/analytics/onec/zero",
     need: "onec.zero",
+  },
+  {
+    key: "reviews",
+    title: "Отзывы и оценки",
+    description: "Статистика оценок и комментарии клиентов по загруженной выгрузке.",
+    url: "/analytics/reviews",
+    need: "reviews",
   },
 ];
 
