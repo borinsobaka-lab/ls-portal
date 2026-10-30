@@ -34,7 +34,8 @@ Tailwind 4 + shadcn/radix. Пакетный менеджер — bun.
   `lib/analytics/server/secrets.test.ts`, обработка 1С (чтение .xlsx,
   правила, своды) `lib/analytics/onec/onec.test.ts`, отчёты 1С (их
   full_reports.py и расчёты досок) `lib/analytics/onec-reports/*.test.ts`,
-  ядро (журнал, посещаемость, ключ API, API для GPT) `lib/analytics/core.test.ts`; «Академия» — подписи,
+  ядро (журнал, посещаемость, ключ API, API для GPT) `lib/analytics/core.test.ts`,
+  инструменты `lib/analytics/excel-cleaner.test.ts`, `lib/analytics/top10.test.ts`; «Академия» — подписи,
   проверка вопроса, сроки и напоминания `lib/academy/logic.test.ts`;
   Kate — инструменты,
   права, история и промпт `lib/assistant/*.test.ts`).
@@ -713,7 +714,15 @@ kb`. Доступ — ролями «Пользователей и ролей» 
   очереди есть запуск; после «Обработать» страница зовёт
   `kickOnecProcessing`. Логика сводов — их, построчно (`onec/process.ts`,
   тест `onec/onec.test.ts`); не «чинить» — ANALYTICS_PLAN.md, §9.
-  `read-excel-file` (MIT) в зависимостях — под «Очистку Excel».
+  «Очистка Excel» (`/analytics/tools/excel-cleaner`) — их ExcelCleaner в
+  браузере: `lib/analytics/excel-cleaner.ts` (+ тест) в фоновом потоке
+  `excel-cleaner.worker.ts` (`new Worker(new URL(…), { type: "module" })`
+  в `lib/analytics/tools.ts`; Vite собирает его отдельным файлом), чтение
+  всех листов — `openWorkbook` в `onec/xlsx-read.ts`, zip потоком —
+  `zipParts` в `onec/xlsx-write.ts`. «Топ-10 городов»
+  (`/analytics/tools/top10`): данные — `anTop10Query` (`tools.ts`, RPC
+  `an_onec_top10`), рейтинги и их книга Excel — `lib/analytics/top10.ts`
+  (+ тест; свой писатель .xlsx со стилями их файла).
   Отчёты 1С — группа меню «1С · Lady Stretch» (`/analytics/onec/<доска>`,
   «Мой город» — `/mycity`): маршрут рисует `OnecReportFrame`
   (`components/analytics/onec/report-frame.tsx`: период, «С начала месяца /
