@@ -2314,4 +2314,98 @@ describe.skipIf(!url)("аналитика: фундамент (база)", () =>
       ).toContain("permission denied");
     });
   });
+
+  // ---- VK Ads, часть 3 (2026-10-30_zzzzzzz_analytics_vk_lead_forms.sql) ----
+
+  test("VK Ads: лид-формы — новые заявки без повторов, счётчик дня, пересчёт месяца не уменьшает", async () => {
+    await scenario(async (tx) => {
+      await tx`delete from an_vk_accounts`;
+      const admin = await person(tx, "Админ ЛФ", ["an.admin"]);
+      const staff = await person(tx, "Без права ЛФ", ["an.vk.register"]);
+      const [{ a }] =
+        await tx`insert into an_vk_accounts (name, vk_account_id, city) values ('Каб', '9201', 'Абакан') returning id as a`;
+      const lead = (id: string, day: string | null) => ({
+        lead_id: id,
+        form_id: "5",
+        created_at_vk: "1759660245",
+        ad_plan_id: "10",
+        encrypted_payload: "cipher",
+        payload_sha256: "x",
+        stat_date: day,
+      });
+      await asService(tx);
+      const store = async (leads: unknown[], metrics = true) =>
+        (await tx`select an_vk_lf_store(${a}, ${leads}::jsonb, ${metrics}) as n`)[0].n;
+      expect(await store([lead("1", "2026-10-05"), lead("2", "2026-10-05"), lead("3", null)])).toBe(
+        3,
+      );
+      expect(await store([lead("1", "2026-10-05"), lead("4", "2026-10-06")])).toBe(1);
+      expect(await store([lead("5", "2026-10-06")], false)).toBe(1);
+      await asServer(tx);
+      const daily = async () =>
+        (
+          await tx`select stat_date::text as d, applications_count as n from an_vk_lf_daily
+                   where account_id = ${a} order by stat_date`
+        ).map((r: { d: string; n: number }) => [r.d, r.n]);
+      expect(await daily()).toEqual([
+        ["2026-10-05", 2],
+        ["2026-10-06", 1],
+      ]);
+      // Пересчёт месяца: известные заявки + новые; меньше прежнего — не становится.
+      await asService(tx);
+      const [{ s }] = await tx`select an_vk_lf_merge_metrics(${a}, '2026-10-01', '2026-10-31',
+        ${[
+          { lead_id: "4", stat_date: "2026-10-06" },
+          { lead_id: "5", stat_date: "2026-10-06" },
+          { lead_id: "6", stat_date: "2026-10-07" },
+          { lead_id: "7", stat_date: "2026-09-30" },
+        ]}::jsonb) as s`;
+      expect(Number(s)).toBe(5);
+      await asServer(tx);
+      expect(await daily()).toEqual([
+        ["2026-10-05", 2],
+        ["2026-10-06", 2],
+        ["2026-10-07", 1],
+      ]);
+      await tx`update an_vk_lf_daily set applications_count = 9 where account_id = ${a} and stat_date = '2026-10-07'`;
+      await asService(tx);
+      await tx`select an_vk_lf_merge_metrics(${a}, '2026-10-01', '2026-10-31', '[]'::jsonb)`;
+      await asServer(tx);
+      expect((await daily())[2]).toEqual(["2026-10-07", 9]);
+
+      // Обзор «Сбора лид-форм»: таблицы и статусы записи; задача записи выключена.
+      await tx`insert into an_vk_lf_sources (account_id, spreadsheet_id) values (${a}, 'sheetA')`;
+      await tx`update an_vk_lf_submissions set sheet_status = 'sent' where account_id = ${a} and vk_lead_id in ('1', '2')`;
+      await tx`update an_vk_lf_submissions set sheet_status = 'error', sheet_error = 'Google Sheets вернул HTTP 403.'
+               where account_id = ${a} and vk_lead_id = '3'`;
+      await as(tx, admin);
+      const [{ o }] = await tx`select an_vk_lf_overview() as o`;
+      expect(o.collector_enabled).toBe(false);
+      expect(o.drive).toMatchObject({ client: false, connected: false, folder_id: "" });
+      expect(o.sources).toEqual([
+        expect.objectContaining({
+          account_id: Number(a),
+          spreadsheet_id: "sheetA",
+          sheet_name: "Заявки",
+          sent: 2,
+          pending: 2,
+          errors: 1,
+          last_error: "Google Sheets вернул HTTP 403.",
+        }),
+      ]);
+      await as(tx, staff);
+      expect(await failure(tx, () => tx`select an_vk_lf_overview()`)).toContain("an_forbidden");
+      expect(await failure(tx, () => tx`select an_vk_lf_store(${a}, '[]'::jsonb, true)`)).toContain(
+        "permission denied",
+      );
+      expect(await failure(tx, () => tx`select * from an_vk_lf_submissions`)).toContain(
+        "permission denied",
+      );
+      // Удалённый кабинет уносит таблицу, заявки и счётчики.
+      await asServer(tx);
+      await tx`delete from an_vk_accounts where id = ${a}`;
+      expect((await tx`select 1 from an_vk_lf_submissions where account_id = ${a}`).length).toBe(0);
+      expect((await tx`select 1 from an_vk_lf_daily where account_id = ${a}`).length).toBe(0);
+    });
+  });
 });

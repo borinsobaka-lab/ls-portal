@@ -99,6 +99,35 @@ export const vkSsSourcesQuery = {
   meta: { errorMessage: "Не удалось загрузить источники СС" },
 };
 
+export type VkLfSource = {
+  account_id: number;
+  name: string;
+  city: string;
+  is_active: boolean;
+  spreadsheet_id: string;
+  sheet_name: string;
+  starts_at: string;
+  is_enabled: boolean;
+  sent: number;
+  pending: number;
+  errors: number;
+  last_error: string | null;
+};
+export type VkLfOverview = {
+  drive: { client: boolean; connected: boolean; folder_id: string; updated_at: string | null };
+  sheets_key: boolean;
+  active_accounts: number;
+  collector_enabled: boolean;
+  collector_last: { at: string | null; status: string | null; message: string | null } | null;
+  sources: VkLfSource[];
+};
+
+export const vkLfOverviewQuery = {
+  queryKey: [...VK_KEY, "lead-forms"],
+  queryFn: () => rpc<VkLfOverview>("an_vk_lf_overview"),
+  meta: { errorMessage: "Не удалось загрузить сбор лид-форм" },
+};
+
 export const vkRpc = {
   update: (id: number, city: string, partner: string, brand: string) =>
     rpc<null>("an_vk_account_update", {

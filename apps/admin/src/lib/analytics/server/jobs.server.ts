@@ -14,6 +14,7 @@
 import { getSupabaseAdmin, hasSupabaseAdmin } from "@/integrations/supabase/client.server";
 import { jobEnabled } from "@/lib/analytics/jobs";
 import { syncAllVk } from "./vk-ads.server";
+import { backfillLfMetrics, collectLf } from "./vk-lf.server";
 import { syncAllSs } from "./vk-ss.server";
 
 export type JobResult = {
@@ -41,6 +42,12 @@ export const ANALYTICS_JOBS: AnalyticsJob[] = [
   // Их lady-community-messages.timer: раз в час — счётчики СС из Google-таблиц
   // (только чтение, без внешнего действия).
   { key: "vk_ss", everyMs: 60 * MINUTE, leaseSeconds: 30 * 60, run: syncAllSs },
+  // Их lady-vk-ads-lead-forms.timer: каждые 5 минут — новые заявки ЛФ в
+  // Google-таблицы кабинетов (внешнее действие, выключена по умолчанию).
+  { key: "vk_lf", everyMs: 5 * MINUTE, leaseSeconds: 30 * 60, run: collectLf },
+  // Их lady-vk-ads-lead-forms-backfill.timer: раз в час — заявки ЛФ текущего
+  // месяца в счётчики реестра (только чтение VK).
+  { key: "vk_lf_metrics", everyMs: 60 * MINUTE, leaseSeconds: 2 * 60 * 60, run: backfillLfMetrics },
 ];
 
 const g = globalThis as typeof globalThis & {

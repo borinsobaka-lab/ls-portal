@@ -3151,6 +3151,24 @@ export function AnalyticsVkTargetologistsPageSkeleton() {
   );
 }
 
+/** «VK Ads» → «Сбор лид-форм»: подключение Drive, создание таблиц, таблицы. */
+export function AnalyticsVkLeadFormsPageSkeleton() {
+  return (
+    <ShellSkeleton title={AN_TITLES.vkLeadForms} network>
+      <div className="max-w-5xl space-y-4">
+        <Skeleton className="h-12 w-full rounded-lg" />
+        <Skeleton className="h-36 w-full rounded-lg" />
+        <Skeleton className="h-44 w-full rounded-lg" />
+        <TableCardSkeleton
+          title="Подключённые таблицы"
+          headers={["Город", "Кабинет", "Таблица", "Старт сбора", "Заявки"]}
+          rows={6}
+        />
+      </div>
+    </ShellSkeleton>
+  );
+}
+
 /** «VK Ads» → «Источники СС»: ключ Google, источники. */
 export function AnalyticsVkSourcesPageSkeleton() {
   return (

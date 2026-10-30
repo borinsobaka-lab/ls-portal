@@ -42,16 +42,18 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /** Другой адрес API — только для проверки на тестовом стенде (VK_ADS_API_ORIGIN). */
 const origin = () => process.env.VK_ADS_API_ORIGIN?.replace(/\/+$/, "") || undefined;
-const db = () => getSupabaseAdmin();
+export const db = () => getSupabaseAdmin();
 
-async function must<T>(q: PromiseLike<{ data: T; error: { message: string } | null }>): Promise<T> {
+export async function must<T>(
+  q: PromiseLike<{ data: T; error: { message: string } | null }>,
+): Promise<T> {
   const { data, error } = await q;
   if (error) throw new Error(error.message);
   return data;
 }
 
 /** Их _request: [HTTP-код, JSON]; сеть и таймаут — [0, {error}]. */
-async function vkRequest(token: string, path: string): Promise<[number, unknown]> {
+export async function vkRequest(token: string, path: string): Promise<[number, unknown]> {
   let res: Response;
   try {
     res = await fetch(vkUrl(path, origin()), {
@@ -90,7 +92,7 @@ async function vkRequestWithRetry(token: string, path: string): Promise<[number,
 }
 
 /** Их _raw: ответ с ошибкой — в диагностику; успешные не хранятся. */
-async function saveRaw(
+export async function saveRaw(
   accountId: number,
   runId: number,
   resource: string,
@@ -117,7 +119,10 @@ async function saveRaw(
 }
 
 /** Их _save_lead_forms: формы и их кампании (ответы заявок не хранятся). */
-async function saveLeadForms(accountId: number, forms: unknown[]): Promise<[number, number]> {
+export async function saveLeadForms(
+  accountId: number,
+  forms: unknown[],
+): Promise<[number, number]> {
   const now = new Date().toISOString();
   await must(db().from("an_vk_lead_form_links").delete().eq("account_id", accountId));
   const formRows: Record<string, unknown>[] = [];
