@@ -7,7 +7,13 @@ import { InfoNote } from "@/components/ui/form-field";
 import { useAdminAccess } from "@/hooks/use-admin-access";
 import { useStaffProfile } from "@/hooks/use-staff-profile";
 import { anCan } from "@/lib/analytics/access";
-import { AN_CARDS, AN_HOME_TEXT, AN_TITLES } from "@/lib/analytics/labels";
+import {
+  AN_CARDS,
+  AN_HOME_TEXT,
+  AN_MYCITY_CARD,
+  AN_TITLES,
+  type AnCard,
+} from "@/lib/analytics/labels";
 
 export const Route = createFileRoute("/_authenticated/analytics/")({
   head: () => ({ meta: [{ title: "Аналитика — Lady Stretch" }] }),
@@ -24,7 +30,28 @@ function AnalyticsHomePage() {
   const access = useAdminAccess();
   const { data: profile } = useStaffProfile();
   const me = access?.analytics;
-  const cards = AN_CARDS.filter((c) => anCan(me, c.need));
+  const cards: AnCard[] = AN_CARDS.filter((c) => anCan(me, c.need));
+  if (anCan(me, AN_MYCITY_CARD.need)) {
+    const cities = me?.admin ? [] : (me?.partnerCities ?? []);
+    for (const city of cities) {
+      cards.push({
+        key: `mycity:${city}`,
+        title: AN_MYCITY_CARD.cityTitle(city),
+        description: AN_MYCITY_CARD.cityDescription,
+        url: AN_MYCITY_CARD.url,
+        need: AN_MYCITY_CARD.need,
+      });
+    }
+    if (cities.length === 0) {
+      cards.push({
+        key: "mycity",
+        title: AN_MYCITY_CARD.title,
+        description: AN_MYCITY_CARD.description,
+        url: AN_MYCITY_CARD.url,
+        need: AN_MYCITY_CARD.need,
+      });
+    }
+  }
   return (
     <AdminShell title={AN_TITLES.home}>
       <AnalyticsHomeBody

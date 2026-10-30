@@ -72,6 +72,12 @@ import { Route as AuthenticatedKbBaseIdTemplatesRouteImport } from './routes/_au
 import { Route as AuthenticatedKbBaseIdAnalyticsRouteImport } from './routes/_authenticated/kb/$baseId/analytics'
 import { Route as AuthenticatedKbBaseIdNodeIdRouteImport } from './routes/_authenticated/kb/$baseId/$nodeId'
 import { Route as AuthenticatedAnalyticsToolsOnecRouteImport } from './routes/_authenticated/analytics/tools/onec'
+import { Route as AuthenticatedAnalyticsOnecZeroRouteImport } from './routes/_authenticated/analytics/onec/zero'
+import { Route as AuthenticatedAnalyticsOnecSalesRouteImport } from './routes/_authenticated/analytics/onec/sales'
+import { Route as AuthenticatedAnalyticsOnecRevenueRouteImport } from './routes/_authenticated/analytics/onec/revenue'
+import { Route as AuthenticatedAnalyticsOnecMycityRouteImport } from './routes/_authenticated/analytics/onec/mycity'
+import { Route as AuthenticatedAnalyticsOnecFunnelRouteImport } from './routes/_authenticated/analytics/onec/funnel'
+import { Route as AuthenticatedAnalyticsOnecActivitiesRouteImport } from './routes/_authenticated/analytics/onec/activities'
 import { Route as AuthenticatedAnalyticsAdminJobsRouteImport } from './routes/_authenticated/analytics/admin/jobs'
 import { Route as AuthenticatedAccessUsersUserIdRouteImport } from './routes/_authenticated/access/users/$userId'
 import { Route as AuthenticatedAccessRolesRoleIdRouteImport } from './routes/_authenticated/access/roles/$roleId'
@@ -427,6 +433,42 @@ const AuthenticatedAnalyticsToolsOnecRoute =
     path: '/analytics/tools/onec',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAnalyticsOnecZeroRoute =
+  AuthenticatedAnalyticsOnecZeroRouteImport.update({
+    id: '/analytics/onec/zero',
+    path: '/analytics/onec/zero',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAnalyticsOnecSalesRoute =
+  AuthenticatedAnalyticsOnecSalesRouteImport.update({
+    id: '/analytics/onec/sales',
+    path: '/analytics/onec/sales',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAnalyticsOnecRevenueRoute =
+  AuthenticatedAnalyticsOnecRevenueRouteImport.update({
+    id: '/analytics/onec/revenue',
+    path: '/analytics/onec/revenue',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAnalyticsOnecMycityRoute =
+  AuthenticatedAnalyticsOnecMycityRouteImport.update({
+    id: '/analytics/onec/mycity',
+    path: '/analytics/onec/mycity',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAnalyticsOnecFunnelRoute =
+  AuthenticatedAnalyticsOnecFunnelRouteImport.update({
+    id: '/analytics/onec/funnel',
+    path: '/analytics/onec/funnel',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAnalyticsOnecActivitiesRoute =
+  AuthenticatedAnalyticsOnecActivitiesRouteImport.update({
+    id: '/analytics/onec/activities',
+    path: '/analytics/onec/activities',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAnalyticsAdminJobsRoute =
   AuthenticatedAnalyticsAdminJobsRouteImport.update({
     id: '/analytics/admin/jobs',
@@ -542,6 +584,12 @@ export interface FileRoutesByFullPath {
   '/access/roles/$roleId': typeof AuthenticatedAccessRolesRoleIdRoute
   '/access/users/$userId': typeof AuthenticatedAccessUsersUserIdRoute
   '/analytics/admin/jobs': typeof AuthenticatedAnalyticsAdminJobsRoute
+  '/analytics/onec/activities': typeof AuthenticatedAnalyticsOnecActivitiesRoute
+  '/analytics/onec/funnel': typeof AuthenticatedAnalyticsOnecFunnelRoute
+  '/analytics/onec/mycity': typeof AuthenticatedAnalyticsOnecMycityRoute
+  '/analytics/onec/revenue': typeof AuthenticatedAnalyticsOnecRevenueRoute
+  '/analytics/onec/sales': typeof AuthenticatedAnalyticsOnecSalesRoute
+  '/analytics/onec/zero': typeof AuthenticatedAnalyticsOnecZeroRoute
   '/analytics/tools/onec': typeof AuthenticatedAnalyticsToolsOnecRoute
   '/kb/$baseId/$nodeId': typeof AuthenticatedKbBaseIdNodeIdRoute
   '/kb/$baseId/analytics': typeof AuthenticatedKbBaseIdAnalyticsRoute
@@ -615,6 +663,12 @@ export interface FileRoutesByTo {
   '/access/roles/$roleId': typeof AuthenticatedAccessRolesRoleIdRoute
   '/access/users/$userId': typeof AuthenticatedAccessUsersUserIdRoute
   '/analytics/admin/jobs': typeof AuthenticatedAnalyticsAdminJobsRoute
+  '/analytics/onec/activities': typeof AuthenticatedAnalyticsOnecActivitiesRoute
+  '/analytics/onec/funnel': typeof AuthenticatedAnalyticsOnecFunnelRoute
+  '/analytics/onec/mycity': typeof AuthenticatedAnalyticsOnecMycityRoute
+  '/analytics/onec/revenue': typeof AuthenticatedAnalyticsOnecRevenueRoute
+  '/analytics/onec/sales': typeof AuthenticatedAnalyticsOnecSalesRoute
+  '/analytics/onec/zero': typeof AuthenticatedAnalyticsOnecZeroRoute
   '/analytics/tools/onec': typeof AuthenticatedAnalyticsToolsOnecRoute
   '/kb/$baseId/$nodeId': typeof AuthenticatedKbBaseIdNodeIdRoute
   '/kb/$baseId/analytics': typeof AuthenticatedKbBaseIdAnalyticsRoute
@@ -690,6 +744,12 @@ export interface FileRoutesById {
   '/_authenticated/access/roles/$roleId': typeof AuthenticatedAccessRolesRoleIdRoute
   '/_authenticated/access/users/$userId': typeof AuthenticatedAccessUsersUserIdRoute
   '/_authenticated/analytics/admin/jobs': typeof AuthenticatedAnalyticsAdminJobsRoute
+  '/_authenticated/analytics/onec/activities': typeof AuthenticatedAnalyticsOnecActivitiesRoute
+  '/_authenticated/analytics/onec/funnel': typeof AuthenticatedAnalyticsOnecFunnelRoute
+  '/_authenticated/analytics/onec/mycity': typeof AuthenticatedAnalyticsOnecMycityRoute
+  '/_authenticated/analytics/onec/revenue': typeof AuthenticatedAnalyticsOnecRevenueRoute
+  '/_authenticated/analytics/onec/sales': typeof AuthenticatedAnalyticsOnecSalesRoute
+  '/_authenticated/analytics/onec/zero': typeof AuthenticatedAnalyticsOnecZeroRoute
   '/_authenticated/analytics/tools/onec': typeof AuthenticatedAnalyticsToolsOnecRoute
   '/_authenticated/kb/$baseId/$nodeId': typeof AuthenticatedKbBaseIdNodeIdRoute
   '/_authenticated/kb/$baseId/analytics': typeof AuthenticatedKbBaseIdAnalyticsRoute
@@ -765,6 +825,12 @@ export interface FileRouteTypes {
     | '/access/roles/$roleId'
     | '/access/users/$userId'
     | '/analytics/admin/jobs'
+    | '/analytics/onec/activities'
+    | '/analytics/onec/funnel'
+    | '/analytics/onec/mycity'
+    | '/analytics/onec/revenue'
+    | '/analytics/onec/sales'
+    | '/analytics/onec/zero'
     | '/analytics/tools/onec'
     | '/kb/$baseId/$nodeId'
     | '/kb/$baseId/analytics'
@@ -838,6 +904,12 @@ export interface FileRouteTypes {
     | '/access/roles/$roleId'
     | '/access/users/$userId'
     | '/analytics/admin/jobs'
+    | '/analytics/onec/activities'
+    | '/analytics/onec/funnel'
+    | '/analytics/onec/mycity'
+    | '/analytics/onec/revenue'
+    | '/analytics/onec/sales'
+    | '/analytics/onec/zero'
     | '/analytics/tools/onec'
     | '/kb/$baseId/$nodeId'
     | '/kb/$baseId/analytics'
@@ -912,6 +984,12 @@ export interface FileRouteTypes {
     | '/_authenticated/access/roles/$roleId'
     | '/_authenticated/access/users/$userId'
     | '/_authenticated/analytics/admin/jobs'
+    | '/_authenticated/analytics/onec/activities'
+    | '/_authenticated/analytics/onec/funnel'
+    | '/_authenticated/analytics/onec/mycity'
+    | '/_authenticated/analytics/onec/revenue'
+    | '/_authenticated/analytics/onec/sales'
+    | '/_authenticated/analytics/onec/zero'
     | '/_authenticated/analytics/tools/onec'
     | '/_authenticated/kb/$baseId/$nodeId'
     | '/_authenticated/kb/$baseId/analytics'
@@ -1378,6 +1456,48 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAnalyticsToolsOnecRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/analytics/onec/zero': {
+      id: '/_authenticated/analytics/onec/zero'
+      path: '/analytics/onec/zero'
+      fullPath: '/analytics/onec/zero'
+      preLoaderRoute: typeof AuthenticatedAnalyticsOnecZeroRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/analytics/onec/sales': {
+      id: '/_authenticated/analytics/onec/sales'
+      path: '/analytics/onec/sales'
+      fullPath: '/analytics/onec/sales'
+      preLoaderRoute: typeof AuthenticatedAnalyticsOnecSalesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/analytics/onec/revenue': {
+      id: '/_authenticated/analytics/onec/revenue'
+      path: '/analytics/onec/revenue'
+      fullPath: '/analytics/onec/revenue'
+      preLoaderRoute: typeof AuthenticatedAnalyticsOnecRevenueRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/analytics/onec/mycity': {
+      id: '/_authenticated/analytics/onec/mycity'
+      path: '/analytics/onec/mycity'
+      fullPath: '/analytics/onec/mycity'
+      preLoaderRoute: typeof AuthenticatedAnalyticsOnecMycityRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/analytics/onec/funnel': {
+      id: '/_authenticated/analytics/onec/funnel'
+      path: '/analytics/onec/funnel'
+      fullPath: '/analytics/onec/funnel'
+      preLoaderRoute: typeof AuthenticatedAnalyticsOnecFunnelRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/analytics/onec/activities': {
+      id: '/_authenticated/analytics/onec/activities'
+      path: '/analytics/onec/activities'
+      fullPath: '/analytics/onec/activities'
+      preLoaderRoute: typeof AuthenticatedAnalyticsOnecActivitiesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/analytics/admin/jobs': {
       id: '/_authenticated/analytics/admin/jobs'
       path: '/analytics/admin/jobs'
@@ -1499,6 +1619,12 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAccessRolesRoleIdRoute: typeof AuthenticatedAccessRolesRoleIdRoute
   AuthenticatedAccessUsersUserIdRoute: typeof AuthenticatedAccessUsersUserIdRoute
   AuthenticatedAnalyticsAdminJobsRoute: typeof AuthenticatedAnalyticsAdminJobsRoute
+  AuthenticatedAnalyticsOnecActivitiesRoute: typeof AuthenticatedAnalyticsOnecActivitiesRoute
+  AuthenticatedAnalyticsOnecFunnelRoute: typeof AuthenticatedAnalyticsOnecFunnelRoute
+  AuthenticatedAnalyticsOnecMycityRoute: typeof AuthenticatedAnalyticsOnecMycityRoute
+  AuthenticatedAnalyticsOnecRevenueRoute: typeof AuthenticatedAnalyticsOnecRevenueRoute
+  AuthenticatedAnalyticsOnecSalesRoute: typeof AuthenticatedAnalyticsOnecSalesRoute
+  AuthenticatedAnalyticsOnecZeroRoute: typeof AuthenticatedAnalyticsOnecZeroRoute
   AuthenticatedAnalyticsToolsOnecRoute: typeof AuthenticatedAnalyticsToolsOnecRoute
   AuthenticatedKbBaseIdNodeIdRoute: typeof AuthenticatedKbBaseIdNodeIdRoute
   AuthenticatedKbBaseIdAnalyticsRoute: typeof AuthenticatedKbBaseIdAnalyticsRoute
@@ -1571,6 +1697,14 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAccessRolesRoleIdRoute: AuthenticatedAccessRolesRoleIdRoute,
   AuthenticatedAccessUsersUserIdRoute: AuthenticatedAccessUsersUserIdRoute,
   AuthenticatedAnalyticsAdminJobsRoute: AuthenticatedAnalyticsAdminJobsRoute,
+  AuthenticatedAnalyticsOnecActivitiesRoute:
+    AuthenticatedAnalyticsOnecActivitiesRoute,
+  AuthenticatedAnalyticsOnecFunnelRoute: AuthenticatedAnalyticsOnecFunnelRoute,
+  AuthenticatedAnalyticsOnecMycityRoute: AuthenticatedAnalyticsOnecMycityRoute,
+  AuthenticatedAnalyticsOnecRevenueRoute:
+    AuthenticatedAnalyticsOnecRevenueRoute,
+  AuthenticatedAnalyticsOnecSalesRoute: AuthenticatedAnalyticsOnecSalesRoute,
+  AuthenticatedAnalyticsOnecZeroRoute: AuthenticatedAnalyticsOnecZeroRoute,
   AuthenticatedAnalyticsToolsOnecRoute: AuthenticatedAnalyticsToolsOnecRoute,
   AuthenticatedKbBaseIdNodeIdRoute: AuthenticatedKbBaseIdNodeIdRoute,
   AuthenticatedKbBaseIdAnalyticsRoute: AuthenticatedKbBaseIdAnalyticsRoute,

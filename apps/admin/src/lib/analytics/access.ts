@@ -47,12 +47,20 @@ export type AnMe = {
 /** Что нужно пункту меню раздела. */
 export type AnNeed = "home" | "admin" | "inbox" | AnReport;
 
+/** Без них «Мой город» сотруднику (не партнёру) не открывается — их onec_scope. */
+const ONEC_MYCITY_NEEDS: AnReport[] = ["onec.revenue", "onec.sales", "onec.classes", "onec.trials"];
+
 export function anCan(me: AnMe | undefined | null, need: AnNeed): boolean {
   if (!me) return false;
   if (need === "home") return me.visible;
   if (need === "admin") return me.admin;
   if (need === "inbox") return me.inbox;
-  return me.admin || me.reports.includes(need);
+  if (me.admin) return true;
+  if (!me.reports.includes(need)) return false;
+  if (need === "onec.mycity" && me.partnerCities === null) {
+    return ONEC_MYCITY_NEEDS.every((r) => me.reports.includes(r));
+  }
+  return true;
 }
 
 export type AnMeRow = {

@@ -2533,6 +2533,41 @@ export function AnalyticsHomePageSkeleton() {
   );
 }
 
+/** Отчёт 1С: плашка периода, плитки показателей и таблица доски. */
+function OnecReportPageSkeleton({ title }: { title: string }) {
+  return (
+    <ShellSkeleton title={title} network>
+      <div className="space-y-4">
+        <div className="flex flex-wrap gap-2 rounded-lg border bg-background p-2">
+          <Skeleton className="h-9 w-56" />
+          <Skeleton className="h-9 w-36 rounded-full" />
+          <Skeleton className="h-9 w-40 rounded-full" />
+          <Skeleton className="h-9 w-32 rounded-full" />
+        </div>
+        <Skeleton className="h-3 w-96 max-w-full" />
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {Array.from({ length: 4 }, (_, i) => (
+            <Skeleton key={i} className="h-24 rounded-lg" />
+          ))}
+        </div>
+        <Skeleton className="h-96 w-full rounded-lg" />
+      </div>
+    </ShellSkeleton>
+  );
+}
+export const AnalyticsOnecRevenuePageSkeleton = () => <OnecReportPageSkeleton title="Выручка" />;
+export const AnalyticsOnecSalesPageSkeleton = () => (
+  <OnecReportPageSkeleton title="Продажи абонементов" />
+);
+export const AnalyticsOnecActivitiesPageSkeleton = () => <OnecReportPageSkeleton title="Занятия" />;
+export const AnalyticsOnecFunnelPageSkeleton = () => (
+  <OnecReportPageSkeleton title="Воронка пробных" />
+);
+export const AnalyticsOnecZeroPageSkeleton = () => (
+  <OnecReportPageSkeleton title="Нулевая номенклатура" />
+);
+export const AnalyticsOnecMycityPageSkeleton = () => <OnecReportPageSkeleton title="Мой город" />;
+
 /** «Обработка 1С»: табы на плашке, окно обработки, папки выгрузок. */
 export function AnalyticsOnecPageSkeleton() {
   return (

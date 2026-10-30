@@ -625,4 +625,166 @@ describe.skipIf(!url)("аналитика: фундамент (база)", () =>
       expect(Object.keys(st4).sort()).toEqual(["current", "previous", "ready"]);
     });
   });
+  // --- Отчёты 1С (db/migrations/2026-10-30_z_analytics_onec_reports.sql) ---------
+
+  /** Текущий снимок: выручка двух городов и продажи (items/facts как у них). */
+  async function onecCurrentSnapshot(tx: Tx) {
+    await onecReset(tx);
+    await tx`insert into an_onec_runs (status) values ('running')`;
+    const [{ run }] = await tx`select id as run from an_onec_runs order by id desc limit 1`;
+    await asService(tx);
+    const [{ s }] = await tx`select an_onec_snapshot_begin(${run}) as s`;
+    await tx`select an_onec_snapshot_items(${s.id},
+      '{1,2,3,4}', '{revenue,revenue,sales,zero}', '{Абакан,Бийск,Абакан,Бийск}',
+      '{"Абакан Ленина","Бийск Мира","Абакан Ленина","Бийск Мира"}',
+      '{Абонементы,Абонементы,"Абонемент 8",Заморозка}', '{"","",0001,0003}',
+      '{Открыта,Открыта,Открыта,Закрыта}')`;
+    await tx`select an_onec_snapshot_facts(${s.id}, 1, '{1,1,2,3,4}',
+      '{2026-10-01,2026-09-15,2026-10-02,2026-10-03,2026-10-04}',
+      '{100,50,70,1,1}', '{0,0,0,0,0}', '{100,50,70,0,0}', '{0,0,0,0,0}', '{0,0,0,0,0}',
+      '{0,0,0,1000,0}', '{0,0,0,0,0}', '{0,0,0,0,0}')`;
+    await tx`select an_onec_run_finish(${run}, ${s.id}, ${{
+      source_rows: {},
+      issues: {},
+      breakEven: { Абакан: 700000, Бийск: 500000 },
+      zeroControls: { blankCostRows: 1, explicitZeroRows: 0, excludedTrialRows: 0 },
+      stats: {},
+    }}::jsonb)`;
+    await tx`reset role`;
+    await tx`update an_onec_snapshots set state = 'current' where id = ${s.id}`;
+  }
+  const agg = (tx: Tx, board: string, report: string, grain: string, studio = "", city = "") =>
+    tx`select an_onec_aggregate(${board}, ${report}, '2026-09-01', '2026-10-31', ${grain}, ${studio}, ${city}) as r`;
+
+  test("1С отчёты: разрезы как их aggregate(); без снимка — an_onec_empty", async () => {
+    await scenario(async (tx) => {
+      await onecReset(tx);
+      const admin = await person(tx, "Админ", ["an.admin"]);
+      await as(tx, admin);
+      expect(await failure(tx, () => agg(tx, "revenue", "revenue", "studio"))).toContain(
+        "an_onec_empty",
+      );
+      const [{ m0 }] = await tx`select an_onec_report_meta('revenue') as m0`;
+      expect(m0).toBeNull();
+      await asServer(tx);
+      await onecCurrentSnapshot(tx);
+      await as(tx, admin);
+      const [{ r: studio }] = await agg(tx, "revenue", "revenue", "studio");
+      expect(studio).toEqual([
+        [null, "Абакан", "Абакан Ленина", "Открыта", null, null, 150, 0, 150, 0, 0, 0, 0, 0],
+        [null, "Бийск", "Бийск Мира", "Открыта", null, null, 70, 0, 70, 0, 0, 0, 0, 0],
+      ]);
+      const [{ r: monthly }] = await agg(tx, "revenue", "revenue", "monthly");
+      expect(monthly.map((x: unknown[]) => [x[0], x[1], x[6]])).toEqual([
+        ["2026-09", "Абакан", 50],
+        ["2026-10", "Абакан", 100],
+        ["2026-10", "Бийск", 70],
+      ]);
+      const [{ r: daily }] = await agg(tx, "revenue", "revenue", "daily");
+      expect(daily[0][0]).toBe("2026-09-15");
+      const [{ r: detail }] = await agg(tx, "sales", "sales", "detail");
+      expect(detail).toEqual([
+        [
+          null,
+          "Абакан",
+          "Абакан Ленина",
+          "Открыта",
+          "Абонемент 8",
+          "0001",
+          1,
+          0,
+          0,
+          0,
+          0,
+          1000,
+          0,
+          0,
+        ],
+      ]);
+      // Доска читает только свои отчёты; неизвестный разрез — ошибка.
+      expect(await failure(tx, () => agg(tx, "revenue", "sales", "detail"))).toContain(
+        "an_onec_bad_report",
+      );
+      expect(await failure(tx, () => agg(tx, "revenue", "revenue", "weekly"))).toContain(
+        "an_onec_bad_grain",
+      );
+      expect(
+        await failure(
+          tx,
+          () =>
+            tx`select an_onec_aggregate('revenue', 'revenue', '2026-10-31', '2026-10-01', 'studio')`,
+        ),
+      ).toContain("Начало периода позже конца");
+      const [{ m }] = await tx`select an_onec_report_meta('revenue') as m`;
+      expect(m.coverage).toEqual({ min: "2026-09-15", max: "2026-10-02" });
+      expect(m.breakEven).toEqual({ Абакан: 700000, Бийск: 500000 });
+      expect(m.zeroControls).toBeNull();
+      const [{ z }] = await tx`select an_onec_report_meta('zero') as z`;
+      expect(z.zeroControls).toEqual({
+        blankCostRows: 1,
+        explicitZeroRows: 0,
+        excludedTrialRows: 0,
+      });
+      await asServer(tx);
+    });
+  });
+
+  test("1С отчёты: партнёр — только «Мой город» и свои города; студия — только своего города", async () => {
+    await scenario(async (tx) => {
+      await onecCurrentSnapshot(tx);
+      const partner = await person(tx, "Партнёр", ["an.partner", "an.onec.revenue"]);
+      await tx`insert into an_partner_cities (user_id, city) values (${partner}, 'Абакан')`;
+      const empty = await person(tx, "Партнёр без городов", ["an.partner"]);
+      await as(tx, partner);
+      expect(await failure(tx, () => agg(tx, "revenue", "revenue", "studio"))).toContain(
+        "an_forbidden",
+      );
+      const [{ r }] = await agg(tx, "partner", "revenue", "studio");
+      expect(r.map((x: unknown[]) => x[1])).toEqual(["Абакан"]);
+      const [{ m }] = await tx`select an_onec_report_meta('partner') as m`;
+      expect(m.studioOptions).toEqual({ Абакан: ["Абакан Ленина"] });
+      expect(m.breakEven).toEqual({ Абакан: 700000 });
+      // Чужая студия — их «Выбранная студия недоступна в этом городе».
+      expect(
+        await failure(tx, () => agg(tx, "partner", "revenue", "studio", "Бийск Мира", "Бийск")),
+      ).toContain("Выбранная студия недоступна");
+      const [{ r: own }] = await agg(tx, "partner", "revenue", "studio", "Абакан Ленина", "Абакан");
+      expect(own.length).toBe(1);
+      await asServer(tx);
+      await as(tx, empty);
+      const [{ r: none }] = await agg(tx, "partner", "revenue", "studio");
+      expect(none).toEqual([]);
+      await asServer(tx);
+    });
+  });
+
+  test("1С отчёты: сотруднику — выданные доски; «Мой город» — только при всех четырёх", async () => {
+    await scenario(async (tx) => {
+      await onecCurrentSnapshot(tx);
+      const one = await person(tx, "Сотрудник", ["an.onec.revenue", "an.onec.mycity"]);
+      const four = await person(tx, "Сотрудник 2", [
+        "an.onec.revenue",
+        "an.onec.sales",
+        "an.onec.classes",
+        "an.onec.trials",
+        "an.onec.mycity",
+      ]);
+      await as(tx, one);
+      const [{ r }] = await agg(tx, "revenue", "revenue", "studio");
+      expect(r.length).toBe(2);
+      expect(await failure(tx, () => agg(tx, "sales", "sales", "detail"))).toContain(
+        "an_forbidden",
+      );
+      expect(await failure(tx, () => agg(tx, "partner", "revenue", "studio"))).toContain(
+        "an_forbidden",
+      );
+      await asServer(tx);
+      await as(tx, four);
+      const [{ r: all }] = await agg(tx, "partner", "trial_products", "detail");
+      expect(all).toEqual([]);
+      const [{ m }] = await tx`select an_onec_report_meta('partner') as m`;
+      expect(Object.keys(m.studioOptions).sort()).toEqual(["Абакан", "Бийск"]);
+      await asServer(tx);
+    });
+  });
 });

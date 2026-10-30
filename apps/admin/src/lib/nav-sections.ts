@@ -31,6 +31,7 @@ import {
   HandShake,
   History,
   HomeSmile,
+  MapPoint,
   MoneyBag,
   Notebook,
   PieChart2,
@@ -252,6 +253,33 @@ export const ANALYTICS_GROUPS: NavGroup<AnalyticsNavItem>[] = [
     key: "an-home",
     label: "Аналитика",
     items: [{ title: "Главная", url: ANALYTICS_URL, icon: HomeSmile, exact: true, need: "home" }],
+  },
+  {
+    key: "an-onec",
+    label: "1С · Lady Stretch",
+    items: [
+      { title: "Мой город", url: "/analytics/onec/mycity", icon: MapPoint, need: "onec.mycity" },
+      { title: "Выручка", url: "/analytics/onec/revenue", icon: WalletMoney, need: "onec.revenue" },
+      {
+        title: "Продажи абонементов",
+        url: "/analytics/onec/sales",
+        icon: TicketSale,
+        need: "onec.sales",
+      },
+      { title: "Занятия", url: "/analytics/onec/activities", icon: Dumbbell, need: "onec.classes" },
+      {
+        title: "Воронка пробных",
+        url: "/analytics/onec/funnel",
+        icon: Target,
+        need: "onec.trials",
+      },
+      {
+        title: "Нулевая номенклатура",
+        url: "/analytics/onec/zero",
+        icon: TagPrice,
+        need: "onec.zero",
+      },
+    ],
   },
   {
     key: "an-tools",

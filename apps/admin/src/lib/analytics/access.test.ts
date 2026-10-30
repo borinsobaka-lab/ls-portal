@@ -44,4 +44,26 @@ describe("права в «Аналитике» (их allowed_dashboards)", () =>
     expect(anCan(admin, "admin")).toBe(true);
     expect(anCan(undefined, "home")).toBe(false);
   });
+
+  test("«Мой город» сотруднику без городов — только при всех четырёх отчётах 1С (их onec_scope)", () => {
+    const staff = (reports: string[]) =>
+      parseAnMe({
+        visible: true,
+        admin: false,
+        reports,
+        partner_cities: null,
+        targetologist: null,
+        inbox: false,
+      });
+    expect(anCan(staff(["onec.mycity", "onec.revenue"]), "onec.mycity")).toBe(false);
+    expect(
+      anCan(
+        staff(["onec.mycity", "onec.revenue", "onec.sales", "onec.classes", "onec.trials"]),
+        "onec.mycity",
+      ),
+    ).toBe(true);
+    expect(
+      anCan(staff(["onec.revenue", "onec.sales", "onec.classes", "onec.trials"]), "onec.mycity"),
+    ).toBe(false);
+  });
 });

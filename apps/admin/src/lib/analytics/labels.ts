@@ -38,7 +38,59 @@ export type AnCard = {
 };
 
 /**
- * Карточки главной по порядку их главной. Модули добавляют свои по мере
- * переноса — карточка появляется вместе с готовой страницей.
+ * Карточки главной по порядку их главной (`DASHBOARDS`: заголовок и
+ * описание). Модули добавляют свои по мере переноса — карточка появляется
+ * вместе с готовой страницей. «Мой город» — отдельно (AN_MYCITY_CARD): у
+ * партнёра по карточке на город, как у них.
  */
-export const AN_CARDS: AnCard[] = [];
+export const AN_CARDS: AnCard[] = [
+  {
+    key: "onec.revenue",
+    title: "Выручка",
+    description: "Финансовый результат сети и динамика по городам.",
+    url: "/analytics/onec/revenue",
+    need: "onec.revenue",
+  },
+  {
+    key: "onec.sales",
+    title: "Продажи абонементов",
+    description: "Конверсия и ключевые показатели продаж.",
+    url: "/analytics/onec/sales",
+    need: "onec.sales",
+  },
+  {
+    key: "onec.classes",
+    title: "Занятия",
+    description: "Динамика проведённых занятий и посещений.",
+    url: "/analytics/onec/activities",
+    need: "onec.classes",
+  },
+  {
+    key: "onec.trials",
+    title: "Воронка пробных",
+    description: "Записи, посещения и покупки после пробного.",
+    url: "/analytics/onec/funnel",
+    need: "onec.trials",
+  },
+  {
+    key: "onec.zero",
+    title: "Нулевая номенклатура",
+    description: "Номенклатуры, проданные с нулевой стоимостью.",
+    url: "/analytics/onec/zero",
+    need: "onec.zero",
+  },
+];
+
+/**
+ * «Мой город» на главной — их home(): партнёру по карточке на каждый город
+ * («Мой город — Абакан»; ведёт на доску, как у них, без выбора города),
+ * администратору и сотруднику — одна общая.
+ */
+export const AN_MYCITY_CARD = {
+  url: "/analytics/onec/mycity",
+  need: "onec.mycity" as AnNeed,
+  cityTitle: (city: string) => `Мой город — ${city}`,
+  cityDescription: "Единый борд города: финансы, продажи, занятия и воронка.",
+  title: "Мой город",
+  description: "Общий единый борд для сотрудников.",
+};
