@@ -358,6 +358,18 @@ export const ANALYTICS_GROUPS: NavGroup<AnalyticsNavItem>[] = [
     ],
   },
   {
+    key: "an-crm",
+    label: "CRM",
+    items: [
+      {
+        title: "Интеграция amoCRM",
+        url: "/analytics/crm/amocrm",
+        icon: Structure,
+        need: "admin",
+      },
+    ],
+  },
+  {
     key: "an-tools",
     label: "Инструменты",
     items: [

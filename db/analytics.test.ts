@@ -2571,4 +2571,289 @@ describe.skipIf(!url)("аналитика: фундамент (база)", () =>
       }
     });
   });
+  // ---- amoCRM, часть 1 (2026-10-30_zzzzzzzzz_analytics_amocrm.sql) ----
+
+  test("amoCRM: правила, ответственные, квалификация — проверки их кода; только администратору", async () => {
+    await scenario(async (tx) => {
+      const admin = await person(tx, "Админ amoCRM", ["an.admin"]);
+      const staff = await person(tx, "Без права amoCRM", ["an.vk.register"]);
+      const [{ id }] =
+        await tx`insert into an_amo_connections (name, base_url) values ('CRM', 'https://t.amocrm.ru') returning id`;
+      await as(tx, admin);
+      const save = (values: Record<string, string>) =>
+        failure(tx, () => tx`select an_amo_settings_save(${id}, ${values}::jsonb)`);
+      const full = {
+        brand: "Lady Jump",
+        new_lead_pipeline_id: "111",
+        auto_source_field_id: "1",
+        manual_source_field_id: "2",
+        booked_field_id: "3",
+        attended_field_id: "4",
+        paid_field_id: "5",
+        close_basis_field_id: "6",
+      };
+      expect(await save({ ...full, brand: "Другой" })).toBe(
+        "Выберите направление для воронки новых лидов.",
+      );
+      expect(await save({ ...full, paid_field_id: "" })).toBe(
+        "Выберите воронку и все поля из списка AmoCRM.",
+      );
+      expect(await save(full)).toBe(
+        "Настройки AmoCRM устарели. Сначала обновите список воронок и полей.",
+      );
+      expect(
+        await failure(
+          tx,
+          () => tx`select an_amo_responsible_save(${id}, '9', 'Lady Stretch', 'Тула', '')`,
+        ),
+      ).toBe("Сначала обновите список ответственных из AmoCRM.");
+      await asServer(tx);
+      const fields = ["1", "2", "3", "4", "5"].map((f) => ({
+        id: f,
+        name: `Поле ${f}`,
+        code: "",
+        enums: [],
+      }));
+      fields.push({
+        id: "6",
+        name: "Основание",
+        code: "",
+        enums: [
+          { id: "501", value: "Мужчина" },
+          { id: "502", value: "" },
+        ] as never,
+      });
+      await tx`insert into an_amo_metadata (connection_id, pipelines, lead_fields, users)
+               values (${id}, ${[{ id: "111", name: "Новые", is_archive: false }]}::jsonb, ${fields}::jsonb,
+                       ${[
+                         { id: "9", name: "Анна" },
+                         { id: "10", name: "" },
+                       ]}::jsonb)`;
+      await as(tx, admin);
+      expect(await save(full)).toBeNull();
+      expect(await save({ ...full, brand: "Lady Stretch" })).toBeNull();
+      // Квалификация: значения поля «Основание», лишнее — «устарел».
+      expect(await failure(tx, () => tx`select an_amo_basis_save(${id}, array['999'])`)).toContain(
+        "устарел",
+      );
+      await tx`select an_amo_basis_save(${id}, array['501', ' 501 '])`;
+      // Ответственные: Казань у Lady Jump — один город; пустой город — ошибка.
+      await tx`select an_amo_responsible_save(${id}, ' 9 ', 'Lady Jump', ' Казань Вишневского ', ' ИП ')`;
+      await tx`select an_amo_responsible_save(${id}, '10', 'Lady Stretch', 'Казань', '')`;
+      expect(
+        await failure(
+          tx,
+          () => tx`select an_amo_responsible_save(${id}, '9', 'Lady Stretch', '  ', '')`,
+        ),
+      ).toBe("Выберите направление и укажите город.");
+      const [{ v }] = await tx`select an_amo_connection(${id}) as v`;
+      expect(v.settings).toMatchObject({ new_lead_pipeline_id: "111", brand: "Lady Stretch" });
+      expect(v.responsibles).toEqual([
+        {
+          amo_user_id: "9",
+          amo_user_name: "Анна",
+          brand: "Lady Jump",
+          city: "Казань · Вишневского",
+          partner_name: "ИП",
+        },
+        {
+          amo_user_id: "10",
+          amo_user_name: "Ответственный AmoCRM",
+          brand: "Lady Stretch",
+          city: "Казань",
+          partner_name: "",
+        },
+      ]);
+      expect(v.basis).toEqual({
+        field_selected: true,
+        values: [
+          { id: "501", value: "Мужчина", unqualified: true },
+          { id: "502", value: "Без названия", unqualified: false },
+        ],
+      });
+      expect(v.running).toBe(false);
+      await tx`select an_amo_responsible_delete(${id}, '10')`;
+      expect(await failure(tx, () => tx`select an_amo_responsible_delete(${id}, '10')`)).toBe(
+        "Соответствие уже удалено или не найдено.",
+      );
+      expect((await tx`select an_amo_responsibles_clear(${id}) as n`)[0].n).toBe(1);
+      const [{ list }] = await tx`select an_amo_connections() as list`;
+      expect(list).toEqual([expect.objectContaining({ id: Number(id), configured: true })]);
+      await asServer(tx);
+      expect(
+        (await tx`select event from an_audit where event like 'amocrm%' order by id`).map(
+          (r) => r.event,
+        ),
+      ).toEqual([
+        "amocrm_settings_saved",
+        "amocrm_settings_saved",
+        "amocrm_qualification_basis_saved",
+        "amocrm_responsible_mapping_saved",
+        "amocrm_responsible_mapping_saved",
+        "amocrm_responsible_mapping_deleted",
+        "amocrm_responsible_mappings_cleared",
+      ]);
+      await as(tx, staff);
+      for (const q of [
+        () => tx`select an_amo_connections()`,
+        () => tx`select an_amo_connection(${id})`,
+        () => tx`select an_amo_responsibles_clear(${id})`,
+      ]) {
+        expect(await failure(tx, q)).toContain("an_forbidden");
+      }
+      for (const q of [
+        () => tx`select * from an_amo_leads`,
+        () => tx`select an_amo_store_leads(${id}, '111', '[]'::jsonb)`,
+        () => tx`select an_amo_freeze_snapshots()`,
+      ]) {
+        expect(await failure(tx, q)).toContain("permission denied");
+      }
+    });
+  });
+
+  test("amoCRM: сбор — воронка, этапы, версии; срезы «на 1-е число»; квалификация VK в реестре", async () => {
+    await scenario(async (tx) => {
+      await tx`delete from an_vk_accounts`;
+      const admin = await person(tx, "Админ сбора amoCRM", ["an.admin"]);
+      const [{ id }] =
+        await tx`insert into an_amo_connections (name, base_url) values ('CRM', 'https://s.amocrm.ru') returning id`;
+      const row = (lead: string, over: Record<string, unknown> = {}) => ({
+        amo_lead_id: lead,
+        created_at: Date.UTC(2026, 9, 5, 12) / 1000,
+        updated_at: Date.UTC(2026, 9, 5, 12) / 1000,
+        pipeline_id: "111",
+        status_id: "10",
+        responsible_user_id: "9",
+        responsible_name: "Анна",
+        brand: "Lady Stretch",
+        city: "Абакан",
+        partner_name: "ИП",
+        automatic_source: "ВКонтакте сообщения",
+        responsible_source: "",
+        effective_source: "ВКонтакте сообщения",
+        utm_source: "",
+        utm_medium: "",
+        utm_campaign: "",
+        utm_content: "",
+        utm_term: "",
+        utm_referrer: "",
+        is_booked: 1,
+        is_attended: 0,
+        is_paid: 0,
+        is_closed: 0,
+        close_basis_value_id: "",
+        close_basis_value: "",
+        is_qualified: 1,
+        ...over,
+      });
+      // До первого сбора учёт не начат — срезов нет (прошлое не выдумывается).
+      await tx`delete from an_amo_history_state`;
+      await asService(tx);
+      expect((await tx`select an_amo_freeze_snapshots() as n`)[0].n).toBe(0);
+      const store = async (rows: unknown[]) =>
+        (await tx`select an_amo_store_leads(${id}, '111', ${rows}::jsonb) as r`)[0].r;
+      expect(
+        await store([
+          row("1"),
+          row("2", { pipeline_id: "222" }),
+          row("3", { effective_source: " Сообщения сообщества ", is_closed: 1, is_qualified: 0 }),
+          row("4", { effective_source: "Сайт" }),
+          row("5", {
+            created_at: Date.UTC(2026, 8, 10) / 1000,
+            effective_source: "ВКонтакте ЛФ НК",
+          }),
+        ]),
+      ).toEqual({ saved: 4, skipped_other: 1 });
+      expect((await tx`select count(*)::int as n from an_amo_history_state`)[0].n).toBe(1);
+      // Уже собранная сделка в другой воронке обновляется; created_at не меняется.
+      expect(
+        await store([row("1", { pipeline_id: "222", is_paid: 1, is_attended: 1, created_at: 1 })]),
+      ).toEqual({ saved: 1, skipped_other: 0 });
+      const [lead] =
+        await tx`select pipeline_id, extract(epoch from created_at)::bigint as c from an_amo_leads where amo_lead_id = '1'`;
+      expect([lead.pipeline_id, Number(lead.c)]).toEqual(["222", Date.UTC(2026, 9, 5, 12) / 1000]);
+      expect(
+        (
+          await tx`select event_type from an_amo_lead_events where amo_lead_id = '1' order by 1`
+        ).map((r) => r.event_type),
+      ).toEqual(["attended", "booked", "paid"]);
+      // Версия — только при изменении полей среза.
+      await store([row("4", { effective_source: "Сайт", status_id: "20" })]);
+      expect(
+        (
+          await tx`select amo_lead_id, count(*)::int as n from an_amo_versions group by 1 order by 1`
+        ).map((r) => [r.amo_lead_id, r.n]),
+      ).toEqual([
+        ["1", 1],
+        ["3", 1],
+        ["4", 1],
+        ["5", 1],
+      ]);
+
+      // Срезы: учёт с 15.08 — август и сентябрь по версиям до 1-го числа МСК.
+      await asServer(tx);
+      await tx`delete from an_amo_snapshots`;
+      await tx`update an_amo_history_state set started_at = '2026-08-15 00:00+03'`;
+      await tx`update an_amo_versions set observed_at = '2026-09-20 00:00+03'`;
+      await asService(tx);
+      expect((await tx`select an_amo_freeze_snapshots() as n`)[0].n).toBe(4);
+      expect((await tx`select an_amo_freeze_snapshots() as n`)[0].n).toBe(0);
+      await asServer(tx);
+      const snaps = await tx`select brand, month, rows from an_amo_snapshots order by brand, month`;
+      expect(snaps.map((s) => [s.brand, s.month, s.rows])).toEqual([
+        ["Lady Jump", "2026-08", []],
+        ["Lady Jump", "2026-09", []],
+        ["Lady Stretch", "2026-08", []],
+        [
+          "Lady Stretch",
+          "2026-09",
+          [
+            {
+              city: "Абакан",
+              partner_name: "ИП",
+              source: "ВКонтакте ЛФ НК",
+              leads: 1,
+              qualified: 1,
+              booked: 1,
+              attended: 0,
+              paid: 0,
+            },
+          ],
+        ],
+      ]);
+      // Учёт начат после 01.10 — сентябрь разово по текущим сделкам.
+      await tx`delete from an_amo_snapshots`;
+      await tx`update an_amo_history_state set started_at = '2026-10-05 00:00+03'`;
+      await asService(tx);
+      await tx`select an_amo_freeze_snapshots()`;
+      await asServer(tx);
+      const [sep] =
+        await tx`select rows from an_amo_snapshots where brand = 'Lady Stretch' and month = '2026-09'`;
+      expect(sep.rows).toHaveLength(1);
+      expect(
+        (await tx`select reason from an_amo_snapshot_origins where month = '2026-09'`)[0].reason,
+      ).toContain("September baseline");
+      expect((await tx`select 1 from an_amo_snapshots where brand = 'Lady Jump'`).length).toBe(0);
+
+      // Квалификация VK в реестре: источники VK, даты по UTC, только видимые города.
+      for (const [vk, city] of [
+        ["9301", "Абакан"],
+        ["9302", ""],
+      ]) {
+        const [{ a }] = await tx`insert into an_vk_accounts (name, vk_account_id, city)
+                                 values (${"Каб " + vk}, ${vk}, ${city}) returning id as a`;
+        await tx`insert into an_vk_daily_stats (account_id, vk_plan_id, stat_date, spent)
+                 values (${a}, 'p', '2026-10-10', 100)`;
+      }
+      await as(tx, admin);
+      const [{ r }] = await tx`select an_vk_register('2026-10-01', '2026-10-31', '', '') as r`;
+      const q = Object.fromEntries(
+        r.rows.map((x: { city: string; qual_leads: number; qual_qualified: number }) => [
+          x.city,
+          [x.qual_leads, x.qual_qualified],
+        ]),
+      );
+      expect(q).toEqual({ Абакан: [2, 1], "": [0, 0] });
+    });
+  });
 });

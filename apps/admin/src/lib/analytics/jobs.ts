@@ -20,6 +20,7 @@ export const AN_JOBS: Record<string, AnJobInfo> = {
     external: true,
   },
   vk_ss: { label: "VK Ads: лиды и заявки СС из Google-таблиц" },
+  amo: { label: "amoCRM: изменённые сделки для маркетинговой аналитики" },
   vk_lf: { label: "VK Ads: новые заявки лид-форм в Google-таблицы", external: true },
   vk_lf_metrics: { label: "VK Ads: заявки лид-форм за текущий месяц для реестра" },
 };

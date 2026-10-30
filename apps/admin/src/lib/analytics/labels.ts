@@ -28,6 +28,8 @@ export const AN_TITLES = {
   vkSources: "Источники СС",
   vkAlerts: "Контроль бюджетов",
   vkTools: "Обслуживание VK Ads",
+  amo: "Интеграция amoCRM",
+  amoConnection: "Настройка amoCRM",
 } as const;
 
 /** «Очистка Excel» — тексты их ExcelCleaner 1.1-fast (окно, статусы, предупреждения). */
