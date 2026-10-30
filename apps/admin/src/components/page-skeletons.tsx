@@ -3087,6 +3087,86 @@ export function AnalyticsVkSpendPageSkeleton() {
   );
 }
 
+/** «VK Ads» → «Реестр таргета»: пояснение, фильтры, три плашки, города. */
+export function AnalyticsVkRegisterPageSkeleton() {
+  return (
+    <ShellSkeleton title={AN_TITLES.vkRegister} network>
+      <div className="space-y-4">
+        <Skeleton className="h-16 w-full rounded-lg" />
+        <ToolbarSkeleton search={false} controls={["w-56", "w-48"]} />
+        <div className="grid gap-3 md:grid-cols-3">
+          {[0, 1, 2].map((i) => (
+            <Skeleton key={i} className="h-32 rounded-lg" />
+          ))}
+        </div>
+        <Skeleton className="h-6 w-64" />
+        <Skeleton className="h-64 rounded-lg" />
+      </div>
+    </ShellSkeleton>
+  );
+}
+
+/** «VK Ads» → «Планы таргета»: месяц, планы месяца, история. */
+export function AnalyticsVkPlansPageSkeleton() {
+  return (
+    <ShellSkeleton title={AN_TITLES.vkPlans} network>
+      <div className="space-y-4">
+        <ToolbarSkeleton search={false} controls={["w-44"]} />
+        <TableCardSkeleton
+          title="Планы месяца"
+          headers={["Бренд", "Город", "Заявки и целевой CPL", "Плановый бюджет"]}
+          rows={8}
+        />
+        <TableCardSkeleton
+          title="История корректировок"
+          headers={[
+            "Бренд",
+            "Город",
+            "Было заявок",
+            "Был CPL",
+            "Стало заявок",
+            "Стал CPL",
+            "Администратор",
+            "Когда",
+          ]}
+          rows={4}
+        />
+      </div>
+    </ShellSkeleton>
+  );
+}
+
+/** «VK Ads» → «Таргетологи»: пояснение, назначения. */
+export function AnalyticsVkTargetologistsPageSkeleton() {
+  return (
+    <TablePage
+      title={AN_TITLES.vkTargetologists}
+      network
+      actions={["w-44"]}
+      toolbar={{ search: true, controls: [] }}
+      headers={["Бренд", "Город", "Таргетолог", ""]}
+      pagination={false}
+      rows={8}
+    />
+  );
+}
+
+/** «VK Ads» → «Источники СС»: ключ Google, источники. */
+export function AnalyticsVkSourcesPageSkeleton() {
+  return (
+    <ShellSkeleton title={AN_TITLES.vkSources} network>
+      <div className="space-y-4">
+        <Skeleton className="h-28 w-full rounded-lg" />
+        <TableCardSkeleton
+          title="Подключённые источники"
+          headers={["Бренд", "Город", "Лиды СС", "Заявки СС", ""]}
+          rows={6}
+        />
+      </div>
+    </ShellSkeleton>
+  );
+}
+
 /** «Инструменты» → «Обслуживание VK Ads»: карточки действий. */
 export function AnalyticsVkToolsPageSkeleton() {
   return (

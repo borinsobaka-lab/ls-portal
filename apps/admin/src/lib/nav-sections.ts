@@ -329,6 +329,20 @@ export const ANALYTICS_GROUPS: NavGroup<AnalyticsNavItem>[] = [
         icon: MoneyBag,
         need: "admin",
       },
+      { title: "Реестр таргета", url: "/analytics/vk/register", icon: Target, need: "vk.register" },
+      { title: "Планы таргета", url: "/analytics/vk/plans", icon: Flag, need: "admin" },
+      {
+        title: "Таргетологи",
+        url: "/analytics/vk/targetologists",
+        icon: UsersGroupRounded,
+        need: "admin",
+      },
+      {
+        title: "Источники СС",
+        url: "/analytics/vk/sources",
+        icon: ChatRoundDots,
+        need: "admin",
+      },
     ],
   },
   {

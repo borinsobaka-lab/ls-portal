@@ -1072,6 +1072,21 @@ DEPLOY.md.
   `an_vk_accounts`, `an_vk_account_create` / `_update` / `_set_token` /
   `_toggle` / `_delete`, `an_vk_accounts_import`, `an_vk_spend` (их
   control_rows: расход ЛФ — по связям).
+  VK Ads, часть 2 (2026-10-30, ANALYTICS.md):
+  `db/migrations/2026-10-30_zzzzzz_analytics_vk_register.sql` — планы
+  таргета `an_vk_plans` (месяц × бренд × город, CPL — float8, как их REAL)
+  и история `an_vk_plan_changes`, таргетологи `an_vk_targetologists` (ключ
+  — ФИО профиля, как в `an_me_for`), источники СС `an_vk_ss_sources` и
+  счётчики по дням `an_vk_ss_daily` (пишет сервер — `an_vk_ss_store`,
+  service_role), заявки ЛФ по дням `an_vk_lf_daily` (заполнит сбор лид-форм,
+  часть 3), почта сервисного аккаунта Google `an_google_settings` (сам ключ —
+  `an_secrets` kind `google`). Реестр таргета — RPC `an_vk_register` (право
+  `vk.register`: администратору — все и выбор таргетолога, таргетологу —
+  его города, сотруднику — все; не администратору — «открыл дашборд» в
+  журнале), внутри — `an_vk_register_base` (их target_register_rows) и
+  `an_vk_outage_days` (их budget_outage_days в numeric); планы, таргетологи,
+  источники — RPC администратора `an_vk_plans_*`, `an_vk_plan_delete`,
+  `an_vk_targetologist*`, `an_vk_ss_source*`. Таблицы закрыты браузеру.
   Клубы и собственники (решение владельца 2026-10-27, ACCESS.md):
   `db/migrations/2026-10-27_zz_studio_owners.sql` — `studio_owners`
   (клуб × пользователь портала; пишут только RPC `org_studio_owners_set` /

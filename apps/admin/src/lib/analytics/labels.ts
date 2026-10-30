@@ -21,6 +21,10 @@ export const AN_TITLES = {
   staffStats: "Отзывы партнёров",
   vkAccounts: "Рекламные кабинеты",
   vkSpend: "Расходы по кабинетам",
+  vkRegister: "Реестр таргета",
+  vkPlans: "Планы таргета",
+  vkTargetologists: "Таргетологи",
+  vkSources: "Источники СС",
   vkTools: "Обслуживание VK Ads",
 } as const;
 
