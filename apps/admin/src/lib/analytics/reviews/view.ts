@@ -46,7 +46,9 @@ export function formatReviewDate(value: string): string {
 
 /** f"{x:.{digits}f}" Python. */
 export function pyFixed(x: number, digits: number): string {
-  return pyRound(x, digits).toFixed(digits);
+  const r = pyRound(x, digits);
+  // Python сохраняет знак у нуля: f"{-0.04:.1f}" — «-0.0».
+  return (r === 0 && (x < 0 || Object.is(x, -0)) ? "-" : "") + r.toFixed(digits);
 }
 
 /** Их звёзды у средней: '★' * max(1, round(average)). */

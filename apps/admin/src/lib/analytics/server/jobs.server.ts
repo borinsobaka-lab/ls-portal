@@ -14,6 +14,7 @@
 import { getSupabaseAdmin, hasSupabaseAdmin } from "@/integrations/supabase/client.server";
 import { jobEnabled } from "@/lib/analytics/jobs";
 import { syncAllVk } from "./vk-ads.server";
+import { dispatchBudgetJob, evaluateBudgetAlerts } from "./vk-budget.server";
 import { backfillLfMetrics, collectLf } from "./vk-lf.server";
 import { syncAllSs } from "./vk-ss.server";
 
@@ -34,11 +35,36 @@ export type AnalyticsJob = {
 
 const MINUTE = 60_000;
 
+/**
+ * Их sync_all: после сбора кабинетов — пересчёт предупреждений о бюджете и
+ * их отправка партнёрам (отправка — своя задача «vk_budget_tg», внешняя:
+ * только если её включили). Сбой предупреждений сбор не отменяет.
+ */
+async function syncVkWithBudget(): Promise<JobResult> {
+  const result = await syncAllVk();
+  try {
+    const alerts = await evaluateBudgetAlerts();
+    result.details = { ...result.details, budget_alerts: alerts };
+    result.message += ` · предупреждений о бюджете: новых ${alerts.created}, снято ${alerts.resolved}`;
+    const delivery = ANALYTICS_JOBS.find((j) => j.key === "vk_budget_tg");
+    if (delivery && (await isJobEnabled(delivery.key))) await runJob(delivery);
+  } catch (e) {
+    result.details = { ...result.details, budget_alerts_error: (e as Error).message.slice(0, 200) };
+    result.message += " · предупреждения о бюджете: ошибка";
+    if (result.status === "success") result.status = "partial";
+  }
+  return result;
+}
+
 /** Задачи модулей добавляются сюда по мере переноса (подписи — AN_JOBS). */
 export const ANALYTICS_JOBS: AnalyticsJob[] = [
   // Их lady-vk-ads.timer: раз в час; 200 кабинетов идут по очереди несколько
   // минут, аренда с запасом — второй запуск не начнётся, пока идёт первый.
-  { key: "vk_ads", everyMs: 60 * MINUTE, leaseSeconds: 2 * 60 * 60, run: syncAllVk },
+  { key: "vk_ads", everyMs: 60 * MINUTE, leaseSeconds: 2 * 60 * 60, run: syncVkWithBudget },
+  // Их dispatch_budget_alerts в конце sync_all: новые предупреждения о бюджете
+  // — в Telegram-чаты партнёров (внешнее действие, выключена по умолчанию).
+  // Запускает сбор VK Ads; своё расписание — запасное, раз в час.
+  { key: "vk_budget_tg", everyMs: 60 * MINUTE, leaseSeconds: 30 * 60, run: dispatchBudgetJob },
   // Их lady-community-messages.timer: раз в час — счётчики СС из Google-таблиц
   // (только чтение, без внешнего действия).
   { key: "vk_ss", everyMs: 60 * MINUTE, leaseSeconds: 30 * 60, run: syncAllSs },

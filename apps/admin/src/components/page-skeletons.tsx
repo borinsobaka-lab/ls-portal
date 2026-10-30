@@ -3169,6 +3169,36 @@ export function AnalyticsVkLeadFormsPageSkeleton() {
   );
 }
 
+/** «VK Ads» → «Контроль бюджетов»: бот, каналы, плитки порогов, кабинеты. */
+export function AnalyticsVkAlertsPageSkeleton() {
+  return (
+    <ShellSkeleton title={AN_TITLES.vkAlerts} network>
+      <div className="max-w-6xl space-y-4">
+        <Skeleton className="h-12 w-full rounded-lg" />
+        <Skeleton className="h-64 w-full rounded-lg" />
+        <Skeleton className="h-40 w-full rounded-lg" />
+        <div className="grid gap-3 sm:grid-cols-3">
+          <Skeleton className="h-20 rounded-lg" />
+          <Skeleton className="h-20 rounded-lg" />
+          <Skeleton className="h-20 rounded-lg" />
+        </div>
+        <TableCardSkeleton
+          title="Кабинеты, требующие внимания"
+          headers={[
+            "Кабинет",
+            "Уровень",
+            "Остаток",
+            "Средние траты/день",
+            "Хватит на",
+            "Рекомендуем пополнить",
+          ]}
+          rows={5}
+        />
+      </div>
+    </ShellSkeleton>
+  );
+}
+
 /** «VK Ads» → «Источники СС»: ключ Google, источники. */
 export function AnalyticsVkSourcesPageSkeleton() {
   return (

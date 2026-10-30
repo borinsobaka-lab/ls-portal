@@ -28,7 +28,9 @@ shadcn/radix, пакетный менеджер — bun.
   500 тестовых сотрудников, база и курс «Нагрузочный тест»; `k6.js` —
   чтение статей, поиск, тест Академии теми же запросами, что портал;
   `cleanup.sql` — убрать всё после прогона); `backup-storage.sh` — ежедневный
-  архив файлов Supabase Storage в S3 (бэкап базы их не содержит).
+  архив файлов Supabase Storage в S3 (бэкап базы их не содержит);
+  `telegram-gateway/worker.js` — Cloudflare Worker, шлюз Telegram для
+  «Контроля бюджетов» «Аналитики» (DEPLOY.md).
 
 **Первый этап (решения владельца 2026-10-27)** — на портале только база
 знаний, «Академия» и «Аналитика». Разделы «Дашборд», «Клуб»,
@@ -1098,6 +1100,19 @@ DEPLOY.md.
   kind `google`, ref `drive`. Серверу (service_role) — `an_vk_lf_store`,
   `an_vk_lf_merge_metrics`; администратору — `an_vk_lf_overview`. Задача
   записи в таблицы (`vk_lf`) — внешняя, выключена по умолчанию.
+  VK Ads, часть 4 (2026-10-30, ANALYTICS.md):
+  `db/migrations/2026-10-30_zzzzzzzz_analytics_vk_budget.sql` — «Контроль
+  бюджетов»: пороги `an_vk_budget_settings` (3 / 1 / 7 дней, их не
+  настраивают), предупреждения `an_vk_budget_alerts` (уровень warning /
+  critical / zero, числа — numeric их Decimal, считает сервер; одно
+  активное на кабинет и уровень), Telegram-бот `an_tg_settings` (токен и
+  секрет Cloudflare-шлюза — `an_secrets` kind `telegram`), чаты партнёров
+  `an_vk_partner_channels`, отправки `an_vk_budget_deliveries` (одна на
+  предупреждение и чат). Серверу (service_role) — `an_vk_budget_inputs`,
+  `an_vk_budget_apply` (одной транзакцией под блокировкой),
+  `an_vk_budget_pending`; администратору — `an_vk_budget_overview`,
+  `an_vk_partner_channel_delete`. Отправка в Telegram (`vk_budget_tg`) —
+  внешняя, выключена по умолчанию.
   Клубы и собственники (решение владельца 2026-10-27, ACCESS.md):
   `db/migrations/2026-10-27_zz_studio_owners.sql` — `studio_owners`
   (клуб × пользователь портала; пишут только RPC `org_studio_owners_set` /

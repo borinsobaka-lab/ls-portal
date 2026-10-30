@@ -349,6 +349,12 @@ export const ANALYTICS_GROUPS: NavGroup<AnalyticsNavItem>[] = [
         icon: ChatRoundDots,
         need: "admin",
       },
+      {
+        title: "Контроль бюджетов",
+        url: "/analytics/vk/alerts",
+        icon: BellBing,
+        need: "admin",
+      },
     ],
   },
   {
