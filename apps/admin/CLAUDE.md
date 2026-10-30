@@ -30,10 +30,8 @@ Tailwind 4 + shadcn/radix. Пакетный менеджер — bun.
   `lib/kb/document.test.ts`, сравнение версий `lib/kb/diff.test.ts`,
   аналитика чтения `lib/kb/analytics.test.ts`, теги `lib/kb/tags.test.ts`;
   «Рабочий день» — время по Тбилиси, просрочка, порядок `lib/workday/logic.test.ts`;
-  «Аналитика» — права `lib/analytics/access.test.ts`, перенос людей со
-  старого портала `lib/analytics/legacy-people.test.ts`, приём синхронизации
-  и ключи интеграций `lib/analytics/server/replica.test.ts` /
-  `secrets.test.ts`; «Академия» — подписи,
+  «Аналитика» — права `lib/analytics/access.test.ts`, ключи интеграций
+  `lib/analytics/server/secrets.test.ts`; «Академия» — подписи,
   проверка вопроса, сроки и напоминания `lib/academy/logic.test.ts`;
   Kate — инструменты,
   права, история и промпт `lib/assistant/*.test.ts`).
@@ -87,10 +85,9 @@ AI-переменные (`AI_GATEWAY_*`, `AI_CHAT_MODEL`, `AI_TRANSCRIBE_MODEL`)
 не задаются — ассистент и диктовка отвечают 503. Пуши (необязательно):
 `VAPID_SUBJECT` — контакт отправителя для служб доставки (по умолчанию
 `mailto:` + `MAIL_FROM`), `PUSH_WORKER=off` — не рассылать с этого сервера.
-«Аналитика» (DEPLOY.md, шаг 15): `ANALYTICS_REPLICA_SECRET` (подпись пачек
-агента старого портала), `ANALYTICS_SECRETS_KEY` (шифрование ключей
-интеграций), `ANALYTICS_REPLICA_PRIVATE_KEY` (RSA, PEM), `ANALYTICS_JOBS=off`
-— не выполнять её фоновые задачи на этом сервере.
+«Аналитика» (DEPLOY.md, шаг 15): `ANALYTICS_SECRETS_KEY` (шифрование ключей
+интеграций), `ANALYTICS_JOBS=off` — не выполнять её фоновые задачи на этом
+сервере.
 
 Бренд портала — Lady Stretch (`src/lib/brand.ts`: заголовки страниц, экран
 входа; значки `public/` — логотип Lady Stretch, favicon — «LS»).
@@ -675,8 +672,8 @@ kb`. Доступ — ролями «Пользователей и ролей» 
 - **«Аналитика»** (2026-10-29; перенос портала аналитики Lady Stretch —
   план ANALYTICS_PLAN.md, что сделано — ANALYTICS.md, схема — корневой
   CLAUDE.md): весь их портал и отдельные программы, логика — как у них,
-  вид — наш. Старый портал работает дальше, данные приходят агентом
-  (`deploy/analytics-replica/`). Раздел рейки последним в списке (над
+  вид — наш. Старый портал работает дальше, параллельно и без связи с
+  новым (подключения — свои, сверка цифр — вручную). Раздел рейки последним в списке (над
   «Управлением»), шапка — только заголовок (`ShellSkeleton network`). Меню —
   `ANALYTICS_GROUPS` в `lib/nav-sections.ts`: у пункта `need` (`home` /
   `admin` / `inbox` / ключ отчёта), открыт по `anCan(access.analytics, need)`
@@ -687,20 +684,17 @@ kb`. Доступ — ролями «Пользователей и ролей» 
   после записи — `invalidateAnalytics`). Главная `/analytics` — карточки
   модулей (`AN_CARDS` в `lib/analytics/labels.ts`, добавляются с модулями;
   тексты — там же, их берут скелетоны `Analytics*PageSkeleton`).
-  «Администрирование» → «Синхронизация со старым порталом»
-  (`/analytics/admin/sync`, администратору аналитики): режимы модулей
-  (`an_module_set`), приём (переменные — `getReplicaConfig` в
-  `lib/analytics/admin.functions.ts`, таблицы — `an_replica_status`, агент
-  на связи — `an_replica_agent`), «Пользователи со старого портала»
-  (`components/analytics/legacy-people.tsx`, перенос — `importLegacyPerson`
-  в `lib/analytics/legacy.functions.ts`, только суперадминистратор;
-  учётная запись — общий с `createPortalUser` помощник
-  `lib/access/accounts.server.ts`), фоновые задачи («Запустить» —
-  `runAnalyticsJob`). Сервер: приём `routes/api/analytics/replica.ts` →
-  `lib/analytics/server/replica.server.ts` (подпись HMAC, gzip, пачки в RPC
-  `an_replica_apply`), ключи интеграций — `secrets.server.ts` (AES-256-GCM,
-  ключи от агента — RSA-OAEP), задачи — `jobs.server.ts` (цикл раз в
-  минуту из `server.ts`, аренда в базе, `ANALYTICS_JOBS=off`). Excel читает
+  «Администрирование» → «Фоновые задачи» (`/analytics/admin/jobs`,
+  администратору аналитики): переменные сервера (`getAnalyticsConfig` в
+  `lib/analytics/admin.functions.ts`), задачи — итог, включатель
+  (`an_job_set_enabled`), «Запустить» (`runAnalyticsJob`); подписи и
+  признак внешнего действия — `AN_JOBS` в `lib/analytics/jobs.ts` (внешние —
+  Google-таблицы, Telegram, публикации VK — по умолчанию выключены:
+  старый портал делает то же). Сервер: ключи интеграций —
+  `lib/analytics/server/secrets.server.ts` (AES-256-GCM), задачи —
+  `jobs.server.ts` (список задач модулей — `ANALYTICS_JOBS`, цикл раз в
+  минуту из `server.ts`, аренда в базе; переменная `ANALYTICS_JOBS=off` —
+  не выполнять). Excel читает
   `read-excel-file` (MIT; оставлен под «Обработку 1С» и «Очистку Excel»).
 - **«Академия»** (2026-10-25; план и решения — ACADEMY.md, схема —
   корневой CLAUDE.md) — раздел рейки со своим меню (`ACADEMY_ITEMS` в
