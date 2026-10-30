@@ -297,6 +297,15 @@ export const ANALYTICS_GROUPS: NavGroup<AnalyticsNavItem>[] = [
     key: "an-admin",
     label: "Администрирование",
     items: [
+      { title: "Партнёры", url: "/analytics/admin/partners", icon: HandShake, need: "admin" },
+      {
+        title: "Посещаемость",
+        url: "/analytics/admin/activity",
+        icon: UsersGroupRounded,
+        need: "admin",
+      },
+      { title: "Журнал", url: "/analytics/admin/journal", icon: History, need: "admin" },
+      { title: "API для GPT", url: "/analytics/admin/api", icon: Widget3, need: "admin" },
       {
         title: "Фоновые задачи",
         url: "/analytics/admin/jobs",

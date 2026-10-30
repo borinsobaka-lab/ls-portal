@@ -2698,6 +2698,128 @@ export function AnalyticsOnecPageSkeleton() {
   );
 }
 
+export function AnalyticsPartnersPageSkeleton() {
+  return (
+    <ShellSkeleton title={AN_TITLES.partners} network>
+      <div className="space-y-3">
+        <Skeleton className="h-16 w-full rounded-lg" />
+        <TableCardSkeleton
+          headers={["Партнёр", "Города", "Доступ к отчётам", "Статус", ""]}
+          rows={5}
+          pagination
+        />
+      </div>
+    </ShellSkeleton>
+  );
+}
+
+/** Карточка партнёра под ссылкой «К списку партнёров»: реквизиты, города. */
+export function AnalyticsPartnerBodySkeleton() {
+  return (
+    <div className="space-y-4">
+      <Skeleton className="h-12 w-full rounded-lg" />
+      <div className="space-y-4 rounded-lg border bg-background p-6">
+        <Skeleton className="h-6 w-56" />
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 5 }, (_, i) => (
+            <FieldSkeleton key={i} />
+          ))}
+        </div>
+      </div>
+      <div className="space-y-4 rounded-lg border bg-background p-6">
+        <Skeleton className="h-6 w-64" />
+        <div className="grid gap-4 md:grid-cols-2">
+          {Array.from({ length: 2 }, (_, i) => (
+            <Skeleton key={i} className="h-72 w-full rounded-lg" />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function AnalyticsPartnerPageSkeleton() {
+  return (
+    <ShellSkeleton title={AN_TITLES.partner} network>
+      <div className="max-w-5xl space-y-4">
+        <Skeleton className="h-5 w-40" />
+        <AnalyticsPartnerBodySkeleton />
+      </div>
+    </ShellSkeleton>
+  );
+}
+
+export function AnalyticsActivityPageSkeleton() {
+  return (
+    <ShellSkeleton title={AN_TITLES.activity} network>
+      <div className="space-y-3">
+        <ToolbarSkeleton search={false} controls={["w-64"]} />
+        <Skeleton className="h-4 w-full max-w-xl" />
+        <div className="grid gap-3 sm:grid-cols-3">
+          <StatTileSkeleton label="Визитов за период" />
+          <StatTileSkeleton label="Активное время команды" />
+          <StatTileSkeleton label="Не заходили" />
+        </div>
+        <TableCardSkeleton
+          headers={[
+            "Пользователь",
+            "Визиты",
+            "Активное время",
+            "Просмотры",
+            "Дашборды",
+            "Последняя активность",
+            "Статус",
+          ]}
+          rows={8}
+          pagination
+        />
+      </div>
+    </ShellSkeleton>
+  );
+}
+
+export function AnalyticsJournalPageSkeleton() {
+  return (
+    <ShellSkeleton title={AN_TITLES.journal} network>
+      <div className="space-y-3">
+        <Skeleton className="h-12 w-full rounded-lg" />
+        <TableCardSkeleton
+          headers={["Когда", "Пользователь", "Действие", "Детали"]}
+          rows={10}
+          pagination
+        />
+      </div>
+    </ShellSkeleton>
+  );
+}
+
+export function AnalyticsApiPageSkeleton() {
+  return (
+    <ShellSkeleton title={AN_TITLES.api} network>
+      <div className="space-y-4">
+        <Skeleton className="h-16 w-full rounded-lg" />
+        <Skeleton className="h-16 w-full rounded-lg" />
+        <TableCardSkeleton
+          headers={[
+            "Название",
+            "Действует",
+            "Создан",
+            "Последнее использование",
+            "Запросов за 30 дней",
+          ]}
+          rows={2}
+          title="Ключи"
+        />
+        <TableCardSkeleton
+          headers={["Когда", "Ключ", "Запрос", "Ответ", "Размер"]}
+          rows={4}
+          title="Последние запросы"
+        />
+      </div>
+    </ShellSkeleton>
+  );
+}
+
 export function AnalyticsJobsPageSkeleton() {
   return (
     <ShellSkeleton title={AN_TITLES.jobs} network>

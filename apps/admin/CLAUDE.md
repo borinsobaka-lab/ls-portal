@@ -33,7 +33,8 @@ Tailwind 4 + shadcn/radix. Пакетный менеджер — bun.
   «Аналитика» — права `lib/analytics/access.test.ts`, ключи интеграций
   `lib/analytics/server/secrets.test.ts`, обработка 1С (чтение .xlsx,
   правила, своды) `lib/analytics/onec/onec.test.ts`, отчёты 1С (их
-  full_reports.py и расчёты досок) `lib/analytics/onec-reports/*.test.ts`; «Академия» — подписи,
+  full_reports.py и расчёты досок) `lib/analytics/onec-reports/*.test.ts`,
+  ядро (журнал, посещаемость, ключ API, API для GPT) `lib/analytics/core.test.ts`; «Академия» — подписи,
   проверка вопроса, сроки и напоминания `lib/academy/logic.test.ts`;
   Kate — инструменты,
   права, история и промпт `lib/assistant/*.test.ts`).
@@ -724,6 +725,16 @@ kb`. Доступ — ролями «Пользователей и ролей» 
   <доска>.ts` + тест). Фильтры доски — в адресе (`search.ts`,
   `controls.setFilters`), выбор месяца внутри доски — `controls.changeMonth`.
   Карточки главной — `AN_CARDS` и `AN_MYCITY_CARD` (`lib/analytics/labels.ts`).
+  «Администрирование» (2026-10-30, ANALYTICS.md): «Партнёры»
+  (`/analytics/admin/partners`, карточка — `/partners/$userId`; выбор
+  городов — `components/analytics/admin/city-picker.tsx`), «Посещаемость»
+  (`/activity`), «Журнал» (`/journal`), «API для GPT» (`/api`); запросы —
+  `lib/analytics/admin-data.ts`, подписи и расчёты — `lib/analytics/core.ts`
+  (+ тест). Пульс посещаемости — `components/analytics/presence.tsx`: его
+  ставит `AdminShell` на страницах «Аналитики», кроме отчётов 1С
+  (`presenceDashboard`). Сам API для GPT — `routes/api/analytics/`
+  (`openapi[.]json.ts`, `v1/$.ts`) и `lib/analytics/server/gpt-api.server.ts`:
+  ключ по SHA-256, журнал запросов, данные досок 1С сервис-ключом.
 - **«Академия»** (2026-10-25; план и решения — ACADEMY.md, схема —
   корневой CLAUDE.md) — раздел рейки со своим меню (`ACADEMY_ITEMS` в
   `lib/nav-sections.ts`; пункт открыт по праву `need`: any / team / create /
