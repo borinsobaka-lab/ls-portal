@@ -11,7 +11,9 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as QuizIndexRouteImport } from './routes/quiz.index'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
+import { Route as QuizSlugRouteImport } from './routes/quiz.$slug'
 import { Route as ApiVersionRouteImport } from './routes/api/version'
 import { Route as ApiTranscribeRouteImport } from './routes/api/transcribe'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
@@ -67,10 +69,12 @@ import { Route as AuthenticatedAcademySettingsRouteImport } from './routes/_auth
 import { Route as AuthenticatedAcademyReportRouteImport } from './routes/_authenticated/academy/report'
 import { Route as AuthenticatedKbBaseIdIndexRouteImport } from './routes/_authenticated/kb/$baseId/index'
 import { Route as AuthenticatedAnalyticsReviewsIndexRouteImport } from './routes/_authenticated/analytics/reviews/index'
+import { Route as AuthenticatedAnalyticsQuizIndexRouteImport } from './routes/_authenticated/analytics/quiz/index'
 import { Route as AuthenticatedAccessRolesIndexRouteImport } from './routes/_authenticated/access/roles/index'
 import { Route as AuthenticatedAcademyReviewIndexRouteImport } from './routes/_authenticated/academy/review/index'
 import { Route as AuthenticatedAcademyCoursesIndexRouteImport } from './routes/_authenticated/academy/courses/index'
 import { Route as ApiAnalyticsV1SplatRouteImport } from './routes/api/analytics/v1/$'
+import { Route as ApiAnalyticsQuizLeadsRouteImport } from './routes/api/analytics/quiz/leads'
 import { Route as AuthenticatedKbBaseIdTrashRouteImport } from './routes/_authenticated/kb/$baseId/trash'
 import { Route as AuthenticatedKbBaseIdTemplatesRouteImport } from './routes/_authenticated/kb/$baseId/templates'
 import { Route as AuthenticatedKbBaseIdAnalyticsRouteImport } from './routes/_authenticated/kb/$baseId/analytics'
@@ -88,6 +92,7 @@ import { Route as AuthenticatedAnalyticsToolsTop10RouteImport } from './routes/_
 import { Route as AuthenticatedAnalyticsToolsOnecRouteImport } from './routes/_authenticated/analytics/tools/onec'
 import { Route as AuthenticatedAnalyticsToolsExcelCleanerRouteImport } from './routes/_authenticated/analytics/tools/excel-cleaner'
 import { Route as AuthenticatedAnalyticsReviewsUploadRouteImport } from './routes/_authenticated/analytics/reviews/upload'
+import { Route as AuthenticatedAnalyticsQuizLeadsRouteImport } from './routes/_authenticated/analytics/quiz/leads'
 import { Route as AuthenticatedAnalyticsOnecZeroRouteImport } from './routes/_authenticated/analytics/onec/zero'
 import { Route as AuthenticatedAnalyticsOnecSalesRouteImport } from './routes/_authenticated/analytics/onec/sales'
 import { Route as AuthenticatedAnalyticsOnecRevenueRouteImport } from './routes/_authenticated/analytics/onec/revenue'
@@ -127,10 +132,20 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
+const QuizIndexRoute = QuizIndexRouteImport.update({
+  id: '/quiz/',
+  path: '/quiz/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const QuizSlugRoute = QuizSlugRouteImport.update({
+  id: '/quiz/$slug',
+  path: '/quiz/$slug',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiVersionRoute = ApiVersionRouteImport.update({
   id: '/api/version',
@@ -432,6 +447,12 @@ const AuthenticatedAnalyticsReviewsIndexRoute =
     path: '/analytics/reviews/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAnalyticsQuizIndexRoute =
+  AuthenticatedAnalyticsQuizIndexRouteImport.update({
+    id: '/analytics/quiz/',
+    path: '/analytics/quiz/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAccessRolesIndexRoute =
   AuthenticatedAccessRolesIndexRouteImport.update({
     id: '/access/roles/',
@@ -453,6 +474,11 @@ const AuthenticatedAcademyCoursesIndexRoute =
 const ApiAnalyticsV1SplatRoute = ApiAnalyticsV1SplatRouteImport.update({
   id: '/api/analytics/v1/$',
   path: '/api/analytics/v1/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAnalyticsQuizLeadsRoute = ApiAnalyticsQuizLeadsRouteImport.update({
+  id: '/api/analytics/quiz/leads',
+  path: '/api/analytics/quiz/leads',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedKbBaseIdTrashRoute =
@@ -555,6 +581,12 @@ const AuthenticatedAnalyticsReviewsUploadRoute =
   AuthenticatedAnalyticsReviewsUploadRouteImport.update({
     id: '/analytics/reviews/upload',
     path: '/analytics/reviews/upload',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAnalyticsQuizLeadsRoute =
+  AuthenticatedAnalyticsQuizLeadsRouteImport.update({
+    id: '/analytics/quiz/leads',
+    path: '/analytics/quiz/leads',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedAnalyticsOnecZeroRoute =
@@ -771,6 +803,8 @@ export interface FileRoutesByFullPath {
   '/api/chat': typeof ApiChatRoute
   '/api/transcribe': typeof ApiTranscribeRoute
   '/api/version': typeof ApiVersionRoute
+  '/quiz/$slug': typeof QuizSlugRoute
+  '/quiz/': typeof QuizIndexRoute
   '/academy/report': typeof AuthenticatedAcademyReportRoute
   '/academy/settings': typeof AuthenticatedAcademySettingsRoute
   '/access/log': typeof AuthenticatedAccessLogRoute
@@ -806,6 +840,7 @@ export interface FileRoutesByFullPath {
   '/analytics/onec/revenue': typeof AuthenticatedAnalyticsOnecRevenueRoute
   '/analytics/onec/sales': typeof AuthenticatedAnalyticsOnecSalesRoute
   '/analytics/onec/zero': typeof AuthenticatedAnalyticsOnecZeroRoute
+  '/analytics/quiz/leads': typeof AuthenticatedAnalyticsQuizLeadsRoute
   '/analytics/reviews/upload': typeof AuthenticatedAnalyticsReviewsUploadRoute
   '/analytics/tools/excel-cleaner': typeof AuthenticatedAnalyticsToolsExcelCleanerRoute
   '/analytics/tools/onec': typeof AuthenticatedAnalyticsToolsOnecRoute
@@ -823,10 +858,12 @@ export interface FileRoutesByFullPath {
   '/kb/$baseId/analytics': typeof AuthenticatedKbBaseIdAnalyticsRoute
   '/kb/$baseId/templates': typeof AuthenticatedKbBaseIdTemplatesRoute
   '/kb/$baseId/trash': typeof AuthenticatedKbBaseIdTrashRoute
+  '/api/analytics/quiz/leads': typeof ApiAnalyticsQuizLeadsRoute
   '/api/analytics/v1/$': typeof ApiAnalyticsV1SplatRoute
   '/academy/courses/': typeof AuthenticatedAcademyCoursesIndexRoute
   '/academy/review/': typeof AuthenticatedAcademyReviewIndexRoute
   '/access/roles/': typeof AuthenticatedAccessRolesIndexRoute
+  '/analytics/quiz/': typeof AuthenticatedAnalyticsQuizIndexRoute
   '/analytics/reviews/': typeof AuthenticatedAnalyticsReviewsIndexRoute
   '/kb/$baseId/': typeof AuthenticatedKbBaseIdIndexRoute
   '/academy/courses/$courseId/$stepId': typeof AuthenticatedAcademyCoursesCourseIdStepIdRoute
@@ -879,7 +916,9 @@ export interface FileRoutesByTo {
   '/api/chat': typeof ApiChatRoute
   '/api/transcribe': typeof ApiTranscribeRoute
   '/api/version': typeof ApiVersionRoute
+  '/quiz/$slug': typeof QuizSlugRoute
   '/': typeof AuthenticatedIndexRoute
+  '/quiz': typeof QuizIndexRoute
   '/academy/report': typeof AuthenticatedAcademyReportRoute
   '/academy/settings': typeof AuthenticatedAcademySettingsRoute
   '/access/log': typeof AuthenticatedAccessLogRoute
@@ -915,6 +954,7 @@ export interface FileRoutesByTo {
   '/analytics/onec/revenue': typeof AuthenticatedAnalyticsOnecRevenueRoute
   '/analytics/onec/sales': typeof AuthenticatedAnalyticsOnecSalesRoute
   '/analytics/onec/zero': typeof AuthenticatedAnalyticsOnecZeroRoute
+  '/analytics/quiz/leads': typeof AuthenticatedAnalyticsQuizLeadsRoute
   '/analytics/reviews/upload': typeof AuthenticatedAnalyticsReviewsUploadRoute
   '/analytics/tools/excel-cleaner': typeof AuthenticatedAnalyticsToolsExcelCleanerRoute
   '/analytics/tools/onec': typeof AuthenticatedAnalyticsToolsOnecRoute
@@ -932,10 +972,12 @@ export interface FileRoutesByTo {
   '/kb/$baseId/analytics': typeof AuthenticatedKbBaseIdAnalyticsRoute
   '/kb/$baseId/templates': typeof AuthenticatedKbBaseIdTemplatesRoute
   '/kb/$baseId/trash': typeof AuthenticatedKbBaseIdTrashRoute
+  '/api/analytics/quiz/leads': typeof ApiAnalyticsQuizLeadsRoute
   '/api/analytics/v1/$': typeof ApiAnalyticsV1SplatRoute
   '/academy/courses': typeof AuthenticatedAcademyCoursesIndexRoute
   '/academy/review': typeof AuthenticatedAcademyReviewIndexRoute
   '/access/roles': typeof AuthenticatedAccessRolesIndexRoute
+  '/analytics/quiz': typeof AuthenticatedAnalyticsQuizIndexRoute
   '/analytics/reviews': typeof AuthenticatedAnalyticsReviewsIndexRoute
   '/kb/$baseId': typeof AuthenticatedKbBaseIdIndexRoute
   '/academy/courses/$courseId/$stepId': typeof AuthenticatedAcademyCoursesCourseIdStepIdRoute
@@ -990,7 +1032,9 @@ export interface FileRoutesById {
   '/api/chat': typeof ApiChatRoute
   '/api/transcribe': typeof ApiTranscribeRoute
   '/api/version': typeof ApiVersionRoute
+  '/quiz/$slug': typeof QuizSlugRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/quiz/': typeof QuizIndexRoute
   '/_authenticated/academy/report': typeof AuthenticatedAcademyReportRoute
   '/_authenticated/academy/settings': typeof AuthenticatedAcademySettingsRoute
   '/_authenticated/access/log': typeof AuthenticatedAccessLogRoute
@@ -1026,6 +1070,7 @@ export interface FileRoutesById {
   '/_authenticated/analytics/onec/revenue': typeof AuthenticatedAnalyticsOnecRevenueRoute
   '/_authenticated/analytics/onec/sales': typeof AuthenticatedAnalyticsOnecSalesRoute
   '/_authenticated/analytics/onec/zero': typeof AuthenticatedAnalyticsOnecZeroRoute
+  '/_authenticated/analytics/quiz/leads': typeof AuthenticatedAnalyticsQuizLeadsRoute
   '/_authenticated/analytics/reviews/upload': typeof AuthenticatedAnalyticsReviewsUploadRoute
   '/_authenticated/analytics/tools/excel-cleaner': typeof AuthenticatedAnalyticsToolsExcelCleanerRoute
   '/_authenticated/analytics/tools/onec': typeof AuthenticatedAnalyticsToolsOnecRoute
@@ -1043,10 +1088,12 @@ export interface FileRoutesById {
   '/_authenticated/kb/$baseId/analytics': typeof AuthenticatedKbBaseIdAnalyticsRoute
   '/_authenticated/kb/$baseId/templates': typeof AuthenticatedKbBaseIdTemplatesRoute
   '/_authenticated/kb/$baseId/trash': typeof AuthenticatedKbBaseIdTrashRoute
+  '/api/analytics/quiz/leads': typeof ApiAnalyticsQuizLeadsRoute
   '/api/analytics/v1/$': typeof ApiAnalyticsV1SplatRoute
   '/_authenticated/academy/courses/': typeof AuthenticatedAcademyCoursesIndexRoute
   '/_authenticated/academy/review/': typeof AuthenticatedAcademyReviewIndexRoute
   '/_authenticated/access/roles/': typeof AuthenticatedAccessRolesIndexRoute
+  '/_authenticated/analytics/quiz/': typeof AuthenticatedAnalyticsQuizIndexRoute
   '/_authenticated/analytics/reviews/': typeof AuthenticatedAnalyticsReviewsIndexRoute
   '/_authenticated/kb/$baseId/': typeof AuthenticatedKbBaseIdIndexRoute
   '/_authenticated/academy/courses/$courseId/$stepId': typeof AuthenticatedAcademyCoursesCourseIdStepIdRoute
@@ -1102,6 +1149,8 @@ export interface FileRouteTypes {
     | '/api/chat'
     | '/api/transcribe'
     | '/api/version'
+    | '/quiz/$slug'
+    | '/quiz/'
     | '/academy/report'
     | '/academy/settings'
     | '/access/log'
@@ -1137,6 +1186,7 @@ export interface FileRouteTypes {
     | '/analytics/onec/revenue'
     | '/analytics/onec/sales'
     | '/analytics/onec/zero'
+    | '/analytics/quiz/leads'
     | '/analytics/reviews/upload'
     | '/analytics/tools/excel-cleaner'
     | '/analytics/tools/onec'
@@ -1154,10 +1204,12 @@ export interface FileRouteTypes {
     | '/kb/$baseId/analytics'
     | '/kb/$baseId/templates'
     | '/kb/$baseId/trash'
+    | '/api/analytics/quiz/leads'
     | '/api/analytics/v1/$'
     | '/academy/courses/'
     | '/academy/review/'
     | '/access/roles/'
+    | '/analytics/quiz/'
     | '/analytics/reviews/'
     | '/kb/$baseId/'
     | '/academy/courses/$courseId/$stepId'
@@ -1210,7 +1262,9 @@ export interface FileRouteTypes {
     | '/api/chat'
     | '/api/transcribe'
     | '/api/version'
+    | '/quiz/$slug'
     | '/'
+    | '/quiz'
     | '/academy/report'
     | '/academy/settings'
     | '/access/log'
@@ -1246,6 +1300,7 @@ export interface FileRouteTypes {
     | '/analytics/onec/revenue'
     | '/analytics/onec/sales'
     | '/analytics/onec/zero'
+    | '/analytics/quiz/leads'
     | '/analytics/reviews/upload'
     | '/analytics/tools/excel-cleaner'
     | '/analytics/tools/onec'
@@ -1263,10 +1318,12 @@ export interface FileRouteTypes {
     | '/kb/$baseId/analytics'
     | '/kb/$baseId/templates'
     | '/kb/$baseId/trash'
+    | '/api/analytics/quiz/leads'
     | '/api/analytics/v1/$'
     | '/academy/courses'
     | '/academy/review'
     | '/access/roles'
+    | '/analytics/quiz'
     | '/analytics/reviews'
     | '/kb/$baseId'
     | '/academy/courses/$courseId/$stepId'
@@ -1320,7 +1377,9 @@ export interface FileRouteTypes {
     | '/api/chat'
     | '/api/transcribe'
     | '/api/version'
+    | '/quiz/$slug'
     | '/_authenticated/'
+    | '/quiz/'
     | '/_authenticated/academy/report'
     | '/_authenticated/academy/settings'
     | '/_authenticated/access/log'
@@ -1356,6 +1415,7 @@ export interface FileRouteTypes {
     | '/_authenticated/analytics/onec/revenue'
     | '/_authenticated/analytics/onec/sales'
     | '/_authenticated/analytics/onec/zero'
+    | '/_authenticated/analytics/quiz/leads'
     | '/_authenticated/analytics/reviews/upload'
     | '/_authenticated/analytics/tools/excel-cleaner'
     | '/_authenticated/analytics/tools/onec'
@@ -1373,10 +1433,12 @@ export interface FileRouteTypes {
     | '/_authenticated/kb/$baseId/analytics'
     | '/_authenticated/kb/$baseId/templates'
     | '/_authenticated/kb/$baseId/trash'
+    | '/api/analytics/quiz/leads'
     | '/api/analytics/v1/$'
     | '/_authenticated/academy/courses/'
     | '/_authenticated/academy/review/'
     | '/_authenticated/access/roles/'
+    | '/_authenticated/analytics/quiz/'
     | '/_authenticated/analytics/reviews/'
     | '/_authenticated/kb/$baseId/'
     | '/_authenticated/academy/courses/$courseId/$stepId'
@@ -1400,7 +1462,10 @@ export interface RootRouteChildren {
   ApiChatRoute: typeof ApiChatRoute
   ApiTranscribeRoute: typeof ApiTranscribeRoute
   ApiVersionRoute: typeof ApiVersionRoute
+  QuizSlugRoute: typeof QuizSlugRoute
+  QuizIndexRoute: typeof QuizIndexRoute
   ApiAnalyticsOpenapiDotjsonRoute: typeof ApiAnalyticsOpenapiDotjsonRoute
+  ApiAnalyticsQuizLeadsRoute: typeof ApiAnalyticsQuizLeadsRoute
   ApiAnalyticsV1SplatRoute: typeof ApiAnalyticsV1SplatRoute
 }
 
@@ -1420,12 +1485,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/quiz/': {
+      id: '/quiz/'
+      path: '/quiz'
+      fullPath: '/quiz/'
+      preLoaderRoute: typeof QuizIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/': {
       id: '/_authenticated/'
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof AuthenticatedIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/quiz/$slug': {
+      id: '/quiz/$slug'
+      path: '/quiz/$slug'
+      fullPath: '/quiz/$slug'
+      preLoaderRoute: typeof QuizSlugRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/version': {
       id: '/api/version'
@@ -1812,6 +1891,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAnalyticsReviewsIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/analytics/quiz/': {
+      id: '/_authenticated/analytics/quiz/'
+      path: '/analytics/quiz'
+      fullPath: '/analytics/quiz/'
+      preLoaderRoute: typeof AuthenticatedAnalyticsQuizIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/access/roles/': {
       id: '/_authenticated/access/roles/'
       path: '/access/roles'
@@ -1838,6 +1924,13 @@ declare module '@tanstack/react-router' {
       path: '/api/analytics/v1/$'
       fullPath: '/api/analytics/v1/$'
       preLoaderRoute: typeof ApiAnalyticsV1SplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/analytics/quiz/leads': {
+      id: '/api/analytics/quiz/leads'
+      path: '/api/analytics/quiz/leads'
+      fullPath: '/api/analytics/quiz/leads'
+      preLoaderRoute: typeof ApiAnalyticsQuizLeadsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/kb/$baseId/trash': {
@@ -1957,6 +2050,13 @@ declare module '@tanstack/react-router' {
       path: '/analytics/reviews/upload'
       fullPath: '/analytics/reviews/upload'
       preLoaderRoute: typeof AuthenticatedAnalyticsReviewsUploadRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/analytics/quiz/leads': {
+      id: '/_authenticated/analytics/quiz/leads'
+      path: '/analytics/quiz/leads'
+      fullPath: '/analytics/quiz/leads'
+      preLoaderRoute: typeof AuthenticatedAnalyticsQuizLeadsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/analytics/onec/zero': {
@@ -2232,6 +2332,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAnalyticsOnecRevenueRoute: typeof AuthenticatedAnalyticsOnecRevenueRoute
   AuthenticatedAnalyticsOnecSalesRoute: typeof AuthenticatedAnalyticsOnecSalesRoute
   AuthenticatedAnalyticsOnecZeroRoute: typeof AuthenticatedAnalyticsOnecZeroRoute
+  AuthenticatedAnalyticsQuizLeadsRoute: typeof AuthenticatedAnalyticsQuizLeadsRoute
   AuthenticatedAnalyticsReviewsUploadRoute: typeof AuthenticatedAnalyticsReviewsUploadRoute
   AuthenticatedAnalyticsToolsExcelCleanerRoute: typeof AuthenticatedAnalyticsToolsExcelCleanerRoute
   AuthenticatedAnalyticsToolsOnecRoute: typeof AuthenticatedAnalyticsToolsOnecRoute
@@ -2252,6 +2353,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAcademyCoursesIndexRoute: typeof AuthenticatedAcademyCoursesIndexRoute
   AuthenticatedAcademyReviewIndexRoute: typeof AuthenticatedAcademyReviewIndexRoute
   AuthenticatedAccessRolesIndexRoute: typeof AuthenticatedAccessRolesIndexRoute
+  AuthenticatedAnalyticsQuizIndexRoute: typeof AuthenticatedAnalyticsQuizIndexRoute
   AuthenticatedAnalyticsReviewsIndexRoute: typeof AuthenticatedAnalyticsReviewsIndexRoute
   AuthenticatedKbBaseIdIndexRoute: typeof AuthenticatedKbBaseIdIndexRoute
   AuthenticatedAcademyCoursesCourseIdStepIdRoute: typeof AuthenticatedAcademyCoursesCourseIdStepIdRoute
@@ -2343,6 +2445,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedAnalyticsOnecRevenueRoute,
   AuthenticatedAnalyticsOnecSalesRoute: AuthenticatedAnalyticsOnecSalesRoute,
   AuthenticatedAnalyticsOnecZeroRoute: AuthenticatedAnalyticsOnecZeroRoute,
+  AuthenticatedAnalyticsQuizLeadsRoute: AuthenticatedAnalyticsQuizLeadsRoute,
   AuthenticatedAnalyticsReviewsUploadRoute:
     AuthenticatedAnalyticsReviewsUploadRoute,
   AuthenticatedAnalyticsToolsExcelCleanerRoute:
@@ -2367,6 +2470,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAcademyCoursesIndexRoute: AuthenticatedAcademyCoursesIndexRoute,
   AuthenticatedAcademyReviewIndexRoute: AuthenticatedAcademyReviewIndexRoute,
   AuthenticatedAccessRolesIndexRoute: AuthenticatedAccessRolesIndexRoute,
+  AuthenticatedAnalyticsQuizIndexRoute: AuthenticatedAnalyticsQuizIndexRoute,
   AuthenticatedAnalyticsReviewsIndexRoute:
     AuthenticatedAnalyticsReviewsIndexRoute,
   AuthenticatedKbBaseIdIndexRoute: AuthenticatedKbBaseIdIndexRoute,
@@ -2405,7 +2509,10 @@ const rootRouteChildren: RootRouteChildren = {
   ApiChatRoute: ApiChatRoute,
   ApiTranscribeRoute: ApiTranscribeRoute,
   ApiVersionRoute: ApiVersionRoute,
+  QuizSlugRoute: QuizSlugRoute,
+  QuizIndexRoute: QuizIndexRoute,
   ApiAnalyticsOpenapiDotjsonRoute: ApiAnalyticsOpenapiDotjsonRoute,
+  ApiAnalyticsQuizLeadsRoute: ApiAnalyticsQuizLeadsRoute,
   ApiAnalyticsV1SplatRoute: ApiAnalyticsV1SplatRoute,
 }
 export const routeTree = rootRouteImport

@@ -3131,4 +3131,165 @@ describe.skipIf(!url)("аналитика: фундамент (база)", () =>
       ]);
     });
   });
+
+  // --- Квиз (db/migrations/2026-10-30_zzzzzzzzzzzz_analytics_quiz.sql) ---------------
+
+  test("Квиз: города и лендинг без входа, приём сервером, очередь в таблицы, заявки — администратору", async () => {
+    await scenario(async (tx) => {
+      const admin = await person(tx, "Админ квиза", ["an.admin"]);
+      const staff = await person(tx, "Сотрудник квиза", ["an.mkt.ls"]);
+      await asServer(tx);
+      await tx`delete from an_quiz_leads`;
+      await tx`delete from an_quiz_cities`;
+      const landing = async (slug: string | null) => {
+        await asServer(tx);
+        await tx`set local role anon`;
+        const [{ l }] = await tx`select an_quiz_landing(${slug}) as l`;
+        return l;
+      };
+      expect(await landing("x")).toBeNull();
+
+      // Город: их и свои проверки, тексты.
+      const save = (id: number | null, data: Record<string, unknown>) =>
+        failure(tx, async () => {
+          await as(tx, admin);
+          await tx`select an_quiz_city_save(${id}, ${data}::jsonb)`;
+        });
+      const base = {
+        slug: " Test-City ",
+        city: " Тестоград ",
+        trial_price: "600",
+        completed_count: "200+",
+        locations: [{ address: " ул. Тестовая, 1 ", landmark: "", phone_display: "+7 900 000-00-00" }],
+        operator_name: "",
+        operator_inn: "",
+        spreadsheet_id: "",
+        sheet_name: "",
+      };
+      expect(await save(null, { ...base, slug: "тест" })).toContain("Адрес страницы — латинские буквы");
+      expect(await save(null, { ...base, city: " " })).toContain("Укажите город.");
+      expect(await save(null, { ...base, trial_price: "6.5" })).toContain("Цена пробного");
+      expect(await save(null, { ...base, operator_inn: "123" })).toContain("ИНН — 10 или 12 цифр.");
+      expect(await save(null, { ...base, spreadsheet_id: "a/b" })).toContain("Некорректный ID Google Таблицы.");
+      expect(await save(null, { ...base, locations: [{ address: " " }] })).toContain("Укажите адрес студии.");
+      expect(await save(null, base)).toBeNull();
+      expect(await save(null, { ...base, slug: "other" })).toContain("Город «Тестоград» уже есть.");
+      expect(await save(null, { ...base, city: "Другой" })).toContain("Адрес страницы «test-city» уже занят.");
+      expect(
+        await save(null, { ...base, slug: "second", city: "Второград", is_default: true, spreadsheet_id: "Sheet-Id_1" }),
+      ).toBeNull();
+      expect(
+        await failure(tx, async () => {
+          await as(tx, staff);
+          await tx`select an_quiz_overview()`;
+        }),
+      ).toContain("an_forbidden");
+
+      // Лендинг: город по адресу, иначе — по умолчанию; таблицы города не видно.
+      const city = await landing("test-city");
+      expect(city.city).toBe("Тестоград");
+      expect(city.locations).toEqual([
+        { address: "ул. Тестовая, 1", landmark: "", phone_display: "+7 900 000-00-00", phone_href: "" },
+      ]);
+      expect(city.sheet_name).toBeUndefined();
+      expect((await landing("nope")).city).toBe("Второград");
+      expect((await landing(null)).city).toBe("Второград");
+
+      // Браузер (anon и сотрудник) не пишет заявки и не читает таблицы — только сервер.
+      for (const run of [
+        async () => {
+          await asServer(tx);
+          await tx`set local role anon`;
+          await tx`select an_quiz_lead_add('Тестоград', 'Анна', '+79000000000', '', '', '', '', '{}', 'c')`;
+        },
+        async () => {
+          await asServer(tx);
+          await tx`set local role anon`;
+          await tx`select * from an_quiz_leads`;
+        },
+        async () => {
+          await as(tx, admin);
+          await tx`select an_quiz_pending(10)`;
+        },
+        async () => {
+          await as(tx, admin);
+          await tx`select an_quiz_mark(1, null)`;
+        },
+      ]) {
+        expect(await failure(tx, run)).toContain("permission denied");
+      }
+
+      // Приём (service_role): их проверки ещё раз.
+      const add = (name: string, phone: string, consent = "2026-10-30T10:00:00Z") =>
+        failure(tx, async () => {
+          await asService(tx);
+          await tx`select an_quiz_lead_add('Тестоград', ${name}, ${phone}, '', '', '', '', '{}', ${consent})`;
+        });
+      expect(await add("А", "+79000000000")).toContain("Проверьте имя и телефон.");
+      expect(await add("Анна", "+790000000")).toContain("Проверьте имя и телефон.");
+      expect(await add("Анна", "+79000000000", "")).toContain("Нужно согласие на обработку данных.");
+      await asService(tx);
+      const [{ a }] = await tx`select an_quiz_lead_add('Неизвестноград', 'Борис', '+79000000001', '', '', '', '',
+                                                        '{}', 'c') as a`;
+      const [{ b }] = await tx`select an_quiz_lead_add('Второград', 'Вера', '+79000000002', 'Рек', 'Боль', 'Давно',
+                                                        'Время', ${{ utm_source: "vk" }}::jsonb, 'c') as b`;
+
+      // Очередь: по порядку, с таблицей города (у неизвестного города — нет).
+      type P = { id: number; city: string; spreadsheet_id: string | null; sheet_name: string | null; utm: unknown };
+      const [{ q }] = await tx`select an_quiz_pending(100) as q`;
+      expect((q as P[]).map((r) => [r.id, r.city, r.spreadsheet_id, r.sheet_name])).toEqual([
+        [Number(a), "Неизвестноград", null, null],
+        [Number(b), "Второград", "Sheet-Id_1", "Заявки квиза"],
+      ]);
+      expect((q as P[])[1].utm).toEqual({ utm_source: "vk" });
+      await tx`select an_quiz_mark(${a}, ${"Для города «Неизвестноград» не настроена таблица заявок."})`;
+      await tx`select an_quiz_mark(${b}, null)`;
+      const [{ q2 }] = await tx`select an_quiz_pending(100) as q2`;
+      expect((q2 as P[]).map((r) => r.id)).toEqual([Number(a)]);
+
+      // Заявки и обзор — администратору.
+      await as(tx, admin);
+      type R = { name: string; sheet_error: string; sheet_synced_at: string | null };
+      const leads = async (c: string, status: string) =>
+        (await tx`select an_quiz_leads(${c}, ${status}, 50, 0) as r`)[0].r as {
+          total: number;
+          cities: string[];
+          rows: R[];
+        };
+      const all = await leads("", "");
+      expect([all.total, all.cities]).toEqual([2, ["Второград", "Неизвестноград"]]);
+      expect((await leads("", "error")).rows.map((r) => r.sheet_error)).toEqual([
+        "Для города «Неизвестноград» не настроена таблица заявок.",
+      ]);
+      expect((await leads("", "sent")).rows.map((r) => r.name)).toEqual(["Вера"]);
+      expect((await leads("Второград", "pending")).total).toBe(0);
+      // Новый город по умолчанию снимает отметку с прежнего.
+      const [{ o }] = await tx`select an_quiz_overview() as o`;
+      expect([o.total, o.pending, o.errors]).toEqual([2, 0, 1]);
+      type C = { id: number; city: string; is_default: boolean; leads: number; pending: number };
+      expect((o.cities as C[]).map((c) => [c.city, c.is_default, c.leads, c.pending])).toEqual([
+        ["Второград", true, 1, 0],
+        ["Тестоград", false, 0, 0],
+      ]);
+      const test = (o.cities as C[])[1];
+      expect(await save(test.id, { ...base, is_default: true })).toBeNull();
+      await asServer(tx);
+      const defaults = await tx`select city from an_quiz_cities where is_default`;
+      expect(defaults.map((d) => d.city)).toEqual(["Тестоград"]);
+
+      await as(tx, admin);
+      await tx`select an_quiz_lead_delete(${a})`;
+      await tx`select an_quiz_city_delete(${test.id})`;
+      await asServer(tx);
+      expect((await tx`select count(*)::int as n from an_quiz_leads`)[0].n).toBe(1);
+      const events = await tx`select event from an_audit where user_id = ${admin} and event like 'quiz%' order by id`;
+      expect(events.map((e) => e.event)).toEqual([
+        "quiz_city_saved",
+        "quiz_city_saved",
+        "quiz_city_saved",
+        "quiz_lead_deleted",
+        "quiz_city_deleted",
+      ]);
+    });
+  });
 });

@@ -43,7 +43,9 @@ Tailwind 4 + shadcn/radix. Пакетный менеджер — bun.
   `lib/analytics/vk/budget.test.ts`, amoCRM (адрес, поля сделки, источник,
   квалификация) `lib/analytics/amo/amo.test.ts`, (маркетинговые отчёты:
   бюджеты каналов, проценты, блоки, плитки) `lib/analytics/amo/marketing.test.ts`,
-  Авито (разбор ответов API, UTM, план периода, реестр) `lib/analytics/avito/avito.test.ts`;
+  Авито (разбор ответов API, UTM, план периода, реестр) `lib/analytics/avito/avito.test.ts`,
+  квиз (их _clean, проверка заявки, строка таблицы, тексты лендинга)
+  `lib/analytics/quiz/quiz.test.ts`;
   «Академия» — подписи,
   проверка вопроса, сроки и напоминания `lib/academy/logic.test.ts`;
   Kate — инструменты,
@@ -787,6 +789,20 @@ kb`. Доступ — ролями «Пользователей и ролей» 
   «Планы Авито» (`/plans`); правила их кода — `lib/analytics/avito/rules.ts`,
   запросы — `avito/data.ts`, сервер — `lib/analytics/server/avito.server.ts`
   (задача `avito`, раз в час; `ANALYTICS_AVITO_ORIGIN` — только стенд).
+  «Квиз» (2026-10-30, ANALYTICS.md) — группа меню: «Квиз-лендинги»
+  (`/analytics/quiz`: города лендинга, «Проверить таблицу» —
+  `lib/analytics/quiz.functions.ts`), «Заявки квиза» (`/quiz/leads`). Сам
+  лендинг — публичные страницы без входа и без каркаса портала
+  `routes/quiz.$slug.tsx` / `routes/quiz.index.tsx` (`/quiz/<город>`,
+  `components/analytics/quiz/quiz-landing.tsx`; вид — их CSS как есть,
+  `quiz-landing.css` подключается ссылкой `?url` в `head` маршрута; плашки
+  новой версии там нет — `update-banner.tsx`); приём заявки —
+  `routes/api/analytics/quiz/leads.ts` + `lib/analytics/server/quiz.server.ts`
+  (их проверки и ответы; не больше 10 заявок с адреса за 10 минут); в
+  таблицы — задача `quiz_sheets` (внешняя; только по событию —
+  `kickAnalyticsJob` после приёма — и «Запустить», `onDemand` в
+  `jobs.server.ts`); правила их кода — `lib/analytics/quiz/rules.ts`,
+  запросы — `quiz/data.ts`.
   Отчёты 1С — группа меню «1С · Lady Stretch» (`/analytics/onec/<доска>`,
   «Мой город» — `/mycity`): маршрут рисует `OnecReportFrame`
   (`components/analytics/onec/report-frame.tsx`: период, «С начала месяца /

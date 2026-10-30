@@ -189,7 +189,7 @@ export function columnIndex(ref: string): number {
 }
 
 /** str.strip() Python (пробельные символы str.isspace). */
-const PY_WS =
+export const PY_WS =
   "[\\t\\n\\v\\f\\r\\x1c-\\x1f \\x85\\xa0\\u1680\\u2000-\\u200a\\u2028\\u2029\\u202f\\u205f\\u3000]";
 const PY_STRIP_RE = new RegExp(`^${PY_WS}+|${PY_WS}+$`, "g");
 export function pyStrip(s: string): string {

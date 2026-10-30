@@ -35,6 +35,8 @@ export const AN_TITLES = {
   avitoAccounts: "Кабинеты Авито",
   avitoPlans: "Планы Авито",
   avitoRegister: "Реестр Авито",
+  quiz: "Квиз-лендинги",
+  quizLeads: "Заявки квиза",
 } as const;
 
 /** «Очистка Excel» — тексты их ExcelCleaner 1.1-fast (окно, статусы, предупреждения). */
