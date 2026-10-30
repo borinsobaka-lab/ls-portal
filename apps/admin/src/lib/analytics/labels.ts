@@ -14,6 +14,7 @@ export const AN_TITLES = {
   journal: "Журнал",
   api: "API для GPT",
   excelCleaner: "Очистка Excel",
+  top10: "Топ-10 городов",
 } as const;
 
 /** «Очистка Excel» — тексты их ExcelCleaner 1.1-fast (окно, статусы, предупреждения). */

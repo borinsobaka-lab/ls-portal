@@ -36,6 +36,7 @@ import {
   MoneyBag,
   Notebook,
   PieChart2,
+  Ranking,
   Refresh,
   Settings,
   ShieldUser,
@@ -298,6 +299,7 @@ export const ANALYTICS_GROUPS: NavGroup<AnalyticsNavItem>[] = [
         icon: Broom,
         need: "admin",
       },
+      { title: "Топ-10 городов", url: "/analytics/tools/top10", icon: Ranking, need: "admin" },
     ],
   },
   {

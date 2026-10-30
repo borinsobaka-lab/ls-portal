@@ -2847,6 +2847,37 @@ export function AnalyticsExcelCleanerPageSkeleton() {
   );
 }
 
+export function AnalyticsTop10PageSkeleton() {
+  return (
+    <ShellSkeleton title={AN_TITLES.top10} network>
+      <div className="space-y-4">
+        <Skeleton className="h-12 w-full rounded-lg" />
+        <div className="flex gap-2 rounded-lg border bg-background p-2 sm:px-3">
+          <Skeleton className="h-9 w-44 rounded-md" />
+          <Skeleton className="h-9 w-44 rounded-md" />
+          <Skeleton className="ml-auto h-9 w-36 rounded-full" />
+        </div>
+        <Skeleton className="h-9 w-72 max-w-full rounded-full" />
+        <div className="grid gap-4 xl:grid-cols-2">
+          {[
+            "Покупка в день пробного",
+            "Покупка за 14 дней",
+            "Топ по продлениям",
+            "Топ по возвращённым",
+          ].map((title) => (
+            <TableCardSkeleton
+              key={title}
+              title={title}
+              headers={["Место", "Город", "", "", ""]}
+              rows={10}
+            />
+          ))}
+        </div>
+      </div>
+    </ShellSkeleton>
+  );
+}
+
 export function AnalyticsJobsPageSkeleton() {
   return (
     <ShellSkeleton title={AN_TITLES.jobs} network>

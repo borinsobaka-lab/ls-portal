@@ -1,8 +1,13 @@
 /**
- * «Аналитика» → «Инструменты» в браузере: «Очистка Excel» (фоновый поток) и
- * сохранение .xlsx на компьютер.
+ * «Аналитика» → «Инструменты» в браузере: «Очистка Excel» (фоновый поток),
+ * данные «Топ-10 городов» и сохранение .xlsx на компьютер.
  */
+import { supabase } from "@/integrations/supabase/client";
+import { unwrap } from "@/lib/query";
+
+import { ANALYTICS_KEY } from "./data";
 import type { CleanerMessage, CleanerRequest } from "./excel-cleaner.worker";
+import type { Top10Data } from "./top10";
 
 export const XLSX_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
@@ -60,3 +65,23 @@ export function runExcelCleaner(
     );
   });
 }
+
+// --- «Топ-10 городов» ---------------------------------------------------------------
+
+/** Дата сводов и охват данных отчётов; null — данных отчётов ещё нет. */
+export type Top10Info = Omit<Top10Data, "rows">;
+
+export const anTop10InfoQuery = {
+  queryKey: [ANALYTICS_KEY, "top10", "info"],
+  queryFn: () => unwrap<Top10Info | null>(supabase.rpc("an_onec_top10_range")),
+  meta: { errorMessage: "Не удалось загрузить данные отчётов" },
+};
+
+/** Строки месяц × город за выбранные месяцы (RPC an_onec_top10). */
+export const anTop10Query = (months: string[]) => ({
+  queryKey: [ANALYTICS_KEY, "top10", "rows", ...months],
+  queryFn: () => unwrap<Top10Data>(supabase.rpc("an_onec_top10", { p_months: months })),
+  enabled: months.length > 0,
+  placeholderData: (prev: Top10Data | undefined) => prev,
+  meta: { errorMessage: "Не удалось загрузить рейтинги" },
+});

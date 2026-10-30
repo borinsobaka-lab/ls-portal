@@ -610,6 +610,45 @@ function collectSubscriptionSales(
   return { sales: [...byKey.values()], missingStudios, missingClients };
 }
 
+/** Их anniversary: та же дата через два года (29 февраля → 28 февраля). */
+function anniversary(day: string): string {
+  const year = String(Number(day.slice(0, 4)) + 2).padStart(4, "0");
+  const md = day.slice(5, 10);
+  return `${year}-${md === "02-29" ? "02-28" : md}`;
+}
+
+/**
+ * «Возвращённые» (их partner-rankings analyze.py, classify): повторная
+ * покупка клиента не раньше чем через два года после его предыдущей покупки
+ * (покупки одного момента — одной пачкой: друг другу не «предыдущие»).
+ * Остальные повторные — обычные продления. Продажи — v7 свода «sales».
+ */
+function returnedSales(sales: Sale[], first: Map<string, string>): Set<Sale> {
+  const ordered = [...sales].sort((a, b) =>
+    a.datetime < b.datetime ? -1 : a.datetime > b.datetime ? 1 : 0,
+  );
+  const last = new Map<string, string>();
+  const returned = new Set<Sale>();
+  for (let i = 0; i < ordered.length; ) {
+    let j = i;
+    while (j < ordered.length && ordered[j].datetime === ordered[i].datetime) j++;
+    for (let k = i; k < j; k++) {
+      const s = ordered[k];
+      if (!s.client || s.datetime === first.get(s.client)) continue;
+      const previous = last.get(s.client);
+      if (previous !== undefined && s.datetime.slice(0, 10) >= anniversary(previous.slice(0, 10))) {
+        returned.add(s);
+      }
+    }
+    for (let k = i; k < j; k++) {
+      const s = ordered[k];
+      if (s.client) last.set(s.client, s.datetime);
+    }
+    i = j;
+  }
+  return returned;
+}
+
 // --- Воронка пробных (build_trial_funnel_summary) ----------------------------------
 
 type Trial = {
@@ -896,11 +935,12 @@ export async function processOnec(input: OnecInputs, deps: OnecDeps): Promise<On
       const prev = first.get(s.client);
       if (prev === undefined || s.datetime < prev) first.set(s.client, s.datetime);
     }
+    const returned = returnedSales(all.sales, first);
     const summary = new Map<string, { s: Sale; v: number[] }>();
     for (const s of all.sales) {
       const key = `${s.datetime.slice(0, 10)}\u0001${s.city}\u0001${s.studio}\u0001${s.code}\u0001${s.name}`;
       let e = summary.get(key);
-      if (!e) summary.set(key, (e = { s, v: [0, 0, 0, 0, 0, 0] }));
+      if (!e) summary.set(key, (e = { s, v: [0, 0, 0, 0, 0, 0, 0] }));
       e.v[0] += 1;
       e.v[5] += s.cost;
       if (s.client && s.datetime === first.get(s.client)) {
@@ -909,6 +949,7 @@ export async function processOnec(input: OnecInputs, deps: OnecDeps): Promise<On
       } else if (s.client) {
         e.v[2] += 1;
         e.v[4] += s.payment;
+        if (returned.has(s)) e.v[6] += 1;
       }
     }
     for (const { s, v } of summary.values()) {

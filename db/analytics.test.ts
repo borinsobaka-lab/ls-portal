@@ -788,6 +788,120 @@ describe.skipIf(!url)("аналитика: фундамент (база)", () =>
     });
   });
 
+  // ---- «Топ-10 городов» (2026-10-30_zzz_analytics_top10.sql) ----
+
+  test("Топ-10 городов: месяц × город — воронка и продажи с возвращёнными; только администратору", async () => {
+    await scenario(async (tx) => {
+      await onecReset(tx);
+      const admin = await person(tx, "Админ", ["an.admin"]);
+      const staff = await person(tx, "Сотрудник", ["an.onec.sales", "an.onec.trials"]);
+      await as(tx, admin);
+      const [{ none }] = await tx`select an_onec_top10_range() as none`;
+      expect(none).toBeNull();
+      expect(await failure(tx, () => tx`select an_onec_top10(array['2026-09'])`)).toContain(
+        "an_onec_empty",
+      );
+
+      await asServer(tx);
+      await tx`insert into an_onec_runs (status) values ('running')`;
+      const [{ run }] = await tx`select id as run from an_onec_runs order by id desc limit 1`;
+      await asService(tx);
+      const [{ s }] = await tx`select an_onec_snapshot_begin(${run}) as s`;
+      await tx`select an_onec_snapshot_items(${s.id},
+        '{1,2,3,4,5}', '{sales,sales,funnel,sales,funnel}', '{Абакан,Абакан,Абакан,Бийск,Бийск}',
+        '{"Абакан Ленина","Абакан Мира","Абакан Ленина","Бийск Мира","Бийск Мира"}',
+        '{"Абонемент 8","Абонемент 8",Stretching,"Абонемент 8",Stretching}',
+        '{0001,0001,"",0001,""}', '{Открыта,Открыта,Открыта,Закрыта,Закрыта}')`;
+      // Продажи: v1 все, v2 новые, v3 прежние продления, v7 из них возвращённые;
+      // воронка: v1 записались, v2 пришли, v3 база в день, v4 купили в день,
+      // v5 база 14 дней, v6 купили за 14 дней.
+      const facts: [number, string, number[]][] = [
+        [1, "2026-09-03", [3, 1, 2, 0, 0, 0, 1, 0]],
+        [2, "2026-09-20", [2, 0, 2, 0, 0, 0, 0, 0]],
+        [1, "2026-10-05", [1, 1, 0, 0, 0, 0, 0, 0]],
+        [3, "2026-09-10", [5, 4, 4, 2, 4, 3, 1, 0]],
+        [3, "2026-08-31", [9, 9, 9, 9, 9, 9, 0, 0]],
+        [4, "2026-10-01", [4, 0, 4, 0, 0, 0, 2, 0]],
+        [5, "2026-10-02", [2, 2, 2, 1, 2, 1, 0, 1]],
+      ];
+      const arr = (xs: (string | number)[]) => `{${xs.join(",")}}`;
+      const col = (i: number) => arr(facts.map((f) => f[2][i]));
+      await tx`select an_onec_snapshot_facts(${s.id}, 1, ${arr(facts.map((f) => f[0]))}::int[],
+        ${arr(facts.map((f) => f[1]))}::date[], ${col(0)}::float8[], ${col(1)}::float8[],
+        ${col(2)}::float8[], ${col(3)}::float8[], ${col(4)}::float8[], ${col(5)}::float8[],
+        ${col(6)}::float8[], ${col(7)}::float8[])`;
+      await tx`select an_onec_run_finish(${run}, ${s.id}, ${{ source_rows: {}, issues: {}, breakEven: {}, zeroControls: {}, stats: {} }}::jsonb)`;
+      await tx`reset role`;
+      await tx`update an_onec_snapshots set state = 'current' where id = ${s.id}`;
+
+      await as(tx, admin);
+      const [{ info }] = await tx`select an_onec_top10_range() as info`;
+      expect(info).toMatchObject({
+        sales_min: "2026-09-03",
+        sales_max: "2026-10-05",
+        funnel_min: "2026-08-31",
+        funnel_max: "2026-10-02",
+        returned_ready: true,
+      });
+      const [{ t }] = await tx`select an_onec_top10(array['2026-10', '2026-09']) as t`;
+      const zero = {
+        booked: 0,
+        attended: 0,
+        day_base: 0,
+        bought_day: 0,
+        window_base: 0,
+        bought_14: 0,
+      };
+      expect(t.rows).toEqual([
+        {
+          month: "2026-09",
+          city: "Абакан",
+          booked: 5,
+          attended: 4,
+          day_base: 4,
+          bought_day: 2,
+          window_base: 4,
+          bought_14: 3,
+          sales: 5,
+          new: 1,
+          repeat_old: 4,
+          returned: 1,
+        },
+        { month: "2026-10", city: "Абакан", ...zero, sales: 1, new: 1, repeat_old: 0, returned: 0 },
+        {
+          month: "2026-10",
+          city: "Бийск",
+          booked: 2,
+          attended: 2,
+          day_base: 2,
+          bought_day: 1,
+          window_base: 2,
+          bought_14: 1,
+          sales: 4,
+          new: 0,
+          repeat_old: 4,
+          returned: 2,
+        },
+      ]);
+      for (const bad of [[], ["2026-13"], ["2026-09", "2026-09"]]) {
+        expect(await failure(tx, () => tx`select an_onec_top10(${bad}::text[])`)).toContain(
+          "Выберите от 1 до 12 месяцев",
+        );
+      }
+      await asServer(tx);
+      // Снимок до 30.10.2026 «возвращённых» не считал — v7 продаж пустой.
+      const [{ old }] =
+        await tx`select an_onec_top10_info('{"coverage": {"sales": {"totals": [5, 1, 4, 0, 0, 0, 0, 0]}}}') as old`;
+      expect(old.returned_ready).toBe(false);
+      await as(tx, staff);
+      expect(await failure(tx, () => tx`select an_onec_top10(array['2026-09'])`)).toContain(
+        "an_forbidden",
+      );
+      expect(await failure(tx, () => tx`select an_onec_top10_range()`)).toContain("an_forbidden");
+      await asServer(tx);
+    });
+  });
+
   // ---- Администрирование (2026-10-30_zz_analytics_core_admin.sql) ----
 
   /** auth.jwt() читает claims, как в Supabase (заглушка тестов отдаёт {}). */
