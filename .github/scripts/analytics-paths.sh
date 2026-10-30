@@ -15,7 +15,6 @@ allowed() {
     apps/admin/src/routes/_authenticated/analytics/* | \
     apps/admin/src/routes/api/analytics/* | \
     apps/admin/src/routeTree.gen.ts | \
-    deploy/analytics-replica/* | \
     db/analytics.test.ts | \
     ANALYTICS.md | \
     ANALYTICS_PLAN.md)

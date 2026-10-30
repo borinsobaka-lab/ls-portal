@@ -48,16 +48,7 @@ function AnalyticsHomePage() {
           <InfoNote variant="empty">
             <span className="font-medium">{AN_HOME_TEXT.emptyTitle}</span> —{" "}
             {AN_HOME_TEXT.emptyText}
-            {me?.admin && (
-              <>
-                {" "}
-                Отчёты появятся здесь по мере переноса модулей; данные со старого портала —{" "}
-                <Link to="/analytics/admin/sync" className="text-brand-on-light underline">
-                  «Синхронизация»
-                </Link>
-                .
-              </>
-            )}
+            {me?.admin && " Отчёты появятся здесь по мере переноса модулей."}
           </InfoNote>
         )}
       </AnalyticsHomeBody>

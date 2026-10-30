@@ -4,20 +4,10 @@
  * (service_role, ни грантов, ни политик для браузера). Шифр — AES-256-GCM,
  * ключ — ANALYTICS_SECRETS_KEY (Coolify): 32 байта в base64 или любая строка
  * от 32 символов (тогда ключ — её SHA-256). Хранение:
- * base64(iv 12 ‖ шифртекст ‖ тег 16).
- *
- * Ключи от старого портала агент синхронизации присылает зашифрованными
- * открытым ключом портала (ANALYTICS_REPLICA_PRIVATE_KEY, RSA-OAEP-SHA256,
- * блоками) — их расшифровывает decryptFromAgent и сразу шифрует своим ключом.
+ * base64(iv 12 ‖ шифртекст ‖ тег 16). Ключи вводят в «Аналитике» заново —
+ * со старым порталом новый не связан (ANALYTICS_PLAN.md, §3).
  */
-import {
-  createCipheriv,
-  createDecipheriv,
-  createHash,
-  privateDecrypt,
-  randomBytes,
-} from "node:crypto";
-import { constants, createPrivateKey, createPublicKey } from "node:crypto";
+import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
 
 import { getSupabaseAdmin } from "@/integrations/supabase/client.server";
 
@@ -86,40 +76,4 @@ export async function readSecret(s: SecretRef): Promise<string | null> {
     .maybeSingle();
   if (error) throw new Error(error.message);
   return data ? decryptSecret(data.ciphertext as string) : null;
-}
-
-// --- Ключи от агента синхронизации ------------------------------------------------
-
-function replicaPrivateKey() {
-  const pem = process.env.ANALYTICS_REPLICA_PRIVATE_KEY?.trim();
-  if (!pem) return null;
-  // В Coolify перевод строки в значении иногда приходит как \n.
-  return createPrivateKey(pem.includes("\\n") ? pem.replace(/\\n/g, "\n") : pem);
-}
-
-/** Открытый ключ для установки агента (PEM) или null, если не задан закрытый. */
-export function replicaPublicKeyPem(): string | null {
-  const key = replicaPrivateKey();
-  if (!key) return null;
-  return createPublicKey(key).export({ type: "spki", format: "pem" }).toString();
-}
-
-/**
- * Расшифровать ключ от агента: блоки RSA-OAEP-SHA256 в base64 через «.»
- * (`openssl pkeyutl -encrypt -pkeyopt rsa_padding_mode:oaep
- * -pkeyopt rsa_oaep_md:sha256` по 190 байт).
- */
-export function decryptFromAgent(blocks: string): string {
-  const key = replicaPrivateKey();
-  if (!key) throw new Error("На сервере не задан ANALYTICS_REPLICA_PRIVATE_KEY.");
-  const parts = blocks.split(".").filter(Boolean);
-  if (parts.length === 0 || parts.length > 64) throw new Error("Неверный формат ключа от агента.");
-  return Buffer.concat(
-    parts.map((p) =>
-      privateDecrypt(
-        { key, padding: constants.RSA_PKCS1_OAEP_PADDING, oaepHash: "sha256" },
-        Buffer.from(p, "base64"),
-      ),
-    ),
-  ).toString("utf8");
 }

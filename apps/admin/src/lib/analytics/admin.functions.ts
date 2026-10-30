@@ -3,14 +3,13 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { ANALYTICS_JOBS, runJob } from "./server/jobs.server";
-import { replicaSecret } from "./server/replica.server";
-import { replicaPublicKeyPem, secretsReady } from "./server/secrets.server";
+import { ANALYTICS_JOBS, isJobEnabled, runJob } from "./server/jobs.server";
+import { secretsReady } from "./server/secrets.server";
 
 /**
- * «Аналитика» → «Синхронизация» (ANALYTICS_PLAN.md, §3): настройки приёма
- * со старого портала и ручной запуск фоновых задач. Только администратору
- * аналитики (an_me от имени вызывающего).
+ * «Аналитика» → «Фоновые задачи» (ANALYTICS_PLAN.md, §7): настройки сервера
+ * и ручной запуск задач. Только администратору аналитики (an_me от имени
+ * вызывающего).
  */
 
 async function requireAnAdmin(supabase: SupabaseClient) {
@@ -21,33 +20,20 @@ async function requireAnAdmin(supabase: SupabaseClient) {
   }
 }
 
-export type ReplicaConfig = {
-  /** Куда агент шлёт пачки. */
-  endpoint: string;
-  /** Задан ли ANALYTICS_REPLICA_SECRET (подпись пачек). */
-  secretSet: boolean;
+export type AnalyticsConfig = {
   /** Задан ли ANALYTICS_SECRETS_KEY (шифрование ключей интеграций). */
   secretsKeySet: boolean;
-  /** Открытый ключ для установщика агента (PEM); null — не задан закрытый. */
-  publicKeyPem: string | null;
+  /** Выполняет ли этот сервер фоновые задачи (ANALYTICS_JOBS / PUSH_WORKER). */
+  jobsOn: boolean;
 };
 
-export const getReplicaConfig = createServerFn({ method: "GET" })
+export const getAnalyticsConfig = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }): Promise<ReplicaConfig> => {
+  .handler(async ({ context }): Promise<AnalyticsConfig> => {
     await requireAnAdmin(context.supabase);
-    const base = (process.env.ADMIN_APP_URL ?? "").replace(/\/+$/, "");
-    let publicKeyPem: string | null = null;
-    try {
-      publicKeyPem = replicaPublicKeyPem();
-    } catch {
-      publicKeyPem = null;
-    }
     return {
-      endpoint: `${base}/api/analytics/replica`,
-      secretSet: replicaSecret() !== null,
       secretsKeySet: secretsReady(),
-      publicKeyPem,
+      jobsOn: process.env.ANALYTICS_JOBS !== "off" && process.env.PUSH_WORKER !== "off",
     };
   });
 
@@ -63,6 +49,7 @@ export const runAnalyticsJob = createServerFn({ method: "POST" })
     await requireAnAdmin(context.supabase);
     const job = ANALYTICS_JOBS.find((j) => j.key === data.key);
     if (!job) throw new Error("Задача не найдена");
+    if (!(await isJobEnabled(job.key))) throw new Error("Задача выключена — сначала включите её");
     const started = await runJob(job);
     if (!started) throw new Error("Задача уже выполняется — подождите её окончания");
     return { ok: true };

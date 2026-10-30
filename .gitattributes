@@ -1,3 +1,0 @@
-# Батники Windows — байты как есть (CRLF): cmd.exe с LF ломает метки goto,
-# а «raw» с GitHub отдаёт файл без преобразования.
-*.bat -text

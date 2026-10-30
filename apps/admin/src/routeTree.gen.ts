@@ -53,7 +53,6 @@ import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authe
 import { Route as AuthenticatedAnalyticsIndexRouteImport } from './routes/_authenticated/analytics/index'
 import { Route as AuthenticatedAccessIndexRouteImport } from './routes/_authenticated/access/index'
 import { Route as AuthenticatedAcademyIndexRouteImport } from './routes/_authenticated/academy/index'
-import { Route as ApiAnalyticsReplicaRouteImport } from './routes/api/analytics/replica'
 import { Route as AuthenticatedScriptsSettingsRouteImport } from './routes/_authenticated/scripts/settings'
 import { Route as AuthenticatedScriptsSectionIdRouteImport } from './routes/_authenticated/scripts/$sectionId'
 import { Route as AuthenticatedDashboardSalesRouteImport } from './routes/_authenticated/dashboard/sales'
@@ -72,7 +71,7 @@ import { Route as AuthenticatedKbBaseIdTrashRouteImport } from './routes/_authen
 import { Route as AuthenticatedKbBaseIdTemplatesRouteImport } from './routes/_authenticated/kb/$baseId/templates'
 import { Route as AuthenticatedKbBaseIdAnalyticsRouteImport } from './routes/_authenticated/kb/$baseId/analytics'
 import { Route as AuthenticatedKbBaseIdNodeIdRouteImport } from './routes/_authenticated/kb/$baseId/$nodeId'
-import { Route as AuthenticatedAnalyticsAdminSyncRouteImport } from './routes/_authenticated/analytics/admin/sync'
+import { Route as AuthenticatedAnalyticsAdminJobsRouteImport } from './routes/_authenticated/analytics/admin/jobs'
 import { Route as AuthenticatedAccessUsersUserIdRouteImport } from './routes/_authenticated/access/users/$userId'
 import { Route as AuthenticatedAccessRolesRoleIdRouteImport } from './routes/_authenticated/access/roles/$roleId'
 import { Route as AuthenticatedAcademyReviewAttemptIdRouteImport } from './routes/_authenticated/academy/review/$attemptId'
@@ -314,11 +313,6 @@ const AuthenticatedAcademyIndexRoute =
     path: '/academy/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const ApiAnalyticsReplicaRoute = ApiAnalyticsReplicaRouteImport.update({
-  id: '/api/analytics/replica',
-  path: '/api/analytics/replica',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AuthenticatedScriptsSettingsRoute =
   AuthenticatedScriptsSettingsRouteImport.update({
     id: '/scripts/settings',
@@ -426,10 +420,10 @@ const AuthenticatedKbBaseIdNodeIdRoute =
     path: '/kb/$baseId/$nodeId',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedAnalyticsAdminSyncRoute =
-  AuthenticatedAnalyticsAdminSyncRouteImport.update({
-    id: '/analytics/admin/sync',
-    path: '/analytics/admin/sync',
+const AuthenticatedAnalyticsAdminJobsRoute =
+  AuthenticatedAnalyticsAdminJobsRouteImport.update({
+    id: '/analytics/admin/jobs',
+    path: '/analytics/admin/jobs',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedAccessUsersUserIdRoute =
@@ -529,7 +523,6 @@ export interface FileRoutesByFullPath {
   '/dashboard/sales': typeof AuthenticatedDashboardSalesRoute
   '/scripts/$sectionId': typeof AuthenticatedScriptsSectionIdRoute
   '/scripts/settings': typeof AuthenticatedScriptsSettingsRoute
-  '/api/analytics/replica': typeof ApiAnalyticsReplicaRoute
   '/academy/': typeof AuthenticatedAcademyIndexRoute
   '/access/': typeof AuthenticatedAccessIndexRoute
   '/analytics/': typeof AuthenticatedAnalyticsIndexRoute
@@ -541,7 +534,7 @@ export interface FileRoutesByFullPath {
   '/academy/review/$attemptId': typeof AuthenticatedAcademyReviewAttemptIdRoute
   '/access/roles/$roleId': typeof AuthenticatedAccessRolesRoleIdRoute
   '/access/users/$userId': typeof AuthenticatedAccessUsersUserIdRoute
-  '/analytics/admin/sync': typeof AuthenticatedAnalyticsAdminSyncRoute
+  '/analytics/admin/jobs': typeof AuthenticatedAnalyticsAdminJobsRoute
   '/kb/$baseId/$nodeId': typeof AuthenticatedKbBaseIdNodeIdRoute
   '/kb/$baseId/analytics': typeof AuthenticatedKbBaseIdAnalyticsRoute
   '/kb/$baseId/templates': typeof AuthenticatedKbBaseIdTemplatesRoute
@@ -602,7 +595,6 @@ export interface FileRoutesByTo {
   '/dashboard/sales': typeof AuthenticatedDashboardSalesRoute
   '/scripts/$sectionId': typeof AuthenticatedScriptsSectionIdRoute
   '/scripts/settings': typeof AuthenticatedScriptsSettingsRoute
-  '/api/analytics/replica': typeof ApiAnalyticsReplicaRoute
   '/academy': typeof AuthenticatedAcademyIndexRoute
   '/access': typeof AuthenticatedAccessIndexRoute
   '/analytics': typeof AuthenticatedAnalyticsIndexRoute
@@ -614,7 +606,7 @@ export interface FileRoutesByTo {
   '/academy/review/$attemptId': typeof AuthenticatedAcademyReviewAttemptIdRoute
   '/access/roles/$roleId': typeof AuthenticatedAccessRolesRoleIdRoute
   '/access/users/$userId': typeof AuthenticatedAccessUsersUserIdRoute
-  '/analytics/admin/sync': typeof AuthenticatedAnalyticsAdminSyncRoute
+  '/analytics/admin/jobs': typeof AuthenticatedAnalyticsAdminJobsRoute
   '/kb/$baseId/$nodeId': typeof AuthenticatedKbBaseIdNodeIdRoute
   '/kb/$baseId/analytics': typeof AuthenticatedKbBaseIdAnalyticsRoute
   '/kb/$baseId/templates': typeof AuthenticatedKbBaseIdTemplatesRoute
@@ -677,7 +669,6 @@ export interface FileRoutesById {
   '/_authenticated/dashboard/sales': typeof AuthenticatedDashboardSalesRoute
   '/_authenticated/scripts/$sectionId': typeof AuthenticatedScriptsSectionIdRoute
   '/_authenticated/scripts/settings': typeof AuthenticatedScriptsSettingsRoute
-  '/api/analytics/replica': typeof ApiAnalyticsReplicaRoute
   '/_authenticated/academy/': typeof AuthenticatedAcademyIndexRoute
   '/_authenticated/access/': typeof AuthenticatedAccessIndexRoute
   '/_authenticated/analytics/': typeof AuthenticatedAnalyticsIndexRoute
@@ -689,7 +680,7 @@ export interface FileRoutesById {
   '/_authenticated/academy/review/$attemptId': typeof AuthenticatedAcademyReviewAttemptIdRoute
   '/_authenticated/access/roles/$roleId': typeof AuthenticatedAccessRolesRoleIdRoute
   '/_authenticated/access/users/$userId': typeof AuthenticatedAccessUsersUserIdRoute
-  '/_authenticated/analytics/admin/sync': typeof AuthenticatedAnalyticsAdminSyncRoute
+  '/_authenticated/analytics/admin/jobs': typeof AuthenticatedAnalyticsAdminJobsRoute
   '/_authenticated/kb/$baseId/$nodeId': typeof AuthenticatedKbBaseIdNodeIdRoute
   '/_authenticated/kb/$baseId/analytics': typeof AuthenticatedKbBaseIdAnalyticsRoute
   '/_authenticated/kb/$baseId/templates': typeof AuthenticatedKbBaseIdTemplatesRoute
@@ -752,7 +743,6 @@ export interface FileRouteTypes {
     | '/dashboard/sales'
     | '/scripts/$sectionId'
     | '/scripts/settings'
-    | '/api/analytics/replica'
     | '/academy/'
     | '/access/'
     | '/analytics/'
@@ -764,7 +754,7 @@ export interface FileRouteTypes {
     | '/academy/review/$attemptId'
     | '/access/roles/$roleId'
     | '/access/users/$userId'
-    | '/analytics/admin/sync'
+    | '/analytics/admin/jobs'
     | '/kb/$baseId/$nodeId'
     | '/kb/$baseId/analytics'
     | '/kb/$baseId/templates'
@@ -825,7 +815,6 @@ export interface FileRouteTypes {
     | '/dashboard/sales'
     | '/scripts/$sectionId'
     | '/scripts/settings'
-    | '/api/analytics/replica'
     | '/academy'
     | '/access'
     | '/analytics'
@@ -837,7 +826,7 @@ export interface FileRouteTypes {
     | '/academy/review/$attemptId'
     | '/access/roles/$roleId'
     | '/access/users/$userId'
-    | '/analytics/admin/sync'
+    | '/analytics/admin/jobs'
     | '/kb/$baseId/$nodeId'
     | '/kb/$baseId/analytics'
     | '/kb/$baseId/templates'
@@ -899,7 +888,6 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard/sales'
     | '/_authenticated/scripts/$sectionId'
     | '/_authenticated/scripts/settings'
-    | '/api/analytics/replica'
     | '/_authenticated/academy/'
     | '/_authenticated/access/'
     | '/_authenticated/analytics/'
@@ -911,7 +899,7 @@ export interface FileRouteTypes {
     | '/_authenticated/academy/review/$attemptId'
     | '/_authenticated/access/roles/$roleId'
     | '/_authenticated/access/users/$userId'
-    | '/_authenticated/analytics/admin/sync'
+    | '/_authenticated/analytics/admin/jobs'
     | '/_authenticated/kb/$baseId/$nodeId'
     | '/_authenticated/kb/$baseId/analytics'
     | '/_authenticated/kb/$baseId/templates'
@@ -932,7 +920,6 @@ export interface RootRouteChildren {
   ApiChatRoute: typeof ApiChatRoute
   ApiTranscribeRoute: typeof ApiTranscribeRoute
   ApiVersionRoute: typeof ApiVersionRoute
-  ApiAnalyticsReplicaRoute: typeof ApiAnalyticsReplicaRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -1245,13 +1232,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAcademyIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/api/analytics/replica': {
-      id: '/api/analytics/replica'
-      path: '/api/analytics/replica'
-      fullPath: '/api/analytics/replica'
-      preLoaderRoute: typeof ApiAnalyticsReplicaRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/_authenticated/scripts/settings': {
       id: '/_authenticated/scripts/settings'
       path: '/scripts/settings'
@@ -1378,11 +1358,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedKbBaseIdNodeIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/analytics/admin/sync': {
-      id: '/_authenticated/analytics/admin/sync'
-      path: '/analytics/admin/sync'
-      fullPath: '/analytics/admin/sync'
-      preLoaderRoute: typeof AuthenticatedAnalyticsAdminSyncRouteImport
+    '/_authenticated/analytics/admin/jobs': {
+      id: '/_authenticated/analytics/admin/jobs'
+      path: '/analytics/admin/jobs'
+      fullPath: '/analytics/admin/jobs'
+      preLoaderRoute: typeof AuthenticatedAnalyticsAdminJobsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/access/users/$userId': {
@@ -1498,7 +1478,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAcademyReviewAttemptIdRoute: typeof AuthenticatedAcademyReviewAttemptIdRoute
   AuthenticatedAccessRolesRoleIdRoute: typeof AuthenticatedAccessRolesRoleIdRoute
   AuthenticatedAccessUsersUserIdRoute: typeof AuthenticatedAccessUsersUserIdRoute
-  AuthenticatedAnalyticsAdminSyncRoute: typeof AuthenticatedAnalyticsAdminSyncRoute
+  AuthenticatedAnalyticsAdminJobsRoute: typeof AuthenticatedAnalyticsAdminJobsRoute
   AuthenticatedKbBaseIdNodeIdRoute: typeof AuthenticatedKbBaseIdNodeIdRoute
   AuthenticatedKbBaseIdAnalyticsRoute: typeof AuthenticatedKbBaseIdAnalyticsRoute
   AuthenticatedKbBaseIdTemplatesRoute: typeof AuthenticatedKbBaseIdTemplatesRoute
@@ -1569,7 +1549,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedAcademyReviewAttemptIdRoute,
   AuthenticatedAccessRolesRoleIdRoute: AuthenticatedAccessRolesRoleIdRoute,
   AuthenticatedAccessUsersUserIdRoute: AuthenticatedAccessUsersUserIdRoute,
-  AuthenticatedAnalyticsAdminSyncRoute: AuthenticatedAnalyticsAdminSyncRoute,
+  AuthenticatedAnalyticsAdminJobsRoute: AuthenticatedAnalyticsAdminJobsRoute,
   AuthenticatedKbBaseIdNodeIdRoute: AuthenticatedKbBaseIdNodeIdRoute,
   AuthenticatedKbBaseIdAnalyticsRoute: AuthenticatedKbBaseIdAnalyticsRoute,
   AuthenticatedKbBaseIdTemplatesRoute: AuthenticatedKbBaseIdTemplatesRoute,
@@ -1596,7 +1576,6 @@ const rootRouteChildren: RootRouteChildren = {
   ApiChatRoute: ApiChatRoute,
   ApiTranscribeRoute: ApiTranscribeRoute,
   ApiVersionRoute: ApiVersionRoute,
-  ApiAnalyticsReplicaRoute: ApiAnalyticsReplicaRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

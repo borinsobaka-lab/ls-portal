@@ -2533,44 +2533,16 @@ export function AnalyticsHomePageSkeleton() {
   );
 }
 
-export function AnalyticsSyncPageSkeleton() {
+export function AnalyticsJobsPageSkeleton() {
   return (
-    <ShellSkeleton title={AN_TITLES.sync} network>
-      <div className="space-y-6">
+    <ShellSkeleton title={AN_TITLES.jobs} network>
+      <div className="space-y-4">
         <Skeleton className="h-16 w-full rounded-lg" />
-        <section className="space-y-3">
-          <h2 className="text-lg font-semibold">Режимы модулей</h2>
-          <TableCardSkeleton
-            headers={["Модуль", "Режим", "Изменён"]}
-            rows={10}
-            pagination={false}
-          />
-        </section>
-        <section className="space-y-3">
-          <h2 className="text-lg font-semibold">Приём данных со старого портала</h2>
-          <Skeleton className="h-28 w-full rounded-lg" />
-          <TableCardSkeleton
-            headers={["Таблица", "Модуль", "Строк", "За сутки", "Последняя пачка"]}
-            rows={3}
-            pagination={false}
-          />
-        </section>
-        <section className="space-y-3">
-          <h2 className="text-lg font-semibold">Пользователи со старого портала</h2>
-          <Skeleton className="h-16 w-full rounded-lg" />
-          <TableCardSkeleton
-            headers={[
-              { label: "", className: "w-10" },
-              "Человек",
-              "Тип и должность",
-              "Доступ",
-              "Получит",
-              "Последний вход",
-              "Перенос",
-            ]}
-            rows={5}
-          />
-        </section>
+        <TableCardSkeleton
+          headers={["Задача", "Включена", "Последний запуск", "Итог", ""]}
+          rows={3}
+          pagination={false}
+        />
       </div>
     </ShellSkeleton>
   );

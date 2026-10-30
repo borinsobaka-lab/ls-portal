@@ -3,12 +3,16 @@
  * процесса, раз в минуту. Одну задачу выполняет один процесс: аренда в базе
  * (an_job_claim / an_job_finish — сервер ходит в базу только через
  * PostgREST, блокировок сессии у него нет). Итог — an_job_state и журнал
- * an_job_runs (30 дней), их показывает «Синхронизация».
+ * an_job_runs (30 дней), их показывает «Фоновые задачи». Задачу с внешним
+ * действием (AN_JOBS[key].external: Google-таблицы, Telegram, публикации VK)
+ * сервер не запускает, пока её не включат: старый портал работает
+ * параллельно и делает то же самое.
  *
  * ANALYTICS_JOBS=off (или PUSH_WORKER=off) — не выполнять задачи на этом
  * сервере: их можно вынести во второй контейнер того же образа.
  */
 import { getSupabaseAdmin, hasSupabaseAdmin } from "@/integrations/supabase/client.server";
+import { jobEnabled } from "@/lib/analytics/jobs";
 
 export type JobResult = {
   status: "success" | "partial" | "error";
@@ -26,18 +30,9 @@ export type AnalyticsJob = {
 };
 
 const MINUTE = 60_000;
-const DAY = 24 * 60 * MINUTE;
 
-async function housekeeping(): Promise<JobResult> {
-  const { error } = await getSupabaseAdmin().rpc("an_replica_log_cleanup");
-  if (error) return { status: "error", message: error.message };
-  return { status: "success", message: "Журналы приёма старше 30 дней удалены" };
-}
-
-/** Задачи модулей добавляются сюда по мере переноса. */
-export const ANALYTICS_JOBS: AnalyticsJob[] = [
-  { key: "core.housekeeping", everyMs: DAY, leaseSeconds: 600, run: housekeeping },
-];
+/** Задачи модулей добавляются сюда по мере переноса (подписи — AN_JOBS). */
+export const ANALYTICS_JOBS: AnalyticsJob[] = [];
 
 const g = globalThis as typeof globalThis & {
   __lsAnalyticsJobs?: { started: boolean; running: Set<string> };
@@ -72,14 +67,29 @@ async function tick() {
   );
   for (const job of ANALYTICS_JOBS) {
     const s = last.get(job.key);
-    if (s && !s.enabled) continue;
+    if (!jobEnabled(job.key, s)) continue;
     if (s?.at && Date.now() - new Date(s.at).getTime() < job.everyMs) continue;
     if (state.running.has(job.key)) continue;
     void runJob(job);
   }
 }
 
-/** Выполнить задачу сейчас, если её никто не выполняет («Запустить»). */
+/** Включена ли задача сейчас (строка состояния или правило по умолчанию). */
+export async function isJobEnabled(key: string): Promise<boolean> {
+  const { data, error } = await getSupabaseAdmin()
+    .from("an_job_state")
+    .select("enabled")
+    .eq("job", key)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return jobEnabled(key, (data as { enabled: boolean } | null) ?? undefined);
+}
+
+/**
+ * Выполнить задачу сейчас, если её никто не выполняет («Запустить»). Строку
+ * состояния без неё заводит an_job_claim включённой — поэтому выключенную по
+ * умолчанию (внешнюю) задачу сюда не передавать: сначала isJobEnabled.
+ */
 export async function runJob(job: AnalyticsJob): Promise<boolean> {
   const admin = getSupabaseAdmin();
   const { data: claimed, error } = await admin.rpc("an_job_claim", {

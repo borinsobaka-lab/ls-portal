@@ -258,8 +258,8 @@ export const ANALYTICS_GROUPS: NavGroup<AnalyticsNavItem>[] = [
     label: "Администрирование",
     items: [
       {
-        title: "Синхронизация",
-        url: "/analytics/admin/sync",
+        title: "Фоновые задачи",
+        url: "/analytics/admin/jobs",
         icon: Refresh,
         need: "admin",
       },
