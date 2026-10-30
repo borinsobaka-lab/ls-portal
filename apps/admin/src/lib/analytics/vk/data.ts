@@ -9,6 +9,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/query";
 
 import { ANALYTICS_KEY } from "../data";
+import { budgetOverview } from "../vk-budget.functions";
+import type { BudgetSettings, BudgetStage } from "./budget";
 import type { PlanInput } from "./plans";
 import type { RegisterPayload } from "./register";
 import type { VkAccountRow, VkSpendRow } from "./view";
@@ -128,6 +130,52 @@ export const vkLfOverviewQuery = {
   meta: { errorMessage: "Не удалось загрузить сбор лид-форм" },
 };
 
+export type VkBudgetAlert = {
+  id: number;
+  account_id: number;
+  name: string;
+  vk_account_id: string;
+  city: string;
+  partner_name: string;
+  stage: BudgetStage;
+  balance: string;
+  average_daily_spend: string;
+  forecast_days: string;
+  recommended_topup: string;
+  created_at: string;
+  delivery: { status: "sent" | "error"; details: string; at: string } | null;
+};
+export type VkPartnerChannel = {
+  id: number;
+  partner_name: string;
+  chat_id: string;
+  chat_title: string;
+  is_active: boolean;
+};
+export type VkBudgetOverview = {
+  settings: BudgetSettings & { is_enabled: boolean };
+  telegram: {
+    bot_username: string;
+    test_chat_id: string;
+    gateway_url: string;
+    last_test_at: string | null;
+    last_test_status: string;
+    token_saved: boolean;
+    gateway_secret_saved: boolean;
+  };
+  delivery_enabled: boolean;
+  channels: VkPartnerChannel[];
+  partners: string[];
+  alerts: VkBudgetAlert[];
+};
+
+/** «Контроль бюджетов»: сервер сначала пересчитывает предупреждения (как их страница). */
+export const vkBudgetQuery = {
+  queryKey: [...VK_KEY, "budget"],
+  queryFn: () => budgetOverview(),
+  meta: { errorMessage: "Не удалось загрузить контроль бюджетов" },
+};
+
 export const vkRpc = {
   update: (id: number, city: string, partner: string, brand: string) =>
     rpc<null>("an_vk_account_update", {
@@ -163,6 +211,7 @@ export const vkRpc = {
     }),
   deleteSsSource: (brand: string, city: string) =>
     rpc<null>("an_vk_ss_source_delete", { p_brand: brand, p_city: city }),
+  deletePartnerChannel: (id: number) => rpc<null>("an_vk_partner_channel_delete", { p_id: id }),
 };
 
 export function invalidateVk(qc: QueryClient) {

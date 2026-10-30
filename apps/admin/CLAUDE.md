@@ -39,7 +39,8 @@ Tailwind 4 + shadcn/radix. Пакетный менеджер — bun.
   отзывы (разбор выгрузки .xls/.xlsx, подписи) `lib/analytics/reviews/*.test.ts`,
   VK Ads (правила сбора, суммы, импорт кабинетов) `lib/analytics/vk/vk.test.ts`, (реестр
   таргета, планы, источники СС) `lib/analytics/vk/vk-register.test.ts`, (лид-формы)
-  `lib/analytics/vk/lf.test.ts`; «Академия» — подписи,
+  `lib/analytics/vk/lf.test.ts`, (контроль бюджетов: их Decimal, уровни, Telegram)
+  `lib/analytics/vk/budget.test.ts`; «Академия» — подписи,
   проверка вопроса, сроки и напоминания `lib/academy/logic.test.ts`;
   Kate — инструменты,
   права, история и промпт `lib/assistant/*.test.ts`).
@@ -755,7 +756,14 @@ kb`. Доступ — ролями «Пользователей и ролей» 
   `lib/analytics/server/vk-lf.server.ts` (задачи `vk_lf` — внешняя, каждые
   5 минут; `vk_lf_metrics` — счётчики ЛФ, раз в час), Google Drive —
   `server/google-drive.server.ts`, правила — `lib/analytics/vk/lf.ts`;
-  кнопки лид-форм — на «Обслуживании VK Ads».
+  кнопки лид-форм — на «Обслуживании VK Ads». Часть 4: «Контроль
+  бюджетов» (`/analytics/vk/alerts`: Telegram-бот, чаты партнёров,
+  кабинеты с рекомендацией пополнения; открытие пересчитывает
+  предупреждения), расчёт — `lib/analytics/vk/budget.ts` (Decimal Python),
+  пересчёт, Telegram (шлюз или напрямую; `ANALYTICS_TELEGRAM_ORIGIN` —
+  только стенд) и отправка — `lib/analytics/server/vk-budget.server.ts`
+  (пересчёт — в задаче `vk_ads` после сбора, отправка — задача
+  `vk_budget_tg`, внешняя), действия — `lib/analytics/vk-budget.functions.ts`.
   Отчёты 1С — группа меню «1С · Lady Stretch» (`/analytics/onec/<доска>`,
   «Мой город» — `/mycity`): маршрут рисует `OnecReportFrame`
   (`components/analytics/onec/report-frame.tsx`: период, «С начала месяца /

@@ -2408,4 +2408,167 @@ describe.skipIf(!url)("аналитика: фундамент (база)", () =>
       expect((await tx`select 1 from an_vk_lf_daily where account_id = ${a}`).length).toBe(0);
     });
   });
+
+  // ---- VK Ads, часть 4 (2026-10-30_zzzzzzzz_analytics_vk_budget.sql) ----
+
+  test("VK Ads: контроль бюджетов — входные данные, уровни без дублей, отправка партнёрам, обзор", async () => {
+    await scenario(async (tx) => {
+      await tx`delete from an_vk_accounts`;
+      await tx`delete from an_vk_partner_channels`;
+      const admin = await person(tx, "Админ бюджетов", ["an.admin"]);
+      const staff = await person(tx, "Без права бюджетов", ["an.vk.register"]);
+      const acc = async (name: string, partner: string, active = true) =>
+        (
+          await tx`insert into an_vk_accounts (name, vk_account_id, city, partner_name, is_active)
+                   values (${name}, ${"vk-" + name}, 'Тула', ${partner}, ${active}) returning id as a`
+        )[0].a as string;
+      const a = await acc("Первый", "ИП Иванова");
+      const b = await acc("Второй", "ИП Иванова");
+      const off = await acc("Выключен", "ИП Иванова", false);
+      for (const [id, spent] of [
+        [a, "1000.10"],
+        [b, "10"],
+      ] as const) {
+        await tx`insert into an_vk_daily_stats (account_id, vk_plan_id, stat_date, spent)
+                 select ${id}, p, d::date, ${spent}::numeric
+                   from unnest(array['p1', 'p2']) p, generate_series('2026-10-23'::date, '2026-10-29', '1 day') d`;
+      }
+      await tx`insert into an_vk_daily_stats (account_id, vk_plan_id, stat_date, spent)
+               values (${a}, 'p1', '2026-10-22', 999999)`;
+      await tx`insert into an_vk_balances (account_id, measured_at, balance) values
+                 (${a}, now() - interval '1 hour', 1), (${a}, now(), 2500.50), (${off}, now(), 1)`;
+
+      // Входные данные: последний остаток, сумма float за 7 дней и число дней.
+      await asService(tx);
+      const inputs = await tx`select account_id, balance, spent, days
+                                from an_vk_budget_inputs('2026-10-23', '2026-10-29')`;
+      // Сумма — float, как их SUM(CAST(spent AS REAL)): 14 × 1000.10 — не ровно 14001.4.
+      expect(
+        inputs.map((r) => [
+          String(r.account_id),
+          r.balance,
+          Math.round(r.spent * 100),
+          Number(r.days),
+        ]),
+      ).toEqual([
+        [a, "2500.50", 1400140, 7],
+        [b, null, 14000, 7],
+      ]);
+      expect(typeof inputs[0].spent).toBe("number");
+
+      // Запись вердиктов: уровень заводится один раз, другие уровни снимаются.
+      const apply = async (rows: unknown[]) =>
+        (await tx`select an_vk_budget_apply('2026-10-23', '2026-10-29', ${rows}::jsonb) as r`)[0].r;
+      const warning = {
+        account_id: a,
+        kind: "alert",
+        stage: "warning",
+        balance: "2500.50",
+        average: "2000.2",
+        forecast: "1.25",
+        recommended: "11502",
+      };
+      expect(await apply([warning, { account_id: b, kind: "ok" }])).toEqual({
+        created: 1,
+        resolved: 0,
+      });
+      expect(await apply([warning])).toEqual({ created: 0, resolved: 0 });
+      expect(await apply([{ ...warning, stage: "critical" }])).toEqual({ created: 1, resolved: 1 });
+      const active = async () =>
+        (
+          await tx`select account_id, stage, balance::text, recommended_topup::text, period_start::text
+                    from an_vk_budget_alerts where is_active order by id`
+        ).map((r) => [
+          String(r.account_id),
+          r.stage,
+          r.balance,
+          r.recommended_topup,
+          r.period_start,
+        ]);
+      expect(await active()).toEqual([[a, "critical", "2500.50", "11502", "2026-10-23"]]);
+      // Удалённый между расчётом и записью кабинет — без ошибки и без строки.
+      expect(await apply([{ ...warning, account_id: 999999999 }])).toEqual({
+        created: 0,
+        resolved: 0,
+      });
+
+      // Отправка: только партнёру с привязанным активным чатом, один раз на чат.
+      await asServer(tx);
+      await tx`insert into an_vk_partner_channels (partner_name, chat_id, chat_title) values ('ИП Иванова', '-100888', 'Чат')`;
+      await asService(tx);
+      const pending = async () =>
+        (await tx`select alert_id, stage, balance, name, chat_id from an_vk_budget_pending()`).map(
+          (r) => [r.stage, r.balance, r.name, r.chat_id],
+        );
+      expect(await pending()).toEqual([["critical", "2500.50", "Первый", "-100888"]]);
+      const [{ id: alertId }] = await tx`select id from an_vk_budget_alerts where is_active`;
+      const [{ id: channelId }] = await tx`select id from an_vk_partner_channels`;
+      await tx`insert into an_vk_budget_deliveries (alert_id, channel_id, status, details)
+               values (${alertId}, ${channelId}, 'error', 'Telegram не принял запрос: Bad Request: chat not found')`;
+      expect(await pending()).toEqual([]);
+
+      // no_spend снимает молча, ok — со счётом.
+      expect(await apply([{ account_id: a, kind: "no_spend" }])).toEqual({
+        created: 0,
+        resolved: 0,
+      });
+      expect(await active()).toEqual([]);
+      expect(await apply([warning])).toEqual({ created: 1, resolved: 0 });
+      expect(await apply([{ account_id: a, kind: "ok" }])).toEqual({ created: 0, resolved: 1 });
+      await apply([
+        { ...warning, stage: "zero" },
+        { ...warning, account_id: b, stage: "warning" },
+      ]);
+
+      // Обзор — администратору: пороги, Telegram без секретов, чаты, партнёры, предупреждения.
+      await as(tx, admin);
+      const [{ o }] = await tx`select an_vk_budget_overview() as o`;
+      expect(o.settings).toEqual({
+        is_enabled: true,
+        warning_days: "3",
+        critical_days: "1",
+        target_days: 7,
+      });
+      expect(o.telegram).toMatchObject({ token_saved: false, gateway_secret_saved: false });
+      expect(o.delivery_enabled).toBe(false);
+      expect(o.partners).toEqual(["ИП Иванова"]);
+      expect(o.channels).toEqual([
+        {
+          id: Number(channelId),
+          partner_name: "ИП Иванова",
+          chat_id: "-100888",
+          chat_title: "Чат",
+          is_active: true,
+        },
+      ]);
+      expect(o.alerts.map((x: { name: string; stage: string }) => [x.name, x.stage])).toEqual([
+        ["Первый", "zero"],
+        ["Второй", "warning"],
+      ]);
+      await tx`select an_vk_partner_channel_delete(${channelId})`;
+      expect(await failure(tx, () => tx`select an_vk_partner_channel_delete(${channelId})`)).toBe(
+        "Привязка чата не найдена.",
+      );
+      await asServer(tx);
+      expect(
+        (await tx`select event from an_audit where event like 'vk_ads_partner%' order by id`).map(
+          (r) => r.event,
+        ),
+      ).toEqual(["vk_ads_partner_notification_channel_deleted"]);
+      expect((await tx`select 1 from an_vk_budget_deliveries`).length).toBe(0);
+
+      // Посторонним — ничего.
+      await as(tx, staff);
+      expect(await failure(tx, () => tx`select an_vk_budget_overview()`)).toContain("an_forbidden");
+      for (const q of [
+        () => tx`select * from an_vk_budget_inputs('2026-10-23', '2026-10-29')`,
+        () => tx`select an_vk_budget_apply('2026-10-23', '2026-10-29', '[]'::jsonb)`,
+        () => tx`select * from an_vk_budget_pending()`,
+        () => tx`select * from an_vk_budget_alerts`,
+        () => tx`select * from an_tg_settings`,
+      ]) {
+        expect(await failure(tx, q)).toContain("permission denied");
+      }
+    });
+  });
 });

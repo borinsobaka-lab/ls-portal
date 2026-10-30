@@ -12,7 +12,13 @@
 export type AnJobInfo = { label: string; external?: boolean };
 
 export const AN_JOBS: Record<string, AnJobInfo> = {
-  vk_ads: { label: "VK Ads: остатки, кампании, лид-формы и расходы за вчера" },
+  vk_ads: {
+    label: "VK Ads: остатки, кампании, лид-формы, расходы за вчера и предупреждения о бюджете",
+  },
+  vk_budget_tg: {
+    label: "VK Ads: предупреждения о бюджете партнёрам в Telegram",
+    external: true,
+  },
   vk_ss: { label: "VK Ads: лиды и заявки СС из Google-таблиц" },
   vk_lf: { label: "VK Ads: новые заявки лид-форм в Google-таблицы", external: true },
   vk_lf_metrics: { label: "VK Ads: заявки лид-форм за текущий месяц для реестра" },

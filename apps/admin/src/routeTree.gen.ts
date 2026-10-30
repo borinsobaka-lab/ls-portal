@@ -81,6 +81,7 @@ import { Route as AuthenticatedAnalyticsVkSourcesRouteImport } from './routes/_a
 import { Route as AuthenticatedAnalyticsVkRegisterRouteImport } from './routes/_authenticated/analytics/vk/register'
 import { Route as AuthenticatedAnalyticsVkPlansRouteImport } from './routes/_authenticated/analytics/vk/plans'
 import { Route as AuthenticatedAnalyticsVkLeadFormsRouteImport } from './routes/_authenticated/analytics/vk/lead-forms'
+import { Route as AuthenticatedAnalyticsVkAlertsRouteImport } from './routes/_authenticated/analytics/vk/alerts'
 import { Route as AuthenticatedAnalyticsVkAccountsRouteImport } from './routes/_authenticated/analytics/vk/accounts'
 import { Route as AuthenticatedAnalyticsToolsVkRouteImport } from './routes/_authenticated/analytics/tools/vk'
 import { Route as AuthenticatedAnalyticsToolsTop10RouteImport } from './routes/_authenticated/analytics/tools/top10'
@@ -507,6 +508,12 @@ const AuthenticatedAnalyticsVkLeadFormsRoute =
     path: '/analytics/vk/lead-forms',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAnalyticsVkAlertsRoute =
+  AuthenticatedAnalyticsVkAlertsRouteImport.update({
+    id: '/analytics/vk/alerts',
+    path: '/analytics/vk/alerts',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAnalyticsVkAccountsRoute =
   AuthenticatedAnalyticsVkAccountsRouteImport.update({
     id: '/analytics/vk/accounts',
@@ -753,6 +760,7 @@ export interface FileRoutesByFullPath {
   '/analytics/tools/top10': typeof AuthenticatedAnalyticsToolsTop10Route
   '/analytics/tools/vk': typeof AuthenticatedAnalyticsToolsVkRoute
   '/analytics/vk/accounts': typeof AuthenticatedAnalyticsVkAccountsRoute
+  '/analytics/vk/alerts': typeof AuthenticatedAnalyticsVkAlertsRoute
   '/analytics/vk/lead-forms': typeof AuthenticatedAnalyticsVkLeadFormsRoute
   '/analytics/vk/plans': typeof AuthenticatedAnalyticsVkPlansRoute
   '/analytics/vk/register': typeof AuthenticatedAnalyticsVkRegisterRoute
@@ -854,6 +862,7 @@ export interface FileRoutesByTo {
   '/analytics/tools/top10': typeof AuthenticatedAnalyticsToolsTop10Route
   '/analytics/tools/vk': typeof AuthenticatedAnalyticsToolsVkRoute
   '/analytics/vk/accounts': typeof AuthenticatedAnalyticsVkAccountsRoute
+  '/analytics/vk/alerts': typeof AuthenticatedAnalyticsVkAlertsRoute
   '/analytics/vk/lead-forms': typeof AuthenticatedAnalyticsVkLeadFormsRoute
   '/analytics/vk/plans': typeof AuthenticatedAnalyticsVkPlansRoute
   '/analytics/vk/register': typeof AuthenticatedAnalyticsVkRegisterRoute
@@ -957,6 +966,7 @@ export interface FileRoutesById {
   '/_authenticated/analytics/tools/top10': typeof AuthenticatedAnalyticsToolsTop10Route
   '/_authenticated/analytics/tools/vk': typeof AuthenticatedAnalyticsToolsVkRoute
   '/_authenticated/analytics/vk/accounts': typeof AuthenticatedAnalyticsVkAccountsRoute
+  '/_authenticated/analytics/vk/alerts': typeof AuthenticatedAnalyticsVkAlertsRoute
   '/_authenticated/analytics/vk/lead-forms': typeof AuthenticatedAnalyticsVkLeadFormsRoute
   '/_authenticated/analytics/vk/plans': typeof AuthenticatedAnalyticsVkPlansRoute
   '/_authenticated/analytics/vk/register': typeof AuthenticatedAnalyticsVkRegisterRoute
@@ -1060,6 +1070,7 @@ export interface FileRouteTypes {
     | '/analytics/tools/top10'
     | '/analytics/tools/vk'
     | '/analytics/vk/accounts'
+    | '/analytics/vk/alerts'
     | '/analytics/vk/lead-forms'
     | '/analytics/vk/plans'
     | '/analytics/vk/register'
@@ -1161,6 +1172,7 @@ export interface FileRouteTypes {
     | '/analytics/tools/top10'
     | '/analytics/tools/vk'
     | '/analytics/vk/accounts'
+    | '/analytics/vk/alerts'
     | '/analytics/vk/lead-forms'
     | '/analytics/vk/plans'
     | '/analytics/vk/register'
@@ -1263,6 +1275,7 @@ export interface FileRouteTypes {
     | '/_authenticated/analytics/tools/top10'
     | '/_authenticated/analytics/tools/vk'
     | '/_authenticated/analytics/vk/accounts'
+    | '/_authenticated/analytics/vk/alerts'
     | '/_authenticated/analytics/vk/lead-forms'
     | '/_authenticated/analytics/vk/plans'
     | '/_authenticated/analytics/vk/register'
@@ -1806,6 +1819,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAnalyticsVkLeadFormsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/analytics/vk/alerts': {
+      id: '/_authenticated/analytics/vk/alerts'
+      path: '/analytics/vk/alerts'
+      fullPath: '/analytics/vk/alerts'
+      preLoaderRoute: typeof AuthenticatedAnalyticsVkAlertsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/analytics/vk/accounts': {
       id: '/_authenticated/analytics/vk/accounts'
       path: '/analytics/vk/accounts'
@@ -2075,6 +2095,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAnalyticsToolsTop10Route: typeof AuthenticatedAnalyticsToolsTop10Route
   AuthenticatedAnalyticsToolsVkRoute: typeof AuthenticatedAnalyticsToolsVkRoute
   AuthenticatedAnalyticsVkAccountsRoute: typeof AuthenticatedAnalyticsVkAccountsRoute
+  AuthenticatedAnalyticsVkAlertsRoute: typeof AuthenticatedAnalyticsVkAlertsRoute
   AuthenticatedAnalyticsVkLeadFormsRoute: typeof AuthenticatedAnalyticsVkLeadFormsRoute
   AuthenticatedAnalyticsVkPlansRoute: typeof AuthenticatedAnalyticsVkPlansRoute
   AuthenticatedAnalyticsVkRegisterRoute: typeof AuthenticatedAnalyticsVkRegisterRoute
@@ -2178,6 +2199,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAnalyticsToolsTop10Route: AuthenticatedAnalyticsToolsTop10Route,
   AuthenticatedAnalyticsToolsVkRoute: AuthenticatedAnalyticsToolsVkRoute,
   AuthenticatedAnalyticsVkAccountsRoute: AuthenticatedAnalyticsVkAccountsRoute,
+  AuthenticatedAnalyticsVkAlertsRoute: AuthenticatedAnalyticsVkAlertsRoute,
   AuthenticatedAnalyticsVkLeadFormsRoute:
     AuthenticatedAnalyticsVkLeadFormsRoute,
   AuthenticatedAnalyticsVkPlansRoute: AuthenticatedAnalyticsVkPlansRoute,

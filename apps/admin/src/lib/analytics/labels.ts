@@ -26,6 +26,7 @@ export const AN_TITLES = {
   vkTargetologists: "Таргетологи",
   vkLeadForms: "Сбор лид-форм",
   vkSources: "Источники СС",
+  vkAlerts: "Контроль бюджетов",
   vkTools: "Обслуживание VK Ads",
 } as const;
 
