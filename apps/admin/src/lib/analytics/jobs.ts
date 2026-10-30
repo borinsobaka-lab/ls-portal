@@ -11,7 +11,9 @@
  */
 export type AnJobInfo = { label: string; external?: boolean };
 
-export const AN_JOBS: Record<string, AnJobInfo> = {};
+export const AN_JOBS: Record<string, AnJobInfo> = {
+  vk_ads: { label: "VK Ads: остатки, кампании, лид-формы и расходы за вчера" },
+};
 
 export const jobLabel = (key: string) => AN_JOBS[key]?.label ?? key;
 

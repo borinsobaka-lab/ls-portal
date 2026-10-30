@@ -319,6 +319,19 @@ export const ANALYTICS_GROUPS: NavGroup<AnalyticsNavItem>[] = [
     ],
   },
   {
+    key: "an-vk",
+    label: "VK Ads",
+    items: [
+      { title: "Рекламные кабинеты", url: "/analytics/vk/accounts", icon: Card, need: "admin" },
+      {
+        title: "Расходы по кабинетам",
+        url: "/analytics/vk/spend",
+        icon: MoneyBag,
+        need: "admin",
+      },
+    ],
+  },
+  {
     key: "an-tools",
     label: "Инструменты",
     items: [
@@ -335,6 +348,12 @@ export const ANALYTICS_GROUPS: NavGroup<AnalyticsNavItem>[] = [
         need: "admin",
       },
       { title: "Топ-10 городов", url: "/analytics/tools/top10", icon: Ranking, need: "admin" },
+      {
+        title: "Обслуживание VK Ads",
+        url: "/analytics/tools/vk",
+        icon: Settings,
+        need: "admin",
+      },
     ],
   },
   {

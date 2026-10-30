@@ -1060,6 +1060,18 @@ DEPLOY.md.
   статистика сотрудников `an_rv_staff_report` — администратору аналитики;
   форма без входа — `an_rv_feedback_form` / `an_rv_feedback_submit`
   (anon; их проверки, не больше 50 ответов по ссылке за час).
+  VK Ads, часть 1 (2026-10-30, ANALYTICS.md):
+  `db/migrations/2026-10-30_zzzzz_analytics_vk.sql` — кабинеты
+  `an_vk_accounts` (ключ — в `an_secrets` kind `vk_ads`, шифртекстом от
+  сервера портала; удалённый кабинет уносит ключ и всю историю), сбор
+  сервера (service_role, раз в час): остатки `an_vk_balances`, кампании
+  `an_vk_ad_plans`, статистика `an_vk_daily_stats` (кампания × день),
+  лид-формы `an_vk_lead_forms` и связи с кампаниями `an_vk_lead_form_links`,
+  журнал `an_vk_sync_runs`, ответы с ошибкой `an_vk_raw_responses`.
+  Таблицы закрыты браузеру; администратору аналитики — RPC
+  `an_vk_accounts`, `an_vk_account_create` / `_update` / `_set_token` /
+  `_toggle` / `_delete`, `an_vk_accounts_import`, `an_vk_spend` (их
+  control_rows: расход ЛФ — по связям).
   Клубы и собственники (решение владельца 2026-10-27, ACCESS.md):
   `db/migrations/2026-10-27_zz_studio_owners.sql` — `studio_owners`
   (клуб × пользователь портала; пишут только RPC `org_studio_owners_set` /

@@ -36,7 +36,8 @@ Tailwind 4 + shadcn/radix. Пакетный менеджер — bun.
   full_reports.py и расчёты досок) `lib/analytics/onec-reports/*.test.ts`,
   ядро (журнал, посещаемость, ключ API, API для GPT) `lib/analytics/core.test.ts`,
   инструменты `lib/analytics/excel-cleaner.test.ts`, `lib/analytics/top10.test.ts`,
-  отзывы (разбор выгрузки .xls/.xlsx, подписи) `lib/analytics/reviews/*.test.ts`; «Академия» — подписи,
+  отзывы (разбор выгрузки .xls/.xlsx, подписи) `lib/analytics/reviews/*.test.ts`,
+  VK Ads (правила сбора, суммы, импорт кабинетов) `lib/analytics/vk/vk.test.ts`; «Академия» — подписи,
   проверка вопроса, сроки и напоминания `lib/academy/logic.test.ts`;
   Kate — инструменты,
   права, история и промпт `lib/assistant/*.test.ts`).
@@ -733,6 +734,13 @@ kb`. Доступ — ролями «Пользователей и ролей» 
   страница без входа и без каркаса портала `routes/analytics-feedback.$token.tsx`
   (`/analytics-feedback/<токен>`, RPC для anon). С доски «Мой город» —
   «Оценки клиентов» (право на отзывы).
+  «VK Ads» (2026-10-30, ANALYTICS.md) — группа меню: «Рекламные кабинеты»
+  (`/analytics/vk/accounts`), «Расходы по кабинетам» (`/analytics/vk/spend`);
+  «Инструменты» → «Обслуживание VK Ads» (`/analytics/tools/vk`, импорт
+  API_VK_ADS.xlsx — `lib/analytics/vk/import.ts`). Сбор из API VK Ads —
+  `lib/analytics/server/vk-ads.server.ts` (задача `vk_ads`, раз в час),
+  ключи шифрует и период загружает сервер — `lib/analytics/vk.functions.ts`;
+  правила их кода — `lib/analytics/vk/api.ts`, подписи — `view.ts`.
   Отчёты 1С — группа меню «1С · Lady Stretch» (`/analytics/onec/<доска>`,
   «Мой город» — `/mycity`): маршрут рисует `OnecReportFrame`
   (`components/analytics/onec/report-frame.tsx`: период, «С начала месяца /

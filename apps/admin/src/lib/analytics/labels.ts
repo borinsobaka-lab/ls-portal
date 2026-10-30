@@ -19,6 +19,9 @@ export const AN_TITLES = {
   reviewsUpload: "Загрузка выгрузки",
   staffLinks: "Ссылки на отзывы сотрудников",
   staffStats: "Отзывы партнёров",
+  vkAccounts: "Рекламные кабинеты",
+  vkSpend: "Расходы по кабинетам",
+  vkTools: "Обслуживание VK Ads",
 } as const;
 
 /** «Очистка Excel» — тексты их ExcelCleaner 1.1-fast (окно, статусы, предупреждения). */
