@@ -38,7 +38,8 @@ Tailwind 4 + shadcn/radix. Пакетный менеджер — bun.
   инструменты `lib/analytics/excel-cleaner.test.ts`, `lib/analytics/top10.test.ts`,
   отзывы (разбор выгрузки .xls/.xlsx, подписи) `lib/analytics/reviews/*.test.ts`,
   VK Ads (правила сбора, суммы, импорт кабинетов) `lib/analytics/vk/vk.test.ts`, (реестр
-  таргета, планы, источники СС) `lib/analytics/vk/vk-register.test.ts`; «Академия» — подписи,
+  таргета, планы, источники СС) `lib/analytics/vk/vk-register.test.ts`, (лид-формы)
+  `lib/analytics/vk/lf.test.ts`; «Академия» — подписи,
   проверка вопроса, сроки и напоминания `lib/academy/logic.test.ts`;
   Kate — инструменты,
   права, история и промпт `lib/assistant/*.test.ts`).
@@ -748,7 +749,13 @@ kb`. Доступ — ролями «Пользователей и ролей» 
   (`/targetologists`), «Источники СС» (`/sources`: ключ сервисного аккаунта
   Google, проверка и загрузка — `lib/analytics/vk-ss.functions.ts`; Google
   Sheets — `lib/analytics/server/google-sheets.server.ts`, сбор СС —
-  `server/vk-ss.server.ts`, задача `vk_ss`, раз в час).
+  `server/vk-ss.server.ts`, задача `vk_ss`, раз в час). Часть 3: «Сбор
+  лид-форм» (`/analytics/vk/lead-forms`: OAuth Google Drive — возврат на эту
+  же страницу с `?code=&state=`, создание таблиц кабинетов), сбор —
+  `lib/analytics/server/vk-lf.server.ts` (задачи `vk_lf` — внешняя, каждые
+  5 минут; `vk_lf_metrics` — счётчики ЛФ, раз в час), Google Drive —
+  `server/google-drive.server.ts`, правила — `lib/analytics/vk/lf.ts`;
+  кнопки лид-форм — на «Обслуживании VK Ads».
   Отчёты 1С — группа меню «1С · Lady Stretch» (`/analytics/onec/<доска>`,
   «Мой город» — `/mycity`): маршрут рисует `OnecReportFrame`
   (`components/analytics/onec/report-frame.tsx`: период, «С начала месяца /

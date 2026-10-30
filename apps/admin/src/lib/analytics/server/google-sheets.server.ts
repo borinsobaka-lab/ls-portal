@@ -70,6 +70,12 @@ export function serviceAccountAssertion(sa: GoogleServiceAccount, now = Date.now
 export type SheetsClient = {
   metadata: (id: string) => Promise<{ title: string; sheets: string[] }>;
   values: (id: string, range: string) => Promise<string[][]>;
+  /** Их replace_values: значения диапазона (RAW). */
+  replace: (id: string, range: string, values: string[][]) => Promise<void>;
+  /** Их append_values: строки в конец листа (RAW, INSERT_ROWS). */
+  append: (id: string, sheet: string, rows: string[][]) => Promise<void>;
+  /** Их rename_first_sheet: первый лист новой таблицы — под нужным названием. */
+  renameFirstSheet: (id: string, title: string) => Promise<void>;
 };
 
 export async function sheetsClient(): Promise<SheetsClient> {
@@ -118,7 +124,59 @@ export async function sheetsClient(): Promise<SheetsClient> {
       signal: AbortSignal.timeout(timeoutMs),
     });
 
-  return {
+  /** Их _api_request: запись в таблицу; тексты ошибок — их. */
+  const write = async (method: string, path: string, body: unknown) => {
+    const auth = await accessToken();
+    let res: Response;
+    try {
+      res = await fetch(sheetsUrl(path), {
+        method,
+        headers: {
+          Authorization: `Bearer ${auth}`,
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(25_000),
+      });
+    } catch {
+      throw new Error("Не удалось записать данные в Google Таблицу.");
+    }
+    if (!res.ok) throw new Error(`Google Sheets вернул HTTP ${res.status}.`);
+    await res.text().catch(() => "");
+  };
+
+  const client: SheetsClient = {
+    async replace(rawId, range, values) {
+      const id = ssCheckId(rawId);
+      await write(
+        "PUT",
+        `/v4/spreadsheets/${id}/values/${pyQuoteRange(range)}?valueInputOption=RAW`,
+        {
+          majorDimension: "ROWS",
+          values,
+        },
+      );
+    },
+    async append(rawId, sheet, rows) {
+      if (!rows.length) return;
+      const id = ssCheckId(rawId);
+      await write(
+        "POST",
+        `/v4/spreadsheets/${id}/values/${pyQuoteRange(`${sheet}!A1`)}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,
+        { majorDimension: "ROWS", values: rows },
+      );
+    },
+    async renameFirstSheet(rawId, title) {
+      const meta = await client.metadata(rawId);
+      const old = meta.sheets[0] ?? "Sheet1";
+      if (old === title) return;
+      await write("POST", `/v4/spreadsheets/${ssCheckId(rawId)}:batchUpdate`, {
+        requests: [
+          { updateSheetProperties: { properties: { sheetId: 0, title }, fields: "title" } },
+        ],
+      });
+    },
     async metadata(rawId) {
       const id = ssCheckId(rawId);
       const url = sheetsUrl(`/v4/spreadsheets/${id}?includeGridData=false`);
@@ -175,4 +233,5 @@ export async function sheetsClient(): Promise<SheetsClient> {
         .map((row) => row.map((cell) => String(cell)));
     },
   };
+  return client;
 }

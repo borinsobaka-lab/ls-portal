@@ -338,6 +338,12 @@ export const ANALYTICS_GROUPS: NavGroup<AnalyticsNavItem>[] = [
         need: "admin",
       },
       {
+        title: "Сбор лид-форм",
+        url: "/analytics/vk/lead-forms",
+        icon: DocumentText,
+        need: "admin",
+      },
+      {
         title: "Источники СС",
         url: "/analytics/vk/sources",
         icon: ChatRoundDots,

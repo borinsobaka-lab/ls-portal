@@ -1087,6 +1087,17 @@ DEPLOY.md.
   `an_vk_outage_days` (их budget_outage_days в numeric); планы, таргетологи,
   источники — RPC администратора `an_vk_plans_*`, `an_vk_plan_delete`,
   `an_vk_targetologist*`, `an_vk_ss_source*`. Таблицы закрыты браузеру.
+  VK Ads, часть 3 (2026-10-30, ANALYTICS.md):
+  `db/migrations/2026-10-30_zzzzzzz_analytics_vk_lead_forms.sql` — сбор
+  лид-форм: таблицы кабинетов `an_vk_lf_sources` (Google-таблица, лист,
+  старт сбора), заявки `an_vk_lf_submissions` (ответ VK — шифртекстом от
+  сервера, статус записи в таблицу), посчитанные заявки
+  `an_vk_lf_metric_leads` (счётчик `an_vk_lf_daily` не задваивается и не
+  уменьшается), `an_google_settings.drive_*`, состояния входа Google
+  `an_google_oauth_states`; OAuth-клиент и доступ Google Drive — `an_secrets`
+  kind `google`, ref `drive`. Серверу (service_role) — `an_vk_lf_store`,
+  `an_vk_lf_merge_metrics`; администратору — `an_vk_lf_overview`. Задача
+  записи в таблицы (`vk_lf`) — внешняя, выключена по умолчанию.
   Клубы и собственники (решение владельца 2026-10-27, ACCESS.md):
   `db/migrations/2026-10-27_zz_studio_owners.sql` — `studio_owners`
   (клуб × пользователь портала; пишут только RPC `org_studio_owners_set` /
