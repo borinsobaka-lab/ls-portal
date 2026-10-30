@@ -101,6 +101,9 @@ export type RegisterRow = {
   targetologist_name: string | null;
   zero_days: string[];
   assumed_days: string[];
+  /** Лиды VK (сообщения и ЛФ НК) из amoCRM за период и сколько квалифицированы. */
+  qual_leads?: number;
+  qual_qualified?: number;
 };
 export type RegisterPlan = {
   month: string;
@@ -343,6 +346,7 @@ export type RegisterCity = {
   zeroDays: number;
   assumedDays: number;
   qualification: string;
+  qualificationTitle: string;
   leadForms: { spent: string; applications: number; price: string };
   messages: {
     spent: string;
@@ -448,8 +452,13 @@ export function registerView(p: RegisterPayload): RegisterView {
       planBudget: plan ? wholeMoney(planApps * planCpl) : "—",
       zeroDays: zero,
       assumedDays: r.assumed_days.length,
-      // Квалификация VK — из amoCRM (этап 5); до него — прочерк.
-      qualification: "—",
+      // Их f"{q / l:.0%}" и подсказка с числами.
+      qualification: r.qual_leads
+        ? `${pyFixed(((r.qual_qualified ?? 0) / r.qual_leads) * 100, 0)}%`
+        : "—",
+      qualificationTitle:
+        `Квалифицированные / все лиды VK в AmoCRM: ${r.qual_qualified ?? 0} / ${r.qual_leads ?? 0}. ` +
+        "По дате создания сделки за выбранный период.",
       leadForms: {
         spent: wholeMoney(lf),
         applications: lfA,

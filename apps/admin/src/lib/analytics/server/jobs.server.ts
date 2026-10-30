@@ -13,6 +13,7 @@
  */
 import { getSupabaseAdmin, hasSupabaseAdmin } from "@/integrations/supabase/client.server";
 import { jobEnabled } from "@/lib/analytics/jobs";
+import { syncAllAmo } from "./amocrm.server";
 import { syncAllVk } from "./vk-ads.server";
 import { dispatchBudgetJob, evaluateBudgetAlerts } from "./vk-budget.server";
 import { backfillLfMetrics, collectLf } from "./vk-lf.server";
@@ -65,6 +66,9 @@ export const ANALYTICS_JOBS: AnalyticsJob[] = [
   // — в Telegram-чаты партнёров (внешнее действие, выключена по умолчанию).
   // Запускает сбор VK Ads; своё расписание — запасное, раз в час.
   { key: "vk_budget_tg", everyMs: 60 * MINUTE, leaseSeconds: 30 * 60, run: dispatchBudgetJob },
+  // Их lady-amocrm-marketing.timer: каждые 15 минут — изменённые сделки amoCRM
+  // (только чтение; первый запуск подключения — полная сверка с 01.09.2026).
+  { key: "amo", everyMs: 15 * MINUTE, leaseSeconds: 60 * 60, run: syncAllAmo },
   // Их lady-community-messages.timer: раз в час — счётчики СС из Google-таблиц
   // (только чтение, без внешнего действия).
   { key: "vk_ss", everyMs: 60 * MINUTE, leaseSeconds: 30 * 60, run: syncAllSs },

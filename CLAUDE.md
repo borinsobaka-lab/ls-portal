@@ -1113,6 +1113,24 @@ DEPLOY.md.
   `an_vk_budget_pending`; администратору — `an_vk_budget_overview`,
   `an_vk_partner_channel_delete`. Отправка в Telegram (`vk_budget_tg`) —
   внешняя, выключена по умолчанию.
+  amoCRM, часть 1 (2026-10-30, ANALYTICS.md):
+  `db/migrations/2026-10-30_zzzzzzzzz_analytics_amocrm.sql` — подключения
+  `an_amo_connections` (токен — `an_secrets` kind `amocrm`, ref = id),
+  справочники `an_amo_metadata` (только id, названия, значения списков),
+  правила `an_amo_settings` + бренд воронки `an_amo_pipeline_brands`,
+  ответственные → город и партнёр `an_amo_responsibles`, неквалифицирующие
+  значения «Основания для закрытия» `an_amo_basis`, сбор
+  `an_amo_sync_state` / `an_amo_sync_runs`, сделки `an_amo_leads` (без
+  контактов клиентов) и события этапов `an_amo_lead_events`, версии полей
+  отчёта `an_amo_versions` и месячные срезы «на 1-е число»
+  `an_amo_snapshots` / `an_amo_snapshot_origins` (начало учёта —
+  `an_amo_history_state`). Серверу (service_role) — `an_amo_sync_begin` /
+  `_finish`, `an_amo_store_leads`, `an_amo_freeze_snapshots`;
+  администратору — `an_amo_connections`, `an_amo_connection`,
+  `an_amo_settings_save`, `an_amo_responsible_save` / `_delete` /
+  `an_amo_responsibles_clear`, `an_amo_basis_save`. «Квалификация VK» в
+  реестре — `an_amo_vk_qualification`; актуальное определение
+  `an_vk_register` — здесь. Задача сбора `amo` — раз в 15 минут.
   Клубы и собственники (решение владельца 2026-10-27, ACCESS.md):
   `db/migrations/2026-10-27_zz_studio_owners.sql` — `studio_owners`
   (клуб × пользователь портала; пишут только RPC `org_studio_owners_set` /

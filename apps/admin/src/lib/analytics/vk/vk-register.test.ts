@@ -307,6 +307,8 @@ describe("VK Ads: реестр таргета — их target_register_page", ()
           lead_form_applications: 6,
           zero_days: ["2026-10-02", "2026-10-03"],
           assumed_days: ["2026-10-03"],
+          qual_leads: 44,
+          qual_qualified: 40,
         }),
         row({
           city: "Бийск",
@@ -342,6 +344,12 @@ describe("VK Ads: реестр таргета — их target_register_page", ()
       ["Не назначен", ["Омск"], true],
     ]);
     const abakan = v.groups[1].cities[0];
+    // «Квалификация VK» — их f"{q / l:.0%}" из сделок amoCRM; без лидов — прочерк.
+    expect([abakan.qualification, abakan.qualificationTitle]).toEqual([
+      "91%",
+      "Квалифицированные / все лиды VK в AmoCRM: 40 / 44. По дате создания сделки за выбранный период.",
+    ]);
+    expect(v.groups[0].cities[1].qualification).toBe("—");
     expect(abakan).toMatchObject({
       ordinary: "10",
       adjusted: "8",
@@ -356,7 +364,7 @@ describe("VK Ads: реестр таргета — их target_register_page", ()
       planBudget: "10 000 ₽",
       zeroDays: 2,
       assumedDays: 1,
-      qualification: "—",
+      qualification: "91%",
     });
     expect(abakan.leadForms).toEqual({ spent: "3 050 ₽", applications: 6, price: "508 ₽" });
     expect(abakan.messages).toEqual({

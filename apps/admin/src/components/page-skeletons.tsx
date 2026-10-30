@@ -3169,6 +3169,52 @@ export function AnalyticsVkLeadFormsPageSkeleton() {
   );
 }
 
+/** «CRM» → «Интеграция amoCRM»: форма подключения, список подключений. */
+export function AnalyticsAmoPageSkeleton() {
+  return (
+    <ShellSkeleton title={AN_TITLES.amo} network>
+      <div className="max-w-5xl space-y-4">
+        <Skeleton className="h-12 w-full rounded-lg" />
+        <Skeleton className="h-64 w-full rounded-lg" />
+        <TableCardSkeleton
+          title="Подключения amoCRM"
+          headers={["Подключение", "Статус", ""]}
+          rows={3}
+        />
+      </div>
+    </ShellSkeleton>
+  );
+}
+
+/** Подключение amoCRM: токен, справочники, ответственные, правила, квалификация, сбор. */
+export function AnalyticsAmoConnectionBodySkeleton() {
+  return (
+    <div className="space-y-4">
+      <Skeleton className="h-4 w-56" />
+      <Skeleton className="h-40 w-full rounded-lg" />
+      <Skeleton className="h-28 w-full rounded-lg" />
+      <TableCardSkeleton
+        title="Ответственные amoCRM → города и партнёры"
+        headers={["Ответственный", "Направление", "Город", "Партнёр", ""]}
+        rows={3}
+      />
+      <Skeleton className="h-72 w-full rounded-lg" />
+      <Skeleton className="h-40 w-full rounded-lg" />
+    </div>
+  );
+}
+
+export function AnalyticsAmoConnectionPageSkeleton() {
+  return (
+    <ShellSkeleton title={AN_TITLES.amoConnection} network>
+      <div className="max-w-5xl space-y-4">
+        <Skeleton className="h-5 w-48" />
+        <AnalyticsAmoConnectionBodySkeleton />
+      </div>
+    </ShellSkeleton>
+  );
+}
+
 /** «VK Ads» → «Контроль бюджетов»: бот, каналы, плитки порогов, кабинеты. */
 export function AnalyticsVkAlertsPageSkeleton() {
   return (
