@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/query";
 
 import { ANALYTICS_KEY } from "../data";
+import type { FbAttendanceData } from "./attendance";
 import type { FbMarketingData, FbRevenueData, FbSalesData } from "./reports";
 
 export const FB_KEY = [ANALYTICS_KEY, "fitbase"] as const;
@@ -125,6 +126,28 @@ export const fbMarketingDataQuery = (brand: string, from: string, to: string) =>
   queryFn: () =>
     rpc<FbMarketingData>("an_fb_marketing_data", { p_brand: brand, p_from: from, p_to: to }),
   meta: { errorMessage: "Не удалось загрузить маркетинговый отчёт FitBase" },
+});
+
+/** «Занятия и посещаемость»: агрегаты занятий по группам за период (право fb.attendance). */
+export const fbAttendanceDataQuery = (f: {
+  from: string;
+  to: string;
+  city: string;
+  studio: string;
+  training: string;
+  status: string;
+}) => ({
+  queryKey: [...FB_KEY, "attendance", f.from, f.to, f.city, f.studio, f.training, f.status],
+  queryFn: () =>
+    rpc<FbAttendanceData>("an_fb_attendance_data", {
+      p_from: f.from,
+      p_to: f.to,
+      p_city: f.city,
+      p_studio: f.studio,
+      p_training: f.training,
+      p_status: f.status,
+    }),
+  meta: { errorMessage: "Не удалось загрузить занятия FitBase" },
 });
 
 export const fbRpc = {

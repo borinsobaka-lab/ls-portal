@@ -821,9 +821,13 @@ kb`. Доступ — ролями «Пользователей и ролей» 
   сеть, без кнопок обновления — у не администратора): «Выручка по городам»
   (`/analytics/fitbase/revenue`; «Обновить выручку» — администратору,
   `startFitbaseRevenueRefresh`), «Маркетинговый отчёт» (`/marketing`),
-  «Продажи абонементов» (`/sales`); фильтры — в адресе, данные — RPC
+  «Продажи абонементов» (`/sales`), «Занятия и посещаемость»
+  (`/attendance`, право `fb.attendance`; «Обновить данные», строки студий
+  без данных и опрос загрузок — администратору,
+  `startFitbaseAttendanceRefresh`); фильтры — в адресе, данные — RPC
   `an_fb_*_data` (`fitbase/data.ts`), их расчёты и форматы чисел —
-  `lib/analytics/fitbase/reports.ts`.
+  `lib/analytics/fitbase/reports.ts`, посещаемость —
+  `lib/analytics/fitbase/attendance.ts`.
   Отчёты 1С — группа меню «1С · Lady Stretch» (`/analytics/onec/<доска>`,
   «Мой город» — `/mycity`): маршрут рисует `OnecReportFrame`
   (`components/analytics/onec/report-frame.tsx`: период, «С начала месяца /

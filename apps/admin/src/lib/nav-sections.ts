@@ -443,6 +443,12 @@ export const ANALYTICS_GROUPS: NavGroup<AnalyticsNavItem>[] = [
         icon: TicketSale,
         need: "fb.sales",
       },
+      {
+        title: "Занятия и посещаемость",
+        url: "/analytics/fitbase/attendance",
+        icon: Dumbbell,
+        need: "fb.attendance",
+      },
     ],
   },
   {
