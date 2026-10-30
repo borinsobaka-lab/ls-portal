@@ -42,7 +42,8 @@ Tailwind 4 + shadcn/radix. Пакетный менеджер — bun.
   `lib/analytics/vk/lf.test.ts`, (контроль бюджетов: их Decimal, уровни, Telegram)
   `lib/analytics/vk/budget.test.ts`, amoCRM (адрес, поля сделки, источник,
   квалификация) `lib/analytics/amo/amo.test.ts`, (маркетинговые отчёты:
-  бюджеты каналов, проценты, блоки, плитки) `lib/analytics/amo/marketing.test.ts`;
+  бюджеты каналов, проценты, блоки, плитки) `lib/analytics/amo/marketing.test.ts`,
+  Авито (разбор ответов API, UTM, план периода, реестр) `lib/analytics/avito/avito.test.ts`;
   «Академия» — подписи,
   проверка вопроса, сроки и напоминания `lib/academy/logic.test.ts`;
   Kate — инструменты,
@@ -779,6 +780,13 @@ kb`. Доступ — ролями «Пользователей и ролей» 
   минут; `ANALYTICS_AMOCRM_ORIGIN` — только стенд), действия —
   `lib/analytics/amo.functions.ts`. «Квалификация VK» реестра таргета — из
   сделок amoCRM.
+  «Авито» (2026-10-30, ANALYTICS.md) — группа меню: «Кабинеты Авито»
+  (`/analytics/avito/accounts`: ключи шифрует сервер, проверка, структура,
+  история — `lib/analytics/avito.functions.ts`), «Реестр Авито»
+  (`/register`, право `avito.register`; расчёт — `lib/analytics/avito/register.ts`),
+  «Планы Авито» (`/plans`); правила их кода — `lib/analytics/avito/rules.ts`,
+  запросы — `avito/data.ts`, сервер — `lib/analytics/server/avito.server.ts`
+  (задача `avito`, раз в час; `ANALYTICS_AVITO_ORIGIN` — только стенд).
   Отчёты 1С — группа меню «1С · Lady Stretch» (`/analytics/onec/<доска>`,
   «Мой город» — `/mycity`): маршрут рисует `OnecReportFrame`
   (`components/analytics/onec/report-frame.tsx`: период, «С начала месяца /

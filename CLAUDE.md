@@ -1141,6 +1141,19 @@ DEPLOY.md.
   наружу — только города отчёта). Права `mkt.ls` / `mkt.lj`: таргетологу — его
   города `an_vk_targetologists`, партнёру — `an_partner_cities` (без выбора
   партнёра); не администратору — «открыл дашборд» в `an_audit`.
+  Авито (2026-10-30, ANALYTICS.md): `db/migrations/2026-10-30_zzzzzzzzzzz_analytics_avito.sql`
+  — кабинеты `an_avito_accounts` (client_id и client_secret — `an_secrets`
+  kind `avito`, ref = id; итог проверки — в кабинете), структура
+  `an_avito_entities` (без сырых ответов API: id, родители, название,
+  ссылка с UTM, старт кампании), статистика `an_avito_daily_stats`, планы
+  `an_avito_plans`. Администратору аналитики — `an_avito_accounts`,
+  `an_avito_account_save` (тот же ID аккаунта — обновление) /
+  `_set_credentials` / `_account_delete`, `an_avito_plans` /
+  `an_avito_plan_save`; серверу (service_role) — `an_avito_check_store`,
+  `an_avito_structure_store`, `an_avito_stats_store` (задача `avito` раз в
+  час); реестр — `an_avito_register` (право `avito.register`: кампании,
+  структура, сделки amoCRM с UTM Авито, планы месяцев периода). Таблицы
+  закрыты браузеру.
   Клубы и собственники (решение владельца 2026-10-27, ACCESS.md):
   `db/migrations/2026-10-27_zz_studio_owners.sql` — `studio_owners`
   (клуб × пользователь портала; пишут только RPC `org_studio_owners_set` /

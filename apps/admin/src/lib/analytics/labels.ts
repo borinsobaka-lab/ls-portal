@@ -32,6 +32,9 @@ export const AN_TITLES = {
   amoConnection: "Настройка amoCRM",
   mktStretch: "Маркетинг Lady Stretch",
   mktJump: "Маркетинг Lady Jump",
+  avitoAccounts: "Кабинеты Авито",
+  avitoPlans: "Планы Авито",
+  avitoRegister: "Реестр Авито",
 } as const;
 
 /** «Очистка Excel» — тексты их ExcelCleaner 1.1-fast (окно, статусы, предупреждения). */
@@ -129,6 +132,13 @@ export const AN_CARDS: AnCard[] = [
     description: "Факт по городам за выбранный период: бюджет, ЛФ, СС, лиды и заявки.",
     url: "/analytics/vk/register",
     need: "vk.register",
+  },
+  {
+    key: "avito.register",
+    title: "Реестр Авито",
+    description: "Реклама Авито по городам, РК, группам и креативам.",
+    url: "/analytics/avito/register",
+    need: "avito.register",
   },
   {
     key: "reviews",

@@ -2857,6 +2857,158 @@ describe.skipIf(!url)("аналитика: фундамент (база)", () =>
     });
   });
 
+  test("Авито: кабинеты и ключи — их проверки и тексты, обновление по ID, удаление; только администратору", async () => {
+    await scenario(async (tx) => {
+      const admin = await person(tx, "Админ Авито", ["an.admin"]);
+      const staff = await person(tx, "Сотрудник Авито", ["an.avito.register"]);
+      const key = "A".repeat(38) + "==";
+      const save = (name: string, id: string, city: string, brand: string, cid = key, secret = key) =>
+        failure(tx, async () => {
+          await as(tx, admin);
+          await tx`select an_avito_account_save(${name}, ${id}, ${city}, ${brand}, ${cid}, ${secret})`;
+        });
+      expect(await save(" ", "1", "Абакан", "Lady Stretch")).toContain("Укажите название кабинета.");
+      expect(await save("К", "  ", "Абакан", "Lady Stretch")).toContain("Укажите ID аккаунта.");
+      expect(await save("К", "12a", "Абакан", "Lady Stretch")).toContain("ID аккаунта Авито должен состоять только из цифр.");
+      expect(await save("К", "1", "Абакан", "Lady Bounce")).toContain("Направление указано некорректно.");
+      expect(await save("К", "1", "г".repeat(201), "Lady Stretch")).toContain("Город слишком длинный.");
+      expect(await save("К", "1", "Абакан", "Lady Stretch", "")).toContain("Укажите client_id.");
+      expect(await save("К", "1", "Абакан", "Lady Stretch", key, "long")).toContain("Client_secret слишком длинный.");
+      expect(await save("К", "1", "Абакан", "Lady Stretch", "plain")).toContain("Ключ не зашифрован");
+      expect(await save(" Кабинет ", "9001", " Казань ", "Lady Jump")).toBeNull();
+      expect(await save("Кабинет 2", "9001", "Абакан", "Lady Stretch")).toBeNull();
+      await asServer(tx);
+      const rows = await tx`select id, name, city, brand from an_avito_accounts where avito_account_id = '9001'`;
+      expect(rows.map((r) => [r.name, r.city, r.brand])).toEqual([["Кабинет 2", "Абакан", "Lady Stretch"]]);
+      const id = rows[0].id;
+      expect((await tx`select count(*)::int as n from an_secrets where kind = 'avito' and ref = ${String(id)}`)[0].n).toBe(2);
+      await asService(tx);
+      await tx`select an_avito_check_store(${id}, 200, ${{ campaigns: { total: 2 } }}::jsonb)`;
+      await as(tx, admin);
+      await tx`select an_avito_set_credentials(${id}, ${key}, ${key})`;
+      await asServer(tx);
+      const [after] = await tx`select last_checked_at, last_check_status from an_avito_accounts where id = ${id}`;
+      expect([after.last_checked_at, after.last_check_status]).toEqual([null, null]);
+      expect(
+        await failure(tx, async () => {
+          await as(tx, staff);
+          await tx`select an_avito_accounts()`;
+        }),
+      ).toContain("an_forbidden");
+      expect(
+        await failure(tx, async () => {
+          await as(tx, admin);
+          await tx`select an_avito_set_credentials(${id}, '', ${key})`;
+        }),
+      ).toContain("Укажите client_id.");
+      await as(tx, admin);
+      await tx`select an_avito_account_delete(${id})`;
+      expect(
+        await failure(tx, async () => {
+          await as(tx, admin);
+          await tx`select an_avito_account_delete(${id})`;
+        }),
+      ).toContain("Подключение уже удалено или не найдено.");
+      await asServer(tx);
+      expect((await tx`select count(*)::int as n from an_secrets where kind = 'avito' and ref = ${String(id)}`)[0].n).toBe(0);
+      const events = await tx`select event from an_audit where user_id = ${admin} and event like 'avito%' order by id`;
+      expect(events.map((e) => e.event)).toEqual([
+        "avito_ads_account_saved",
+        "avito_ads_account_saved",
+        "avito_ads_credentials_updated",
+        "avito_ads_account_deleted",
+      ]);
+    });
+  });
+
+  test("Авито: планы, структура и статистика сервера, реестр — период, заявки amoCRM, доступ", async () => {
+    await scenario(async (tx) => {
+      await tx`delete from an_avito_accounts`;
+      await tx`delete from an_avito_plans`;
+      const admin = await person(tx, "Админ реестра Авито", ["an.admin"]);
+      const viewer = await person(tx, "Реестр Авито", ["an.avito.register"]);
+      const other = await person(tx, "Без реестра", ["an.vk.register"]);
+      const key = "B".repeat(40);
+      await as(tx, admin);
+      const [{ id }] = await tx`select an_avito_account_save('Абакан', '1001', 'Абакан', 'Lady Stretch', ${key}, ${key}) as id`;
+      const plan = (month: string, apps: number, cpl: number | null) =>
+        failure(tx, async () => {
+          await as(tx, admin);
+          await tx`select an_avito_plan_save(${month}, 'Lady Stretch', 'Абакан', ${apps}, ${cpl})`;
+        });
+      expect(await plan("2026-13", 1, 1)).toContain("Укажите месяц в формате ГГГГ-ММ.");
+      expect(await plan("2026-10", -1, 1)).toContain("План заявок должен быть целым числом от нуля.");
+      expect(await plan("2026-10", 1, 0)).toContain("Целевой CPL должен быть больше нуля.");
+      expect(await plan("2026-10", 1, null)).toContain("Целевой CPL должен быть больше нуля.");
+      expect(await plan("2026-10", 31, 400)).toBeNull();
+      expect(await plan("2026-10", 62, 500)).toBeNull();
+      expect(await plan("2026-09", 30, 300)).toBeNull();
+      await as(tx, admin);
+      const [{ p }] = await tx`select an_avito_plans('2026-10') as p`;
+      expect(p.cities).toEqual([{ brand: "Lady Stretch", city: "Абакан" }]);
+      expect(p.plans.map((x: { applications_plan: number; target_cpl: number }) => [x.applications_plan, x.target_cpl])).toEqual([[62, 500]]);
+
+      // Сервер: структура одной записью, статистика — замена дня.
+      await asService(tx);
+      await tx`select an_avito_structure_store(${id}, ${[
+        { entity_type: "campaigns", entity_id: "11", name: "РК", start_date: "2026-08-01" },
+        { entity_type: "groups", entity_id: "21", parent_campaign_id: "11", name: "Группа" },
+        { entity_type: "creatives", entity_id: "31", parent_group_id: "21", utm_medium: "cpc", utm_campaign: "rk", utm_content: "a" },
+      ]}::jsonb)`;
+      expect((await tx`select an_avito_stats_store(${id}, ${[
+        { campaign_id: "11", stat_date: "2026-10-05", shows: 10, clicks: 3, spent: 100.25 },
+        { campaign_id: "11", stat_date: "2026-10-06", shows: 5, clicks: 1, spent: 50 },
+      ]}::jsonb) as n`)[0].n).toBe(2);
+      await tx`select an_avito_stats_store(${id}, ${[{ campaign_id: "11", stat_date: "2026-10-06", shows: 6, clicks: 2, spent: 60 }]}::jsonb)`;
+      expect(await failure(tx, async () => {
+        await as(tx, admin);
+        await tx`select an_avito_stats_store(${id}, '[]'::jsonb)`;
+      })).toContain("permission denied");
+
+      // Сделки amoCRM: UTM Авито (регистр — как их lower), источник, другой формат UTM — нет.
+      await asServer(tx);
+      const [{ cid }] = await tx`insert into an_amo_connections (name, base_url) values ('CRM', 'https://av.amocrm.ru') returning id as cid`;
+      let n = 0;
+      const lead = (at: string, source: string, utm: string, content = "a") =>
+        tx`insert into an_amo_leads (connection_id, amo_lead_id, created_at, updated_at, pipeline_id, status_id, brand, city,
+                                     effective_source, utm_source, utm_medium, utm_campaign, utm_content, is_qualified)
+           values (${cid}, ${String(++n)}, ${at}::timestamptz, now(), '1', '1', 'Lady Stretch', 'Абакан', ${source}, ${utm},
+                   ${utm ? "cpc" : ""}, ${utm ? "rk" : ""}, ${utm ? content : ""}, 1)`;
+      await lead("2026-10-05 10:00+00", "Сайт", "AVITO_ADS");
+      await lead("2026-10-05 23:59:59+00", "Сайт", "avito_ads");
+      await lead("2026-10-06 00:00:00+00", "Сайт", "avito_ads");
+      await lead("2026-10-05 12:00+00", "Авито Реклама", "");
+      await lead("2026-10-05 12:00+00", "Сайт", "avito-ads");
+
+      const register = async (user: string, from: string, to: string) => {
+        await as(tx, user);
+        const [{ r }] = await tx`select an_avito_register(${from}, ${to}) as r`;
+        await asServer(tx);
+        return r;
+      };
+      const r = await register(viewer, "2026-10-05", "2026-10-05");
+      expect([r.from, r.to]).toEqual(["2026-10-05", "2026-10-05"]);
+      expect(r.rows.map((x: { campaign_id: string; clicks: number; spent: number }) => [x.campaign_id, x.clicks, x.spent])).toEqual([["11", 3, 100.25]]);
+      expect(r.entities.map((x: { entity_type: string }) => x.entity_type)).toEqual(["groups", "creatives"]);
+      expect(r.leads.map((x: { attribution: string; leads: number; utm_content: string }) => [x.attribution, x.utm_content, x.leads])).toEqual([
+        ["source", "", 1],
+        ["utm", "a", 2],
+      ]);
+      expect(r.source_leads.map((x: { amo_lead_id: string }) => x.amo_lead_id)).toEqual(["1", "4", "2"]);
+      expect(r.plans.map((x: { month: string }) => x.month)).toEqual(["2026-10"]);
+      // Неверный период — с 1-го числа по сегодня (МСК).
+      const d = await register(viewer, "2026-10-30", "2026-10-01");
+      const today = (await tx`select (now() at time zone 'Europe/Moscow')::date::text as t`)[0].t;
+      expect([d.from, d.to]).toEqual([`${today.slice(0, 8)}01`, today]);
+      const wide = await register(admin, "2026-09-01", "2026-10-31");
+      expect(wide.plans.map((x: { month: string }) => x.month)).toEqual(["2026-09", "2026-10"]);
+      expect(await failure(tx, () => register(other, "2026-10-01", "2026-10-31"))).toContain("an_forbidden");
+      const views = await tx`select user_id::text as u from an_audit where event = 'dashboard_view' and details = 'Реестр Авито'
+                             and user_id in (${admin}, ${viewer})`;
+      expect(views.map((v) => v.u)).toEqual([viewer, viewer]);
+    });
+  });
+
   test("amoCRM: маркетинговые отчёты — когорта месяца МСК, срез, города партнёра и таргетолога, права", async () => {
     await scenario(async (tx) => {
       await tx`delete from an_vk_accounts`;
