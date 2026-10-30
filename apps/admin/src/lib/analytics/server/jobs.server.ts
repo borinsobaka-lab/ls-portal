@@ -14,6 +14,7 @@
 import { getSupabaseAdmin, hasSupabaseAdmin } from "@/integrations/supabase/client.server";
 import { jobEnabled } from "@/lib/analytics/jobs";
 import { syncAllVk } from "./vk-ads.server";
+import { syncAllSs } from "./vk-ss.server";
 
 export type JobResult = {
   status: "success" | "partial" | "error";
@@ -37,6 +38,9 @@ export const ANALYTICS_JOBS: AnalyticsJob[] = [
   // Их lady-vk-ads.timer: раз в час; 200 кабинетов идут по очереди несколько
   // минут, аренда с запасом — второй запуск не начнётся, пока идёт первый.
   { key: "vk_ads", everyMs: 60 * MINUTE, leaseSeconds: 2 * 60 * 60, run: syncAllVk },
+  // Их lady-community-messages.timer: раз в час — счётчики СС из Google-таблиц
+  // (только чтение, без внешнего действия).
+  { key: "vk_ss", everyMs: 60 * MINUTE, leaseSeconds: 30 * 60, run: syncAllSs },
 ];
 
 const g = globalThis as typeof globalThis & {

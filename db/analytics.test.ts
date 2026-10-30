@@ -1828,4 +1828,490 @@ describe.skipIf(!url)("аналитика: фундамент (база)", () =>
       expect(details).toBe("created=1, updated=2, skipped=2");
     });
   });
+
+  // ---- VK Ads, часть 2 (2026-10-30_zzzzzz_analytics_vk_register.sql) ----
+
+  test("VK Ads: планы таргета — проверки их save_monthly_plans, без изменений, история, удаление", async () => {
+    await scenario(async (tx) => {
+      await tx`delete from an_vk_plans`;
+      await tx`delete from an_vk_plan_changes`;
+      const admin = await person(tx, "Админ Планов", ["an.admin"]);
+      const target = await person(tx, "Таргет", ["an.targetologist"]);
+      await as(tx, admin);
+      const save = (brand: string, months: unknown, source = "single") =>
+        tx`select an_vk_plans_save(${brand}, ${months}::jsonb, ${source}) as r`;
+      const one = (month: string, plans: unknown) => [{ month, plans }];
+      const plan = (city: string, applications_plan: unknown, target_cpl: unknown) => ({
+        city,
+        applications_plan,
+        target_cpl,
+      });
+      expect(await failure(tx, () => save("Lady Stretch", one("2026-13", [plan("А", 1, 1)])))).toBe(
+        "Укажите месяц в формате ГГГГ-ММ.",
+      );
+      expect(await failure(tx, () => save("Lady X", one("2026-10", [plan("А", 1, 1)])))).toBe(
+        "Выберите допустимый бренд.",
+      );
+      expect(await failure(tx, () => save("Lady Stretch", one("2026-10", [])))).toBe(
+        "В файле не найдено ни одного заполненного плана.",
+      );
+      expect(
+        await failure(tx, () =>
+          save("Lady Stretch", one("2026-10", [plan("Абакан", 1, 1), plan(" Абакан ", 2, 2)])),
+        ),
+      ).toBe("Город «Абакан» повторяется в файле.");
+      expect(await failure(tx, () => save("Lady Stretch", one("2026-10", [plan(" ", 1, 1)])))).toBe(
+        "Город «без названия» повторяется в файле.",
+      );
+      expect(
+        await failure(tx, () => save("Lady Stretch", one("2026-10", [plan("Абакан", 1.5, 1)]))),
+      ).toBe("План заявок для «Абакан» должен быть целым числом от нуля.");
+      expect(
+        await failure(tx, () => save("Lady Stretch", one("2026-10", [plan("Абакан", -1, 1)]))),
+      ).toBe("План заявок для «Абакан» должен быть целым числом от нуля.");
+      expect(
+        await failure(tx, () => save("Lady Stretch", one("2026-10", [plan("Абакан", 3, 0)]))),
+      ).toBe("Стоимость заявки для «Абакан» должна быть числом больше нуля.");
+      expect(
+        await failure(tx, () => save("Lady Stretch", one("2026-10", [plan("Абакан", 3, null)]))),
+      ).toBe("Стоимость заявки для «Абакан» должна быть числом больше нуля.");
+
+      const [{ r: first }] = await save(
+        "Lady Jump",
+        one("2026-10", [plan("Казань", 40, 333.3333333333333), plan("Бийск", 0, 500)]),
+      );
+      expect(first).toEqual({ changed: 2, months: 1 });
+      // Казань у Lady Jump — их согласованная замена города.
+      const [{ r: same }] = await save(
+        "Lady Jump",
+        one("2026-10", [plan("Казань · Вишневского", 40, 333.3333333333333)]),
+        "manual",
+      );
+      expect(same).toEqual({ changed: 0, months: 1 });
+      const [{ r: changed }] = await save(
+        "Lady Jump",
+        one("2026-10", [plan("Казань Вишневского", 45, 300)]),
+        "manual",
+      );
+      expect(changed.changed).toBe(1);
+      const [{ r: all }] = await save(
+        "Lady Stretch",
+        [
+          { month: "2026-09", plans: [plan("Абакан", 30, 1000)] },
+          { month: "2026-10", plans: [plan("Абакан", 31, 1000), plan("Бийск", 10, 700.5)] },
+        ],
+        "all",
+      );
+      expect(all).toEqual({ changed: 3, months: 2 });
+
+      const [{ m }] = await tx`select an_vk_plans_month('2026-10') as m`;
+      expect(m.plans.map((p: { brand: string; city: string }) => `${p.brand}·${p.city}`)).toEqual([
+        "Lady Jump·Бийск",
+        "Lady Jump·Казань · Вишневского",
+        "Lady Stretch·Абакан",
+        "Lady Stretch·Бийск",
+      ]);
+      expect(m.plans[1]).toEqual({
+        month: "2026-10",
+        brand: "Lady Jump",
+        city: "Казань · Вишневского",
+        applications_plan: 45,
+        target_cpl: 300,
+      });
+      expect(m.changes[m.changes.length - 1]).toMatchObject({
+        brand: "Lady Jump",
+        previous_applications_plan: null,
+        previous_target_cpl: null,
+        changed_by: "Админ Планов",
+      });
+      const kazan = m.changes.find(
+        (c: { city: string; previous_applications_plan: number | null }) =>
+          c.city === "Казань · Вишневского" && c.previous_applications_plan !== null,
+      );
+      expect(kazan).toMatchObject({
+        previous_applications_plan: 40,
+        previous_target_cpl: 333.3333333333333,
+        applications_plan: 45,
+        target_cpl: 300,
+      });
+      expect(m.cities).toContain("Бийск");
+
+      expect(
+        await failure(tx, () => tx`select an_vk_plan_delete('2026-1', 'Lady Stretch', 'Бийск')`),
+      ).toBe("Проверьте месяц.");
+      expect(await failure(tx, () => tx`select an_vk_plan_delete('2026-10', 'X', 'Бийск')`)).toBe(
+        "Проверьте бренд и город.",
+      );
+      const [{ d1 }] = await tx`select an_vk_plan_delete('2026-10', 'Lady Stretch', 'Бийск') as d1`;
+      const [{ d2 }] = await tx`select an_vk_plan_delete('2026-10', 'Lady Stretch', 'Бийск') as d2`;
+      expect([d1, d2]).toEqual([true, false]);
+
+      await asServer(tx);
+      const audit =
+        await tx`select event, details from an_audit where user_id = ${admin} order by id`;
+      expect(audit.map((a: { event: string }) => a.event)).toEqual([
+        "target_plans_imported",
+        "target_plan_changed",
+        "target_plan_changed",
+        "target_plans_imported_all",
+        "target_plan_deleted",
+      ]);
+      expect(audit[0].details).toBe("2026-10: 2 из 2 городов");
+      expect(audit[2].details).toBe("2026-10: Lady Jump · Казань Вишневского");
+      expect(audit[3].details).toBe("2026-09: 1, 2026-10: 2");
+      expect(JSON.parse(audit[4].details)).toMatchObject({
+        month: "2026-10",
+        brand: "Lady Stretch",
+        city: "Бийск",
+        applications_plan: 10,
+        target_cpl: 700.5,
+      });
+
+      await as(tx, target);
+      expect(await failure(tx, () => tx`select an_vk_plans_month('2026-10')`)).toContain(
+        "an_forbidden",
+      );
+      expect(
+        await failure(tx, () => save("Lady Stretch", one("2026-10", [plan("Абакан", 1, 1)]))),
+      ).toContain("an_forbidden");
+      expect(await failure(tx, () => tx`select * from an_vk_plans`)).toContain("permission denied");
+    });
+  });
+
+  test("VK Ads: таргетологи и источники СС — выбор из людей с правом, проверки ссылок, сбор сервером", async () => {
+    await scenario(async (tx) => {
+      await tx`delete from an_vk_targetologists`;
+      await tx`delete from an_vk_ss_sources`;
+      await tx`delete from an_vk_ss_daily`;
+      const admin = await person(tx, "Админ Таргета", ["an.admin"]);
+      await person(tx, "Яковлева Ирина", ["an.targetologist"]);
+      await person(tx, "анна Петрова", ["an.targetologist"]);
+      await person(tx, "Админ и таргетолог", ["an.admin", "an.targetologist"]);
+      await as(tx, admin);
+      const [{ t }] = await tx`select an_vk_targetologists() as t`;
+      expect(
+        t.people.filter((n: string) =>
+          ["Яковлева Ирина", "анна Петрова", "Админ и таргетолог"].includes(n),
+        ),
+      ).toEqual(["Яковлева Ирина", "анна Петрова"]);
+      expect(
+        await failure(
+          tx,
+          () => tx`select an_vk_targetologist_save('Lady Stretch', 'Абакан', 'Кто-то')`,
+        ),
+      ).toBe("Выберите сотрудника с ролью «Таргетолог».");
+      expect(
+        await failure(
+          tx,
+          () => tx`select an_vk_targetologist_save('X', 'Абакан', 'Яковлева Ирина')`,
+        ),
+      ).toBe("Выберите допустимый бренд.");
+      expect(
+        await failure(
+          tx,
+          () => tx`select an_vk_targetologist_save('Lady Stretch', ' ', 'Яковлева Ирина')`,
+        ),
+      ).toBe("Укажите город и таргетолога.");
+      await tx`select an_vk_targetologist_save('Lady Stretch', ' Абакан ', 'Яковлева Ирина')`;
+      await tx`select an_vk_targetologist_save('Lady Stretch', 'Абакан', 'анна Петрова')`;
+      await tx`select an_vk_targetologist_save('Lady Jump', 'Казань', 'анна Петрова')`;
+      const [{ t: t2 }] = await tx`select an_vk_targetologists() as t`;
+      expect(t2.assignments).toEqual([
+        { brand: "Lady Jump", city: "Казань · Вишневского", targetologist_name: "анна Петрова" },
+        { brand: "Lady Stretch", city: "Абакан", targetologist_name: "анна Петрова" },
+      ]);
+      expect(
+        await failure(tx, () => tx`select an_vk_targetologist_delete('Lady Stretch', '')`),
+      ).toBe("Укажите бренд и город.");
+      await tx`select an_vk_targetologist_delete('Lady Jump', 'Казань')`;
+      expect((await tx`select an_vk_targetologists() as t`)[0].t.assignments.length).toBe(1);
+
+      const good = "https://docs.google.com/spreadsheets/d/abc_DEF-1/edit#gid=0";
+      const src = (city: string, leads: string, apps: string, brand = "Lady Stretch") =>
+        tx`select an_vk_ss_source_save(${brand}, ${city}, ${leads}, ${apps})`;
+      expect(await failure(tx, () => src("", good, good))).toBe("Укажите город.");
+      expect(await failure(tx, () => src("Г".repeat(121), good, good))).toBe(
+        "Название города слишком длинное.",
+      );
+      for (const bad of [
+        "http://docs.google.com/spreadsheets/d/x",
+        "https://docs.google.com:443/spreadsheets/d/x",
+        "https://evil.com/docs.google.com/spreadsheets/d/x",
+        "https://docs.google.com/document/d/x",
+        "https://docs.google.com/x?u=/spreadsheets/",
+      ]) {
+        expect(await failure(tx, () => src("Абакан", bad, good))).toBe(
+          "Укажите корректную ссылку Google Таблицы для лидов СС.",
+        );
+      }
+      expect(await failure(tx, () => src("Абакан", good, "нет"))).toBe(
+        "Укажите корректную ссылку Google Таблицы для заявок СС.",
+      );
+      await src(" Абакан ", " HTTPS://www.docs.google.com/spreadsheets/d/1/edit ", good);
+      await src("Казань", good, good, "Lady Jump");
+      const [{ s }] = await tx`select an_vk_ss_sources() as s`;
+      expect(
+        s.sources.map((x: { city: string; leads_sheet_url: string }) => [
+          x.city,
+          x.leads_sheet_url,
+        ]),
+      ).toEqual([
+        ["Казань · Вишневского", good],
+        ["Абакан", "HTTPS://www.docs.google.com/spreadsheets/d/1/edit"],
+      ]);
+      expect(s.google).toBeNull();
+      expect(await failure(tx, () => tx`select an_vk_ss_source_delete('Lady Stretch', '')`)).toBe(
+        "Не указан город для удаления.",
+      );
+      expect(
+        await failure(tx, () => tx`select an_vk_ss_store('Lady Stretch', 'Абакан', '[]'::jsonb)`),
+      ).toContain("permission denied");
+
+      await asService(tx);
+      await tx`select an_vk_ss_store('Lady Stretch', 'Абакан',
+        '[{"date":"2026-09-02","leads":5,"applications":2},{"date":"2026-09-03","leads":1,"applications":0}]'::jsonb)`;
+      await tx`select an_vk_ss_store('Lady Stretch', 'Абакан',
+        '[{"date":"2026-09-02","leads":6,"applications":3}]'::jsonb)`;
+      await asServer(tx);
+      expect(
+        await tx`select stat_date::text as d, leads_count, applications_count from an_vk_ss_daily`,
+      ).toEqual([{ d: "2026-09-02", leads_count: 6, applications_count: 3 }]);
+      await tx`insert into an_google_settings (sa_client_email, sa_updated_at) values ('sa@x.iam.gserviceaccount.com', now())`;
+      await tx`insert into an_secrets (kind, ref, name, ciphertext) values ('google', 'sheets', 'service_account', 'x')`;
+      await as(tx, admin);
+      const [{ s: s2 }] = await tx`select an_vk_ss_sources() as s`;
+      expect(s2.google.client_email).toBe("sa@x.iam.gserviceaccount.com");
+      await tx`select an_vk_ss_source_delete('Lady Jump', 'Казань')`;
+      expect((await tx`select an_vk_ss_sources() as s`)[0].s.sources.length).toBe(1);
+    });
+  });
+
+  test("VK Ads: дни без бюджета — правило 12.10 (numeric), прежнее правило, «без истории», исключение", async () => {
+    await scenario(async (tx) => {
+      await tx`delete from an_vk_accounts`;
+      await tx`delete from an_vk_plans`;
+      const [{ a }] =
+        await tx`insert into an_vk_accounts (name, vk_account_id, city, brand, created_at)
+        values ('А', '9001', 'Абакан', 'Lady Stretch', '2026-08-01') returning id as a`;
+      const [{ k }] =
+        await tx`insert into an_vk_accounts (name, vk_account_id, city, brand, created_at)
+        values ('К', '9002', 'Казань · Вишневского', 'Lady Jump', '2026-08-01') returning id as k`;
+      // Выключенный кабинет не считается.
+      await tx`insert into an_vk_accounts (name, vk_account_id, city, brand, is_active, created_at)
+        values ('Выкл', '9003', 'Абакан', 'Lady Stretch', false, '2026-08-01')`;
+      // План 30 заявок × 1000 ₽ на 30 дней: дневной бюджет 1000.
+      await tx`insert into an_vk_plans (month, brand, city, applications_plan, target_cpl)
+        values ('2026-09', 'Lady Stretch', 'Абакан', 30, 1000)`;
+      const bal = (id: number, at: string, balance: number) =>
+        tx`insert into an_vk_balances (account_id, measured_at, balance) values (${id}, ${at}, ${balance})`;
+      const spent = (id: number, day: string, v: number) =>
+        tx`insert into an_vk_daily_stats (account_id, vk_plan_id, stat_date, spent) values (${id}, '1', ${day}, ${v})`;
+      const day = async (d: string, open: number, close: number, sp: number) => {
+        await bal(a, `${d} 00:30+03`, open);
+        await bal(a, `${d} 23:30+03`, close);
+        if (sp) await spent(a, d, sp);
+      };
+      await day("2026-09-01", 5000, 4000, 0); // остатки выше дневного — не простой
+      await day("2026-09-02", 800, 600, 500); // потрачено 50 % — не простой
+      await day("2026-09-03", 900, 1200, 100); // вечером выше дневного — простой (их правило)
+      await day("2026-09-04", 400, 300, 100); // утром ниже 50 % — простой
+      await day("2026-09-05", 600, 100, 200); // утром от 50 % — не простой
+      // 06.09 — снимков нет: прежнее правило, «без истории».
+      await bal(a, "2026-09-07 12:00+03", 0); // с планом и снимком: ноль — простой
+      // Казань без плана: положительный остаток — не простой; ноль за 1 час —
+      // простой «без истории»; ноль все 24 часа — простой с историей.
+      await bal(k, "2026-09-01 10:00+03", 50);
+      await bal(k, "2026-09-02 10:00+03", 0);
+      await tx`insert into an_vk_balances (account_id, measured_at, balance)
+        select ${k}, timestamptz '2026-09-03 00:10+03' + make_interval(hours => h), 0 from generate_series(0, 23) h`;
+      await spent(k, "2026-09-04", 0.01);
+
+      const keys = [
+        { brand: "Lady Stretch", city: "Абакан" },
+        { brand: "Lady Jump", city: "Казань · Вишневского" },
+        { brand: "Lady Stretch", city: "Бийск" },
+      ];
+      const rows = await tx`
+        select brand, city, zero_days::text[] as z, assumed_days::text[] as s
+          from an_vk_outage_days('2026-09-01', '2026-09-30', ${keys}::jsonb, '2026-09-08')
+         order by brand, city`;
+      expect(rows).toEqual([
+        {
+          brand: "Lady Jump",
+          city: "Казань · Вишневского",
+          z: ["2026-09-02", "2026-09-03", "2026-09-05", "2026-09-06", "2026-09-07"],
+          s: ["2026-09-02", "2026-09-05", "2026-09-06", "2026-09-07"],
+        },
+        {
+          brand: "Lady Stretch",
+          city: "Абакан",
+          z: ["2026-09-03", "2026-09-04", "2026-09-06", "2026-09-07"],
+          s: ["2026-09-06"],
+        },
+        {
+          brand: "Lady Stretch",
+          city: "Бийск",
+          z: [
+            "2026-09-01",
+            "2026-09-02",
+            "2026-09-03",
+            "2026-09-04",
+            "2026-09-05",
+            "2026-09-06",
+            "2026-09-07",
+          ],
+          s: [
+            "2026-09-01",
+            "2026-09-02",
+            "2026-09-03",
+            "2026-09-04",
+            "2026-09-05",
+            "2026-09-06",
+            "2026-09-07",
+          ],
+        },
+      ]);
+      // Исключение их кода; кабинет, добавленный днём, считается с этого дня.
+      const [vl] =
+        await tx`select zero_days::text[] as z from an_vk_outage_days('2026-10-06', '2026-10-08',
+        '[{"brand":"Lady Stretch","city":"Владимир"}]'::jsonb, '2026-10-30')`;
+      expect(vl.z).toEqual(["2026-10-06", "2026-10-08"]);
+      const [{ late }] =
+        await tx`insert into an_vk_accounts (name, vk_account_id, city, brand, created_at)
+        values ('Новый', '9004', 'Бийск', 'Lady Stretch', '2026-09-03 18:00+03') returning id as late`;
+      await bal(late, "2026-09-03 19:00+03", 10);
+      const [bi] =
+        await tx`select zero_days::text[] as z from an_vk_outage_days('2026-09-02', '2026-09-04',
+        '[{"brand":"Lady Stretch","city":"Бийск"}]'::jsonb, '2026-09-30')`;
+      expect(bi.z).toEqual(["2026-09-02", "2026-09-04"]);
+      // Конец периода — не позже вчера; пустой период — пустые списки.
+      const [cut] =
+        await tx`select zero_days::text[] as z from an_vk_outage_days('2026-09-01', '2026-09-30',
+        '[{"brand":"Lady Stretch","city":"Бийск"}]'::jsonb, '2026-09-03')`;
+      expect(cut.z).toEqual(["2026-09-01", "2026-09-02"]);
+      const [none] =
+        await tx`select zero_days::text[] as z from an_vk_outage_days('2026-09-05', '2026-09-30',
+        '[{"brand":"Lady Stretch","city":"Бийск"}]'::jsonb, '2026-09-03')`;
+      expect(none.z).toEqual([]);
+    });
+  });
+
+  test("VK Ads: реестр таргета — строки по городам, планы, факт до периода, кому что видно", async () => {
+    await scenario(async (tx) => {
+      await tx`delete from an_vk_accounts`;
+      await tx`delete from an_vk_plans`;
+      await tx`delete from an_vk_targetologists`;
+      await tx`delete from an_vk_ss_daily`;
+      const admin = await person(tx, "Админ Реестра", ["an.admin"]);
+      const target = await person(tx, "Таргет Анна", ["an.targetologist"]);
+      const noname = await person(tx, "Без имени", ["an.targetologist"]);
+      await tx`update profiles set full_name = ' ' where id = ${noname}`;
+      const staff = await person(tx, "Сотрудник Реестра", ["an.vk.register"]);
+      const other = await person(tx, "Без права", ["an.onec.revenue"]);
+      const [{ a }] = await tx`insert into an_vk_accounts (name, vk_account_id, city, brand)
+        values ('А1', '9101', 'Абакан', 'Lady Stretch') returning id as a`;
+      await tx`insert into an_vk_accounts (name, vk_account_id, city, brand)
+        values ('А2', '9102', 'Абакан', 'Lady Stretch')`;
+      const [{ k }] = await tx`insert into an_vk_accounts (name, vk_account_id, city, brand)
+        values ('К', '9103', 'Казань · Вишневского', 'Lady Jump') returning id as k`;
+      await tx`insert into an_vk_daily_stats (account_id, vk_plan_id, stat_date, spent) values
+        (${a}, '1', '2026-09-05', 1000.5), (${a}, '2', '2026-09-05', 200.25), (${a}, '1', '2026-09-06', 10),
+        (${a}, '1', '2026-09-20', 99999), (${k}, '7', '2026-09-05', 300)`;
+      await tx`insert into an_vk_lead_form_links (account_id, vk_form_id, vk_plan_id) values (${a}, 'f', '2')`;
+      await tx`insert into an_vk_lf_daily (account_id, stat_date, applications_count) values
+        (${a}, '2026-09-05', 2), (${a}, '2026-09-02', 4)`;
+      await tx`insert into an_vk_ss_daily (brand, city, stat_date, leads_count, applications_count) values
+        ('Lady Stretch', 'Абакан', '2026-09-06', 10, 3), ('Lady Stretch', 'Абакан', '2026-09-01', 7, 5),
+        ('Lady Stretch', 'Барнаул', '2026-09-06', 4, 1)`;
+      await tx`insert into an_vk_plans (month, brand, city, applications_plan, target_cpl) values
+        ('2026-09', 'Lady Stretch', 'Абакан', 30, 1000), ('2026-09', 'Lady Stretch', 'Бийск', 12, 800.5),
+        ('2026-10', 'Lady Stretch', 'Абакан', 31, 900), ('2026-08', 'Lady Stretch', 'Омск', 5, 100)`;
+      await tx`insert into an_vk_targetologists (brand, city, targetologist_name) values
+        ('Lady Stretch', 'Абакан', 'Таргет Анна'), ('Lady Stretch', 'Бийск', 'Кто-то другой')`;
+
+      const reg = async (uid: string, from: string, to: string, t = "", brand = "") => {
+        await as(tx, uid);
+        const [{ r }] = await tx`select an_vk_register(${from}, ${to}, ${t}, ${brand}) as r`;
+        await asServer(tx);
+        return r;
+      };
+      const byKey = (r: { rows: { brand: string; city: string }[] }) =>
+        Object.fromEntries(r.rows.map((x) => [`${x.brand}·${x.city}`, x]));
+
+      const r = await reg(admin, "2026-09-04", "2026-09-10");
+      const rows = byKey(r);
+      expect(Object.keys(rows).sort()).toEqual([
+        "Lady Jump·Казань · Вишневского",
+        "Lady Stretch·Абакан",
+        "Lady Stretch·Барнаул",
+        "Lady Stretch·Бийск",
+      ]);
+      expect(rows["Lady Stretch·Абакан"]).toMatchObject({
+        platform_spent: 1210.75,
+        lead_form_spent: 200.25,
+        campaign_rows: 2,
+        accounts_count: 2,
+        community_leads: 10,
+        community_applications: 3,
+        lead_form_applications: 2,
+        targetologist_name: "Таргет Анна",
+      });
+      expect(rows["Lady Stretch·Бийск"]).toMatchObject({
+        platform_spent: 0,
+        accounts_count: 0,
+        targetologist_name: "Кто-то другой",
+      });
+      expect(rows["Lady Stretch·Барнаул"].targetologist_name).toBeNull();
+      expect(
+        r.plans.map((p: { city: string; month: string }) => `${p.month}·${p.city}`).sort(),
+      ).toEqual(["2026-09·Абакан", "2026-09·Бийск"]);
+      // Факт сентября до 04.09: заявки СС 01.09 (5) + заявки ЛФ 02.09 (4).
+      expect(r.facts).toEqual([
+        { month: "2026-09", brand: "Lady Stretch", city: "Абакан", applications: 9 },
+      ]);
+      expect(r.people).toContain("Таргет Анна");
+      expect(r.admin).toBe(true);
+      expect(rows["Lady Stretch·Бийск"].zero_days.length).toBe(7);
+
+      // Направление и выбор таргетолога администратором.
+      expect(
+        Object.keys(byKey(await reg(admin, "2026-09-04", "2026-09-10", "", "Lady Jump"))),
+      ).toEqual(["Lady Jump·Казань · Вишневского"]);
+      expect(
+        Object.keys(byKey(await reg(admin, "2026-09-04", "2026-09-10", " Кто-то другой "))),
+      ).toEqual(["Lady Stretch·Бийск"]);
+      // Таргетолог — только свои города, что бы ни передал; без ФИО — ничего.
+      const own = await reg(target, "2026-09-10", "2026-09-04", "Кто-то другой");
+      expect(Object.keys(byKey(own))).toEqual(["Lady Stretch·Абакан"]);
+      expect([own.from, own.to, own.targetologist, own.people]).toEqual([
+        "2026-09-04",
+        "2026-09-10",
+        "Таргет Анна",
+        [],
+      ]);
+      expect((await reg(noname, "2026-09-04", "2026-09-10")).rows).toEqual([]);
+      // Сотрудник с правом на реестр — все города; не администратор — в журнале.
+      expect((await reg(staff, "2026-09-04", "2026-09-10")).rows.length).toBe(4);
+      expect(
+        (
+          await tx`select 1 from an_audit where user_id = ${staff} and event = 'dashboard_view' and details = 'Реестр таргета'`
+        ).length,
+      ).toBe(1);
+      expect(
+        (await tx`select 1 from an_audit where user_id = ${admin} and event = 'dashboard_view'`)
+          .length,
+      ).toBe(0);
+      await as(tx, other);
+      expect(
+        await failure(tx, () => tx`select an_vk_register('2026-09-04', '2026-09-10', '', '')`),
+      ).toContain("an_forbidden");
+      await as(tx, admin);
+      expect(
+        await failure(tx, () => tx`select an_vk_register('04.09.2026', '2026-09-10', '', '')`),
+      ).toBe("Неверный период");
+      expect(
+        await failure(tx, () => tx`select an_vk_register_base('2026-09-01', '2026-09-30')`),
+      ).toContain("permission denied");
+    });
+  });
 });

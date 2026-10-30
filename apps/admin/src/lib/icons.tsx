@@ -35,6 +35,7 @@ import {
   Bold as BoldArt,
   Briefcase as BriefcaseArt,
   Building2 as Building2Art,
+  CalendarDays as CalendarDaysArt,
   CalendarIcon as CalendarIconArt,
   CatIcon as CatArt,
   ChartAreaIcon as ChartAreaArt,
@@ -99,6 +100,7 @@ import {
   Lock as LockArt,
   LogIn as LogInArt,
   Mail as MailArt,
+  MapPin as MapPinArt,
   ArrowExpandIcon as MaximizeArt,
   Meh as MehArt,
   MessageCircle as MessageCircleArt,
@@ -186,6 +188,7 @@ export const Banknote = icon(BanknoteArt, "Banknote");
 export const Bold = icon(BoldArt, "Bold");
 export const Briefcase = icon(BriefcaseArt, "Briefcase");
 export const Building2 = icon(Building2Art, "Building2");
+export const CalendarDays = icon(CalendarDaysArt, "CalendarDays");
 export const CalendarIcon = icon(CalendarIconArt, "CalendarIcon");
 export const Cat = icon(CatArt, "Cat");
 export const ChartArea = icon(ChartAreaArt, "ChartArea");
@@ -250,6 +253,7 @@ export const Loader2 = icon(Loader2Art, "Loader2");
 export const Lock = icon(LockArt, "Lock");
 export const LogIn = icon(LogInArt, "LogIn");
 export const Mail = icon(MailArt, "Mail");
+export const MapPin = icon(MapPinArt, "MapPin");
 export const Maximize = icon(MaximizeArt, "Maximize");
 export const Meh = icon(MehArt, "Meh");
 export const MessageCircle = icon(MessageCircleArt, "MessageCircle");

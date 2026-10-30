@@ -13,6 +13,7 @@ export type AnJobInfo = { label: string; external?: boolean };
 
 export const AN_JOBS: Record<string, AnJobInfo> = {
   vk_ads: { label: "VK Ads: остатки, кампании, лид-формы и расходы за вчера" },
+  vk_ss: { label: "VK Ads: лиды и заявки СС из Google-таблиц" },
 };
 
 export const jobLabel = (key: string) => AN_JOBS[key]?.label ?? key;

@@ -75,7 +75,11 @@ import { Route as AuthenticatedKbBaseIdTrashRouteImport } from './routes/_authen
 import { Route as AuthenticatedKbBaseIdTemplatesRouteImport } from './routes/_authenticated/kb/$baseId/templates'
 import { Route as AuthenticatedKbBaseIdAnalyticsRouteImport } from './routes/_authenticated/kb/$baseId/analytics'
 import { Route as AuthenticatedKbBaseIdNodeIdRouteImport } from './routes/_authenticated/kb/$baseId/$nodeId'
+import { Route as AuthenticatedAnalyticsVkTargetologistsRouteImport } from './routes/_authenticated/analytics/vk/targetologists'
 import { Route as AuthenticatedAnalyticsVkSpendRouteImport } from './routes/_authenticated/analytics/vk/spend'
+import { Route as AuthenticatedAnalyticsVkSourcesRouteImport } from './routes/_authenticated/analytics/vk/sources'
+import { Route as AuthenticatedAnalyticsVkRegisterRouteImport } from './routes/_authenticated/analytics/vk/register'
+import { Route as AuthenticatedAnalyticsVkPlansRouteImport } from './routes/_authenticated/analytics/vk/plans'
 import { Route as AuthenticatedAnalyticsVkAccountsRouteImport } from './routes/_authenticated/analytics/vk/accounts'
 import { Route as AuthenticatedAnalyticsToolsVkRouteImport } from './routes/_authenticated/analytics/tools/vk'
 import { Route as AuthenticatedAnalyticsToolsTop10RouteImport } from './routes/_authenticated/analytics/tools/top10'
@@ -466,10 +470,34 @@ const AuthenticatedKbBaseIdNodeIdRoute =
     path: '/kb/$baseId/$nodeId',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAnalyticsVkTargetologistsRoute =
+  AuthenticatedAnalyticsVkTargetologistsRouteImport.update({
+    id: '/analytics/vk/targetologists',
+    path: '/analytics/vk/targetologists',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAnalyticsVkSpendRoute =
   AuthenticatedAnalyticsVkSpendRouteImport.update({
     id: '/analytics/vk/spend',
     path: '/analytics/vk/spend',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAnalyticsVkSourcesRoute =
+  AuthenticatedAnalyticsVkSourcesRouteImport.update({
+    id: '/analytics/vk/sources',
+    path: '/analytics/vk/sources',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAnalyticsVkRegisterRoute =
+  AuthenticatedAnalyticsVkRegisterRouteImport.update({
+    id: '/analytics/vk/register',
+    path: '/analytics/vk/register',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAnalyticsVkPlansRoute =
+  AuthenticatedAnalyticsVkPlansRouteImport.update({
+    id: '/analytics/vk/plans',
+    path: '/analytics/vk/plans',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedAnalyticsVkAccountsRoute =
@@ -718,7 +746,11 @@ export interface FileRoutesByFullPath {
   '/analytics/tools/top10': typeof AuthenticatedAnalyticsToolsTop10Route
   '/analytics/tools/vk': typeof AuthenticatedAnalyticsToolsVkRoute
   '/analytics/vk/accounts': typeof AuthenticatedAnalyticsVkAccountsRoute
+  '/analytics/vk/plans': typeof AuthenticatedAnalyticsVkPlansRoute
+  '/analytics/vk/register': typeof AuthenticatedAnalyticsVkRegisterRoute
+  '/analytics/vk/sources': typeof AuthenticatedAnalyticsVkSourcesRoute
   '/analytics/vk/spend': typeof AuthenticatedAnalyticsVkSpendRoute
+  '/analytics/vk/targetologists': typeof AuthenticatedAnalyticsVkTargetologistsRoute
   '/kb/$baseId/$nodeId': typeof AuthenticatedKbBaseIdNodeIdRoute
   '/kb/$baseId/analytics': typeof AuthenticatedKbBaseIdAnalyticsRoute
   '/kb/$baseId/templates': typeof AuthenticatedKbBaseIdTemplatesRoute
@@ -814,7 +846,11 @@ export interface FileRoutesByTo {
   '/analytics/tools/top10': typeof AuthenticatedAnalyticsToolsTop10Route
   '/analytics/tools/vk': typeof AuthenticatedAnalyticsToolsVkRoute
   '/analytics/vk/accounts': typeof AuthenticatedAnalyticsVkAccountsRoute
+  '/analytics/vk/plans': typeof AuthenticatedAnalyticsVkPlansRoute
+  '/analytics/vk/register': typeof AuthenticatedAnalyticsVkRegisterRoute
+  '/analytics/vk/sources': typeof AuthenticatedAnalyticsVkSourcesRoute
   '/analytics/vk/spend': typeof AuthenticatedAnalyticsVkSpendRoute
+  '/analytics/vk/targetologists': typeof AuthenticatedAnalyticsVkTargetologistsRoute
   '/kb/$baseId/$nodeId': typeof AuthenticatedKbBaseIdNodeIdRoute
   '/kb/$baseId/analytics': typeof AuthenticatedKbBaseIdAnalyticsRoute
   '/kb/$baseId/templates': typeof AuthenticatedKbBaseIdTemplatesRoute
@@ -912,7 +948,11 @@ export interface FileRoutesById {
   '/_authenticated/analytics/tools/top10': typeof AuthenticatedAnalyticsToolsTop10Route
   '/_authenticated/analytics/tools/vk': typeof AuthenticatedAnalyticsToolsVkRoute
   '/_authenticated/analytics/vk/accounts': typeof AuthenticatedAnalyticsVkAccountsRoute
+  '/_authenticated/analytics/vk/plans': typeof AuthenticatedAnalyticsVkPlansRoute
+  '/_authenticated/analytics/vk/register': typeof AuthenticatedAnalyticsVkRegisterRoute
+  '/_authenticated/analytics/vk/sources': typeof AuthenticatedAnalyticsVkSourcesRoute
   '/_authenticated/analytics/vk/spend': typeof AuthenticatedAnalyticsVkSpendRoute
+  '/_authenticated/analytics/vk/targetologists': typeof AuthenticatedAnalyticsVkTargetologistsRoute
   '/_authenticated/kb/$baseId/$nodeId': typeof AuthenticatedKbBaseIdNodeIdRoute
   '/_authenticated/kb/$baseId/analytics': typeof AuthenticatedKbBaseIdAnalyticsRoute
   '/_authenticated/kb/$baseId/templates': typeof AuthenticatedKbBaseIdTemplatesRoute
@@ -1010,7 +1050,11 @@ export interface FileRouteTypes {
     | '/analytics/tools/top10'
     | '/analytics/tools/vk'
     | '/analytics/vk/accounts'
+    | '/analytics/vk/plans'
+    | '/analytics/vk/register'
+    | '/analytics/vk/sources'
     | '/analytics/vk/spend'
+    | '/analytics/vk/targetologists'
     | '/kb/$baseId/$nodeId'
     | '/kb/$baseId/analytics'
     | '/kb/$baseId/templates'
@@ -1106,7 +1150,11 @@ export interface FileRouteTypes {
     | '/analytics/tools/top10'
     | '/analytics/tools/vk'
     | '/analytics/vk/accounts'
+    | '/analytics/vk/plans'
+    | '/analytics/vk/register'
+    | '/analytics/vk/sources'
     | '/analytics/vk/spend'
+    | '/analytics/vk/targetologists'
     | '/kb/$baseId/$nodeId'
     | '/kb/$baseId/analytics'
     | '/kb/$baseId/templates'
@@ -1203,7 +1251,11 @@ export interface FileRouteTypes {
     | '/_authenticated/analytics/tools/top10'
     | '/_authenticated/analytics/tools/vk'
     | '/_authenticated/analytics/vk/accounts'
+    | '/_authenticated/analytics/vk/plans'
+    | '/_authenticated/analytics/vk/register'
+    | '/_authenticated/analytics/vk/sources'
     | '/_authenticated/analytics/vk/spend'
+    | '/_authenticated/analytics/vk/targetologists'
     | '/_authenticated/kb/$baseId/$nodeId'
     | '/_authenticated/kb/$baseId/analytics'
     | '/_authenticated/kb/$baseId/templates'
@@ -1699,11 +1751,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedKbBaseIdNodeIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/analytics/vk/targetologists': {
+      id: '/_authenticated/analytics/vk/targetologists'
+      path: '/analytics/vk/targetologists'
+      fullPath: '/analytics/vk/targetologists'
+      preLoaderRoute: typeof AuthenticatedAnalyticsVkTargetologistsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/analytics/vk/spend': {
       id: '/_authenticated/analytics/vk/spend'
       path: '/analytics/vk/spend'
       fullPath: '/analytics/vk/spend'
       preLoaderRoute: typeof AuthenticatedAnalyticsVkSpendRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/analytics/vk/sources': {
+      id: '/_authenticated/analytics/vk/sources'
+      path: '/analytics/vk/sources'
+      fullPath: '/analytics/vk/sources'
+      preLoaderRoute: typeof AuthenticatedAnalyticsVkSourcesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/analytics/vk/register': {
+      id: '/_authenticated/analytics/vk/register'
+      path: '/analytics/vk/register'
+      fullPath: '/analytics/vk/register'
+      preLoaderRoute: typeof AuthenticatedAnalyticsVkRegisterRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/analytics/vk/plans': {
+      id: '/_authenticated/analytics/vk/plans'
+      path: '/analytics/vk/plans'
+      fullPath: '/analytics/vk/plans'
+      preLoaderRoute: typeof AuthenticatedAnalyticsVkPlansRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/analytics/vk/accounts': {
@@ -1975,7 +2055,11 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAnalyticsToolsTop10Route: typeof AuthenticatedAnalyticsToolsTop10Route
   AuthenticatedAnalyticsToolsVkRoute: typeof AuthenticatedAnalyticsToolsVkRoute
   AuthenticatedAnalyticsVkAccountsRoute: typeof AuthenticatedAnalyticsVkAccountsRoute
+  AuthenticatedAnalyticsVkPlansRoute: typeof AuthenticatedAnalyticsVkPlansRoute
+  AuthenticatedAnalyticsVkRegisterRoute: typeof AuthenticatedAnalyticsVkRegisterRoute
+  AuthenticatedAnalyticsVkSourcesRoute: typeof AuthenticatedAnalyticsVkSourcesRoute
   AuthenticatedAnalyticsVkSpendRoute: typeof AuthenticatedAnalyticsVkSpendRoute
+  AuthenticatedAnalyticsVkTargetologistsRoute: typeof AuthenticatedAnalyticsVkTargetologistsRoute
   AuthenticatedKbBaseIdNodeIdRoute: typeof AuthenticatedKbBaseIdNodeIdRoute
   AuthenticatedKbBaseIdAnalyticsRoute: typeof AuthenticatedKbBaseIdAnalyticsRoute
   AuthenticatedKbBaseIdTemplatesRoute: typeof AuthenticatedKbBaseIdTemplatesRoute
@@ -2073,7 +2157,12 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAnalyticsToolsTop10Route: AuthenticatedAnalyticsToolsTop10Route,
   AuthenticatedAnalyticsToolsVkRoute: AuthenticatedAnalyticsToolsVkRoute,
   AuthenticatedAnalyticsVkAccountsRoute: AuthenticatedAnalyticsVkAccountsRoute,
+  AuthenticatedAnalyticsVkPlansRoute: AuthenticatedAnalyticsVkPlansRoute,
+  AuthenticatedAnalyticsVkRegisterRoute: AuthenticatedAnalyticsVkRegisterRoute,
+  AuthenticatedAnalyticsVkSourcesRoute: AuthenticatedAnalyticsVkSourcesRoute,
   AuthenticatedAnalyticsVkSpendRoute: AuthenticatedAnalyticsVkSpendRoute,
+  AuthenticatedAnalyticsVkTargetologistsRoute:
+    AuthenticatedAnalyticsVkTargetologistsRoute,
   AuthenticatedKbBaseIdNodeIdRoute: AuthenticatedKbBaseIdNodeIdRoute,
   AuthenticatedKbBaseIdAnalyticsRoute: AuthenticatedKbBaseIdAnalyticsRoute,
   AuthenticatedKbBaseIdTemplatesRoute: AuthenticatedKbBaseIdTemplatesRoute,
