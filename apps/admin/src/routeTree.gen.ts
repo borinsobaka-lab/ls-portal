@@ -102,6 +102,7 @@ import { Route as AuthenticatedAnalyticsOnecActivitiesRouteImport } from './rout
 import { Route as AuthenticatedAnalyticsFitbaseSalesRouteImport } from './routes/_authenticated/analytics/fitbase/sales'
 import { Route as AuthenticatedAnalyticsFitbaseRevenueRouteImport } from './routes/_authenticated/analytics/fitbase/revenue'
 import { Route as AuthenticatedAnalyticsFitbaseMarketingRouteImport } from './routes/_authenticated/analytics/fitbase/marketing'
+import { Route as AuthenticatedAnalyticsFitbaseAttendanceRouteImport } from './routes/_authenticated/analytics/fitbase/attendance'
 import { Route as AuthenticatedAnalyticsAvitoRegisterRouteImport } from './routes/_authenticated/analytics/avito/register'
 import { Route as AuthenticatedAnalyticsAvitoPlansRouteImport } from './routes/_authenticated/analytics/avito/plans'
 import { Route as AuthenticatedAnalyticsAvitoAccountsRouteImport } from './routes/_authenticated/analytics/avito/accounts'
@@ -648,6 +649,12 @@ const AuthenticatedAnalyticsFitbaseMarketingRoute =
     path: '/analytics/fitbase/marketing',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAnalyticsFitbaseAttendanceRoute =
+  AuthenticatedAnalyticsFitbaseAttendanceRouteImport.update({
+    id: '/analytics/fitbase/attendance',
+    path: '/analytics/fitbase/attendance',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAnalyticsAvitoRegisterRoute =
   AuthenticatedAnalyticsAvitoRegisterRouteImport.update({
     id: '/analytics/avito/register',
@@ -869,6 +876,7 @@ export interface FileRoutesByFullPath {
   '/analytics/avito/accounts': typeof AuthenticatedAnalyticsAvitoAccountsRoute
   '/analytics/avito/plans': typeof AuthenticatedAnalyticsAvitoPlansRoute
   '/analytics/avito/register': typeof AuthenticatedAnalyticsAvitoRegisterRoute
+  '/analytics/fitbase/attendance': typeof AuthenticatedAnalyticsFitbaseAttendanceRoute
   '/analytics/fitbase/marketing': typeof AuthenticatedAnalyticsFitbaseMarketingRoute
   '/analytics/fitbase/revenue': typeof AuthenticatedAnalyticsFitbaseRevenueRoute
   '/analytics/fitbase/sales': typeof AuthenticatedAnalyticsFitbaseSalesRoute
@@ -988,6 +996,7 @@ export interface FileRoutesByTo {
   '/analytics/avito/accounts': typeof AuthenticatedAnalyticsAvitoAccountsRoute
   '/analytics/avito/plans': typeof AuthenticatedAnalyticsAvitoPlansRoute
   '/analytics/avito/register': typeof AuthenticatedAnalyticsAvitoRegisterRoute
+  '/analytics/fitbase/attendance': typeof AuthenticatedAnalyticsFitbaseAttendanceRoute
   '/analytics/fitbase/marketing': typeof AuthenticatedAnalyticsFitbaseMarketingRoute
   '/analytics/fitbase/revenue': typeof AuthenticatedAnalyticsFitbaseRevenueRoute
   '/analytics/fitbase/sales': typeof AuthenticatedAnalyticsFitbaseSalesRoute
@@ -1109,6 +1118,7 @@ export interface FileRoutesById {
   '/_authenticated/analytics/avito/accounts': typeof AuthenticatedAnalyticsAvitoAccountsRoute
   '/_authenticated/analytics/avito/plans': typeof AuthenticatedAnalyticsAvitoPlansRoute
   '/_authenticated/analytics/avito/register': typeof AuthenticatedAnalyticsAvitoRegisterRoute
+  '/_authenticated/analytics/fitbase/attendance': typeof AuthenticatedAnalyticsFitbaseAttendanceRoute
   '/_authenticated/analytics/fitbase/marketing': typeof AuthenticatedAnalyticsFitbaseMarketingRoute
   '/_authenticated/analytics/fitbase/revenue': typeof AuthenticatedAnalyticsFitbaseRevenueRoute
   '/_authenticated/analytics/fitbase/sales': typeof AuthenticatedAnalyticsFitbaseSalesRoute
@@ -1230,6 +1240,7 @@ export interface FileRouteTypes {
     | '/analytics/avito/accounts'
     | '/analytics/avito/plans'
     | '/analytics/avito/register'
+    | '/analytics/fitbase/attendance'
     | '/analytics/fitbase/marketing'
     | '/analytics/fitbase/revenue'
     | '/analytics/fitbase/sales'
@@ -1349,6 +1360,7 @@ export interface FileRouteTypes {
     | '/analytics/avito/accounts'
     | '/analytics/avito/plans'
     | '/analytics/avito/register'
+    | '/analytics/fitbase/attendance'
     | '/analytics/fitbase/marketing'
     | '/analytics/fitbase/revenue'
     | '/analytics/fitbase/sales'
@@ -1469,6 +1481,7 @@ export interface FileRouteTypes {
     | '/_authenticated/analytics/avito/accounts'
     | '/_authenticated/analytics/avito/plans'
     | '/_authenticated/analytics/avito/register'
+    | '/_authenticated/analytics/fitbase/attendance'
     | '/_authenticated/analytics/fitbase/marketing'
     | '/_authenticated/analytics/fitbase/revenue'
     | '/_authenticated/analytics/fitbase/sales'
@@ -2187,6 +2200,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAnalyticsFitbaseMarketingRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/analytics/fitbase/attendance': {
+      id: '/_authenticated/analytics/fitbase/attendance'
+      path: '/analytics/fitbase/attendance'
+      fullPath: '/analytics/fitbase/attendance'
+      preLoaderRoute: typeof AuthenticatedAnalyticsFitbaseAttendanceRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/analytics/avito/register': {
       id: '/_authenticated/analytics/avito/register'
       path: '/analytics/avito/register'
@@ -2426,6 +2446,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAnalyticsAvitoAccountsRoute: typeof AuthenticatedAnalyticsAvitoAccountsRoute
   AuthenticatedAnalyticsAvitoPlansRoute: typeof AuthenticatedAnalyticsAvitoPlansRoute
   AuthenticatedAnalyticsAvitoRegisterRoute: typeof AuthenticatedAnalyticsAvitoRegisterRoute
+  AuthenticatedAnalyticsFitbaseAttendanceRoute: typeof AuthenticatedAnalyticsFitbaseAttendanceRoute
   AuthenticatedAnalyticsFitbaseMarketingRoute: typeof AuthenticatedAnalyticsFitbaseMarketingRoute
   AuthenticatedAnalyticsFitbaseRevenueRoute: typeof AuthenticatedAnalyticsFitbaseRevenueRoute
   AuthenticatedAnalyticsFitbaseSalesRoute: typeof AuthenticatedAnalyticsFitbaseSalesRoute
@@ -2542,6 +2563,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAnalyticsAvitoPlansRoute: AuthenticatedAnalyticsAvitoPlansRoute,
   AuthenticatedAnalyticsAvitoRegisterRoute:
     AuthenticatedAnalyticsAvitoRegisterRoute,
+  AuthenticatedAnalyticsFitbaseAttendanceRoute:
+    AuthenticatedAnalyticsFitbaseAttendanceRoute,
   AuthenticatedAnalyticsFitbaseMarketingRoute:
     AuthenticatedAnalyticsFitbaseMarketingRoute,
   AuthenticatedAnalyticsFitbaseRevenueRoute:

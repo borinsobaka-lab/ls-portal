@@ -3405,6 +3405,32 @@ export function AnalyticsFbSalesPageSkeleton() {
   );
 }
 
+/** «FitBase» → «Занятия и посещаемость»: шесть плиток, таблица с переключателем. */
+export function AnalyticsFbAttendanceBodySkeleton() {
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        {[0, 1, 2, 3, 4, 5].map((i) => (
+          <Skeleton key={i} className="h-28 rounded-lg" />
+        ))}
+      </div>
+      <Skeleton className="h-96 rounded-lg" />
+    </div>
+  );
+}
+
+export function AnalyticsFbAttendancePageSkeleton() {
+  return (
+    <ShellSkeleton title={AN_TITLES.fbAttendance} network>
+      <div className="space-y-4">
+        <Skeleton className="h-5 w-64 max-w-full" />
+        <ToolbarSkeleton search={false} controls={["w-56", "w-44", "w-48", "w-48", "w-44"]} />
+        <AnalyticsFbAttendanceBodySkeleton />
+      </div>
+    </ShellSkeleton>
+  );
+}
+
 /** «FitBase» → «Маркетинговый отчёт»: карточки городов. */
 export function AnalyticsFbMarketingBodySkeleton() {
   return (

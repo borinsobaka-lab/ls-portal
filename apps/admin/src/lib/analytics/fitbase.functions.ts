@@ -6,7 +6,13 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { getSupabaseAdmin } from "@/integrations/supabase/client.server";
 import { casefold } from "./onec/rules";
 import { fbRevenueToday } from "./fitbase/reports";
-import { FB_BRANDS, FbError, fbConnectionInput, fbRevenuePeriod } from "./fitbase/rules";
+import {
+  FB_BRANDS,
+  FbError,
+  fbAttendanceWindow,
+  fbConnectionInput,
+  fbRevenuePeriod,
+} from "./fitbase/rules";
 import { fbStartAll, fbStartJob, removeFbBlobs, type FbAction } from "./server/fitbase.server";
 import { encryptSecret } from "./server/secrets.server";
 
@@ -201,5 +207,57 @@ export const startFitbaseRevenueRefresh = createServerFn({ method: "POST" })
       }
     }
     await audit(context.userId, "fitbase_revenue_refresh", String(selected.length));
+    return { busy, ids: selected.map((c) => c.id as number) };
+  });
+
+/**
+ * Их refresh_attendance («Обновить данные» отчёта занятий): занятия студий с
+ * клубом под фильтрами города, студии и статуса за выбранный период (и те же
+ * дни месяц и год назад) — в фоне; занятая студия пропускается.
+ */
+export const startFitbaseAttendanceRefresh = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data) =>
+    z
+      .object({
+        from: z.string().max(10),
+        to: z.string().max(10),
+        city: z.string().max(200),
+        studio: z.string().max(20),
+        status: z.string().max(20),
+      })
+      .strict()
+      .parse(data),
+  )
+  .handler(async ({ context, data }) => {
+    await requireAnAdmin(context.supabase);
+    try {
+      fbAttendanceWindow(data.from, data.to);
+    } catch (e) {
+      shown(e);
+    }
+    const { data: rows, error } = await getSupabaseAdmin()
+      .from("an_fb_connections")
+      .select("id, city, club_id, studio_status")
+      .order("id");
+    if (error) throw new Error(error.message);
+    const selected = (rows ?? []).filter(
+      (c) =>
+        c.club_id &&
+        (!data.city || c.city === data.city) &&
+        (!data.studio || String(c.id) === data.studio) &&
+        (!data.status || c.studio_status === data.status),
+    );
+    if (!selected.length) throw new Error("Нет подключённых студий для выбранных фильтров.");
+    let busy = false;
+    for (const c of selected) {
+      try {
+        await fbStartJob(c.id as number, "attendance", { start: data.from, end: data.to });
+      } catch (e) {
+        if (!(e instanceof FbError)) throw e;
+        busy = true;
+      }
+    }
+    await audit(context.userId, "fitbase_attendance_refresh", String(selected.length));
     return { busy, ids: selected.map((c) => c.id as number) };
   });

@@ -1195,6 +1195,15 @@ DEPLOY.md.
   ORDER BY brand); право — отчёт из `an_me` (`an_fb_report_allowed`:
   `fb.revenue` / `fb.sales` / `fb.marketing`, администратору — всё), вся
   сеть. Считает страница (`lib/analytics/fitbase/reports.ts`).
+  FitBase, часть 3 (2026-10-30, ANALYTICS.md):
+  `db/migrations/2026-10-30_zzzzzzzzzzzzzzz_analytics_fitbase_attendance.sql`
+  — «Занятия и посещаемость»: `an_fb_attendance_data` (право `fb.attendance`,
+  вся сеть; студия — одна на пару «домен + клуб», с самой свежей загрузкой
+  занятий) считает занятия, записи и посещения по группам «итог / город /
+  студия / направление» за период и те же дни месяц и год назад, коды —
+  `an_fb_effective_rules` (коды FitBase + сохранённые соответствия,
+  внутренняя); покрытие, средние, доходимость и промежуточные итоги —
+  страница (`lib/analytics/fitbase/attendance.ts`).
   Клубы и собственники (решение владельца 2026-10-27, ACCESS.md):
   `db/migrations/2026-10-27_zz_studio_owners.sql` — `studio_owners`
   (клуб × пользователь портала; пишут только RPC `org_studio_owners_set` /

@@ -3571,4 +3571,87 @@ describe.skipIf(!url)("аналитика: фундамент (база)", () =>
       expect(ar.admin).toBe(true);
     });
   });
+
+  test("FitBase: «Занятия и посещаемость» — группы как их attendance_report, коды, фильтры, право", async () => {
+    await scenario(async (tx) => {
+      const viewer = await person(tx, "Занятия FitBase", ["an.fb.attendance"]);
+      const other = await person(tx, "Без занятий FitBase", ["an.fb.revenue"]);
+      await asServer(tx);
+      const [{ id: a }] = await tx`
+        insert into an_fb_connections (name, brand, city, domain, club_id, attendance_rules,
+                                       attendance_synced_at, attendance_from, attendance_to)
+        values ('С1', 'Lady Stretch', 'Самара', 'aaa', '1', '{"9": "visited", "6": "bogus"}',
+                200, '2025-01-01', '2026-10-29') returning id`;
+      const [{ id: b }] = await tx`
+        insert into an_fb_connections (name, brand, city, domain, club_id) values ('С2', 'Lady Jump', 'Уфа', 'bbb', '2') returning id`;
+      await tx`insert into an_fb_connections (name, brand, city, domain) values ('С0', 'Lady Stretch', 'Самара', 'ccc')`;
+      await tx`insert into an_fb_events values
+        (${a}, 'e1', '2026-10-05', 1000, 't1', 'Стретчинг', false),
+        (${a}, 'e2', '2026-10-06', 1000, 't1', 'Стретчинг', true),
+        (${a}, 'e3', '2026-10-07', 99999999999, 't1', 'Стретчинг', false),
+        (${a}, 'e4', '2026-09-05', 1000, 't2', 'Пилон', false),
+        (${a}, 'e5', '2025-10-05', 1000, 't2', 'Пилон', false)`;
+      await tx`insert into an_fb_records values
+        (${a}, 'r1', 'e1', 'client:1', '3'), (${a}, 'r2', 'e1', 'client:2', '0'),
+        (${a}, 'r3', 'e1', 'client:3', '2'), (${a}, 'r4', 'e1', 'client:4', '9'),
+        (${a}, 'r5', 'e1', 'client:5', '6'), (${a}, 'r6', 'e2', 'client:1', '3'),
+        (${a}, 'r7', 'e4', 'client:1', '3')`;
+
+      expect(
+        await failure(tx, async () => {
+          await as(tx, other);
+          await tx`select an_fb_attendance_data('2026-10-01', '2026-10-29', '', '', '', '')`;
+        }),
+      ).toContain("an_forbidden");
+
+      await as(tx, viewer);
+      const [{ d }] = await tx`select an_fb_attendance_data('2026-10-01', '2026-10-29', '', '', '', '') as d`;
+      expect([d.admin, d.pm_from, d.pm_to, d.py_from]).toEqual([false, "2026-09-01", "2026-09-29", "2025-10-01"]);
+      expect(d.connections.map((x: { name: string }) => x.name)).toEqual(["С2", "С0", "С1"]);
+      // Без клуба FitBase студия в отчёт не попадает.
+      expect(d.selected.map((x: { id: number }) => x.id)).toEqual([Number(b), Number(a)]);
+      expect(d.selected[1]).toMatchObject({ attendance_synced_at: 200, attendance_from: "2025-01-01", busy: false });
+      expect([...d.trainings].sort()).toEqual(["Пилон", "Стретчинг"]);
+      const sorted = (rows: unknown[][]) => rows.map((r) => JSON.stringify(r)).sort();
+      // Отменённое и будущее не считаются; отказ — не запись; «9» — «посетил» по
+      // сохранённому правилу, у «6» статус неизвестный — неизвестный код.
+      expect(sorted(d.groups)).toEqual(
+        sorted([
+          ["current", null, null, null, 1, 3, 2, true],
+          ["current", "Самара", null, null, 1, 3, 2, true],
+          ["current", "Самара", Number(a), null, 1, 3, 2, true],
+          ["current", "Самара", Number(a), "Стретчинг", 1, 3, 2, true],
+          ["month", null, null, null, 1, 1, 1, false],
+          ["month", "Самара", null, null, 1, 1, 1, false],
+          ["month", "Самара", Number(a), null, 1, 1, 1, false],
+          ["month", "Самара", Number(a), "Пилон", 1, 1, 1, false],
+          ["year", null, null, null, 1, 0, 0, false],
+          ["year", "Самара", null, null, 1, 0, 0, false],
+          ["year", "Самара", Number(a), null, 1, 0, 0, false],
+          ["year", "Самара", Number(a), "Пилон", 1, 0, 0, false],
+        ]),
+      );
+      expect(d.unknown).toEqual([[Number(a), "6"]]);
+
+      await as(tx, viewer);
+      const [{ d: t }] = await tx`select an_fb_attendance_data('2026-10-01', '2026-10-29', '', '', 'Пилон', '') as d`;
+      expect(sorted(t.groups)).toEqual(sorted(d.groups.filter((g: unknown[]) => g[0] !== "current")));
+      await as(tx, viewer);
+      const [{ d: u }] = await tx`select an_fb_attendance_data('2026-10-01', '2026-10-29', 'Уфа', '', '', 'active') as d`;
+      expect([u.selected.map((x: { id: number }) => x.id), u.groups, u.unknown]).toEqual([[Number(b)], [], []]);
+
+      expect(
+        await failure(tx, async () => {
+          await as(tx, viewer);
+          await tx`select an_fb_attendance_data('2025-09-30', '2026-10-01', '', '', '', '')`;
+        }),
+      ).toContain("Выберите корректный период не больше 366 дней.");
+      expect(
+        await failure(tx, async () => {
+          await as(tx, viewer);
+          await tx`select an_fb_attendance_data('2026-10-01', '2026-10-29', '', '', '', 'closed')`;
+        }),
+      ).toContain("Проверьте фильтры.");
+    });
+  });
 });
