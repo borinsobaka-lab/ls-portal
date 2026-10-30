@@ -15,6 +15,7 @@ import { getSupabaseAdmin, hasSupabaseAdmin } from "@/integrations/supabase/clie
 import { jobEnabled } from "@/lib/analytics/jobs";
 import { syncAllAmo } from "./amocrm.server";
 import { syncAllAvito } from "./avito.server";
+import { deliverQuizLeads } from "./quiz.server";
 import { syncAllVk } from "./vk-ads.server";
 import { dispatchBudgetJob, evaluateBudgetAlerts } from "./vk-budget.server";
 import { backfillLfMetrics, collectLf } from "./vk-lf.server";
@@ -30,6 +31,8 @@ export type AnalyticsJob = {
   key: string;
   /** Как часто запускать. */
   everyMs: number;
+  /** Только по событию (kickAnalyticsJob) и «Запустить»: по расписанию не запускается. */
+  onDemand?: boolean;
   /** На сколько занять задачу (секунды): дольше этого считается зависшей. */
   leaseSeconds: number;
   run: () => Promise<JobResult>;
@@ -82,6 +85,17 @@ export const ANALYTICS_JOBS: AnalyticsJob[] = [
   // Их lady-vk-ads-lead-forms-backfill.timer: раз в час — заявки ЛФ текущего
   // месяца в счётчики реестра (только чтение VK).
   { key: "vk_lf_metrics", everyMs: 60 * MINUTE, leaseSeconds: 2 * 60 * 60, run: backfillLfMetrics },
+  // Их quiz_leads.sync_pending: заявки квиза в Google-таблицы городов
+  // (внешнее действие, выключена по умолчанию). Как у них — только сразу
+  // после новой заявки (kickAnalyticsJob из приёма): неотправленные уходят
+  // со следующей заявкой, повтора по расписанию нет (ANALYTICS_PLAN.md, §9).
+  {
+    key: "quiz_sheets",
+    everyMs: 0,
+    onDemand: true,
+    leaseSeconds: 10 * 60,
+    run: deliverQuizLeads,
+  },
 ];
 
 const g = globalThis as typeof globalThis & {
@@ -116,11 +130,48 @@ async function tick() {
     ]),
   );
   for (const job of ANALYTICS_JOBS) {
+    if (job.onDemand) continue;
     const s = last.get(job.key);
     if (!jobEnabled(job.key, s)) continue;
     if (s?.at && Date.now() - new Date(s.at).getTime() < job.everyMs) continue;
     if (state.running.has(job.key)) continue;
     void runJob(job);
+  }
+}
+
+/** Задачи, запущенные kickAnalyticsJob: true — пришло новое событие, пройти ещё раз. */
+const kicks = new Map<string, boolean>();
+
+/**
+ * Выполнить задачу сейчас, если она включена и задачи выполняет этот сервер
+ * (заявка квиза — в таблицу сразу после приёма). Событие во время запуска —
+ * ещё один проход после него (заявка, пришедшая во время отправки
+ * предыдущей, не ждёт следующей). Ошибки — в журнал задачи и лог.
+ */
+export async function kickAnalyticsJob(key: string): Promise<void> {
+  if (
+    !hasSupabaseAdmin() ||
+    process.env.ANALYTICS_JOBS === "off" ||
+    process.env.PUSH_WORKER === "off"
+  )
+    return;
+  const job = ANALYTICS_JOBS.find((j) => j.key === key);
+  if (!job) return;
+  if (kicks.has(key)) {
+    kicks.set(key, true);
+    return;
+  }
+  kicks.set(key, false);
+  try {
+    do {
+      kicks.set(key, false);
+      if (!(await isJobEnabled(key))) break;
+      await runJob(job);
+    } while (kicks.get(key));
+  } catch (e) {
+    console.error("[analytics] задача", key, (e as Error).message);
+  } finally {
+    kicks.delete(key);
   }
 }
 

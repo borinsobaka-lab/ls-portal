@@ -24,6 +24,8 @@ export function UpdateBanner() {
     let cancelled = false;
     const check = async () => {
       if (document.visibilityState !== "visible") return;
+      // Квиз-лендинг видят будущие клиенты, а не сотрудники: плашки портала там нет.
+      if (/^\/quiz(\/|$)/.test(window.location.pathname)) return;
       try {
         const res = await fetch("/api/version", { cache: "no-store" });
         if (!res.ok) return;

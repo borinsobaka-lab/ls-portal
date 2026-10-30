@@ -3309,6 +3309,79 @@ export function AnalyticsAvitoRegisterPageSkeleton() {
   );
 }
 
+/** «Квиз» → «Квиз-лендинги»: пояснение, четыре плитки, города. */
+export function AnalyticsQuizPageSkeleton() {
+  return (
+    <ShellSkeleton title={AN_TITLES.quiz} network actions={["w-36"]}>
+      <div className="space-y-4">
+        <Skeleton className="h-16 w-full rounded-lg" />
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {[0, 1, 2, 3].map((i) => (
+            <Skeleton
+              key={i}
+              className={i === 3 ? "col-span-2 h-20 rounded-lg lg:col-span-1" : "h-20 rounded-lg"}
+            />
+          ))}
+        </div>
+        <TableCardSkeleton
+          title="Города лендинга"
+          headers={["Город", "Ссылка", "Пробное", "Студии", "Google-таблица", "Заявки", ""]}
+          rows={4}
+        />
+      </div>
+    </ShellSkeleton>
+  );
+}
+
+/** «Квиз» → «Заявки квиза»: пояснение, город и состояние, заявки. */
+export function AnalyticsQuizLeadsPageSkeleton() {
+  return (
+    <ShellSkeleton title={AN_TITLES.quizLeads} network>
+      <div className="space-y-4">
+        <Skeleton className="h-12 w-full rounded-lg" />
+        <ToolbarSkeleton search={false} controls={["w-52", "w-80"]} />
+        <TableCardSkeleton
+          headers={[
+            "Дата и время",
+            "Город",
+            "Имя и телефон",
+            "Рекомендация",
+            "Ответы",
+            "UTM",
+            "Таблица",
+            "",
+          ]}
+          rows={8}
+          pagination
+        />
+      </div>
+    </ShellSkeleton>
+  );
+}
+
+/**
+ * Квиз-лендинг (без каркаса портала): белая колонка на сиреневом, как их
+ * лендинг, — заголовок, плитки результатов, кнопка.
+ */
+export function QuizLandingSkeleton() {
+  return (
+    <div className="min-h-dvh bg-[#f4eff8] sm:p-5">
+      <div className="mx-auto flex min-h-dvh w-full max-w-[620px] flex-col justify-center gap-4 bg-white px-6 py-8 sm:min-h-[calc(100dvh-40px)] sm:rounded-3xl sm:px-13">
+        <Skeleton className="h-4 w-40 bg-[#eee1fa]" />
+        <Skeleton className="h-24 w-full bg-[#eee1fa]" />
+        <Skeleton className="h-12 w-4/5 bg-[#eee1fa]" />
+        <div className="grid grid-cols-4 gap-2">
+          {[0, 1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-20 rounded-xl bg-[#e6d8f3]" />
+          ))}
+        </div>
+        <Skeleton className="h-12 w-full bg-[#eee1fa]" />
+        <Skeleton className="h-14 w-full rounded-2xl bg-[#d9bff2]" />
+      </div>
+    </div>
+  );
+}
+
 /** «VK Ads» → «Контроль бюджетов»: бот, каналы, плитки порогов, кабинеты. */
 export function AnalyticsVkAlertsPageSkeleton() {
   return (

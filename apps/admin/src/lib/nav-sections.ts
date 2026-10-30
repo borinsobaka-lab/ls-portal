@@ -37,6 +37,7 @@ import {
   MoneyBag,
   Notebook,
   PieChart2,
+  QuestionCircle,
   Ranking,
   Refresh,
   Settings,
@@ -369,6 +370,25 @@ export const ANALYTICS_GROUPS: NavGroup<AnalyticsNavItem>[] = [
         need: "avito.register",
       },
       { title: "Планы Авито", url: "/analytics/avito/plans", icon: Flag, need: "admin" },
+    ],
+  },
+  {
+    key: "an-quiz",
+    label: "Квиз",
+    items: [
+      {
+        title: "Квиз-лендинги",
+        url: "/analytics/quiz",
+        icon: QuestionCircle,
+        exact: true,
+        need: "admin",
+      },
+      {
+        title: "Заявки квиза",
+        url: "/analytics/quiz/leads",
+        icon: ClipboardList,
+        need: "admin",
+      },
     ],
   },
   {

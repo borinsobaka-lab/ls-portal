@@ -1154,6 +1154,18 @@ DEPLOY.md.
   час); реестр — `an_avito_register` (право `avito.register`: кампании,
   структура, сделки amoCRM с UTM Авито, планы месяцев периода). Таблицы
   закрыты браузеру.
+  Квиз (2026-10-30, ANALYTICS.md): `db/migrations/2026-10-30_zzzzzzzzzzzz_analytics_quiz.sql`
+  — города лендинга `an_quiz_cities` (их config.js и CITY_SHEETS: адрес
+  страницы, студии, цена пробного, оператор ПДн, таблица и лист заявок,
+  город по умолчанию — вводит администратор, в репозитории их нет) и
+  заявки `an_quiz_leads` (их quiz_leads; `sheet_synced_at` / `sheet_error`).
+  Лендинг без входа — `an_quiz_landing` (anon: город по адресу, иначе по
+  умолчанию; без таблицы); заявку пишет сервер портала (`an_quiz_lead_add`,
+  только service_role — приём `/api/analytics/quiz/leads`), в таблицы —
+  `an_quiz_pending` / `an_quiz_mark` (задача `quiz_sheets`, внешняя);
+  администратору аналитики — `an_quiz_overview`, `an_quiz_city_save` /
+  `_delete`, `an_quiz_leads`, `an_quiz_lead_delete`. Таблицы закрыты
+  браузеру.
   Клубы и собственники (решение владельца 2026-10-27, ACCESS.md):
   `db/migrations/2026-10-27_zz_studio_owners.sql` — `studio_owners`
   (клуб × пользователь портала; пишут только RPC `org_studio_owners_set` /

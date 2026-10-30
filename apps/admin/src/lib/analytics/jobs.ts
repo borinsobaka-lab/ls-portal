@@ -24,6 +24,7 @@ export const AN_JOBS: Record<string, AnJobInfo> = {
   avito: { label: "Авито: структура кабинетов и статистика кампаний за вчера" },
   vk_lf: { label: "VK Ads: новые заявки лид-форм в Google-таблицы", external: true },
   vk_lf_metrics: { label: "VK Ads: заявки лид-форм за текущий месяц для реестра" },
+  quiz_sheets: { label: "Квиз: новые заявки в Google-таблицы городов", external: true },
 };
 
 export const jobLabel = (key: string) => AN_JOBS[key]?.label ?? key;
