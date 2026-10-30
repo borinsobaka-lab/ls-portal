@@ -1014,7 +1014,14 @@ DEPLOY.md.
   `_rollback` / `_discard`; процессу обработки (service_role) —
   `an_onec_run_claim` / `_progress` / `_review` / `_finish` / `_fail`,
   `an_onec_snapshot_begin` / `_items` / `_facts`, `an_onec_nomenclature_store`,
-  `an_onec_file_plan`. Отчёты читают слот `current` (`an_onec_slot`).
+  `an_onec_file_plan`. Отчёты читают слот `current` (`an_onec_slot`):
+  `db/migrations/2026-10-30_z_analytics_onec_reports.sql` — их onec_scope
+  (`an_onec_scope`: администратор — всё; партнёр — только «Мой город» и
+  свои города; «Мой город» сотруднику — при всех четырёх отчётах 1С), их
+  aggregate() (`an_onec_aggregate`: сначала позиции отчёта, потом их факты
+  по ключу; без JIT — он компилировал дольше, чем шёл запрос) и base_meta
+  (`an_onec_report_meta`: дата, покрытие, точка 0, контроль нулевых,
+  студии городов).
   Клубы и собственники (решение владельца 2026-10-27, ACCESS.md):
   `db/migrations/2026-10-27_zz_studio_owners.sql` — `studio_owners`
   (клуб × пользователь портала; пишут только RPC `org_studio_owners_set` /

@@ -32,7 +32,8 @@ Tailwind 4 + shadcn/radix. Пакетный менеджер — bun.
   «Рабочий день» — время по Тбилиси, просрочка, порядок `lib/workday/logic.test.ts`;
   «Аналитика» — права `lib/analytics/access.test.ts`, ключи интеграций
   `lib/analytics/server/secrets.test.ts`, обработка 1С (чтение .xlsx,
-  правила, своды) `lib/analytics/onec/onec.test.ts`; «Академия» — подписи,
+  правила, своды) `lib/analytics/onec/onec.test.ts`, отчёты 1С (их
+  full_reports.py и расчёты досок) `lib/analytics/onec-reports/*.test.ts`; «Академия» — подписи,
   проверка вопроса, сроки и напоминания `lib/academy/logic.test.ts`;
   Kate — инструменты,
   права, история и промпт `lib/assistant/*.test.ts`).
@@ -712,6 +713,17 @@ kb`. Доступ — ролями «Пользователей и ролей» 
   `kickOnecProcessing`. Логика сводов — их, построчно (`onec/process.ts`,
   тест `onec/onec.test.ts`); не «чинить» — ANALYTICS_PLAN.md, §9.
   `read-excel-file` (MIT) в зависимостях — под «Очистку Excel».
+  Отчёты 1С — группа меню «1С · Lady Stretch» (`/analytics/onec/<доска>`,
+  «Мой город» — `/mycity`): маршрут рисует `OnecReportFrame`
+  (`components/analytics/onec/report-frame.tsx`: период, «С начала месяца /
+  квартала / года», подпись «Обновлено … МСК», пустой снимок), данные —
+  `onecReportQuery` (`lib/analytics/onec-reports/data.ts`: RPC
+  `an_onec_report_meta` + `an_onec_aggregate` → `payload.ts`, их
+  full_reports.py с тестом), доска — `components/analytics/onec/boards/`
+  (их HTML-доски в нашем оформлении; расчёты — `lib/analytics/onec-reports/
+  <доска>.ts` + тест). Фильтры доски — в адресе (`search.ts`,
+  `controls.setFilters`), выбор месяца внутри доски — `controls.changeMonth`.
+  Карточки главной — `AN_CARDS` и `AN_MYCITY_CARD` (`lib/analytics/labels.ts`).
 - **«Академия»** (2026-10-25; план и решения — ACADEMY.md, схема —
   корневой CLAUDE.md) — раздел рейки со своим меню (`ACADEMY_ITEMS` в
   `lib/nav-sections.ts`; пункт открыт по праву `need`: any / team / create /
