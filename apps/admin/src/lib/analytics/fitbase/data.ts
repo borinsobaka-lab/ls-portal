@@ -198,6 +198,38 @@ export const fbTrialServicesQuery = (id: number) => ({
   meta: { errorMessage: "Не удалось загрузить пробные услуги FitBase" },
 });
 
+export type FbBasisOverview = {
+  status: { state: string; checked_at: number | null; counts: Record<string, number> } | null;
+  session: { updated_at: string } | null;
+  job: { enabled: boolean } | null;
+  connections: { id: number; name: string; city: string; domain: string; club_id: string }[];
+  jobs: {
+    connection_id: number;
+    month: string;
+    page: number;
+    seen: number;
+    total: number | null;
+    finished_at: number;
+    failed_at: number;
+    error: string;
+    passes: number;
+    direction: number;
+    last_attempt: number;
+  }[];
+  basis: Record<string, number>;
+  pending: number;
+};
+
+/** Сборщик оснований записей: состояние, сессия, задания (администратору аналитики). */
+export const fbBasisQuery = {
+  queryKey: [...FB_KEY, "basis"],
+  queryFn: () => rpc<FbBasisOverview>("an_fb_basis_overview"),
+  // Пока задача включена — состояние обновляется само.
+  refetchInterval: (q: { state: { data?: FbBasisOverview } }) =>
+    q.state.data?.job?.enabled ? 15000 : false,
+  meta: { errorMessage: "Не удалось загрузить сборщик оснований FitBase" },
+};
+
 export const fbRpc = {
   attendanceSettings: (id: number, status: string, rules: Record<string, string>) =>
     rpc<null>("an_fb_attendance_settings", { p_id: id, p_status: status, p_rules: rules }),

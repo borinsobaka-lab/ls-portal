@@ -15,6 +15,13 @@ import {
 } from "./fitbase/rules";
 import { fbStartAll, fbStartJob, removeFbBlobs, type FbAction } from "./server/fitbase.server";
 import { fbTrialLoadCatalog, fbTrialRecompute } from "./server/fitbase-trials.server";
+import {
+  fbWebAcceptSession,
+  fbWebForgetSession,
+  fbWebIssueToken,
+  fbWebNetworkOrigin,
+} from "./server/fitbase-web.server";
+import { FbWebError } from "./fitbase/web";
 import { encryptSecret } from "./server/secrets.server";
 
 /**
@@ -356,5 +363,75 @@ export const saveFitbaseTrialServices = createServerFn({ method: "POST" })
     });
     if (error) throw new Error(error.message);
     await fbTrialRecompute(data.id);
+    return { ok: true };
+  });
+
+/** Ошибки сборщика оснований — свои тексты; прочее — общий текст. */
+function shownWeb(e: unknown): never {
+  if (e instanceof FbWebError) throw new Error(e.message);
+  throw e;
+}
+
+/**
+ * Код помощника входа (их authorize.py → configure_session): помощник на
+ * компьютере владельца после входа в FitBase передаёт сессию порталу с этим
+ * кодом. Код — адрес портала, одноразовый ключ на 15 минут и адрес FitBase.
+ */
+export const issueFitbaseWebCode = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await requireAnAdmin(context.supabase);
+    const portal = (process.env.ADMIN_APP_URL || "").replace(/\/+$/, "");
+    if (!portal)
+      throw new Error("На сервере не задан ADMIN_APP_URL — адрес портала для помощника.");
+    // Код помощника: адрес портала, одноразовый ключ и адрес FitBase сети.
+    let origin = "";
+    try {
+      origin = await fbWebNetworkOrigin();
+    } catch (e) {
+      shownWeb(e);
+    }
+    const token = await fbWebIssueToken(context.userId);
+    const code = Buffer.from(JSON.stringify({ u: portal, t: token, o: origin }), "utf8").toString(
+      "base64url",
+    );
+    await audit(context.userId, "fitbase_web_code", "15 min");
+    return { code };
+  });
+
+/** Сессия FitBase, вставленная вручную (JSON помощника входа). */
+export const saveFitbaseWebSession = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data) =>
+    z
+      .object({ json: z.string().max(200000) })
+      .strict()
+      .parse(data),
+  )
+  .handler(async ({ context, data }) => {
+    await requireAnAdmin(context.supabase);
+    let payload: unknown;
+    try {
+      payload = JSON.parse(data.json);
+    } catch {
+      throw new Error("Нужна сессия помощника входа: {origin, cookies}.");
+    }
+    let studios = 0;
+    try {
+      studios = await fbWebAcceptSession(payload, context.userId);
+    } catch (e) {
+      shownWeb(e);
+    }
+    await audit(context.userId, "fitbase_web_session", String(studios));
+    return { studios };
+  });
+
+/** Удалить сессию FitBase (сборщик остановится до нового входа). */
+export const forgetFitbaseWebSession = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await requireAnAdmin(context.supabase);
+    await fbWebForgetSession();
+    await audit(context.userId, "fitbase_web_session_removed", "");
     return { ok: true };
   });

@@ -25,6 +25,11 @@ export const AN_JOBS: Record<string, AnJobInfo> = {
   vk_lf: { label: "VK Ads: новые заявки лид-форм в Google-таблицы", external: true },
   vk_lf_metrics: { label: "VK Ads: заявки лид-форм за текущий месяц для реестра" },
   fitbase: { label: "FitBase: ночная загрузка всех студий (01:00 МСК, только изменения)" },
+  fitbase_basis: {
+    label:
+      "FitBase: основания записей со страниц FitBase (каждые 5 минут; переключает клуб учётной записи FitBase)",
+    external: true,
+  },
   quiz_sheets: { label: "Квиз: новые заявки в Google-таблицы городов", external: true },
 };
 

@@ -16,6 +16,7 @@ import { jobEnabled } from "@/lib/analytics/jobs";
 import { syncAllAmo } from "./amocrm.server";
 import { syncAllAvito } from "./avito.server";
 import { fbNightlyDue, fbNightlyRun } from "./fitbase.server";
+import { fbBasisRun } from "./fitbase-web.server";
 import { deliverQuizLeads } from "./quiz.server";
 import { syncAllVk } from "./vk-ads.server";
 import { dispatchBudgetJob, evaluateBudgetAlerts } from "./vk-budget.server";
@@ -102,6 +103,10 @@ export const ANALYTICS_JOBS: AnalyticsJob[] = [
     isDue: fbNightlyDue,
     run: fbNightlyRun,
   },
+  // Их lady-fitbase-web.timer: каждые 5 минут проход не дольше 240 секунд и
+  // 120 запросов. Внешняя: выбор клуба меняет клуб учётной записи FitBase и
+  // для её других сеансов (их сборщика) — выключена, пока её не включат.
+  { key: "fitbase_basis", everyMs: 5 * MINUTE, leaseSeconds: 6 * 60, run: () => fbBasisRun() },
   {
     key: "quiz_sheets",
     everyMs: 0,

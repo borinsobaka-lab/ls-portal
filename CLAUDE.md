@@ -30,7 +30,9 @@ shadcn/radix, пакетный менеджер — bun.
   `cleanup.sql` — убрать всё после прогона); `backup-storage.sh` — ежедневный
   архив файлов Supabase Storage в S3 (бэкап базы их не содержит);
   `telegram-gateway/worker.js` — Cloudflare Worker, шлюз Telegram для
-  «Контроля бюджетов» «Аналитики» (DEPLOY.md).
+  «Контроля бюджетов» «Аналитики» (DEPLOY.md); `fitbase-session/` —
+  помощник входа FitBase на компьютере владельца (Python + Playwright:
+  сессия FitBase для сборщика оснований «Аналитики», README там же).
 
 **Первый этап (решения владельца 2026-10-27)** — на портале только база
 знаний, «Академия» и «Аналитика». Разделы «Дашборд», «Клуб»,
@@ -1210,7 +1212,7 @@ DEPLOY.md.
   (режим auto / selected, revision), каталог `an_fb_trial_service_catalog`,
   связи записей с услугами `an_fb_trial_service_refs` + метка
   `an_fb_trial_service_index`, основания из веб-интерфейса FitBase
-  `an_fb_trial_basis` (заполнит сборщик) и итог их overrides —
+  `an_fb_trial_basis` (заполняет сборщик, часть 5) и итог их overrides —
   `an_fb_trial_overrides` (все — на владельца подключения `an_fb_owner`:
   домен + клуб). Тип записи в отчётах — coalesce(override,
   `an_fb_trial_products`, -1); итог пишет сервер портала после загрузки
@@ -1219,6 +1221,21 @@ DEPLOY.md.
   выбор услуг `an_fb_trial_services` / `_save` (администратор аналитики),
   серверу (service_role) — `an_fb_trial_catalog_store`, `_refs_store`,
   `_overrides_store`. Таблицы закрыты браузеру.
+  FitBase, часть 5 (2026-10-31, ANALYTICS.md):
+  `db/migrations/2026-10-31_analytics_fitbase_basis.sql` — сборщик
+  оснований записей со страниц FitBase (их automatic-basis): очередь
+  `an_fb_basis_jobs` (их jobs: месяц студии или `recent`, страница,
+  счётчики, обратный проход), прочитанные ID `an_fb_basis_seen`, основания
+  без записи в загрузке API `an_fb_basis_evidence`, состояние прохода
+  `an_fb_basis_status` (строка id = 1), одноразовые коды помощника входа
+  `an_fb_web_tokens` (SHA-256 ключа, 15 минут). Сессия FitBase (cookies
+  входа владельца) — `an_secrets` kind `fitbase_web`. RPC: обзор
+  `an_fb_basis_overview` (администратор аналитики), серверу (service_role)
+  — `an_fb_basis_plan` (их jobs(): задания, которым пора), `an_fb_basis_lookup`
+  (их apply_evidence: владелец, записи API с днём занятия, прежние
+  основания). Основания — в `an_fb_trial_basis` (часть 4). Задача
+  `fitbase_basis` — внешняя, выключена по умолчанию. Таблицы закрыты
+  браузеру.
   Клубы и собственники (решение владельца 2026-10-27, ACCESS.md):
   `db/migrations/2026-10-27_zz_studio_owners.sql` — `studio_owners`
   (клуб × пользователь портала; пишут только RPC `org_studio_owners_set` /

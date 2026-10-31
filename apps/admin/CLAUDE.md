@@ -49,7 +49,8 @@ Tailwind 4 + shadcn/radix. Пакетный менеджер — bun.
   сокращение строк, периоды, ночная загрузка) `lib/analytics/fitbase/fitbase.test.ts`,
   (отчёты: выручка, продажи, маркетинг, форматы Python) `lib/analytics/fitbase/reports.test.ts`,
   (занятия и посещаемость) `lib/analytics/fitbase/attendance.test.ts`, (воронка
-  пробных, пробные услуги, «Записи без услуги» и CSV) `lib/analytics/fitbase/trials.test.ts`;
+  пробных, пробные услуги, «Записи без услуги» и CSV) `lib/analytics/fitbase/trials.test.ts`,
+  (основания со страниц FitBase: разбор, пагинация, приём) `lib/analytics/fitbase/web.test.ts`;
   «Академия» — подписи,
   проверка вопроса, сроки и напоминания `lib/academy/logic.test.ts`;
   Kate — инструменты,
@@ -837,7 +838,14 @@ kb`. Доступ — ролями «Пользователей и ролей» 
   (каталог и сохранение — серверные функции `loadFitbaseTrialCatalog` /
   `saveFitbaseTrialServices`); итоговые типы записей считает
   `lib/analytics/server/fitbase-trials.server.ts` (после загрузки студии,
-  выбора услуг и каталога).
+  выбора услуг и каталога). Основания записей со страниц FitBase (их
+  automatic-basis) — `/analytics/crm/fitbase/basis` (сессия от помощника
+  входа `deploy/fitbase-session/` по одноразовому коду — приём
+  `routes/api/analytics/fitbase/session.ts`; «Вставить сессию вручную»;
+  сборщик — задача `fitbase_basis`, внешняя), разбор страниц —
+  `lib/analytics/fitbase/web.ts`, клиент страниц и проход —
+  `lib/analytics/server/fitbase-web.server.ts`
+  (`ANALYTICS_FITBASE_WEB_ORIGIN` — только стенд).
   Отчёты 1С — группа меню «1С · Lady Stretch» (`/analytics/onec/<доска>`,
   «Мой город» — `/mycity`): маршрут рисует `OnecReportFrame`
   (`components/analytics/onec/report-frame.tsx`: период, «С начала месяца /

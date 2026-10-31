@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Loader2, Plus, RefreshCw } from "lucide-react";
@@ -59,6 +59,18 @@ function AnalyticsFitbasePage() {
         ) : (
           <>
             <BatchPanel data={data} loading={isPending} />
+            <section className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-background p-4">
+              <div className="min-w-0">
+                <h2 className="text-lg font-semibold">Основания записей</h2>
+                <p className="text-sm text-muted-foreground">
+                  Услуга или абонемент записи со страниц FitBase — для записей, где API их не
+                  отдаёт.
+                </p>
+              </div>
+              <Button asChild variant="outline">
+                <Link to="/analytics/crm/fitbase/basis">Сессия и сборщик оснований</Link>
+              </Button>
+            </section>
             <section className="space-y-3">
               <div className="flex items-baseline justify-between gap-2">
                 <h2 className="text-lg font-semibold">Подключённые студии</h2>
