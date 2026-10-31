@@ -103,6 +103,7 @@ import { Route as AuthenticatedAnalyticsOnecMycityRouteImport } from './routes/_
 import { Route as AuthenticatedAnalyticsOnecFunnelRouteImport } from './routes/_authenticated/analytics/onec/funnel'
 import { Route as AuthenticatedAnalyticsOnecActivitiesRouteImport } from './routes/_authenticated/analytics/onec/activities'
 import { Route as AuthenticatedAnalyticsInboxTemplatesRouteImport } from './routes/_authenticated/analytics/inbox/templates'
+import { Route as AuthenticatedAnalyticsInboxStatisticsRouteImport } from './routes/_authenticated/analytics/inbox/statistics'
 import { Route as AuthenticatedAnalyticsInboxCommunitiesRouteImport } from './routes/_authenticated/analytics/inbox/communities'
 import { Route as AuthenticatedAnalyticsFitbaseSalesRouteImport } from './routes/_authenticated/analytics/fitbase/sales'
 import { Route as AuthenticatedAnalyticsFitbaseRevenueRouteImport } from './routes/_authenticated/analytics/fitbase/revenue'
@@ -666,6 +667,12 @@ const AuthenticatedAnalyticsInboxTemplatesRoute =
     path: '/analytics/inbox/templates',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAnalyticsInboxStatisticsRoute =
+  AuthenticatedAnalyticsInboxStatisticsRouteImport.update({
+    id: '/analytics/inbox/statistics',
+    path: '/analytics/inbox/statistics',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAnalyticsInboxCommunitiesRoute =
   AuthenticatedAnalyticsInboxCommunitiesRouteImport.update({
     id: '/analytics/inbox/communities',
@@ -959,6 +966,7 @@ export interface FileRoutesByFullPath {
   '/analytics/fitbase/revenue': typeof AuthenticatedAnalyticsFitbaseRevenueRoute
   '/analytics/fitbase/sales': typeof AuthenticatedAnalyticsFitbaseSalesRoute
   '/analytics/inbox/communities': typeof AuthenticatedAnalyticsInboxCommunitiesRoute
+  '/analytics/inbox/statistics': typeof AuthenticatedAnalyticsInboxStatisticsRoute
   '/analytics/inbox/templates': typeof AuthenticatedAnalyticsInboxTemplatesRoute
   '/analytics/onec/activities': typeof AuthenticatedAnalyticsOnecActivitiesRoute
   '/analytics/onec/funnel': typeof AuthenticatedAnalyticsOnecFunnelRoute
@@ -1090,6 +1098,7 @@ export interface FileRoutesByTo {
   '/analytics/fitbase/revenue': typeof AuthenticatedAnalyticsFitbaseRevenueRoute
   '/analytics/fitbase/sales': typeof AuthenticatedAnalyticsFitbaseSalesRoute
   '/analytics/inbox/communities': typeof AuthenticatedAnalyticsInboxCommunitiesRoute
+  '/analytics/inbox/statistics': typeof AuthenticatedAnalyticsInboxStatisticsRoute
   '/analytics/inbox/templates': typeof AuthenticatedAnalyticsInboxTemplatesRoute
   '/analytics/onec/activities': typeof AuthenticatedAnalyticsOnecActivitiesRoute
   '/analytics/onec/funnel': typeof AuthenticatedAnalyticsOnecFunnelRoute
@@ -1223,6 +1232,7 @@ export interface FileRoutesById {
   '/_authenticated/analytics/fitbase/revenue': typeof AuthenticatedAnalyticsFitbaseRevenueRoute
   '/_authenticated/analytics/fitbase/sales': typeof AuthenticatedAnalyticsFitbaseSalesRoute
   '/_authenticated/analytics/inbox/communities': typeof AuthenticatedAnalyticsInboxCommunitiesRoute
+  '/_authenticated/analytics/inbox/statistics': typeof AuthenticatedAnalyticsInboxStatisticsRoute
   '/_authenticated/analytics/inbox/templates': typeof AuthenticatedAnalyticsInboxTemplatesRoute
   '/_authenticated/analytics/onec/activities': typeof AuthenticatedAnalyticsOnecActivitiesRoute
   '/_authenticated/analytics/onec/funnel': typeof AuthenticatedAnalyticsOnecFunnelRoute
@@ -1356,6 +1366,7 @@ export interface FileRouteTypes {
     | '/analytics/fitbase/revenue'
     | '/analytics/fitbase/sales'
     | '/analytics/inbox/communities'
+    | '/analytics/inbox/statistics'
     | '/analytics/inbox/templates'
     | '/analytics/onec/activities'
     | '/analytics/onec/funnel'
@@ -1487,6 +1498,7 @@ export interface FileRouteTypes {
     | '/analytics/fitbase/revenue'
     | '/analytics/fitbase/sales'
     | '/analytics/inbox/communities'
+    | '/analytics/inbox/statistics'
     | '/analytics/inbox/templates'
     | '/analytics/onec/activities'
     | '/analytics/onec/funnel'
@@ -1619,6 +1631,7 @@ export interface FileRouteTypes {
     | '/_authenticated/analytics/fitbase/revenue'
     | '/_authenticated/analytics/fitbase/sales'
     | '/_authenticated/analytics/inbox/communities'
+    | '/_authenticated/analytics/inbox/statistics'
     | '/_authenticated/analytics/inbox/templates'
     | '/_authenticated/analytics/onec/activities'
     | '/_authenticated/analytics/onec/funnel'
@@ -2352,6 +2365,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAnalyticsInboxTemplatesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/analytics/inbox/statistics': {
+      id: '/_authenticated/analytics/inbox/statistics'
+      path: '/analytics/inbox/statistics'
+      fullPath: '/analytics/inbox/statistics'
+      preLoaderRoute: typeof AuthenticatedAnalyticsInboxStatisticsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/analytics/inbox/communities': {
       id: '/_authenticated/analytics/inbox/communities'
       path: '/analytics/inbox/communities'
@@ -2674,6 +2694,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAnalyticsFitbaseRevenueRoute: typeof AuthenticatedAnalyticsFitbaseRevenueRoute
   AuthenticatedAnalyticsFitbaseSalesRoute: typeof AuthenticatedAnalyticsFitbaseSalesRoute
   AuthenticatedAnalyticsInboxCommunitiesRoute: typeof AuthenticatedAnalyticsInboxCommunitiesRoute
+  AuthenticatedAnalyticsInboxStatisticsRoute: typeof AuthenticatedAnalyticsInboxStatisticsRoute
   AuthenticatedAnalyticsInboxTemplatesRoute: typeof AuthenticatedAnalyticsInboxTemplatesRoute
   AuthenticatedAnalyticsOnecActivitiesRoute: typeof AuthenticatedAnalyticsOnecActivitiesRoute
   AuthenticatedAnalyticsOnecFunnelRoute: typeof AuthenticatedAnalyticsOnecFunnelRoute
@@ -2806,6 +2827,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedAnalyticsFitbaseSalesRoute,
   AuthenticatedAnalyticsInboxCommunitiesRoute:
     AuthenticatedAnalyticsInboxCommunitiesRoute,
+  AuthenticatedAnalyticsInboxStatisticsRoute:
+    AuthenticatedAnalyticsInboxStatisticsRoute,
   AuthenticatedAnalyticsInboxTemplatesRoute:
     AuthenticatedAnalyticsInboxTemplatesRoute,
   AuthenticatedAnalyticsOnecActivitiesRoute:

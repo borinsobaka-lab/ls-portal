@@ -4336,4 +4336,74 @@ describe.skipIf(!url)("аналитика: фундамент (база)", () =>
       expect((await tx`select an_inbox_marker(null) as m`)[0].m).not.toBe(m1);
     });
   });
+
+  test("Диалоги VK: статистика — кому видна, их manager_statistics, строки ответов и лидов (только серверу)", async () => {
+    await scenario(async (tx) => {
+      const admin = await person(tx, "Админ статистики", ["an.admin"]);
+      const lead = await person(tx, "Лид статистики", ["an.inbox"]);
+      const plain = await person(tx, "Без статистики", ["an.onec.revenue"]);
+      await asServer(tx);
+      const [{ id: c1 }] = await tx`insert into an_inbox_communities (vk_community_id, display_name, brand, city,
+          callback_secret_hash, callback_confirmation_code)
+        values (333, 'Стат группа', 'Lady Stretch', 'Тула', ${"c".repeat(64)}, 'code1') returning id`;
+      const [{ id: c2 }] = await tx`insert into an_inbox_communities (vk_community_id, display_name, brand, city,
+          callback_secret_hash, callback_confirmation_code)
+        values (444, 'Чужая группа', 'Lady Stretch', 'Орёл', ${"d".repeat(64)}, 'code1') returning id`;
+      await tx`insert into an_inbox_user_communities values (${lead}, ${c1})`;
+      const t0 = 1_793_000_000; // 2026-10-26
+      const store = (c: unknown, id: number, peer: number, at: number, out: boolean, text: string) =>
+        tx`select an_inbox_store_message(${c}, ${out ? "message_reply" : "message_new"}, ${peer}, ${id}, ${at},
+             ${out ? -333 : peer}, ${out}, null, ${text}, '{}'::jsonb)`;
+      await store(c1, 1, 701, t0, false, "Здравствуйте");
+      await store(c1, 2, 701, t0 + 60, false, "Мой номер 89123456789");
+      await tx`select an_inbox_reply_store(${lead}, (select id from an_inbox_dialogs where peer_id = 701), 3,
+                 'Ответ', '[]'::jsonb)`;
+      await tx`update an_inbox_messages set sent_at = to_timestamp(${t0 + 300}) where vk_message_id = 3`;
+      await store(c2, 4, 801, t0, false, "Чужой 89990001122");
+
+      // Кому видна: администратор и лид-менеджер; прочим — их отказ.
+      await as(tx, plain);
+      expect(await failure(tx, () => tx`select an_inbox_stats_context()`)).toContain("Нет доступа к диалогам VK");
+      await as(tx, lead);
+      const [{ c }] = await tx`select an_inbox_stats_context() as c`;
+      expect(c.admin).toBe(false);
+      expect(c.communities.map((x: { id: number }) => Number(x.id))).toEqual([Number(c1)]);
+      expect(c.active.map(Number).sort()).toEqual([Number(c1), Number(c2)].sort());
+      expect(c.people.map((p: { user_id: string }) => p.user_id)).toEqual([lead]);
+      expect(c.people[0].communities.map(Number)).toEqual([Number(c1)]);
+      // Строки для расчёта — только серверу.
+      for (const q of [
+        tx`select an_inbox_stat_managers(now() - interval '1 day', now(), null)`,
+        tx`select an_inbox_stat_lead_rows(now() - interval '1 day', now(), null)`,
+      ])
+        expect(await failure(tx, () => q)).toContain("permission denied");
+      await as(tx, admin);
+      expect((await tx`select an_inbox_stats_context() as c`)[0].c.admin).toBe(true);
+
+      await tx`set local role service_role`;
+      const start = new Date((t0 - 3600) * 1000).toISOString();
+      const end = new Date((t0 + 86400) * 1000).toISOString();
+      const [{ m }] = await tx`select an_inbox_stat_managers(${start}, ${end}, ${[c1]}::bigint[]) as m`;
+      expect(m).toEqual([
+        { user_id: lead, replies: 1, dialogs: 1, first_responses: 1, median_seconds: 300, p90_seconds: 300 },
+      ]);
+      const [{ r }] = await tx`select an_inbox_stat_reply_rows(${start}, ${end}, null, ${[c1]}::bigint[]) as r`;
+      expect(r.map((x: unknown[]) => [x[2], x[3], Number(x[4]) - t0])).toEqual([
+        ["i", null, 0],
+        ["i", null, 60],
+        ["o", lead, 300],
+      ]);
+      const [{ l }] = await tx`select an_inbox_stat_lead_rows(${start}, ${end}, ${[c1]}::bigint[]) as l`;
+      expect(l.work).toEqual([
+        { user_id: lead, day: "2026-10-26", replies: 1, dialog_ids: [Number(l.work[0].dialog_ids[0])] },
+      ]);
+      expect(l.leads.length).toBe(1);
+      expect(l.leads[0]).toMatchObject({ history_verified: false, owner_id: lead, reply_user_id: lead });
+      expect(Number(l.leads[0].lead_at)).toBe(t0);
+      expect(Number(l.leads[0].reply_at)).toBe(t0 + 300);
+      expect(l.phones.map((p: { body: string; phone_owner_id: string | null }) => [p.body, p.phone_owner_id])).toEqual([
+        ["Мой номер 89123456789", null],
+      ]);
+    });
+  });
 });

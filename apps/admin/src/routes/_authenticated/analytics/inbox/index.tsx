@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { FileText, Link2, RotateCcw } from "lucide-react";
+import { ChartColumn, FileText, Link2, RotateCcw } from "lucide-react";
 
 import { AdminShell } from "@/components/admin-shell";
 import { InboxThreadView } from "@/components/analytics/inbox/thread";
@@ -199,6 +199,12 @@ function AnalyticsInboxPage() {
               <Link to="/analytics/inbox/templates">
                 <FileText />
                 Мои шаблоны
+              </Link>
+            </Button>
+            <Button asChild variant="outline" size="sm">
+              <Link to="/analytics/inbox/statistics">
+                <ChartColumn />
+                Статистика
               </Link>
             </Button>
             {first?.admin && (
