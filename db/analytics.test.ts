@@ -4406,4 +4406,121 @@ describe.skipIf(!url)("аналитика: фундамент (база)", () =>
       ]);
     });
   });
+
+  test("Контент-план: группы и ссылки, пост по часовым поясам групп, картинки, публикация сервером", async () => {
+    await scenario(async (tx) => {
+      const admin = await person(tx, "Админ контента", ["an.admin"]);
+      const lead = await person(tx, "Не админ контента", ["an.inbox"]);
+      const cipher = "B".repeat(40) + "==";
+      await as(tx, lead);
+      expect(await failure(tx, () => tx`select an_content_communities()`)).toContain("an_forbidden");
+      expect(await failure(tx, () => tx`select * from an_content_posts`)).toContain("permission denied");
+
+      await as(tx, admin);
+      const save = (brand: string, name: string, city: string, vk: string, tz: string, trial = "", sched = "", token = "") =>
+        tx`select an_content_community_save(${brand}, ${name}, ${city}, ${vk}, ${tz}, ${trial}, ${sched}, ${token}) as id`;
+      expect(await failure(tx, () => save("LS", "Г", "Тула", "1", "Europe/Moscow"))).toContain(
+        "Выберите направление Lady Stretch или Lady Jump.",
+      );
+      expect(await failure(tx, () => save("Lady Stretch", "Г", "Тула", "1", "Europe/Paris"))).toContain(
+        "Выберите часовой пояс из списка.",
+      );
+      expect(await failure(tx, () => save("Lady Stretch", "Г", "Тула", "vk.ru/lady", "Europe/Moscow"))).toContain(
+        "Укажите числовой ID группы VK или ссылку вида vk.ru/public123456.",
+      );
+      expect(await failure(tx, () => save("Lady Stretch", " ", "Тула", "1", "Europe/Moscow"))).toContain(
+        "Заполните название группы и город или студию.",
+      );
+      expect(await failure(tx, () => save("Lady Stretch", "Г", "Тула", "1", "Europe/Moscow", "ftp://x"))).toContain(
+        "Ссылка на пробное должна начинаться с https://, vk.cc/ или vk.me/.",
+      );
+      const [{ id: tula }] = await save("Lady Stretch", "LS Тула", "Тула", "https://vk.com/club111", "Europe/Moscow",
+        "VK.CC/trial", "https://x/sched", cipher);
+      const [{ id: samara }] = await save("Lady Stretch", "LS Самара", "Самара", "-222", "Europe/Samara");
+      const [{ id: jump }] = await save("Lady Jump", "LJ Тула", "Тула", "333", "Europe/Moscow", "https://t");
+      // Тот же ID — обновление, пустой токен — прежний.
+      const [{ id: again }] = await save("Lady Stretch", "LS Тула 2", "Тула", "111", "Europe/Moscow", "https://t2", "https://x/sched");
+      expect(Number(again)).toBe(Number(tula));
+      const [{ c }] = await tx`select an_content_communities() as c`;
+      expect(c.communities.map((x: { display_name: string; has_token: boolean }) => [x.display_name, x.has_token])).toEqual([
+        ["LJ Тула", false],
+        ["LS Самара", false],
+        ["LS Тула 2", true],
+      ]);
+      expect(c.media_token).toBe(false);
+
+      // Пост: их проверки, затем время публикации — в поясе каждой группы.
+      await asServer(tx);
+      await tx`insert into storage.objects (bucket_id, name, metadata) values
+        ('an-content', 'p/0.png', '{"size": 100, "mimetype": "image/png"}'),
+        ('an-content', 'p/1.gif', '{"size": 100, "mimetype": "image/png"}')`;
+      await as(tx, admin);
+      const post = (body: string, targets: unknown[], media: unknown[] = [], date = "2026-11-02", time = "10:00", brand = "Lady Stretch") =>
+        tx`select an_content_post_create(${brand}, ' Заголовок ', ${body}, ${date}, ${time}, ${targets}::bigint[], ${media}::jsonb) as id`;
+      expect(await failure(tx, () => post("Текст", [tula], [{ path: "p/1.gif", name: "1.gif" }]))).toContain(
+        "Можно прикрепить только изображения JPG, PNG, WEBP или GIF.",
+      );
+      expect(await failure(tx, () => post("Текст", [tula], [{ path: "nope.png", name: "n.png" }]))).toContain(
+        "Не удалось прочитать форму или изображения.",
+      );
+      expect(await failure(tx, () => post("  ", [tula]))).toContain("Введите текст поста.");
+      expect(await failure(tx, () => post("x".repeat(12001), [tula]))).toContain("Текст поста слишком длинный.");
+      expect(await failure(tx, () => post("Текст", [tula], [], "2026-11-2"))).toContain("Укажите дату и время публикации.");
+      expect(await failure(tx, () => post("Текст", [tula], [], "2026-02-30"))).toContain("Дата или время публикации указаны неверно.");
+      expect(await failure(tx, () => post("Текст", [tula], [], "2026-11-02", "24:00"))).toContain("Дата или время публикации указаны неверно.");
+      expect(await failure(tx, () => post("Текст", []))).toContain("Выберите хотя бы одну активную группу.");
+      expect(await failure(tx, () => post("Текст", [tula, jump]))).toContain("Выберите только активные группы данного направления.");
+      expect(await failure(tx, () => post("Ссылка {ссылка_на_пробное}", [tula, samara]))).toContain(
+        "У групп не заполнена ссылка на пробное: LS Самара",
+      );
+      const [{ id: p1 }] = await post("Ссылка {ссылка_на_пробное} и {ссылка_на_расписание}", [tula],
+        [{ path: "p/0.png", name: "фото.PNG" }]);
+      const [{ id: p2 }] = await post("Без ссылок", [tula, samara]);
+      await asServer(tx);
+      const targets = await tx`select post_id, community_id, rendered_body, scheduled_at, status from an_content_post_targets
+                                order by post_id, community_id`;
+      expect(targets[0]).toMatchObject({ rendered_body: "Ссылка https://t2 и https://x/sched", status: "scheduled" });
+      expect(new Date(targets[0].scheduled_at).toISOString()).toBe("2026-11-02T07:00:00.000Z");
+      const sam = targets.find((t: { community_id: string }) => Number(t.community_id) === Number(samara));
+      expect(new Date(sam.scheduled_at).toISOString()).toBe("2026-11-02T06:00:00.000Z");
+      const [p] = await tx`select title, status, created_by from an_content_posts where id = ${p1}`;
+      expect(p).toEqual({ title: "Заголовок", status: "scheduled", created_by: admin });
+      expect((await tx`select original_name, mime_type, size_bytes from an_content_post_media`)[0]).toEqual({
+        original_name: "фото.PNG", mime_type: "image/png", size_bytes: "100",
+      });
+
+      // Группа из плана не удаляется; отключение — да.
+      await as(tx, admin);
+      expect(await failure(tx, () => tx`select an_content_community_delete(${tula})`)).toContain(
+        "Эта группа уже есть в контент-плане. Отключите её, чтобы сохранить историю постов.",
+      );
+      await tx`select an_content_community_delete(${jump})`;
+      await tx`select an_content_community_toggle(${samara})`;
+      expect(await failure(tx, () => post("Текст", [samara]))).toContain("Выберите только активные группы данного направления.");
+
+      // Публикация (сервер): очередь, итог, статус поста.
+      await tx`set local role service_role`;
+      await tx`update an_content_post_targets set scheduled_at = now() - interval '1 minute' where post_id = ${p2}`;
+      const [{ d }] = await tx`select an_content_due() as d`;
+      expect(d.map((x: { post_id: number }) => Number(x.post_id))).toEqual([Number(p2), Number(p2)]);
+      const [{ t }] = await tx`select an_content_target(${p1}, ${tula}) as t`;
+      expect(t).toMatchObject({ vk_community_id: "111", display_name: "LS Тула 2", status: "scheduled" });
+      expect(t.media).toEqual([{ path: "p/0.png", name: "фото.PNG", mime: "image/png" }]);
+      await tx`select an_content_target_result(${p2}, ${tula}, true, '55', 'https://vk.com/wall-111_55', '')`;
+      await tx`select an_content_target_result(${p2}, ${samara}, false, '', '', ${"x".repeat(1500)})`;
+      const [ps] = await tx`select publication_status, published_count, error_count from an_content_posts where id = ${p2}`;
+      expect(ps).toEqual({ publication_status: "partial", published_count: 1, error_count: 1 });
+      // Ошибка — повтор не раньше чем через 5 минут.
+      expect((await tx`select an_content_due() as d`)[0].d).toEqual([]);
+      const [err] = await tx`select char_length(error_text) as n, attempt_count from an_content_post_targets
+                              where post_id = ${p2} and community_id = ${samara}`;
+      expect(err).toEqual({ n: 1000, attempt_count: 1 });
+
+      // Удаление поста — пути картинок для стирания.
+      await as(tx, admin);
+      const [{ paths }] = await tx`select an_content_post_delete(${p1}) as paths`;
+      expect(paths).toEqual(["p/0.png"]);
+      expect(await failure(tx, () => tx`select an_content_post_delete(${p1})`)).toContain("Пост в контент-плане не найден.");
+    });
+  });
 });

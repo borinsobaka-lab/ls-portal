@@ -71,6 +71,7 @@ import { Route as AuthenticatedKbBaseIdIndexRouteImport } from './routes/_authen
 import { Route as AuthenticatedAnalyticsReviewsIndexRouteImport } from './routes/_authenticated/analytics/reviews/index'
 import { Route as AuthenticatedAnalyticsQuizIndexRouteImport } from './routes/_authenticated/analytics/quiz/index'
 import { Route as AuthenticatedAnalyticsInboxIndexRouteImport } from './routes/_authenticated/analytics/inbox/index'
+import { Route as AuthenticatedAnalyticsContentIndexRouteImport } from './routes/_authenticated/analytics/content/index'
 import { Route as AuthenticatedAccessRolesIndexRouteImport } from './routes/_authenticated/access/roles/index'
 import { Route as AuthenticatedAcademyReviewIndexRouteImport } from './routes/_authenticated/academy/review/index'
 import { Route as AuthenticatedAcademyCoursesIndexRouteImport } from './routes/_authenticated/academy/courses/index'
@@ -110,6 +111,7 @@ import { Route as AuthenticatedAnalyticsFitbaseRevenueRouteImport } from './rout
 import { Route as AuthenticatedAnalyticsFitbaseMycityRouteImport } from './routes/_authenticated/analytics/fitbase/mycity'
 import { Route as AuthenticatedAnalyticsFitbaseMarketingRouteImport } from './routes/_authenticated/analytics/fitbase/marketing'
 import { Route as AuthenticatedAnalyticsFitbaseAttendanceRouteImport } from './routes/_authenticated/analytics/fitbase/attendance'
+import { Route as AuthenticatedAnalyticsContentCommunitiesRouteImport } from './routes/_authenticated/analytics/content/communities'
 import { Route as AuthenticatedAnalyticsAvitoRegisterRouteImport } from './routes/_authenticated/analytics/avito/register'
 import { Route as AuthenticatedAnalyticsAvitoPlansRouteImport } from './routes/_authenticated/analytics/avito/plans'
 import { Route as AuthenticatedAnalyticsAvitoAccountsRouteImport } from './routes/_authenticated/analytics/avito/accounts'
@@ -477,6 +479,12 @@ const AuthenticatedAnalyticsInboxIndexRoute =
     path: '/analytics/inbox/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAnalyticsContentIndexRoute =
+  AuthenticatedAnalyticsContentIndexRouteImport.update({
+    id: '/analytics/content/',
+    path: '/analytics/content/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAccessRolesIndexRoute =
   AuthenticatedAccessRolesIndexRouteImport.update({
     id: '/access/roles/',
@@ -707,6 +715,12 @@ const AuthenticatedAnalyticsFitbaseAttendanceRoute =
   AuthenticatedAnalyticsFitbaseAttendanceRouteImport.update({
     id: '/analytics/fitbase/attendance',
     path: '/analytics/fitbase/attendance',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAnalyticsContentCommunitiesRoute =
+  AuthenticatedAnalyticsContentCommunitiesRouteImport.update({
+    id: '/analytics/content/communities',
+    path: '/analytics/content/communities',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedAnalyticsAvitoRegisterRoute =
@@ -960,6 +974,7 @@ export interface FileRoutesByFullPath {
   '/analytics/avito/accounts': typeof AuthenticatedAnalyticsAvitoAccountsRoute
   '/analytics/avito/plans': typeof AuthenticatedAnalyticsAvitoPlansRoute
   '/analytics/avito/register': typeof AuthenticatedAnalyticsAvitoRegisterRoute
+  '/analytics/content/communities': typeof AuthenticatedAnalyticsContentCommunitiesRoute
   '/analytics/fitbase/attendance': typeof AuthenticatedAnalyticsFitbaseAttendanceRoute
   '/analytics/fitbase/marketing': typeof AuthenticatedAnalyticsFitbaseMarketingRoute
   '/analytics/fitbase/mycity': typeof AuthenticatedAnalyticsFitbaseMycityRoute
@@ -999,6 +1014,7 @@ export interface FileRoutesByFullPath {
   '/academy/courses/': typeof AuthenticatedAcademyCoursesIndexRoute
   '/academy/review/': typeof AuthenticatedAcademyReviewIndexRoute
   '/access/roles/': typeof AuthenticatedAccessRolesIndexRoute
+  '/analytics/content/': typeof AuthenticatedAnalyticsContentIndexRoute
   '/analytics/inbox/': typeof AuthenticatedAnalyticsInboxIndexRoute
   '/analytics/quiz/': typeof AuthenticatedAnalyticsQuizIndexRoute
   '/analytics/reviews/': typeof AuthenticatedAnalyticsReviewsIndexRoute
@@ -1092,6 +1108,7 @@ export interface FileRoutesByTo {
   '/analytics/avito/accounts': typeof AuthenticatedAnalyticsAvitoAccountsRoute
   '/analytics/avito/plans': typeof AuthenticatedAnalyticsAvitoPlansRoute
   '/analytics/avito/register': typeof AuthenticatedAnalyticsAvitoRegisterRoute
+  '/analytics/content/communities': typeof AuthenticatedAnalyticsContentCommunitiesRoute
   '/analytics/fitbase/attendance': typeof AuthenticatedAnalyticsFitbaseAttendanceRoute
   '/analytics/fitbase/marketing': typeof AuthenticatedAnalyticsFitbaseMarketingRoute
   '/analytics/fitbase/mycity': typeof AuthenticatedAnalyticsFitbaseMycityRoute
@@ -1131,6 +1148,7 @@ export interface FileRoutesByTo {
   '/academy/courses': typeof AuthenticatedAcademyCoursesIndexRoute
   '/academy/review': typeof AuthenticatedAcademyReviewIndexRoute
   '/access/roles': typeof AuthenticatedAccessRolesIndexRoute
+  '/analytics/content': typeof AuthenticatedAnalyticsContentIndexRoute
   '/analytics/inbox': typeof AuthenticatedAnalyticsInboxIndexRoute
   '/analytics/quiz': typeof AuthenticatedAnalyticsQuizIndexRoute
   '/analytics/reviews': typeof AuthenticatedAnalyticsReviewsIndexRoute
@@ -1226,6 +1244,7 @@ export interface FileRoutesById {
   '/_authenticated/analytics/avito/accounts': typeof AuthenticatedAnalyticsAvitoAccountsRoute
   '/_authenticated/analytics/avito/plans': typeof AuthenticatedAnalyticsAvitoPlansRoute
   '/_authenticated/analytics/avito/register': typeof AuthenticatedAnalyticsAvitoRegisterRoute
+  '/_authenticated/analytics/content/communities': typeof AuthenticatedAnalyticsContentCommunitiesRoute
   '/_authenticated/analytics/fitbase/attendance': typeof AuthenticatedAnalyticsFitbaseAttendanceRoute
   '/_authenticated/analytics/fitbase/marketing': typeof AuthenticatedAnalyticsFitbaseMarketingRoute
   '/_authenticated/analytics/fitbase/mycity': typeof AuthenticatedAnalyticsFitbaseMycityRoute
@@ -1265,6 +1284,7 @@ export interface FileRoutesById {
   '/_authenticated/academy/courses/': typeof AuthenticatedAcademyCoursesIndexRoute
   '/_authenticated/academy/review/': typeof AuthenticatedAcademyReviewIndexRoute
   '/_authenticated/access/roles/': typeof AuthenticatedAccessRolesIndexRoute
+  '/_authenticated/analytics/content/': typeof AuthenticatedAnalyticsContentIndexRoute
   '/_authenticated/analytics/inbox/': typeof AuthenticatedAnalyticsInboxIndexRoute
   '/_authenticated/analytics/quiz/': typeof AuthenticatedAnalyticsQuizIndexRoute
   '/_authenticated/analytics/reviews/': typeof AuthenticatedAnalyticsReviewsIndexRoute
@@ -1360,6 +1380,7 @@ export interface FileRouteTypes {
     | '/analytics/avito/accounts'
     | '/analytics/avito/plans'
     | '/analytics/avito/register'
+    | '/analytics/content/communities'
     | '/analytics/fitbase/attendance'
     | '/analytics/fitbase/marketing'
     | '/analytics/fitbase/mycity'
@@ -1399,6 +1420,7 @@ export interface FileRouteTypes {
     | '/academy/courses/'
     | '/academy/review/'
     | '/access/roles/'
+    | '/analytics/content/'
     | '/analytics/inbox/'
     | '/analytics/quiz/'
     | '/analytics/reviews/'
@@ -1492,6 +1514,7 @@ export interface FileRouteTypes {
     | '/analytics/avito/accounts'
     | '/analytics/avito/plans'
     | '/analytics/avito/register'
+    | '/analytics/content/communities'
     | '/analytics/fitbase/attendance'
     | '/analytics/fitbase/marketing'
     | '/analytics/fitbase/mycity'
@@ -1531,6 +1554,7 @@ export interface FileRouteTypes {
     | '/academy/courses'
     | '/academy/review'
     | '/access/roles'
+    | '/analytics/content'
     | '/analytics/inbox'
     | '/analytics/quiz'
     | '/analytics/reviews'
@@ -1625,6 +1649,7 @@ export interface FileRouteTypes {
     | '/_authenticated/analytics/avito/accounts'
     | '/_authenticated/analytics/avito/plans'
     | '/_authenticated/analytics/avito/register'
+    | '/_authenticated/analytics/content/communities'
     | '/_authenticated/analytics/fitbase/attendance'
     | '/_authenticated/analytics/fitbase/marketing'
     | '/_authenticated/analytics/fitbase/mycity'
@@ -1664,6 +1689,7 @@ export interface FileRouteTypes {
     | '/_authenticated/academy/courses/'
     | '/_authenticated/academy/review/'
     | '/_authenticated/access/roles/'
+    | '/_authenticated/analytics/content/'
     | '/_authenticated/analytics/inbox/'
     | '/_authenticated/analytics/quiz/'
     | '/_authenticated/analytics/reviews/'
@@ -2141,6 +2167,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAnalyticsInboxIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/analytics/content/': {
+      id: '/_authenticated/analytics/content/'
+      path: '/analytics/content'
+      fullPath: '/analytics/content/'
+      preLoaderRoute: typeof AuthenticatedAnalyticsContentIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/access/roles/': {
       id: '/_authenticated/access/roles/'
       path: '/access/roles'
@@ -2412,6 +2445,13 @@ declare module '@tanstack/react-router' {
       path: '/analytics/fitbase/attendance'
       fullPath: '/analytics/fitbase/attendance'
       preLoaderRoute: typeof AuthenticatedAnalyticsFitbaseAttendanceRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/analytics/content/communities': {
+      id: '/_authenticated/analytics/content/communities'
+      path: '/analytics/content/communities'
+      fullPath: '/analytics/content/communities'
+      preLoaderRoute: typeof AuthenticatedAnalyticsContentCommunitiesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/analytics/avito/register': {
@@ -2688,6 +2728,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAnalyticsAvitoAccountsRoute: typeof AuthenticatedAnalyticsAvitoAccountsRoute
   AuthenticatedAnalyticsAvitoPlansRoute: typeof AuthenticatedAnalyticsAvitoPlansRoute
   AuthenticatedAnalyticsAvitoRegisterRoute: typeof AuthenticatedAnalyticsAvitoRegisterRoute
+  AuthenticatedAnalyticsContentCommunitiesRoute: typeof AuthenticatedAnalyticsContentCommunitiesRoute
   AuthenticatedAnalyticsFitbaseAttendanceRoute: typeof AuthenticatedAnalyticsFitbaseAttendanceRoute
   AuthenticatedAnalyticsFitbaseMarketingRoute: typeof AuthenticatedAnalyticsFitbaseMarketingRoute
   AuthenticatedAnalyticsFitbaseMycityRoute: typeof AuthenticatedAnalyticsFitbaseMycityRoute
@@ -2723,6 +2764,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAcademyCoursesIndexRoute: typeof AuthenticatedAcademyCoursesIndexRoute
   AuthenticatedAcademyReviewIndexRoute: typeof AuthenticatedAcademyReviewIndexRoute
   AuthenticatedAccessRolesIndexRoute: typeof AuthenticatedAccessRolesIndexRoute
+  AuthenticatedAnalyticsContentIndexRoute: typeof AuthenticatedAnalyticsContentIndexRoute
   AuthenticatedAnalyticsInboxIndexRoute: typeof AuthenticatedAnalyticsInboxIndexRoute
   AuthenticatedAnalyticsQuizIndexRoute: typeof AuthenticatedAnalyticsQuizIndexRoute
   AuthenticatedAnalyticsReviewsIndexRoute: typeof AuthenticatedAnalyticsReviewsIndexRoute
@@ -2815,6 +2857,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAnalyticsAvitoPlansRoute: AuthenticatedAnalyticsAvitoPlansRoute,
   AuthenticatedAnalyticsAvitoRegisterRoute:
     AuthenticatedAnalyticsAvitoRegisterRoute,
+  AuthenticatedAnalyticsContentCommunitiesRoute:
+    AuthenticatedAnalyticsContentCommunitiesRoute,
   AuthenticatedAnalyticsFitbaseAttendanceRoute:
     AuthenticatedAnalyticsFitbaseAttendanceRoute,
   AuthenticatedAnalyticsFitbaseMarketingRoute:
@@ -2864,6 +2908,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAcademyCoursesIndexRoute: AuthenticatedAcademyCoursesIndexRoute,
   AuthenticatedAcademyReviewIndexRoute: AuthenticatedAcademyReviewIndexRoute,
   AuthenticatedAccessRolesIndexRoute: AuthenticatedAccessRolesIndexRoute,
+  AuthenticatedAnalyticsContentIndexRoute:
+    AuthenticatedAnalyticsContentIndexRoute,
   AuthenticatedAnalyticsInboxIndexRoute: AuthenticatedAnalyticsInboxIndexRoute,
   AuthenticatedAnalyticsQuizIndexRoute: AuthenticatedAnalyticsQuizIndexRoute,
   AuthenticatedAnalyticsReviewsIndexRoute:
