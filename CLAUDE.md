@@ -1286,6 +1286,18 @@ DEPLOY.md.
   (service_role): `an_inbox_stat_managers` (их manager_statistics),
   `an_inbox_stat_reply_rows` (их response_statistics), `an_inbox_stat_lead_rows`
   (их lead_statistics; тексты входящих с номерами — только серверу).
+  «Контент-план» (2026-10-31, ANALYTICS.md): `db/migrations/2026-10-31_zzzzz_analytics_content.sql`
+  — их content.py: группы `an_content_communities` (токен — `an_secrets`
+  kind `vk_content`, ref = id; технический токен для картинок — ref
+  `media`), посты `an_content_posts`, публикации по группам
+  `an_content_post_targets` (время — в часовом поясе группы), картинки
+  `an_content_post_media` (закрытый бакет `an-content`). Администратору
+  аналитики — `an_content_communities`, `an_content_community_save` /
+  `_toggle` / `_delete`, `an_content_media_token_save`, `an_content_posts`,
+  `an_content_post_create` (их проверки картинок — по метаданным файла в
+  бакете), `an_content_post_delete`; серверу (service_role) —
+  `an_content_due`, `an_content_target`, `an_content_target_result`
+  (задача `content_publish`, внешняя). Таблицы закрыты браузеру.
   Клубы и собственники (решение владельца 2026-10-27, ACCESS.md):
   `db/migrations/2026-10-27_zz_studio_owners.sql` — `studio_owners`
   (клуб × пользователь портала; пишут только RPC `org_studio_owners_set` /

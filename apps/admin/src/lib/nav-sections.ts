@@ -464,6 +464,25 @@ export const ANALYTICS_GROUPS: NavGroup<AnalyticsNavItem>[] = [
     ],
   },
   {
+    key: "an-content",
+    label: "Контент",
+    items: [
+      {
+        title: "Контент-план",
+        url: "/analytics/content",
+        icon: CalendarMinimalistic,
+        exact: true,
+        need: "admin",
+      },
+      {
+        title: "Группы и ссылки",
+        url: "/analytics/content/communities",
+        icon: LinkRound,
+        need: "admin",
+      },
+    ],
+  },
+  {
     key: "an-inbox",
     label: "Диалоги VK",
     items: [

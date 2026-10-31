@@ -3832,3 +3832,45 @@ export function AnalyticsInboxStatsPageSkeleton() {
     </ShellSkeleton>
   );
 }
+
+/** «Контент» → «Контент-план»: пояснение, форма нового поста, лента. */
+export function AnalyticsContentPageSkeleton() {
+  return (
+    <ShellSkeleton title={AN_TITLES.content} network>
+      <div className="max-w-5xl space-y-5">
+        <Skeleton className="h-12 w-full rounded-lg" />
+        <Skeleton className="h-[30rem] rounded-lg" />
+        <Skeleton className="h-6 w-40" />
+        {[0, 1].map((i) => (
+          <Skeleton key={i} className="h-40 rounded-lg" />
+        ))}
+      </div>
+    </ShellSkeleton>
+  );
+}
+
+/** «Контент» → «Группы и ссылки»: пояснение, токен для картинок, таблица групп. */
+export function AnalyticsContentCommunitiesPageSkeleton() {
+  return (
+    <ShellSkeleton title={AN_TITLES.contentCommunities} network>
+      <div className="max-w-6xl space-y-5">
+        <Skeleton className="h-8 w-36 rounded-full" />
+        <Skeleton className="h-12 w-full rounded-lg" />
+        <Skeleton className="h-36 rounded-lg" />
+        <TableCardSkeleton
+          headers={[
+            "Группа",
+            "Город / студия",
+            "ID VK",
+            "Часовой пояс",
+            "Ссылка на пробное",
+            "Ссылка на расписание",
+            "Статус",
+            "",
+          ]}
+          rows={4}
+        />
+      </div>
+    </ShellSkeleton>
+  );
+}

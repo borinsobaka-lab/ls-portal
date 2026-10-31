@@ -19,6 +19,7 @@ import { fbNightlyDue, fbNightlyRun } from "./fitbase.server";
 import { fbBasisRun } from "./fitbase-web.server";
 import { deliverQuizLeads } from "./quiz.server";
 import { syncAllVk } from "./vk-ads.server";
+import { contentPublishDue } from "./vk-content.server";
 import { inboxRefreshFirstMessages, inboxRefreshProfiles } from "./vk-inbox.server";
 import { dispatchBudgetJob, evaluateBudgetAlerts } from "./vk-budget.server";
 import { backfillLfMetrics, collectLf } from "./vk-lf.server";
@@ -124,6 +125,9 @@ export const ANALYTICS_JOBS: AnalyticsJob[] = [
     leaseSeconds: 5 * 60,
     run: () => inboxRefreshFirstMessages(),
   },
+  // Их content_collector --publish-due: раз в минуту — посты контент-плана,
+  // чьё время наступило в группе (внешнее действие, выключена по умолчанию).
+  { key: "content_publish", everyMs: MINUTE, leaseSeconds: 30 * 60, run: contentPublishDue },
   {
     key: "quiz_sheets",
     everyMs: 0,
