@@ -111,6 +111,7 @@ import { Route as AuthenticatedAnalyticsFitbaseRevenueRouteImport } from './rout
 import { Route as AuthenticatedAnalyticsFitbaseMycityRouteImport } from './routes/_authenticated/analytics/fitbase/mycity'
 import { Route as AuthenticatedAnalyticsFitbaseMarketingRouteImport } from './routes/_authenticated/analytics/fitbase/marketing'
 import { Route as AuthenticatedAnalyticsFitbaseAttendanceRouteImport } from './routes/_authenticated/analytics/fitbase/attendance'
+import { Route as AuthenticatedAnalyticsCrmOperationsRouteImport } from './routes/_authenticated/analytics/crm/operations'
 import { Route as AuthenticatedAnalyticsContentCommunitiesRouteImport } from './routes/_authenticated/analytics/content/communities'
 import { Route as AuthenticatedAnalyticsAvitoRegisterRouteImport } from './routes/_authenticated/analytics/avito/register'
 import { Route as AuthenticatedAnalyticsAvitoPlansRouteImport } from './routes/_authenticated/analytics/avito/plans'
@@ -717,6 +718,12 @@ const AuthenticatedAnalyticsFitbaseAttendanceRoute =
     path: '/analytics/fitbase/attendance',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAnalyticsCrmOperationsRoute =
+  AuthenticatedAnalyticsCrmOperationsRouteImport.update({
+    id: '/analytics/crm/operations',
+    path: '/analytics/crm/operations',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAnalyticsContentCommunitiesRoute =
   AuthenticatedAnalyticsContentCommunitiesRouteImport.update({
     id: '/analytics/content/communities',
@@ -975,6 +982,7 @@ export interface FileRoutesByFullPath {
   '/analytics/avito/plans': typeof AuthenticatedAnalyticsAvitoPlansRoute
   '/analytics/avito/register': typeof AuthenticatedAnalyticsAvitoRegisterRoute
   '/analytics/content/communities': typeof AuthenticatedAnalyticsContentCommunitiesRoute
+  '/analytics/crm/operations': typeof AuthenticatedAnalyticsCrmOperationsRoute
   '/analytics/fitbase/attendance': typeof AuthenticatedAnalyticsFitbaseAttendanceRoute
   '/analytics/fitbase/marketing': typeof AuthenticatedAnalyticsFitbaseMarketingRoute
   '/analytics/fitbase/mycity': typeof AuthenticatedAnalyticsFitbaseMycityRoute
@@ -1109,6 +1117,7 @@ export interface FileRoutesByTo {
   '/analytics/avito/plans': typeof AuthenticatedAnalyticsAvitoPlansRoute
   '/analytics/avito/register': typeof AuthenticatedAnalyticsAvitoRegisterRoute
   '/analytics/content/communities': typeof AuthenticatedAnalyticsContentCommunitiesRoute
+  '/analytics/crm/operations': typeof AuthenticatedAnalyticsCrmOperationsRoute
   '/analytics/fitbase/attendance': typeof AuthenticatedAnalyticsFitbaseAttendanceRoute
   '/analytics/fitbase/marketing': typeof AuthenticatedAnalyticsFitbaseMarketingRoute
   '/analytics/fitbase/mycity': typeof AuthenticatedAnalyticsFitbaseMycityRoute
@@ -1245,6 +1254,7 @@ export interface FileRoutesById {
   '/_authenticated/analytics/avito/plans': typeof AuthenticatedAnalyticsAvitoPlansRoute
   '/_authenticated/analytics/avito/register': typeof AuthenticatedAnalyticsAvitoRegisterRoute
   '/_authenticated/analytics/content/communities': typeof AuthenticatedAnalyticsContentCommunitiesRoute
+  '/_authenticated/analytics/crm/operations': typeof AuthenticatedAnalyticsCrmOperationsRoute
   '/_authenticated/analytics/fitbase/attendance': typeof AuthenticatedAnalyticsFitbaseAttendanceRoute
   '/_authenticated/analytics/fitbase/marketing': typeof AuthenticatedAnalyticsFitbaseMarketingRoute
   '/_authenticated/analytics/fitbase/mycity': typeof AuthenticatedAnalyticsFitbaseMycityRoute
@@ -1381,6 +1391,7 @@ export interface FileRouteTypes {
     | '/analytics/avito/plans'
     | '/analytics/avito/register'
     | '/analytics/content/communities'
+    | '/analytics/crm/operations'
     | '/analytics/fitbase/attendance'
     | '/analytics/fitbase/marketing'
     | '/analytics/fitbase/mycity'
@@ -1515,6 +1526,7 @@ export interface FileRouteTypes {
     | '/analytics/avito/plans'
     | '/analytics/avito/register'
     | '/analytics/content/communities'
+    | '/analytics/crm/operations'
     | '/analytics/fitbase/attendance'
     | '/analytics/fitbase/marketing'
     | '/analytics/fitbase/mycity'
@@ -1650,6 +1662,7 @@ export interface FileRouteTypes {
     | '/_authenticated/analytics/avito/plans'
     | '/_authenticated/analytics/avito/register'
     | '/_authenticated/analytics/content/communities'
+    | '/_authenticated/analytics/crm/operations'
     | '/_authenticated/analytics/fitbase/attendance'
     | '/_authenticated/analytics/fitbase/marketing'
     | '/_authenticated/analytics/fitbase/mycity'
@@ -2447,6 +2460,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAnalyticsFitbaseAttendanceRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/analytics/crm/operations': {
+      id: '/_authenticated/analytics/crm/operations'
+      path: '/analytics/crm/operations'
+      fullPath: '/analytics/crm/operations'
+      preLoaderRoute: typeof AuthenticatedAnalyticsCrmOperationsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/analytics/content/communities': {
       id: '/_authenticated/analytics/content/communities'
       path: '/analytics/content/communities'
@@ -2729,6 +2749,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAnalyticsAvitoPlansRoute: typeof AuthenticatedAnalyticsAvitoPlansRoute
   AuthenticatedAnalyticsAvitoRegisterRoute: typeof AuthenticatedAnalyticsAvitoRegisterRoute
   AuthenticatedAnalyticsContentCommunitiesRoute: typeof AuthenticatedAnalyticsContentCommunitiesRoute
+  AuthenticatedAnalyticsCrmOperationsRoute: typeof AuthenticatedAnalyticsCrmOperationsRoute
   AuthenticatedAnalyticsFitbaseAttendanceRoute: typeof AuthenticatedAnalyticsFitbaseAttendanceRoute
   AuthenticatedAnalyticsFitbaseMarketingRoute: typeof AuthenticatedAnalyticsFitbaseMarketingRoute
   AuthenticatedAnalyticsFitbaseMycityRoute: typeof AuthenticatedAnalyticsFitbaseMycityRoute
@@ -2859,6 +2880,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedAnalyticsAvitoRegisterRoute,
   AuthenticatedAnalyticsContentCommunitiesRoute:
     AuthenticatedAnalyticsContentCommunitiesRoute,
+  AuthenticatedAnalyticsCrmOperationsRoute:
+    AuthenticatedAnalyticsCrmOperationsRoute,
   AuthenticatedAnalyticsFitbaseAttendanceRoute:
     AuthenticatedAnalyticsFitbaseAttendanceRoute,
   AuthenticatedAnalyticsFitbaseMarketingRoute:

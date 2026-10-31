@@ -3186,6 +3186,65 @@ export function AnalyticsAmoPageSkeleton() {
   );
 }
 
+/** «CRM» → «Операционная аналитика amoCRM»: сбор за день, запуски, отчёт. */
+export function AnalyticsAmoOpsBodySkeleton() {
+  return (
+    <div className="space-y-5">
+      <Skeleton className="h-36 w-full rounded-lg" />
+      <TableCardSkeleton
+        title="Запуски"
+        headers={[
+          "Подключение",
+          "День",
+          "Статус",
+          "Запросов",
+          "Сделок",
+          "Задач",
+          "Событий",
+          "Запущен",
+          "Итог",
+        ]}
+        rows={2}
+      />
+      <Skeleton className="h-16 w-full rounded-lg" />
+      <AnalyticsAmoOpsReportSkeleton />
+    </div>
+  );
+}
+
+/** Отчёт окна: период, пояснение, фильтры, вкладки, плитки, таблица реакции. */
+export function AnalyticsAmoOpsReportSkeleton() {
+  return (
+    <div className="space-y-4">
+      <Skeleton className="h-4 w-3/4" />
+      <Skeleton className="h-12 w-full rounded-lg" />
+      <Skeleton className="h-20 w-full rounded-lg" />
+      <Skeleton className="h-9 w-96 max-w-full rounded-full" />
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {[0, 1, 2, 3].map((i) => (
+          <Skeleton key={i} className="h-24 rounded-lg" />
+        ))}
+      </div>
+      <TableCardSkeleton
+        title="Когда начали обрабатывать заявки"
+        headers={["Сделка", "Ответственный / источник", "Действие", "Время"]}
+        rows={5}
+      />
+    </div>
+  );
+}
+
+export function AnalyticsAmoOpsPageSkeleton() {
+  return (
+    <ShellSkeleton title={AN_TITLES.amoOps} network>
+      <div className="max-w-6xl space-y-5">
+        <Skeleton className="h-16 w-full rounded-lg" />
+        <AnalyticsAmoOpsBodySkeleton />
+      </div>
+    </ShellSkeleton>
+  );
+}
+
 /** Подключение amoCRM: токен, справочники, ответственные, правила, квалификация, сбор. */
 export function AnalyticsAmoConnectionBodySkeleton() {
   return (

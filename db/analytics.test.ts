@@ -4523,4 +4523,88 @@ describe.skipIf(!url)("аналитика: фундамент (база)", () =>
       expect(await failure(tx, () => tx`select an_content_post_delete(${p1})`)).toContain("Пост в контент-плане не найден.");
     });
   });
+
+  test("Операционная аналитика amoCRM: контекст сбора, запуски, окна — только администратору", async () => {
+    await scenario(async (tx) => {
+      const admin = await person(tx, "Админ операций", ["an.admin"]);
+      const staff = await person(tx, "Не админ операций", ["an.mkt.ls"]);
+      await asServer(tx);
+      const [{ id }] =
+        await tx`insert into an_amo_connections (name, base_url) values ('CRM ops', 'https://o.amocrm.ru') returning id`;
+      const [{ id: off }] = await tx`insert into an_amo_connections (name, base_url, is_active)
+                                     values ('CRM off', 'https://p.amocrm.ru', false) returning id`;
+
+      // Контекст — только серверу; без правил — их ошибка.
+      await as(tx, admin);
+      expect(await failure(tx, () => tx`select an_amo_ops_context(${id})`)).toContain("permission denied");
+      await tx`set local role service_role`;
+      expect(await failure(tx, () => tx`select an_amo_ops_context(${id})`)).toContain(
+        "Existing source/qualification settings are required",
+      );
+      expect(await failure(tx, () => tx`select an_amo_ops_context(${off})`)).toContain(
+        "Active portal connection not found",
+      );
+      await asServer(tx);
+      await tx`insert into an_amo_settings (connection_id, new_lead_pipeline_id, auto_source_field_id, manual_source_field_id,
+                                            booked_field_id, attended_field_id, paid_field_id, close_basis_field_id)
+               values (${id}, '111', '1001', '1002', '1003', '1004', '1005', '1006')`;
+      await tx`insert into an_amo_basis (connection_id, field_value_id, field_value_name, is_unqualified)
+               values (${id}, '501', 'Мужчина', true), (${id}, '502', 'Дорого', false)`;
+      await tx`insert into an_amo_responsibles (connection_id, amo_user_id, amo_user_name, brand, city)
+               values (${id}, '9001', 'Анна', 'Lady Stretch', 'Тула')`;
+      await tx`insert into an_amo_metadata (connection_id, users)
+               values (${id}, ${[{ id: 9001, name: "Анна Иванова" }, { id: 9002, name: "Олег" }, { id: 9003 }, "x"]}::jsonb)`;
+      await tx`set local role service_role`;
+      const [{ c }] = await tx`select an_amo_ops_context(${id}) as c`;
+      expect(c).toEqual({
+        id: String(id),
+        base_url: "https://o.amocrm.ru",
+        config: {
+          close_basis_field_id: "1006",
+          auto_source_field_id: "1001",
+          manual_source_field_id: "1002",
+          unqualified_reasons: { "501": "Мужчина" },
+          user_labels: { "9001": "Анна", "9002": "Олег" },
+        },
+      });
+
+      // Таблицы закрыты браузеру; обзор и окно — только администратору аналитики.
+      await as(tx, admin);
+      expect(await failure(tx, () => tx`select * from an_amo_ops_runs`)).toContain("permission denied");
+      expect(await failure(tx, () => tx`select * from an_amo_ops_windows`)).toContain("permission denied");
+      await as(tx, staff);
+      expect(await failure(tx, () => tx`select an_amo_ops_overview()`)).toContain("an_forbidden");
+      expect(await failure(tx, () => tx`select an_amo_ops_window(${id}, 1)`)).toContain("an_forbidden");
+
+      await asServer(tx);
+      await tx`insert into an_amo_ops_runs (connection_id, day, status, message, requests, leads)
+               values (${id}, '2026-10-30', 'success', 'PILOT_SAVED', 12, 130)`;
+      await tx`insert into an_amo_ops_windows (connection_id, window_start, window_end, captured_at, snapshot)
+               values (${id}, 1793307600, 1793393999, '2026-10-31 11:00+03', ${{ leads: [], tasks: [], events: [] }}::jsonb)`;
+      await as(tx, admin);
+      const [{ o }] = await tx`select an_amo_ops_overview() as o`;
+      expect(o.connections).toEqual([
+        { id: Number(id), name: "CRM ops", has_settings: true },
+      ]);
+      expect(o.runs).toMatchObject([{ connection: "CRM ops", day: "2026-10-30", status: "success", requests: 12, leads: 130 }]);
+      expect(o.windows).toMatchObject([{ connection_id: Number(id), start: 1793307600, end: 1793393999 }]);
+      const [{ w }] = await tx`select an_amo_ops_window(${id}, 1793307600) as w`;
+      expect(w).toEqual({
+        account: String(id),
+        start: 1793307600,
+        end: 1793393999,
+        captured_at: 1793433600,
+        snapshot: { leads: [], tasks: [], events: [] },
+      });
+      expect(await failure(tx, () => tx`select an_amo_ops_window(${id}, 1793221200)`)).toContain(
+        "No complete pilot window for this account",
+      );
+
+      // Удалённое подключение уносит запуски и окна.
+      await asServer(tx);
+      await tx`delete from an_amo_connections where id = ${id}`;
+      expect((await tx`select count(*)::int as n from an_amo_ops_windows`)[0].n).toBe(0);
+      expect((await tx`select count(*)::int as n from an_amo_ops_runs`)[0].n).toBe(0);
+    });
+  });
 });

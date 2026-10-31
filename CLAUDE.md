@@ -1298,6 +1298,16 @@ DEPLOY.md.
   бакете), `an_content_post_delete`; серверу (service_role) —
   `an_content_due`, `an_content_target`, `an_content_target_result`
   (задача `content_publish`, внешняя). Таблицы закрыты браузеру.
+  «Операционная аналитика amoCRM» (2026-10-31, ANALYTICS.md):
+  `db/migrations/2026-10-31_zzzzzz_analytics_amo_ops.sql` — их пилот
+  amocrm-operations: снимок окна (подключение × прошедший день МСК,
+  очищенные сделки, задачи и события — только ID, время, этапы, без текстов
+  и контактов) `an_amo_ops_windows`, запуски `an_amo_ops_runs`.
+  Администратору аналитики — `an_amo_ops_overview`, `an_amo_ops_window`;
+  серверу (service_role) — `an_amo_ops_context` (адрес, поля источника и
+  оснований, неквалифицирующие основания, имена ответственных «Интеграции
+  amoCRM»). Сбор — только GET, токен — `an_secrets` kind `amocrm`. Таблицы
+  закрыты браузеру.
   Клубы и собственники (решение владельца 2026-10-27, ACCESS.md):
   `db/migrations/2026-10-27_zz_studio_owners.sql` — `studio_owners`
   (клуб × пользователь портала; пишут только RPC `org_studio_owners_set` /
