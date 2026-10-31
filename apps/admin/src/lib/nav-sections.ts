@@ -481,6 +481,12 @@ export const ANALYTICS_GROUPS: NavGroup<AnalyticsNavItem>[] = [
         need: "inbox",
       },
       {
+        title: "Статистика",
+        url: "/analytics/inbox/statistics",
+        icon: ChartSquare,
+        need: "inbox",
+      },
+      {
         title: "Подключения",
         url: "/analytics/inbox/communities",
         icon: LinkRound,

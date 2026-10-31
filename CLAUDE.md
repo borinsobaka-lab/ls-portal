@@ -1279,6 +1279,13 @@ DEPLOY.md.
   ответ: `an_inbox_reply_target` (диалог в доступе) и `an_inbox_reply_store`
   (итог отправки, service_role). Доступ — `an_inbox_require` (без
   сообществ — отказ), фильтр группы — `an_inbox_visible`.
+  «Диалоги VK», часть 3 (2026-10-31): `db/migrations/2026-10-31_zzzz_analytics_inbox_stats.sql`
+  — статистика лид-менеджеров: контекст страницы `an_inbox_stats_context`
+  (администратор аналитики или право `an.inbox`: лид-менеджеры, назначения,
+  доступные и все активные сообщества), строки для расчёта — только серверу
+  (service_role): `an_inbox_stat_managers` (их manager_statistics),
+  `an_inbox_stat_reply_rows` (их response_statistics), `an_inbox_stat_lead_rows`
+  (их lead_statistics; тексты входящих с номерами — только серверу).
   Клубы и собственники (решение владельца 2026-10-27, ACCESS.md):
   `db/migrations/2026-10-27_zz_studio_owners.sql` — `studio_owners`
   (клуб × пользователь портала; пишут только RPC `org_studio_owners_set` /

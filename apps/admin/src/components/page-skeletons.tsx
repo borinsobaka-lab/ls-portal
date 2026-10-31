@@ -3801,3 +3801,34 @@ export function AnalyticsInboxTemplatesPageSkeleton() {
     </ShellSkeleton>
   );
 }
+
+/** «Диалоги VK» → «Статистика»: фильтры, плитки, две таблицы. */
+export function AnalyticsInboxStatsPageSkeleton() {
+  return (
+    <ShellSkeleton title={AN_TITLES.inboxStats} network>
+      <div className="space-y-4">
+        <Skeleton className="h-8 w-32 rounded-full" />
+        <Skeleton className="h-52 rounded-lg" />
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {[0, 1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-20 rounded-lg" />
+          ))}
+        </div>
+        <TableCardSkeleton
+          headers={[
+            "Групп",
+            "Менеджер",
+            "Новые лиды",
+            "Номера от новых лидов",
+            "Скорость первого ответа",
+          ]}
+          rows={4}
+        />
+        <TableCardSkeleton
+          headers={["Группа", "Город", "Новые лиды", "Получены телефоны", "Лид → телефон"]}
+          rows={4}
+        />
+      </div>
+    </ShellSkeleton>
+  );
+}

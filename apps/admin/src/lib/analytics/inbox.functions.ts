@@ -3,6 +3,21 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { getSupabaseAdmin } from "@/integrations/supabase/client.server";
+import { mskToday } from "./core";
+import {
+  STATS_TEXT,
+  inboxStatsScope,
+  inboxStatsView,
+  summarizeLeadStatistics,
+  summarizeResponseStatistics,
+  type LeadRow,
+  type ManagerStatRow,
+  type PhoneRow,
+  type ReplyRow,
+  type StatsContext,
+  type WorkRow,
+} from "./inbox/stats";
 import {
   INBOX_MAX_IMAGE_BYTES,
   INBOX_SEND_TEXT,
@@ -13,6 +28,7 @@ import {
 } from "./inbox/rules";
 import { kickAnalyticsJob } from "./server/jobs.server";
 import { encryptSecret } from "./server/secrets.server";
+import { must } from "./server/vk-ads.server";
 import {
   inboxNewSecret,
   inboxSecretHash,
@@ -157,4 +173,97 @@ export const kickInboxProfiles = createServerFn({ method: "POST" })
     lastProfilesKick = Date.now();
     void kickAnalyticsJob("inbox_profiles");
     return { ok: true };
+  });
+
+/**
+ * Их /admin/vk-inbox/statistics: фильтры (период до 366 дней, менеджеры,
+ * группы), затем их manager_statistics, lead_statistics и
+ * response_statistics по выборке. Строки (в том числе тексты с номерами)
+ * сервер читает сервисным ключом и отдаёт только итоги.
+ */
+export const loadInboxStatistics = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data) =>
+    z
+      .object({
+        from: z.string().max(20).optional(),
+        to: z.string().max(20).optional(),
+        managers: z.array(z.string().max(60)).max(500),
+        groups: z.array(z.string().max(30)).max(500),
+      })
+      .strict()
+      .parse(data),
+  )
+  .handler(async ({ context, data }) => {
+    const { data: ctx, error } = await context.supabase.rpc("an_inbox_stats_context");
+    if (error) throw new Error(error.message);
+    const c = ctx as StatsContext;
+    const scope = inboxStatsScope(c, data, mskToday());
+    if (scope.error) return inboxStatsView(c, scope, [], null, null, scope.error);
+    const groups = [...scope.scopeGroups];
+    const managers = scope.managerIds ? [...scope.managerIds] : null;
+    const iso = (sec: number) => new Date(sec * 1000).toISOString();
+    try {
+      const admin = getSupabaseAdmin();
+      const [stat, replies, leads] = await Promise.all([
+        must(
+          admin.rpc("an_inbox_stat_managers", {
+            p_start: iso(scope.start),
+            p_end: iso(scope.end),
+            p_groups: groups,
+          }),
+        ),
+        must(
+          admin.rpc("an_inbox_stat_reply_rows", {
+            p_start: iso(scope.start),
+            p_end: iso(scope.end),
+            p_managers: managers,
+            p_groups: groups,
+          }),
+        ),
+        must(
+          admin.rpc("an_inbox_stat_lead_rows", {
+            p_start: iso(scope.start),
+            p_end: iso(scope.end),
+            p_groups: groups,
+          }),
+        ),
+      ]);
+      const l = leads as { work: WorkRow[]; leads: LeadRow[]; phones: PhoneRow[] };
+      const num = <T extends Record<string, unknown>>(rows: T[], keys: (keyof T)[]) =>
+        rows.map((r) => {
+          const o = { ...r };
+          for (const k of keys)
+            if (o[k] !== null && o[k] !== undefined) (o[k] as unknown) = Number(o[k]);
+          return o;
+        });
+      const funnel = summarizeLeadStatistics(
+        num(l.leads, ["dialog_id", "lead_at", "incoming_at", "community_id", "reply_at"]),
+        num(l.phones, ["id", "dialog_id", "sent_at"]),
+        l.work,
+        scope.start,
+        scope.end,
+        null,
+        new Set(groups),
+      );
+      const speed = summarizeResponseStatistics(
+        (replies as ReplyRow[]).map((r) => [Number(r[0]), Number(r[1]), r[2], r[3], Number(r[4])]),
+        scope.start,
+        scope.end,
+        scope.managerIds,
+        new Set(groups),
+      );
+      const rows = (stat as ManagerStatRow[]).map((r) => ({
+        ...r,
+        replies: Number(r.replies),
+        dialogs: Number(r.dialogs),
+        first_responses: Number(r.first_responses),
+        median_seconds: r.median_seconds === null ? null : Number(r.median_seconds),
+        p90_seconds: r.p90_seconds === null ? null : Number(r.p90_seconds),
+      }));
+      return inboxStatsView(c, scope, rows, funnel, speed, null);
+    } catch (e) {
+      console.error("[inbox] статистика:", (e as Error).message.slice(0, 200));
+      return inboxStatsView(c, scope, [], null, null, STATS_TEXT.failed);
+    }
   });

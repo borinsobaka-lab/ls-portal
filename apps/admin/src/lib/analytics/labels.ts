@@ -52,6 +52,7 @@ export const AN_TITLES = {
   inboxCommunities: "Подключения сообществ",
   inbox: "Диалоги VK",
   inboxTemplates: "Шаблоны ответов",
+  inboxStats: "Статистика менеджеров",
 } as const;
 
 /** «Очистка Excel» — тексты их ExcelCleaner 1.1-fast (окно, статусы, предупреждения). */
