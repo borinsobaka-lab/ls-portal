@@ -52,7 +52,7 @@ Tailwind 4 + shadcn/radix. Пакетный менеджер — bun.
   пробных, пробные услуги, «Записи без услуги» и CSV) `lib/analytics/fitbase/trials.test.ts`,
   (основания со страниц FitBase: разбор, пагинация, приём) `lib/analytics/fitbase/web.test.ts`,
   («Мой город · FitBase»: выручка, что покупают, пробные по названию, доска) `lib/analytics/fitbase/mycity.test.ts`;
-  «Диалоги VK» (ID группы, событие Callback API, первое сообщение, профили) `lib/analytics/inbox/inbox.test.ts`;
+  «Диалоги VK» (ID группы, событие Callback API, первое сообщение, профили, ответ с фото, очередь) `lib/analytics/inbox/inbox.test.ts`;
   «Академия» — подписи,
   проверка вопроса, сроки и напоминания `lib/academy/logic.test.ts`;
   Kate — инструменты,
@@ -854,7 +854,11 @@ kb`. Доступ — ролями «Пользователей и ролей» 
   правки шаблона — `lib/analytics/fitbase/mycity.ts`, доска —
   `components/analytics/fitbase/mycity-board.tsx` (части и графики доски
   «Мой город» 1С).
-  «Диалоги VK» (2026-10-31, ANALYTICS.md) — группа меню: «Подключения»
+  «Диалоги VK» (2026-10-31, ANALYTICS.md) — группа меню: «Все диалоги»
+  (`/analytics/inbox`: очередь и переписка, `?community=&unread=1&q=&dialog=&before=`;
+  опрос метки раз в 8 с; переписка и окно ответа —
+  `components/analytics/inbox/thread.tsx`, отправка — `sendInboxReply`
+  с FormData), «Шаблоны» (`/analytics/inbox/templates`), «Подключения»
   (`/analytics/inbox/communities`, администратору аналитики: группы VK с
   токеном сообщений и Callback API, код подтверждения и секрет, сообщества
   лид-менеджеров); токен и секрет готовит сервер —

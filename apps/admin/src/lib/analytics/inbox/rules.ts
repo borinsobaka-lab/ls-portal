@@ -297,3 +297,330 @@ export function inboxSecretValid(secret: string): boolean {
 /** Адрес Callback API подключения на портале. */
 export const inboxCallbackUrl = (origin: string, id: number) =>
   `${origin.replace(/\/+$/, "")}/api/analytics/vk-callback/${id}`;
+
+// --- Ответ из портала (их send_operator_message и загрузка фото) ---
+
+/** Их MAX_INBOX_IMAGES / MAX_INBOX_IMAGE_BYTES; поле ответа в форме — 4000 знаков. */
+export const INBOX_MAX_IMAGES = 4;
+export const INBOX_MAX_IMAGE_BYTES = 8 * 1024 * 1024;
+export const INBOX_REPLY_MAX = 4000;
+export const INBOX_VK_TEXT_MAX = 4096;
+
+export const INBOX_SEND_TEXT = {
+  images: "Можно отправить до 4 картинок общим размером до 8 МБ.",
+  imageType: "Выберите картинки в формате JPG или PNG.",
+  empty: "Введите текст сообщения или выберите картинку.",
+  tooLong: "Сообщение VK не может быть длиннее 4096 символов.",
+  formTooLarge: "Размер картинок не должен превышать 8 МБ.",
+  fieldTooLong: "Слишком длинное поле формы.",
+  badUploadUrl: "VK вернул недопустимый адрес загрузки. Сообщение не отправлено.",
+  missingFile: "VK не нашёл файл в запросе (код 4606). Сообщение не отправлено.",
+  uploadHttp: (status: number, code: number | null) =>
+    `VK отклонил загрузку картинки (HTTP ${status}${code ? `, код VK ${code}` : ""}). Сообщение не отправлено.`,
+  uploadNetwork:
+    "Нет связи с сервером загрузки VK или истекло время ожидания. Сообщение не отправлено.",
+  uploadTooLarge: "VK вернул слишком большой ответ загрузки. Сообщение не отправлено.",
+  uploadNotJson:
+    "Сервер загрузки VK вернул ответ вместо подтверждения картинки. Сообщение не отправлено.",
+  uploadNotDict: "VK вернул некорректный ответ загрузки. Сообщение не отправлено.",
+  uploadRejected: (code: number | null) =>
+    `VK отклонил картинку${code ? ` (код VK ${code})` : ""}. Сообщение не отправлено.`,
+  uploadFiles: "VK вернул неподдерживаемый формат загрузки фото. Сообщение не отправлено.",
+  uploadNotConfirmed: "VK не подтвердил загрузку картинки. Сообщение не отправлено.",
+  notSaved: "VK не сохранил картинку. Сообщение не отправлено.",
+  photoIncomplete: "VK вернул неполные данные картинки.",
+  badMessageId: "VK вернул некорректный идентификатор отправленного сообщения.",
+  unconfirmed: "Не удалось подтвердить отправку. Проверьте историю диалога перед повтором.",
+};
+
+export type InboxImage = { name: string; data: Uint8Array; mime: string };
+
+/** Их validate_reply_images: до 4 картинок, всего до 8 МБ, JPG или PNG по первым байтам. */
+export function validateReplyImages(images: InboxImage[]): void {
+  const total = images.reduce((s, i) => s + i.data.length, 0);
+  if (images.length > INBOX_MAX_IMAGES || total > INBOX_MAX_IMAGE_BYTES)
+    throw new InboxError(INBOX_SEND_TEXT.images);
+  const starts = (d: Uint8Array, sig: number[]) => sig.every((b, i) => d[i] === b);
+  for (const { data, mime } of images) {
+    const ok =
+      (mime === "image/png" && starts(data, [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])) ||
+      (mime === "image/jpeg" && starts(data, [0xff, 0xd8, 0xff]));
+    if (!ok) throw new InboxError(INBOX_SEND_TEXT.imageType);
+  }
+}
+
+/** Их проверки текста до запросов VK: пусто без картинок, длиннее 4096. */
+export function replyText(body: string, images: number): string {
+  const text = body.trim();
+  if (!text && !images) throw new InboxError(INBOX_SEND_TEXT.empty);
+  if ([...text].length > INBOX_VK_TEXT_MAX) throw new InboxError(INBOX_SEND_TEXT.tooLong);
+  return text;
+}
+
+const UPLOAD_DOMAINS = ["vk.com", "vk.ru", "vkuserphoto.ru", "userapi.com"];
+
+/**
+ * Их _validate_photo_upload_url: только https на 443 к серверам VK. `extra` —
+ * адрес заглушки VK только для стенда.
+ */
+export function uploadUrlAllowed(url: string, extra?: string): boolean {
+  if (extra && url.startsWith(extra.replace(/\/+$/, "") + "/")) return true;
+  let u: URL;
+  try {
+    u = new URL(url);
+  } catch {
+    return false;
+  }
+  const host = u.hostname.toLowerCase();
+  return (
+    u.protocol === "https:" &&
+    !u.username &&
+    !u.password &&
+    (u.port === "" || u.port === "443") &&
+    UPLOAD_DOMAINS.some((d) => host === d || host.endsWith("." + d))
+  );
+}
+
+/** Их _upload_error_code: только число 1–99999 из error.error_code или error_code. */
+export function uploadErrorCode(payload: unknown): number | null {
+  if (!isDict(payload)) return null;
+  const err = payload.error;
+  const value = isDict(err) ? err.error_code : payload.error_code;
+  try {
+    const code = pyInt(value);
+    return code > 0 && code < 100_000 ? code : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Их ответ сервера загрузки после HTTP 200: 4606 — повторить другим полем. */
+export function uploadResult(
+  raw: string | null,
+): { ok: true; uploaded: Dict } | { ok: false; missing: boolean; error: string } {
+  if (raw === null) return { ok: false, missing: false, error: INBOX_SEND_TEXT.uploadTooLarge };
+  let uploaded: unknown;
+  try {
+    uploaded = JSON.parse(raw);
+  } catch {
+    return { ok: false, missing: false, error: INBOX_SEND_TEXT.uploadNotJson };
+  }
+  if (!isDict(uploaded)) return { ok: false, missing: false, error: INBOX_SEND_TEXT.uploadNotDict };
+  const code = uploadErrorCode(uploaded);
+  if (code === 4606) return { ok: false, missing: true, error: INBOX_SEND_TEXT.missingFile };
+  if (code || pyTruthy(uploaded.error))
+    return { ok: false, missing: false, error: INBOX_SEND_TEXT.uploadRejected(code) };
+  return { ok: true, uploaded };
+}
+
+/** Их ответ сервера загрузки с ошибкой HTTP. */
+export function uploadHttpError(status: number, body: string): { missing: boolean; error: string } {
+  let payload: unknown = null;
+  try {
+    payload = JSON.parse(body);
+  } catch {
+    payload = null;
+  }
+  const code = uploadErrorCode(payload);
+  if (code === 4606) return { missing: true, error: INBOX_SEND_TEXT.missingFile };
+  return { missing: false, error: INBOX_SEND_TEXT.uploadHttp(status, code) };
+}
+
+/** Их проверка подтверждения загрузки: photo, server и hash. */
+export function uploadedPhotoParams(uploaded: Dict): Record<string, string> {
+  if (!["photo", "server", "hash"].every((k) => pyTruthy(uploaded[k]))) {
+    throw new InboxError(
+      isDict(uploaded.files) ? INBOX_SEND_TEXT.uploadFiles : INBOX_SEND_TEXT.uploadNotConfirmed,
+    );
+  }
+  return {
+    photo: pyStr(uploaded.photo),
+    server: pyStr(uploaded.server),
+    hash: pyStr(uploaded.hash),
+  };
+}
+
+/** Их проверка photos.saveMessagesPhoto: первая картинка с owner_id и id. */
+export function savedPhoto(saved: unknown): Dict {
+  if (!Array.isArray(saved) || !saved.length || !isDict(saved[0]))
+    throw new InboxError(INBOX_SEND_TEXT.notSaved);
+  const photo = saved[0];
+  try {
+    if (!("owner_id" in photo) || !("id" in photo)) throw new TypeError();
+    pyInt(photo.owner_id);
+    pyInt(photo.id);
+  } catch {
+    throw new InboxError(INBOX_SEND_TEXT.photoIncomplete);
+  }
+  return photo;
+}
+
+/** Их вложение messages.send: photo<owner>_<id>[_<access_key>]. */
+export const photoAttachment = (p: Dict) =>
+  `photo${pyInt(p.owner_id)}_${pyInt(p.id)}` +
+  (pyTruthy(p.access_key) ? "_" + pyStr(p.access_key) : "");
+
+/** Их id отправленного сообщения — int(ответ messages.send). */
+export function sentMessageId(response: unknown): number {
+  try {
+    if (response === null || response === undefined || isDict(response) || Array.isArray(response))
+      throw new TypeError();
+    return pyInt(response);
+  } catch {
+    throw new InboxError(INBOX_SEND_TEXT.badMessageId);
+  }
+}
+
+// --- Очередь и переписка (их страница /admin/vk-inbox) ---
+
+/** Имя клиента: введённое или «VK ID …». */
+export const inboxCustomerName = (d: {
+  customer_name: string | null;
+  customer_vk_id: number | null;
+  peer_id: number;
+}) => (d.customer_name ?? "").trim() || `VK ID ${d.customer_vk_id || d.peer_id}`;
+
+/** Их превью в очереди: без переносов, 86 знаков. */
+export const inboxPreview = (body: string | null) =>
+  [...(body || "Вложение или служебное сообщение").replace(/\n/g, " ")].slice(0, 86).join("");
+
+const MSK_SHORT = new Intl.DateTimeFormat("ru-RU", {
+  timeZone: "Europe/Moscow",
+  day: "2-digit",
+  month: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23",
+});
+
+/** Их format_inbox_timestamp: «дд.мм чч:мм» по Москве, пусто — «—». */
+export function inboxTime(value: string | null | undefined): string {
+  if (!value) return "—";
+  const p = Object.fromEntries(
+    MSK_SHORT.formatToParts(new Date(value)).map((x) => [x.type, x.value]),
+  );
+  return `${p.day}.${p.month} ${p.hour}:${p.minute}`;
+}
+
+/** Их смайлики окна ответа (три раздела). */
+export const INBOX_EMOJI: [string, string[]][] = [
+  [
+    "Лица",
+    [
+      "😀",
+      "😃",
+      "😄",
+      "😁",
+      "😊",
+      "☺️",
+      "🙂",
+      "😉",
+      "😍",
+      "🥰",
+      "😘",
+      "😎",
+      "🤩",
+      "🥳",
+      "😂",
+      "🤣",
+      "😅",
+      "😇",
+      "🤗",
+      "🤔",
+      "😌",
+      "😴",
+      "😔",
+      "🥺",
+      "😢",
+      "😭",
+      "😮",
+      "😱",
+      "😤",
+      "🙃",
+      "😋",
+      "😏",
+    ],
+  ],
+  [
+    "Жесты",
+    [
+      "👋",
+      "🤚",
+      "✋",
+      "👌",
+      "✌️",
+      "🤞",
+      "👍",
+      "👎",
+      "👏",
+      "🙌",
+      "👐",
+      "🤝",
+      "🙏",
+      "💪",
+      "🤟",
+      "🫶",
+      "☝️",
+      "👇",
+      "👈",
+      "👉",
+      "✍️",
+      "🤲",
+      "💃",
+      "🏃",
+      "🧘",
+      "🤸",
+      "🏋️",
+      "🤍",
+    ],
+  ],
+  [
+    "Сердца",
+    [
+      "💜",
+      "❤️",
+      "🩷",
+      "💖",
+      "💗",
+      "💕",
+      "💞",
+      "💝",
+      "💘",
+      "🤍",
+      "🧡",
+      "💛",
+      "💚",
+      "💙",
+      "🖤",
+      "✨",
+      "⭐",
+      "🌟",
+      "💫",
+      "🔥",
+      "🌸",
+      "🌷",
+      "🌹",
+      "🌺",
+      "🎉",
+      "🎊",
+      "🎁",
+      "🎀",
+      "☀️",
+      "🌈",
+      "✅",
+      "💯",
+    ],
+  ],
+];
+
+/** Их вставка шаблона или смайлика в место курсора с проверкой длины поля. */
+export function insertAt(
+  value: string,
+  start: number,
+  end: number,
+  insert: string,
+  max = INBOX_REPLY_MAX,
+): { value: string; caret: number } | null {
+  if (value.length - (end - start) + insert.length > max) return null;
+  return { value: value.slice(0, start) + insert + value.slice(end), caret: start + insert.length };
+}

@@ -1,7 +1,21 @@
 import { describe, expect, test } from "bun:test";
 
 import {
+  INBOX_SEND_TEXT,
   INBOX_TEXT,
+  inboxCustomerName,
+  inboxPreview,
+  inboxTime,
+  insertAt,
+  photoAttachment,
+  replyText,
+  savedPhoto,
+  sentMessageId,
+  uploadHttpError,
+  uploadResult,
+  uploadUrlAllowed,
+  uploadedPhotoParams,
+  validateReplyImages,
   InboxError,
   firstHistoryTimestamp,
   inboxCallbackParse,
@@ -255,5 +269,119 @@ describe("прочее", () => {
     expect(inboxCallbackUrl("https://portal.example.ru/", 3)).toBe(
       "https://portal.example.ru/api/analytics/vk-callback/3",
     );
+  });
+});
+
+describe("ответ из портала (их send_operator_message)", () => {
+  const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2]);
+  const jpg = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0]);
+  test("картинки: до 4, до 8 МБ, JPG/PNG по первым байтам", () => {
+    expect(() => validateReplyImages([{ name: "a", data: png, mime: "image/png" }])).not.toThrow();
+    expect(() => validateReplyImages([{ name: "a", data: jpg, mime: "image/jpeg" }])).not.toThrow();
+    expect(() => validateReplyImages([{ name: "a", data: jpg, mime: "image/png" }])).toThrow(
+      INBOX_SEND_TEXT.imageType,
+    );
+    expect(() =>
+      validateReplyImages(
+        Array.from({ length: 5 }, () => ({ name: "a", data: png, mime: "image/png" })),
+      ),
+    ).toThrow(INBOX_SEND_TEXT.images);
+    expect(() =>
+      validateReplyImages([
+        { name: "a", data: new Uint8Array(8 * 1024 * 1024 + 1), mime: "image/png" },
+      ]),
+    ).toThrow(INBOX_SEND_TEXT.images);
+  });
+  test("текст: пусто без картинок, длиннее 4096", () => {
+    expect(() => replyText("  ", 0)).toThrow(INBOX_SEND_TEXT.empty);
+    expect(replyText("  ", 1)).toBe("");
+    expect(replyText(" Привет ", 0)).toBe("Привет");
+    expect(() => replyText("я".repeat(4097), 0)).toThrow(INBOX_SEND_TEXT.tooLong);
+    expect(replyText("😊".repeat(4096), 0).length).toBe(8192);
+  });
+  test("адрес загрузки — только https VK", () => {
+    expect(uploadUrlAllowed("https://pu.vk.com/c123/upload.php?x=1")).toBe(true);
+    expect(uploadUrlAllowed("https://vk.ru/u")).toBe(true);
+    expect(uploadUrlAllowed("https://srv.userapi.com:443/u")).toBe(true);
+    expect(uploadUrlAllowed("http://pu.vk.com/u")).toBe(false);
+    expect(uploadUrlAllowed("https://evilvk.com/u")).toBe(false);
+    expect(uploadUrlAllowed("https://user:pw@pu.vk.com/u")).toBe(false);
+    expect(uploadUrlAllowed("https://pu.vk.com:8443/u")).toBe(false);
+    expect(uploadUrlAllowed("")).toBe(false);
+    expect(uploadUrlAllowed("http://127.0.0.1:1/upload", "http://127.0.0.1:1")).toBe(true);
+  });
+  test("ответ сервера загрузки: 4606 — повтор, прочие ошибки — их тексты", () => {
+    expect(uploadResult('{"server":1,"photo":"p","hash":"h"}')).toEqual({
+      ok: true,
+      uploaded: { server: 1, photo: "p", hash: "h" },
+    });
+    expect(uploadResult('{"error":{"error_code":4606}}')).toMatchObject({
+      ok: false,
+      missing: true,
+    });
+    expect(uploadResult('{"error_code":"12"}')).toEqual({
+      ok: false,
+      missing: false,
+      error: "VK отклонил картинку (код VK 12). Сообщение не отправлено.",
+    });
+    expect(uploadResult('{"error":"x"}')).toMatchObject({
+      error: INBOX_SEND_TEXT.uploadRejected(null),
+    });
+    expect(uploadResult("<html>")).toMatchObject({ error: INBOX_SEND_TEXT.uploadNotJson });
+    expect(uploadResult("[1]")).toMatchObject({ error: INBOX_SEND_TEXT.uploadNotDict });
+    expect(uploadResult(null)).toMatchObject({ error: INBOX_SEND_TEXT.uploadTooLarge });
+    expect(uploadHttpError(500, '{"error":{"error_code":4606}}')).toEqual({
+      missing: true,
+      error: INBOX_SEND_TEXT.missingFile,
+    });
+    expect(uploadHttpError(413, "")).toEqual({
+      missing: false,
+      error: "VK отклонил загрузку картинки (HTTP 413). Сообщение не отправлено.",
+    });
+    expect(uploadHttpError(400, '{"error_code":7}').error).toContain("HTTP 400, код VK 7");
+  });
+  test("подтверждение загрузки, сохранённое фото, вложение и id сообщения", () => {
+    expect(uploadedPhotoParams({ photo: "p", server: 5, hash: "h" })).toEqual({
+      photo: "p",
+      server: "5",
+      hash: "h",
+    });
+    expect(() => uploadedPhotoParams({ files: {} })).toThrow(INBOX_SEND_TEXT.uploadFiles);
+    expect(() => uploadedPhotoParams({ photo: "", server: 1, hash: "h" })).toThrow(
+      INBOX_SEND_TEXT.uploadNotConfirmed,
+    );
+    expect(() => savedPhoto([])).toThrow(INBOX_SEND_TEXT.notSaved);
+    expect(() => savedPhoto([{ id: 1 }])).toThrow(INBOX_SEND_TEXT.photoIncomplete);
+    const p = savedPhoto([{ id: 7, owner_id: -5, access_key: "k" }]);
+    expect(photoAttachment(p)).toBe("photo-5_7_k");
+    expect(photoAttachment({ id: "8", owner_id: 3, access_key: "" })).toBe("photo3_8");
+    expect(sentMessageId(123)).toBe(123);
+    expect(sentMessageId("45")).toBe(45);
+    expect(() => sentMessageId({ id: 1 })).toThrow(INBOX_SEND_TEXT.badMessageId);
+    expect(() => sentMessageId(null)).toThrow(INBOX_SEND_TEXT.badMessageId);
+  });
+});
+
+describe("очередь и окно ответа", () => {
+  test("имя, превью, время по Москве", () => {
+    expect(inboxCustomerName({ customer_name: " ", customer_vk_id: null, peer_id: 9 })).toBe(
+      "VK ID 9",
+    );
+    expect(inboxCustomerName({ customer_name: "Анна", customer_vk_id: 5, peer_id: 9 })).toBe(
+      "Анна",
+    );
+    expect(inboxPreview(null)).toBe("Вложение или служебное сообщение");
+    expect(inboxPreview("а\nб")).toBe("а б");
+    expect([...inboxPreview("я".repeat(100))].length).toBe(86);
+    expect(inboxTime("2026-10-31T21:30:00Z")).toBe("01.11 00:30");
+    expect(inboxTime(null)).toBe("—");
+  });
+  test("вставка шаблона и смайлика с проверкой длины", () => {
+    expect(insertAt("Привет мир", 7, 10, "друг")).toEqual({ value: "Привет друг", caret: 11 });
+    expect(insertAt("x".repeat(3999), 0, 0, "ab")).toBeNull();
+    expect(insertAt("x".repeat(3999), 0, 1, "ab")).toEqual({
+      value: "ab" + "x".repeat(3998),
+      caret: 2,
+    });
   });
 });

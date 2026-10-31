@@ -50,6 +50,8 @@ export const AN_TITLES = {
   quiz: "Квиз-лендинги",
   quizLeads: "Заявки квиза",
   inboxCommunities: "Подключения сообществ",
+  inbox: "Диалоги VK",
+  inboxTemplates: "Шаблоны ответов",
 } as const;
 
 /** «Очистка Excel» — тексты их ExcelCleaner 1.1-fast (окно, статусы, предупреждения). */

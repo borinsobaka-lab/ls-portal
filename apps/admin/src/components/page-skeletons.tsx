@@ -3758,3 +3758,46 @@ export function AnalyticsInboxCommunitiesPageSkeleton() {
     </ShellSkeleton>
   );
 }
+
+/** «Диалоги VK» → «Все диалоги»: ссылки, очередь слева, переписка справа. */
+export function AnalyticsInboxPageSkeleton() {
+  return (
+    <ShellSkeleton title={AN_TITLES.inbox} network>
+      <div className="space-y-3">
+        <div className="flex gap-2">
+          <Skeleton className="h-8 w-36 rounded-full" />
+        </div>
+        <div className="flex gap-3 lg:h-[calc(100dvh-10.5rem)] lg:min-h-[560px]">
+          <div className="w-full space-y-2 rounded-lg border bg-background p-3 lg:w-96 lg:shrink-0">
+            <Skeleton className="h-5 w-24" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-9 w-full rounded-full" />
+            {Array.from({ length: 6 }, (_, i) => (
+              <Skeleton key={i} className="h-16 rounded-md" />
+            ))}
+          </div>
+          <Skeleton className="hidden flex-1 rounded-lg lg:block" />
+        </div>
+      </div>
+    </ShellSkeleton>
+  );
+}
+
+/** «Диалоги VK» → «Шаблоны»: общие и личные шаблоны с формой добавления. */
+export function AnalyticsInboxTemplatesPageSkeleton() {
+  return (
+    <ShellSkeleton title={AN_TITLES.inboxTemplates} network>
+      <div className="max-w-4xl space-y-6">
+        <Skeleton className="h-8 w-32 rounded-full" />
+        {[0, 1].map((i) => (
+          <div key={i} className="space-y-3">
+            <Skeleton className="h-6 w-56" />
+            <Skeleton className="h-4 w-80 max-w-full" />
+            <Skeleton className="h-48 rounded-lg" />
+          </div>
+        ))}
+      </div>
+    </ShellSkeleton>
+  );
+}

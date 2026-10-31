@@ -3,9 +3,22 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { INBOX_TEXT, InboxError, inboxDisplayName, inboxSecretValid } from "./inbox/rules";
+import {
+  INBOX_MAX_IMAGE_BYTES,
+  INBOX_SEND_TEXT,
+  INBOX_TEXT,
+  InboxError,
+  inboxDisplayName,
+  inboxSecretValid,
+} from "./inbox/rules";
+import { kickAnalyticsJob } from "./server/jobs.server";
 import { encryptSecret } from "./server/secrets.server";
-import { inboxNewSecret, inboxSecretHash, resolveVkCommunity } from "./server/vk-inbox.server";
+import {
+  inboxNewSecret,
+  inboxSecretHash,
+  inboxSendReply,
+  resolveVkCommunity,
+} from "./server/vk-inbox.server";
 
 /**
  * «Диалоги VK» → «Подключения»: действия, которым нужен сервер. Токен
@@ -89,4 +102,59 @@ export const syncInboxSecret = createServerFn({ method: "POST" })
     });
     if (error) throw new Error(error.message);
     return { message: "Секрет Callback API синхронизирован. Отправьте новое тестовое сообщение." };
+  });
+
+/**
+ * Их /admin/vk-inbox/dialogs/<id>/send: текст и до 4 картинок (FormData:
+ * dialog, body, images). Ошибка VK — их текстом; сбой после отправки — «Не
+ * удалось подтвердить отправку…» (сообщение могло уйти).
+ */
+export const sendInboxReply = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data) => {
+    if (!(data instanceof FormData)) throw new Error("Неизвестный формат формы.");
+    return data;
+  })
+  .handler(async ({ context, data }) => {
+    const dialog = Number(data.get("dialog"));
+    if (!Number.isSafeInteger(dialog) || dialog <= 0) throw new Error("Диалог не найден.");
+    const body = data.get("body");
+    const text = typeof body === "string" ? body : "";
+    if (Buffer.byteLength(text, "utf8") > 20_000) throw new Error(INBOX_SEND_TEXT.fieldTooLong);
+    const files = data.getAll("images").filter((f): f is File => f instanceof File && f.size > 0);
+    if (files.reduce((s, f) => s + f.size, 0) > INBOX_MAX_IMAGE_BYTES + 80_000)
+      throw new Error(INBOX_SEND_TEXT.formTooLarge);
+    const images = await Promise.all(
+      files.map(async (f) => ({
+        name: f.name,
+        data: new Uint8Array(await f.arrayBuffer()),
+        mime: f.type,
+      })),
+    );
+    try {
+      await inboxSendReply(context.supabase, context.userId, dialog, text, images);
+    } catch (e) {
+      if (e instanceof InboxError) throw new Error(e.message);
+      console.error("[inbox] ответ не подтверждён:", (e as Error).name);
+      throw new Error(INBOX_SEND_TEXT.unconfirmed);
+    }
+    return { ok: true, message: "Сообщение отправлено в VK." };
+  });
+
+let lastProfilesKick = 0;
+
+/**
+ * Их refresh_inbox_profiles_in_background при открытии диалогов: имена и
+ * аватарки новых клиентов сразу, не дожидаясь расписания (не чаще раза в 2
+ * минуты на сервер).
+ */
+export const kickInboxProfiles = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data } = await context.supabase.rpc("an_me");
+    if (!(data as { inbox?: boolean } | null)?.inbox) return { ok: false };
+    if (Date.now() - lastProfilesKick < 120_000) return { ok: true };
+    lastProfilesKick = Date.now();
+    void kickAnalyticsJob("inbox_profiles");
+    return { ok: true };
   });

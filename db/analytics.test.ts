@@ -4188,4 +4188,152 @@ describe.skipIf(!url)("аналитика: фундамент (база)", () =>
       ]);
     });
   });
+
+  test("Диалоги VK: очередь, прочтение, поиск, переписка с картинками, шаблоны, ответ из портала", async () => {
+    await scenario(async (tx) => {
+      const admin = await person(tx, "Админ очереди", ["an.admin"]);
+      const lead = await person(tx, "Лид очереди", ["an.inbox"]);
+      const idle = await person(tx, "Лид без групп", ["an.inbox"]);
+      await asServer(tx);
+      const comm = async (vk: number, name: string, city: string) =>
+        (await tx`insert into an_inbox_communities (vk_community_id, display_name, brand, city,
+                    callback_secret_hash, callback_confirmation_code)
+                  values (${vk}, ${name}, 'Lady Stretch', ${city}, ${vk.toString(16).padStart(64, "0")}, 'code1')
+                  returning id`)[0].id;
+      const c1 = await comm(111, "Группа Тула", "Тула");
+      const c2 = await comm(222, "Группа Орёл", "Орёл");
+      await tx`insert into an_inbox_user_communities values (${lead}, ${c1})`;
+      await tx`set local role service_role`;
+      const msg = (c: unknown, id: number, peer: number, date: number, text: string, extra: object = {}) =>
+        tx`select an_inbox_store_message(${c}, 'message_new', ${peer}, ${id}, ${date}, ${peer}, false, null,
+             ${text}, ${{ id, peer_id: peer, text, ...extra }}::jsonb)`;
+      await asServer(tx);
+      await msg(c1, 1, 501, 1000, "Хочу на пробное_занятие");
+      await msg(c1, 2, 502, 2000, "", {
+        attachments: [{ type: "photo", photo: { sizes: [{ url: "https://p/s", width: 100 }, { url: "https://p/b", width: 800 }] } }],
+      });
+      await msg(c2, 3, 601, 3000, "", { attachments: [{ type: "sticker", sticker: { images: [{ url: "https://s/1", width: 64 }] } }] });
+      const dialogOf = async (peer: number) =>
+        (await tx`select id from an_inbox_dialogs where peer_id = ${peer}`)[0].id;
+      const d601 = await dialogOf(601);
+      const d502 = await dialogOf(502);
+
+      // Без групп — их «Нет доступа к диалогам VK».
+      await as(tx, idle);
+      expect(await failure(tx, () => tx`select an_inbox_queue(null, false, '', 0, 200)`)).toContain(
+        "Нет доступа к диалогам VK",
+      );
+      // Лид-менеджер — только своя группа; первый вход — всё прочитано.
+      await as(tx, lead);
+      const q = async (community: unknown = null, unread = false, search = "") =>
+        (await tx`select an_inbox_queue(${community}, ${unread}, ${search}, 0, 200) as q`)[0].q;
+      let lq = await q();
+      expect(lq.dialogs.map((d: { peer_id: number }) => Number(d.peer_id))).toEqual([502, 501]);
+      expect(lq.counts).toEqual({ total: 2, unread: 0 });
+      expect(lq.communities.map((c: { display_name: string }) => c.display_name)).toEqual(["Группа Тула"]);
+      expect(lq.dialogs[0].last_body).toBe("Картинка");
+      // Чужая группа в фильтре — весь доступ (их inbox_filter_scope).
+      expect((await q(c2)).dialogs.length).toBe(2);
+      expect((await q(c2)).community).toBeNull();
+      expect(
+        await failure(tx, () => tx`select an_inbox_open(${d601}, null, true, null)`),
+      ).toContain("Диалог не найден или сообщество отключено.");
+
+      // Новое сообщение — непрочитанное; открыть — прочитано.
+      await asServer(tx);
+      await msg(c1, 4, 501, 4000, "Ещё вопрос");
+      await as(tx, lead);
+      lq = await q();
+      expect(lq.counts.unread).toBe(1);
+      expect((await q(null, true)).dialogs.map((d: { peer_id: number }) => Number(d.peer_id))).toEqual([501]);
+      const d501 = lq.dialogs.find((d: { peer_id: number }) => Number(d.peer_id) === 501).id;
+      await tx`select an_inbox_open(${d501}, null, false, null)`;
+      expect((await q()).counts.unread).toBe(1);
+      await tx`select an_inbox_open(${d501}, null, true, null)`;
+      expect((await q()).counts.unread).toBe(0);
+      // Поиск: подчёркивание — буквально (их экранирование), по имени и peer_id.
+      expect((await q(null, false, "пробное_зан")).dialogs.length).toBe(1);
+      expect((await q(null, false, "пробноеXзан")).dialogs.length).toBe(0);
+      expect((await q(null, false, "  502  ")).dialogs.length).toBe(1);
+      // Переписка: по порядку, картинка — самая широкая https.
+      const [{ t }] = await tx`select an_inbox_open(${d502}, null, false, null) as t`;
+      expect(t.messages[0].media).toEqual({ photos: ["https://p/b"], stickers: [], has_sticker: false });
+      const [{ t: t2 }] = await tx`select an_inbox_open(${d501}, null, false, null) as t`;
+      expect(t2.messages.map((m: { body: string }) => m.body)).toEqual(["Хочу на пробное_занятие", "Ещё вопрос"]);
+      expect(t2.has_more).toBe(false);
+      const [{ t: t3 }] = await tx`select an_inbox_open(${d501}, null, false, ${t2.messages[1].id}) as t`;
+      expect(t3.messages.length).toBe(1);
+      const m1 = (await tx`select an_inbox_marker(null) as m`)[0].m;
+
+      // Администратор: все группы, свой прочитанный — свой; стикер.
+      await as(tx, admin);
+      const aq = await q();
+      expect(aq.counts.total).toBe(3);
+      expect(aq.admin).toBe(true);
+      expect(aq.dialogs.find((d: { peer_id: number }) => Number(d.peer_id) === 601).last_body).toBe("Стикер");
+      expect((await q(c2)).community).toBe(Number(c2));
+
+      // Шаблоны: личные — свои, общие — только администратор.
+      await as(tx, lead);
+      expect(
+        await failure(tx, () => tx`select an_inbox_template_save(null, 'Общий', 'Текст', 'shared')`),
+      ).toContain("Общие шаблоны редактирует администратор.");
+      expect(await failure(tx, () => tx`select an_inbox_template_save(null, '  ', 'Текст', 'personal')`)).toContain(
+        "Название: 1–100 символов. Текст шаблона: 1–4096 символов.",
+      );
+      expect(await failure(tx, () => tx`select an_inbox_template_save(null, 'А', 'Б', 'team')`)).toContain(
+        "Неизвестный тип шаблона.",
+      );
+      await tx`select an_inbox_template_save(null, ' Личный ', ' Мой текст ', 'personal')`;
+      await as(tx, admin);
+      await tx`select an_inbox_template_save(null, 'Общий', 'Для всех', 'shared')`;
+      await tx`select an_inbox_template_save(null, 'Админский', 'Мой', 'personal')`;
+      await as(tx, lead);
+      const [{ l }] = await tx`select an_inbox_templates() as l`;
+      expect(l.admin).toBe(false);
+      expect(l.templates.map((x: { title: string; body: string }) => [x.title, x.body])).toEqual([
+        ["Личный", "Мой текст"],
+        ["Общий", "Для всех"],
+      ]);
+      const shared = l.templates.find((x: { visibility: string }) => x.visibility === "shared").id;
+      expect(await failure(tx, () => tx`select an_inbox_template_delete(${shared})`)).toContain(
+        "Шаблон уже удалён или не найден.",
+      );
+      expect(
+        await failure(tx, () => tx`select an_inbox_template_save(${shared}, 'X', 'Y', 'personal')`),
+      ).toContain("Шаблон не найден. Обновите страницу.");
+
+      // Ответ из портала: куда — только в доступе; итог пишет сервер.
+      expect(
+        await failure(tx, () => tx`select an_inbox_reply_target(${d601})`),
+      ).toContain("Диалог не найден или сообщество отключено.");
+      const [{ r: target }] = await tx`select an_inbox_reply_target(${d501}) as r`;
+      expect(Number(target.vk_community_id)).toBe(111);
+      expect(
+        await failure(tx, () => tx`select an_inbox_reply_store(${lead}, ${d501}, 77, 'x', '[]'::jsonb)`),
+      ).toContain("permission denied");
+      await tx`set local role service_role`;
+      await tx`select an_inbox_reply_store(${lead}, ${d501}, 77, 'Ответ', ${[
+        { id: 5, owner_id: -111, sizes: [{ url: "https://r/1", width: 10 }] },
+      ]}::jsonb)`;
+      await asServer(tx);
+      const [sent] = await tx`select direction, body, portal_sender_user_id, vk_sender_id,
+                                     public.an_inbox_media(raw_payload) as media
+                                from an_inbox_messages where vk_message_id = 77`;
+      expect(sent).toMatchObject({ direction: "outgoing", body: "Ответ", portal_sender_user_id: lead, vk_sender_id: "-111" });
+      expect(sent.media.photos).toEqual(["https://r/1"]);
+      const [dl] = await tx`select status, assigned_user_id, first_operator_reply_at is not null as replied
+                              from an_inbox_dialogs where id = ${d501}`;
+      expect(dl).toEqual({ status: "waiting_customer", assigned_user_id: lead, replied: true });
+      expect((await tx`select count(*)::int as n from an_inbox_events where event_type = 'operator_reply'`)[0].n).toBe(1);
+      // Копия ответа из VK (message_reply) не задваивает сообщение.
+      await tx`set local role service_role`;
+      await tx`select an_inbox_callback(${c1}, 'message_reply', ${(111).toString(16).padStart(64, "0")},
+        ${{ peer_id: 501, id: 77, date: 5000, from_id: -111, out: true, conversation_message_id: null, text: "Ответ", raw: {} }}::jsonb)`;
+      await asServer(tx);
+      expect((await tx`select count(*)::int as n from an_inbox_messages where vk_message_id = 77`)[0].n).toBe(1);
+      await as(tx, lead);
+      expect((await tx`select an_inbox_marker(null) as m`)[0].m).not.toBe(m1);
+    });
+  });
 });
