@@ -73,6 +73,7 @@ import { Route as AuthenticatedAnalyticsQuizIndexRouteImport } from './routes/_a
 import { Route as AuthenticatedAccessRolesIndexRouteImport } from './routes/_authenticated/access/roles/index'
 import { Route as AuthenticatedAcademyReviewIndexRouteImport } from './routes/_authenticated/academy/review/index'
 import { Route as AuthenticatedAcademyCoursesIndexRouteImport } from './routes/_authenticated/academy/courses/index'
+import { Route as ApiAnalyticsVkCallbackIdRouteImport } from './routes/api/analytics/vk-callback/$id'
 import { Route as ApiAnalyticsV1SplatRouteImport } from './routes/api/analytics/v1/$'
 import { Route as ApiAnalyticsQuizLeadsRouteImport } from './routes/api/analytics/quiz/leads'
 import { Route as ApiAnalyticsFitbaseSessionRouteImport } from './routes/api/analytics/fitbase/session'
@@ -100,6 +101,7 @@ import { Route as AuthenticatedAnalyticsOnecRevenueRouteImport } from './routes/
 import { Route as AuthenticatedAnalyticsOnecMycityRouteImport } from './routes/_authenticated/analytics/onec/mycity'
 import { Route as AuthenticatedAnalyticsOnecFunnelRouteImport } from './routes/_authenticated/analytics/onec/funnel'
 import { Route as AuthenticatedAnalyticsOnecActivitiesRouteImport } from './routes/_authenticated/analytics/onec/activities'
+import { Route as AuthenticatedAnalyticsInboxCommunitiesRouteImport } from './routes/_authenticated/analytics/inbox/communities'
 import { Route as AuthenticatedAnalyticsFitbaseSalesRouteImport } from './routes/_authenticated/analytics/fitbase/sales'
 import { Route as AuthenticatedAnalyticsFitbaseRevenueRouteImport } from './routes/_authenticated/analytics/fitbase/revenue'
 import { Route as AuthenticatedAnalyticsFitbaseMycityRouteImport } from './routes/_authenticated/analytics/fitbase/mycity'
@@ -484,6 +486,12 @@ const AuthenticatedAcademyCoursesIndexRoute =
     path: '/academy/courses/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const ApiAnalyticsVkCallbackIdRoute =
+  ApiAnalyticsVkCallbackIdRouteImport.update({
+    id: '/api/analytics/vk-callback/$id',
+    path: '/api/analytics/vk-callback/$id',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiAnalyticsV1SplatRoute = ApiAnalyticsV1SplatRouteImport.update({
   id: '/api/analytics/v1/$',
   path: '/api/analytics/v1/$',
@@ -642,6 +650,12 @@ const AuthenticatedAnalyticsOnecActivitiesRoute =
   AuthenticatedAnalyticsOnecActivitiesRouteImport.update({
     id: '/analytics/onec/activities',
     path: '/analytics/onec/activities',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAnalyticsInboxCommunitiesRoute =
+  AuthenticatedAnalyticsInboxCommunitiesRouteImport.update({
+    id: '/analytics/inbox/communities',
+    path: '/analytics/inbox/communities',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedAnalyticsFitbaseSalesRoute =
@@ -930,6 +944,7 @@ export interface FileRoutesByFullPath {
   '/analytics/fitbase/mycity': typeof AuthenticatedAnalyticsFitbaseMycityRoute
   '/analytics/fitbase/revenue': typeof AuthenticatedAnalyticsFitbaseRevenueRoute
   '/analytics/fitbase/sales': typeof AuthenticatedAnalyticsFitbaseSalesRoute
+  '/analytics/inbox/communities': typeof AuthenticatedAnalyticsInboxCommunitiesRoute
   '/analytics/onec/activities': typeof AuthenticatedAnalyticsOnecActivitiesRoute
   '/analytics/onec/funnel': typeof AuthenticatedAnalyticsOnecFunnelRoute
   '/analytics/onec/mycity': typeof AuthenticatedAnalyticsOnecMycityRoute
@@ -957,6 +972,7 @@ export interface FileRoutesByFullPath {
   '/api/analytics/fitbase/session': typeof ApiAnalyticsFitbaseSessionRoute
   '/api/analytics/quiz/leads': typeof ApiAnalyticsQuizLeadsRoute
   '/api/analytics/v1/$': typeof ApiAnalyticsV1SplatRoute
+  '/api/analytics/vk-callback/$id': typeof ApiAnalyticsVkCallbackIdRoute
   '/academy/courses/': typeof AuthenticatedAcademyCoursesIndexRoute
   '/academy/review/': typeof AuthenticatedAcademyReviewIndexRoute
   '/access/roles/': typeof AuthenticatedAccessRolesIndexRoute
@@ -1057,6 +1073,7 @@ export interface FileRoutesByTo {
   '/analytics/fitbase/mycity': typeof AuthenticatedAnalyticsFitbaseMycityRoute
   '/analytics/fitbase/revenue': typeof AuthenticatedAnalyticsFitbaseRevenueRoute
   '/analytics/fitbase/sales': typeof AuthenticatedAnalyticsFitbaseSalesRoute
+  '/analytics/inbox/communities': typeof AuthenticatedAnalyticsInboxCommunitiesRoute
   '/analytics/onec/activities': typeof AuthenticatedAnalyticsOnecActivitiesRoute
   '/analytics/onec/funnel': typeof AuthenticatedAnalyticsOnecFunnelRoute
   '/analytics/onec/mycity': typeof AuthenticatedAnalyticsOnecMycityRoute
@@ -1084,6 +1101,7 @@ export interface FileRoutesByTo {
   '/api/analytics/fitbase/session': typeof ApiAnalyticsFitbaseSessionRoute
   '/api/analytics/quiz/leads': typeof ApiAnalyticsQuizLeadsRoute
   '/api/analytics/v1/$': typeof ApiAnalyticsV1SplatRoute
+  '/api/analytics/vk-callback/$id': typeof ApiAnalyticsVkCallbackIdRoute
   '/academy/courses': typeof AuthenticatedAcademyCoursesIndexRoute
   '/academy/review': typeof AuthenticatedAcademyReviewIndexRoute
   '/access/roles': typeof AuthenticatedAccessRolesIndexRoute
@@ -1186,6 +1204,7 @@ export interface FileRoutesById {
   '/_authenticated/analytics/fitbase/mycity': typeof AuthenticatedAnalyticsFitbaseMycityRoute
   '/_authenticated/analytics/fitbase/revenue': typeof AuthenticatedAnalyticsFitbaseRevenueRoute
   '/_authenticated/analytics/fitbase/sales': typeof AuthenticatedAnalyticsFitbaseSalesRoute
+  '/_authenticated/analytics/inbox/communities': typeof AuthenticatedAnalyticsInboxCommunitiesRoute
   '/_authenticated/analytics/onec/activities': typeof AuthenticatedAnalyticsOnecActivitiesRoute
   '/_authenticated/analytics/onec/funnel': typeof AuthenticatedAnalyticsOnecFunnelRoute
   '/_authenticated/analytics/onec/mycity': typeof AuthenticatedAnalyticsOnecMycityRoute
@@ -1213,6 +1232,7 @@ export interface FileRoutesById {
   '/api/analytics/fitbase/session': typeof ApiAnalyticsFitbaseSessionRoute
   '/api/analytics/quiz/leads': typeof ApiAnalyticsQuizLeadsRoute
   '/api/analytics/v1/$': typeof ApiAnalyticsV1SplatRoute
+  '/api/analytics/vk-callback/$id': typeof ApiAnalyticsVkCallbackIdRoute
   '/_authenticated/academy/courses/': typeof AuthenticatedAcademyCoursesIndexRoute
   '/_authenticated/academy/review/': typeof AuthenticatedAcademyReviewIndexRoute
   '/_authenticated/access/roles/': typeof AuthenticatedAccessRolesIndexRoute
@@ -1315,6 +1335,7 @@ export interface FileRouteTypes {
     | '/analytics/fitbase/mycity'
     | '/analytics/fitbase/revenue'
     | '/analytics/fitbase/sales'
+    | '/analytics/inbox/communities'
     | '/analytics/onec/activities'
     | '/analytics/onec/funnel'
     | '/analytics/onec/mycity'
@@ -1342,6 +1363,7 @@ export interface FileRouteTypes {
     | '/api/analytics/fitbase/session'
     | '/api/analytics/quiz/leads'
     | '/api/analytics/v1/$'
+    | '/api/analytics/vk-callback/$id'
     | '/academy/courses/'
     | '/academy/review/'
     | '/access/roles/'
@@ -1442,6 +1464,7 @@ export interface FileRouteTypes {
     | '/analytics/fitbase/mycity'
     | '/analytics/fitbase/revenue'
     | '/analytics/fitbase/sales'
+    | '/analytics/inbox/communities'
     | '/analytics/onec/activities'
     | '/analytics/onec/funnel'
     | '/analytics/onec/mycity'
@@ -1469,6 +1492,7 @@ export interface FileRouteTypes {
     | '/api/analytics/fitbase/session'
     | '/api/analytics/quiz/leads'
     | '/api/analytics/v1/$'
+    | '/api/analytics/vk-callback/$id'
     | '/academy/courses'
     | '/academy/review'
     | '/access/roles'
@@ -1570,6 +1594,7 @@ export interface FileRouteTypes {
     | '/_authenticated/analytics/fitbase/mycity'
     | '/_authenticated/analytics/fitbase/revenue'
     | '/_authenticated/analytics/fitbase/sales'
+    | '/_authenticated/analytics/inbox/communities'
     | '/_authenticated/analytics/onec/activities'
     | '/_authenticated/analytics/onec/funnel'
     | '/_authenticated/analytics/onec/mycity'
@@ -1597,6 +1622,7 @@ export interface FileRouteTypes {
     | '/api/analytics/fitbase/session'
     | '/api/analytics/quiz/leads'
     | '/api/analytics/v1/$'
+    | '/api/analytics/vk-callback/$id'
     | '/_authenticated/academy/courses/'
     | '/_authenticated/academy/review/'
     | '/_authenticated/access/roles/'
@@ -1637,6 +1663,7 @@ export interface RootRouteChildren {
   ApiAnalyticsFitbaseSessionRoute: typeof ApiAnalyticsFitbaseSessionRoute
   ApiAnalyticsQuizLeadsRoute: typeof ApiAnalyticsQuizLeadsRoute
   ApiAnalyticsV1SplatRoute: typeof ApiAnalyticsV1SplatRoute
+  ApiAnalyticsVkCallbackIdRoute: typeof ApiAnalyticsVkCallbackIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -2089,6 +2116,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAcademyCoursesIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/analytics/vk-callback/$id': {
+      id: '/api/analytics/vk-callback/$id'
+      path: '/api/analytics/vk-callback/$id'
+      fullPath: '/api/analytics/vk-callback/$id'
+      preLoaderRoute: typeof ApiAnalyticsVkCallbackIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/analytics/v1/$': {
       id: '/api/analytics/v1/$'
       path: '/api/analytics/v1/$'
@@ -2276,6 +2310,13 @@ declare module '@tanstack/react-router' {
       path: '/analytics/onec/activities'
       fullPath: '/analytics/onec/activities'
       preLoaderRoute: typeof AuthenticatedAnalyticsOnecActivitiesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/analytics/inbox/communities': {
+      id: '/_authenticated/analytics/inbox/communities'
+      path: '/analytics/inbox/communities'
+      fullPath: '/analytics/inbox/communities'
+      preLoaderRoute: typeof AuthenticatedAnalyticsInboxCommunitiesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/analytics/fitbase/sales': {
@@ -2592,6 +2633,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAnalyticsFitbaseMycityRoute: typeof AuthenticatedAnalyticsFitbaseMycityRoute
   AuthenticatedAnalyticsFitbaseRevenueRoute: typeof AuthenticatedAnalyticsFitbaseRevenueRoute
   AuthenticatedAnalyticsFitbaseSalesRoute: typeof AuthenticatedAnalyticsFitbaseSalesRoute
+  AuthenticatedAnalyticsInboxCommunitiesRoute: typeof AuthenticatedAnalyticsInboxCommunitiesRoute
   AuthenticatedAnalyticsOnecActivitiesRoute: typeof AuthenticatedAnalyticsOnecActivitiesRoute
   AuthenticatedAnalyticsOnecFunnelRoute: typeof AuthenticatedAnalyticsOnecFunnelRoute
   AuthenticatedAnalyticsOnecMycityRoute: typeof AuthenticatedAnalyticsOnecMycityRoute
@@ -2720,6 +2762,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedAnalyticsFitbaseRevenueRoute,
   AuthenticatedAnalyticsFitbaseSalesRoute:
     AuthenticatedAnalyticsFitbaseSalesRoute,
+  AuthenticatedAnalyticsInboxCommunitiesRoute:
+    AuthenticatedAnalyticsInboxCommunitiesRoute,
   AuthenticatedAnalyticsOnecActivitiesRoute:
     AuthenticatedAnalyticsOnecActivitiesRoute,
   AuthenticatedAnalyticsOnecFunnelRoute: AuthenticatedAnalyticsOnecFunnelRoute,
@@ -2812,6 +2856,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAnalyticsFitbaseSessionRoute: ApiAnalyticsFitbaseSessionRoute,
   ApiAnalyticsQuizLeadsRoute: ApiAnalyticsQuizLeadsRoute,
   ApiAnalyticsV1SplatRoute: ApiAnalyticsV1SplatRoute,
+  ApiAnalyticsVkCallbackIdRoute: ApiAnalyticsVkCallbackIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

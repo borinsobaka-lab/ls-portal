@@ -3738,3 +3738,23 @@ export function AnalyticsJobsPageSkeleton() {
     </ShellSkeleton>
   );
 }
+
+/** «Диалоги VK» → «Подключения»: пояснение, сообщества, лид-менеджеры. */
+export function AnalyticsInboxCommunitiesPageSkeleton() {
+  return (
+    <ShellSkeleton title={AN_TITLES.inboxCommunities} network>
+      <div className="max-w-6xl space-y-6">
+        <Skeleton className="h-14 w-full rounded-lg" />
+        <TableCardSkeleton
+          title="Подключённые сообщества"
+          headers={["Группа", "ID VK", "Callback API", "Подключено", "Диалогов", ""]}
+          rows={4}
+        />
+        <Skeleton className="h-6 w-56" />
+        <Skeleton className="h-12 w-full rounded-lg" />
+        <ToolbarSkeleton controls={[]} />
+        <TableCardSkeleton title="" headers={["Сотрудник", "Сообщества VK", ""]} rows={3} />
+      </div>
+    </ShellSkeleton>
+  );
+}

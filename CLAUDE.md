@@ -1251,6 +1251,24 @@ DEPLOY.md.
   псевдонимами запроса `an_fb_pseudo`), администратору —
   `an_fb_partner_access`, `an_fb_partner_access_save`,
   `an_fb_city_target_save`.
+  «Диалоги VK», часть 1 (2026-10-31, ANALYTICS.md):
+  `db/migrations/2026-10-31_zz_analytics_inbox.sql` — их vk_inbox_* →
+  `an_inbox_*`: подключения сообществ `an_inbox_communities` (токен — в
+  `an_secrets` kind `vk_inbox`, ref = id; секрет Callback — только SHA-256,
+  его считает сервер), сообщества лид-менеджеров `an_inbox_user_communities`
+  (доступ — их `inbox_scope`: администратор аналитики — все, право
+  `an.inbox` — назначенные, `an_inbox_scope`), диалоги `an_inbox_dialogs`,
+  сообщения `an_inbox_messages` (`raw_payload` — сообщение VK как есть),
+  прочтение `an_inbox_dialog_reads` / `an_inbox_user_read_baselines`,
+  события `an_inbox_events`, шаблоны ответов `an_inbox_reply_templates`,
+  даты первых сообщений `an_inbox_first_messages`. Администратору
+  аналитики — `an_inbox_communities`, `an_inbox_community_register` /
+  `_update`, `an_inbox_confirmation_save`, `an_inbox_secret_save`,
+  `an_inbox_access_save`; серверу (service_role) — приём Callback
+  `an_inbox_callback` (публичный `/api/analytics/vk-callback/<id>`),
+  `an_inbox_profiles_pending` / `_store`, `an_inbox_first_pending` /
+  `_store` (задачи `inbox_profiles`, `inbox_first_messages`). Таблицы
+  закрыты браузеру.
   Клубы и собственники (решение владельца 2026-10-27, ACCESS.md):
   `db/migrations/2026-10-27_zz_studio_owners.sql` — `studio_owners`
   (клуб × пользователь портала; пишут только RPC `org_studio_owners_set` /

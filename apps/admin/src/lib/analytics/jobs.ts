@@ -31,6 +31,10 @@ export const AN_JOBS: Record<string, AnJobInfo> = {
     external: true,
   },
   quiz_sheets: { label: "Квиз: новые заявки в Google-таблицы городов", external: true },
+  inbox_profiles: { label: "Диалоги VK: имена и аватарки клиентов из VK" },
+  inbox_first_messages: {
+    label: "Диалоги VK: даты первых сообщений переписки (для статистики лид-менеджеров)",
+  },
 };
 
 export const jobLabel = (key: string) => AN_JOBS[key]?.label ?? key;
