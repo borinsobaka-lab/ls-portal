@@ -121,6 +121,8 @@ export type RevenueBar = {
   /** Полное название месяца для подсказки («Май 2026»). */
   label: string;
   value: number;
+  /** Подпись суммы, если не rub(value) (доска FitBase: нет данных — «—»). */
+  text?: string;
   /** Высота в процентах от самого высокого столбика (не меньше 2). */
   height: number;
   current: boolean;
@@ -291,7 +293,14 @@ export function trendLabel(key: string): string {
 /** Высота графика динамики, px (по ней — место подписей значений). */
 export const TREND_CHART_HEIGHT = 260;
 
-export type TrendPoint = { key: string; label: string; newSales: number; repeatSales: number };
+export type TrendPoint = {
+  key: string;
+  label: string;
+  newSales: number;
+  repeatSales: number;
+  /** Подписи значений, если не fmt (доска FitBase: нет данных — «—»). */
+  text?: Partial<Record<"newSales" | "repeatSales", string>>;
+};
 export type SalesTrend = {
   points: TrendPoint[];
   /** Верх шкалы: чётный, не меньше 2. */

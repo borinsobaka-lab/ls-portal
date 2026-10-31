@@ -63,7 +63,9 @@ export function RevenueBars({ bars, color }: { bars: RevenueBar[]; color: string
             if (!bar) return null;
             return (
               <TooltipBox title={bar.label}>
-                <div className="mt-1 text-sm font-semibold tabular-nums">{rub(bar.value)}</div>
+                <div className="mt-1 text-sm font-semibold tabular-nums">
+                  {bar.text ?? rub(bar.value)}
+                </div>
               </TooltipBox>
             );
           }}
@@ -135,7 +137,7 @@ export function SalesTrendPlot({
             fontWeight={600}
             fill="var(--foreground)"
           >
-            {fmt(value)}
+            {point.text?.[series] ?? fmt(value)}
           </text>
         </g>
       );
@@ -175,7 +177,8 @@ export function SalesTrendPlot({
                       className="size-2 rounded-full"
                       style={{ backgroundColor: colors[s.key] }}
                     />
-                    {s.label}: <b className="tabular-nums">{fmt(point[s.key])}</b>
+                    {s.label}:{" "}
+                    <b className="tabular-nums">{point.text?.[s.key] ?? fmt(point[s.key])}</b>
                   </div>
                 ))}
               </TooltipBox>

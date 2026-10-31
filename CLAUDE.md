@@ -1236,6 +1236,21 @@ DEPLOY.md.
   основания). Основания — в `an_fb_trial_basis` (часть 4). Задача
   `fitbase_basis` — внешняя, выключена по умолчанию. Таблицы закрыты
   браузеру.
+  FitBase, часть 6 (2026-10-31, ANALYTICS.md):
+  `db/migrations/2026-10-31_z_analytics_fitbase_mycity.sql` — «Мой город ·
+  FitBase»: назначенные человеку студии `an_fb_user_studios` (их
+  user_fitbase_connections; домен + клуб — смена закрывает назначение;
+  внутренняя `an_fb_mycity_ids`, администратору — все), точка 0 городов
+  `an_fb_city_targets` (копейки, вводит администратор). `an_me_for`
+  (актуальное определение — здесь) добавляет `fb.mycity`, если есть
+  назначенные студии. Общие расчёты вынесены во внутренние функции
+  (`an_fb_owner_ids`, `an_fb_attendance_groups`, `an_fb_attendance_selected`,
+  `an_fb_trials_core`, `an_fb_trials_connections`; актуальные определения
+  `an_fb_attendance_data` и `an_fb_trials_data` — здесь, ответы те же). RPC:
+  `an_fb_mycity_data` (их filters + факты выбранных студий; ID клиентов —
+  псевдонимами запроса `an_fb_pseudo`), администратору —
+  `an_fb_partner_access`, `an_fb_partner_access_save`,
+  `an_fb_city_target_save`.
   Клубы и собственники (решение владельца 2026-10-27, ACCESS.md):
   `db/migrations/2026-10-27_zz_studio_owners.sql` — `studio_owners`
   (клуб × пользователь портала; пишут только RPC `org_studio_owners_set` /

@@ -102,6 +102,7 @@ import { Route as AuthenticatedAnalyticsOnecFunnelRouteImport } from './routes/_
 import { Route as AuthenticatedAnalyticsOnecActivitiesRouteImport } from './routes/_authenticated/analytics/onec/activities'
 import { Route as AuthenticatedAnalyticsFitbaseSalesRouteImport } from './routes/_authenticated/analytics/fitbase/sales'
 import { Route as AuthenticatedAnalyticsFitbaseRevenueRouteImport } from './routes/_authenticated/analytics/fitbase/revenue'
+import { Route as AuthenticatedAnalyticsFitbaseMycityRouteImport } from './routes/_authenticated/analytics/fitbase/mycity'
 import { Route as AuthenticatedAnalyticsFitbaseMarketingRouteImport } from './routes/_authenticated/analytics/fitbase/marketing'
 import { Route as AuthenticatedAnalyticsFitbaseAttendanceRouteImport } from './routes/_authenticated/analytics/fitbase/attendance'
 import { Route as AuthenticatedAnalyticsAvitoRegisterRouteImport } from './routes/_authenticated/analytics/avito/register'
@@ -127,6 +128,7 @@ import { Route as AuthenticatedAnalyticsFitbaseTrialsReviewRouteImport } from '.
 import { Route as AuthenticatedAnalyticsCrmMarketingLadyStretchRouteImport } from './routes/_authenticated/analytics/crm/marketing/lady-stretch'
 import { Route as AuthenticatedAnalyticsCrmMarketingLadyJumpRouteImport } from './routes/_authenticated/analytics/crm/marketing/lady-jump'
 import { Route as AuthenticatedAnalyticsCrmFitbaseTrialServicesRouteImport } from './routes/_authenticated/analytics/crm/fitbase/trial-services'
+import { Route as AuthenticatedAnalyticsCrmFitbasePartnersRouteImport } from './routes/_authenticated/analytics/crm/fitbase/partners'
 import { Route as AuthenticatedAnalyticsCrmFitbaseBasisRouteImport } from './routes/_authenticated/analytics/crm/fitbase/basis'
 import { Route as AuthenticatedAnalyticsCrmFitbaseConnectionIdRouteImport } from './routes/_authenticated/analytics/crm/fitbase/$connectionId'
 import { Route as AuthenticatedAnalyticsCrmAmocrmConnectionIdRouteImport } from './routes/_authenticated/analytics/crm/amocrm/$connectionId'
@@ -654,6 +656,12 @@ const AuthenticatedAnalyticsFitbaseRevenueRoute =
     path: '/analytics/fitbase/revenue',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAnalyticsFitbaseMycityRoute =
+  AuthenticatedAnalyticsFitbaseMycityRouteImport.update({
+    id: '/analytics/fitbase/mycity',
+    path: '/analytics/fitbase/mycity',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAnalyticsFitbaseMarketingRoute =
   AuthenticatedAnalyticsFitbaseMarketingRouteImport.update({
     id: '/analytics/fitbase/marketing',
@@ -804,6 +812,12 @@ const AuthenticatedAnalyticsCrmFitbaseTrialServicesRoute =
     path: '/analytics/crm/fitbase/trial-services',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAnalyticsCrmFitbasePartnersRoute =
+  AuthenticatedAnalyticsCrmFitbasePartnersRouteImport.update({
+    id: '/analytics/crm/fitbase/partners',
+    path: '/analytics/crm/fitbase/partners',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAnalyticsCrmFitbaseBasisRoute =
   AuthenticatedAnalyticsCrmFitbaseBasisRouteImport.update({
     id: '/analytics/crm/fitbase/basis',
@@ -913,6 +927,7 @@ export interface FileRoutesByFullPath {
   '/analytics/avito/register': typeof AuthenticatedAnalyticsAvitoRegisterRoute
   '/analytics/fitbase/attendance': typeof AuthenticatedAnalyticsFitbaseAttendanceRoute
   '/analytics/fitbase/marketing': typeof AuthenticatedAnalyticsFitbaseMarketingRoute
+  '/analytics/fitbase/mycity': typeof AuthenticatedAnalyticsFitbaseMycityRoute
   '/analytics/fitbase/revenue': typeof AuthenticatedAnalyticsFitbaseRevenueRoute
   '/analytics/fitbase/sales': typeof AuthenticatedAnalyticsFitbaseSalesRoute
   '/analytics/onec/activities': typeof AuthenticatedAnalyticsOnecActivitiesRoute
@@ -954,6 +969,7 @@ export interface FileRoutesByFullPath {
   '/analytics/crm/amocrm/$connectionId': typeof AuthenticatedAnalyticsCrmAmocrmConnectionIdRoute
   '/analytics/crm/fitbase/$connectionId': typeof AuthenticatedAnalyticsCrmFitbaseConnectionIdRoute
   '/analytics/crm/fitbase/basis': typeof AuthenticatedAnalyticsCrmFitbaseBasisRoute
+  '/analytics/crm/fitbase/partners': typeof AuthenticatedAnalyticsCrmFitbasePartnersRoute
   '/analytics/crm/fitbase/trial-services': typeof AuthenticatedAnalyticsCrmFitbaseTrialServicesRoute
   '/analytics/crm/marketing/lady-jump': typeof AuthenticatedAnalyticsCrmMarketingLadyJumpRoute
   '/analytics/crm/marketing/lady-stretch': typeof AuthenticatedAnalyticsCrmMarketingLadyStretchRoute
@@ -1038,6 +1054,7 @@ export interface FileRoutesByTo {
   '/analytics/avito/register': typeof AuthenticatedAnalyticsAvitoRegisterRoute
   '/analytics/fitbase/attendance': typeof AuthenticatedAnalyticsFitbaseAttendanceRoute
   '/analytics/fitbase/marketing': typeof AuthenticatedAnalyticsFitbaseMarketingRoute
+  '/analytics/fitbase/mycity': typeof AuthenticatedAnalyticsFitbaseMycityRoute
   '/analytics/fitbase/revenue': typeof AuthenticatedAnalyticsFitbaseRevenueRoute
   '/analytics/fitbase/sales': typeof AuthenticatedAnalyticsFitbaseSalesRoute
   '/analytics/onec/activities': typeof AuthenticatedAnalyticsOnecActivitiesRoute
@@ -1079,6 +1096,7 @@ export interface FileRoutesByTo {
   '/analytics/crm/amocrm/$connectionId': typeof AuthenticatedAnalyticsCrmAmocrmConnectionIdRoute
   '/analytics/crm/fitbase/$connectionId': typeof AuthenticatedAnalyticsCrmFitbaseConnectionIdRoute
   '/analytics/crm/fitbase/basis': typeof AuthenticatedAnalyticsCrmFitbaseBasisRoute
+  '/analytics/crm/fitbase/partners': typeof AuthenticatedAnalyticsCrmFitbasePartnersRoute
   '/analytics/crm/fitbase/trial-services': typeof AuthenticatedAnalyticsCrmFitbaseTrialServicesRoute
   '/analytics/crm/marketing/lady-jump': typeof AuthenticatedAnalyticsCrmMarketingLadyJumpRoute
   '/analytics/crm/marketing/lady-stretch': typeof AuthenticatedAnalyticsCrmMarketingLadyStretchRoute
@@ -1165,6 +1183,7 @@ export interface FileRoutesById {
   '/_authenticated/analytics/avito/register': typeof AuthenticatedAnalyticsAvitoRegisterRoute
   '/_authenticated/analytics/fitbase/attendance': typeof AuthenticatedAnalyticsFitbaseAttendanceRoute
   '/_authenticated/analytics/fitbase/marketing': typeof AuthenticatedAnalyticsFitbaseMarketingRoute
+  '/_authenticated/analytics/fitbase/mycity': typeof AuthenticatedAnalyticsFitbaseMycityRoute
   '/_authenticated/analytics/fitbase/revenue': typeof AuthenticatedAnalyticsFitbaseRevenueRoute
   '/_authenticated/analytics/fitbase/sales': typeof AuthenticatedAnalyticsFitbaseSalesRoute
   '/_authenticated/analytics/onec/activities': typeof AuthenticatedAnalyticsOnecActivitiesRoute
@@ -1206,6 +1225,7 @@ export interface FileRoutesById {
   '/_authenticated/analytics/crm/amocrm/$connectionId': typeof AuthenticatedAnalyticsCrmAmocrmConnectionIdRoute
   '/_authenticated/analytics/crm/fitbase/$connectionId': typeof AuthenticatedAnalyticsCrmFitbaseConnectionIdRoute
   '/_authenticated/analytics/crm/fitbase/basis': typeof AuthenticatedAnalyticsCrmFitbaseBasisRoute
+  '/_authenticated/analytics/crm/fitbase/partners': typeof AuthenticatedAnalyticsCrmFitbasePartnersRoute
   '/_authenticated/analytics/crm/fitbase/trial-services': typeof AuthenticatedAnalyticsCrmFitbaseTrialServicesRoute
   '/_authenticated/analytics/crm/marketing/lady-jump': typeof AuthenticatedAnalyticsCrmMarketingLadyJumpRoute
   '/_authenticated/analytics/crm/marketing/lady-stretch': typeof AuthenticatedAnalyticsCrmMarketingLadyStretchRoute
@@ -1292,6 +1312,7 @@ export interface FileRouteTypes {
     | '/analytics/avito/register'
     | '/analytics/fitbase/attendance'
     | '/analytics/fitbase/marketing'
+    | '/analytics/fitbase/mycity'
     | '/analytics/fitbase/revenue'
     | '/analytics/fitbase/sales'
     | '/analytics/onec/activities'
@@ -1333,6 +1354,7 @@ export interface FileRouteTypes {
     | '/analytics/crm/amocrm/$connectionId'
     | '/analytics/crm/fitbase/$connectionId'
     | '/analytics/crm/fitbase/basis'
+    | '/analytics/crm/fitbase/partners'
     | '/analytics/crm/fitbase/trial-services'
     | '/analytics/crm/marketing/lady-jump'
     | '/analytics/crm/marketing/lady-stretch'
@@ -1417,6 +1439,7 @@ export interface FileRouteTypes {
     | '/analytics/avito/register'
     | '/analytics/fitbase/attendance'
     | '/analytics/fitbase/marketing'
+    | '/analytics/fitbase/mycity'
     | '/analytics/fitbase/revenue'
     | '/analytics/fitbase/sales'
     | '/analytics/onec/activities'
@@ -1458,6 +1481,7 @@ export interface FileRouteTypes {
     | '/analytics/crm/amocrm/$connectionId'
     | '/analytics/crm/fitbase/$connectionId'
     | '/analytics/crm/fitbase/basis'
+    | '/analytics/crm/fitbase/partners'
     | '/analytics/crm/fitbase/trial-services'
     | '/analytics/crm/marketing/lady-jump'
     | '/analytics/crm/marketing/lady-stretch'
@@ -1543,6 +1567,7 @@ export interface FileRouteTypes {
     | '/_authenticated/analytics/avito/register'
     | '/_authenticated/analytics/fitbase/attendance'
     | '/_authenticated/analytics/fitbase/marketing'
+    | '/_authenticated/analytics/fitbase/mycity'
     | '/_authenticated/analytics/fitbase/revenue'
     | '/_authenticated/analytics/fitbase/sales'
     | '/_authenticated/analytics/onec/activities'
@@ -1584,6 +1609,7 @@ export interface FileRouteTypes {
     | '/_authenticated/analytics/crm/amocrm/$connectionId'
     | '/_authenticated/analytics/crm/fitbase/$connectionId'
     | '/_authenticated/analytics/crm/fitbase/basis'
+    | '/_authenticated/analytics/crm/fitbase/partners'
     | '/_authenticated/analytics/crm/fitbase/trial-services'
     | '/_authenticated/analytics/crm/marketing/lady-jump'
     | '/_authenticated/analytics/crm/marketing/lady-stretch'
@@ -2266,6 +2292,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAnalyticsFitbaseRevenueRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/analytics/fitbase/mycity': {
+      id: '/_authenticated/analytics/fitbase/mycity'
+      path: '/analytics/fitbase/mycity'
+      fullPath: '/analytics/fitbase/mycity'
+      preLoaderRoute: typeof AuthenticatedAnalyticsFitbaseMycityRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/analytics/fitbase/marketing': {
       id: '/_authenticated/analytics/fitbase/marketing'
       path: '/analytics/fitbase/marketing'
@@ -2441,6 +2474,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAnalyticsCrmFitbaseTrialServicesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/analytics/crm/fitbase/partners': {
+      id: '/_authenticated/analytics/crm/fitbase/partners'
+      path: '/analytics/crm/fitbase/partners'
+      fullPath: '/analytics/crm/fitbase/partners'
+      preLoaderRoute: typeof AuthenticatedAnalyticsCrmFitbasePartnersRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/analytics/crm/fitbase/basis': {
       id: '/_authenticated/analytics/crm/fitbase/basis'
       path: '/analytics/crm/fitbase/basis'
@@ -2549,6 +2589,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAnalyticsAvitoRegisterRoute: typeof AuthenticatedAnalyticsAvitoRegisterRoute
   AuthenticatedAnalyticsFitbaseAttendanceRoute: typeof AuthenticatedAnalyticsFitbaseAttendanceRoute
   AuthenticatedAnalyticsFitbaseMarketingRoute: typeof AuthenticatedAnalyticsFitbaseMarketingRoute
+  AuthenticatedAnalyticsFitbaseMycityRoute: typeof AuthenticatedAnalyticsFitbaseMycityRoute
   AuthenticatedAnalyticsFitbaseRevenueRoute: typeof AuthenticatedAnalyticsFitbaseRevenueRoute
   AuthenticatedAnalyticsFitbaseSalesRoute: typeof AuthenticatedAnalyticsFitbaseSalesRoute
   AuthenticatedAnalyticsOnecActivitiesRoute: typeof AuthenticatedAnalyticsOnecActivitiesRoute
@@ -2587,6 +2628,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAnalyticsCrmAmocrmConnectionIdRoute: typeof AuthenticatedAnalyticsCrmAmocrmConnectionIdRoute
   AuthenticatedAnalyticsCrmFitbaseConnectionIdRoute: typeof AuthenticatedAnalyticsCrmFitbaseConnectionIdRoute
   AuthenticatedAnalyticsCrmFitbaseBasisRoute: typeof AuthenticatedAnalyticsCrmFitbaseBasisRoute
+  AuthenticatedAnalyticsCrmFitbasePartnersRoute: typeof AuthenticatedAnalyticsCrmFitbasePartnersRoute
   AuthenticatedAnalyticsCrmFitbaseTrialServicesRoute: typeof AuthenticatedAnalyticsCrmFitbaseTrialServicesRoute
   AuthenticatedAnalyticsCrmMarketingLadyJumpRoute: typeof AuthenticatedAnalyticsCrmMarketingLadyJumpRoute
   AuthenticatedAnalyticsCrmMarketingLadyStretchRoute: typeof AuthenticatedAnalyticsCrmMarketingLadyStretchRoute
@@ -2672,6 +2714,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedAnalyticsFitbaseAttendanceRoute,
   AuthenticatedAnalyticsFitbaseMarketingRoute:
     AuthenticatedAnalyticsFitbaseMarketingRoute,
+  AuthenticatedAnalyticsFitbaseMycityRoute:
+    AuthenticatedAnalyticsFitbaseMycityRoute,
   AuthenticatedAnalyticsFitbaseRevenueRoute:
     AuthenticatedAnalyticsFitbaseRevenueRoute,
   AuthenticatedAnalyticsFitbaseSalesRoute:
@@ -2725,6 +2769,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedAnalyticsCrmFitbaseConnectionIdRoute,
   AuthenticatedAnalyticsCrmFitbaseBasisRoute:
     AuthenticatedAnalyticsCrmFitbaseBasisRoute,
+  AuthenticatedAnalyticsCrmFitbasePartnersRoute:
+    AuthenticatedAnalyticsCrmFitbasePartnersRoute,
   AuthenticatedAnalyticsCrmFitbaseTrialServicesRoute:
     AuthenticatedAnalyticsCrmFitbaseTrialServicesRoute,
   AuthenticatedAnalyticsCrmMarketingLadyJumpRoute:

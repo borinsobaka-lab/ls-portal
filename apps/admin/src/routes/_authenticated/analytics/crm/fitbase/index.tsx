@@ -71,6 +71,17 @@ function AnalyticsFitbasePage() {
                 <Link to="/analytics/crm/fitbase/basis">Сессия и сборщик оснований</Link>
               </Button>
             </section>
+            <section className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-background p-4">
+              <div className="min-w-0">
+                <h2 className="text-lg font-semibold">Мой город · FitBase — доступ партнёров</h2>
+                <p className="text-sm text-muted-foreground">
+                  Какие студии видит каждый человек, и точка 0 городов.
+                </p>
+              </div>
+              <Button asChild variant="outline">
+                <Link to="/analytics/crm/fitbase/partners">Доступ партнёров</Link>
+              </Button>
+            </section>
             <section className="space-y-3">
               <div className="flex items-baseline justify-between gap-2">
                 <h2 className="text-lg font-semibold">Подключённые студии</h2>

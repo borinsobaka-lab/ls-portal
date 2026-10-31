@@ -50,7 +50,8 @@ Tailwind 4 + shadcn/radix. Пакетный менеджер — bun.
   (отчёты: выручка, продажи, маркетинг, форматы Python) `lib/analytics/fitbase/reports.test.ts`,
   (занятия и посещаемость) `lib/analytics/fitbase/attendance.test.ts`, (воронка
   пробных, пробные услуги, «Записи без услуги» и CSV) `lib/analytics/fitbase/trials.test.ts`,
-  (основания со страниц FitBase: разбор, пагинация, приём) `lib/analytics/fitbase/web.test.ts`;
+  (основания со страниц FitBase: разбор, пагинация, приём) `lib/analytics/fitbase/web.test.ts`,
+  («Мой город · FitBase»: выручка, что покупают, пробные по названию, доска) `lib/analytics/fitbase/mycity.test.ts`;
   «Академия» — подписи,
   проверка вопроса, сроки и напоминания `lib/academy/logic.test.ts`;
   Kate — инструменты,
@@ -845,7 +846,13 @@ kb`. Доступ — ролями «Пользователей и ролей» 
   сборщик — задача `fitbase_basis`, внешняя), разбор страниц —
   `lib/analytics/fitbase/web.ts`, клиент страниц и проход —
   `lib/analytics/server/fitbase-web.server.ts`
-  (`ANALYTICS_FITBASE_WEB_ORIGIN` — только стенд).
+  (`ANALYTICS_FITBASE_WEB_ORIGIN` — только стенд). «Мой город · FitBase»
+  (`/analytics/fitbase/mycity`; открыт назначенным студиям — «Доступ
+  партнёров» `/analytics/crm/fitbase/partners`, там же точка 0 городов):
+  данные — RPC `an_fb_mycity_data` (`fbMyCityQuery`), их build / payload и
+  правки шаблона — `lib/analytics/fitbase/mycity.ts`, доска —
+  `components/analytics/fitbase/mycity-board.tsx` (части и графики доски
+  «Мой город» 1С).
   Отчёты 1С — группа меню «1С · Lady Stretch» (`/analytics/onec/<доска>`,
   «Мой город» — `/mycity`): маршрут рисует `OnecReportFrame`
   (`components/analytics/onec/report-frame.tsx`: период, «С начала месяца /

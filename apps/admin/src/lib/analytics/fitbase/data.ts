@@ -11,6 +11,7 @@ import { unwrap } from "@/lib/query";
 
 import { ANALYTICS_KEY } from "../data";
 import type { FbAttendanceData } from "./attendance";
+import type { FbMyCityData } from "./mycity";
 import type { FbReviewData, FbTrialsData } from "./trials";
 import type { FbMarketingData, FbRevenueData, FbSalesData } from "./reports";
 
@@ -241,3 +242,39 @@ export function invalidateFitbase(qc: QueryClient) {
     qc.invalidateQueries({ queryKey: [ANALYTICS_KEY, "journal"] }),
   ]);
 }
+
+/** «Мой город · FitBase»: факты выбранных студий человека (назначенные или все — администратору). */
+export const fbMyCityQuery = (f: { from: string; to: string; city: string; studio: string }) => ({
+  queryKey: [...FB_KEY, "mycity", f.from, f.to, f.city, f.studio],
+  queryFn: () =>
+    rpc<FbMyCityData>("an_fb_mycity_data", {
+      p_from: f.from,
+      p_to: f.to,
+      p_city: f.city,
+      p_studio: f.studio,
+    }),
+  retry: false,
+  meta: { errorMessage: "Не удалось загрузить «Мой город · FitBase»" },
+});
+
+export type FbPartnerAccess = {
+  connections: { id: number; name: string; city: string; brand: string }[];
+  people: {
+    user_id: string;
+    full_name: string;
+    position: string | null;
+    email: string | null;
+    active: boolean;
+    admin: boolean;
+    studios: number[];
+  }[];
+  targets: { city: string; amount_cents: number }[];
+  cities: string[];
+};
+
+/** Доступ партнёров к «Моему городу · FitBase» и точка 0 городов (администратору аналитики). */
+export const fbPartnerAccessQuery = {
+  queryKey: [...FB_KEY, "partner-access"],
+  queryFn: () => rpc<FbPartnerAccess>("an_fb_partner_access"),
+  meta: { errorMessage: "Не удалось загрузить доступ партнёров FitBase" },
+};
