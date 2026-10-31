@@ -44,6 +44,7 @@ export const AN_TITLES = {
   fbTrials: "Воронка пробных FitBase",
   fbTrialsReview: "Записи без услуги / абонемента",
   fbTrialServices: "Настройка пробных услуг",
+  fbBasis: "Основания записей FitBase",
   quiz: "Квиз-лендинги",
   quizLeads: "Заявки квиза",
 } as const;

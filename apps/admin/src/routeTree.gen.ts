@@ -75,6 +75,7 @@ import { Route as AuthenticatedAcademyReviewIndexRouteImport } from './routes/_a
 import { Route as AuthenticatedAcademyCoursesIndexRouteImport } from './routes/_authenticated/academy/courses/index'
 import { Route as ApiAnalyticsV1SplatRouteImport } from './routes/api/analytics/v1/$'
 import { Route as ApiAnalyticsQuizLeadsRouteImport } from './routes/api/analytics/quiz/leads'
+import { Route as ApiAnalyticsFitbaseSessionRouteImport } from './routes/api/analytics/fitbase/session'
 import { Route as AuthenticatedKbBaseIdTrashRouteImport } from './routes/_authenticated/kb/$baseId/trash'
 import { Route as AuthenticatedKbBaseIdTemplatesRouteImport } from './routes/_authenticated/kb/$baseId/templates'
 import { Route as AuthenticatedKbBaseIdAnalyticsRouteImport } from './routes/_authenticated/kb/$baseId/analytics'
@@ -126,6 +127,7 @@ import { Route as AuthenticatedAnalyticsFitbaseTrialsReviewRouteImport } from '.
 import { Route as AuthenticatedAnalyticsCrmMarketingLadyStretchRouteImport } from './routes/_authenticated/analytics/crm/marketing/lady-stretch'
 import { Route as AuthenticatedAnalyticsCrmMarketingLadyJumpRouteImport } from './routes/_authenticated/analytics/crm/marketing/lady-jump'
 import { Route as AuthenticatedAnalyticsCrmFitbaseTrialServicesRouteImport } from './routes/_authenticated/analytics/crm/fitbase/trial-services'
+import { Route as AuthenticatedAnalyticsCrmFitbaseBasisRouteImport } from './routes/_authenticated/analytics/crm/fitbase/basis'
 import { Route as AuthenticatedAnalyticsCrmFitbaseConnectionIdRouteImport } from './routes/_authenticated/analytics/crm/fitbase/$connectionId'
 import { Route as AuthenticatedAnalyticsCrmAmocrmConnectionIdRouteImport } from './routes/_authenticated/analytics/crm/amocrm/$connectionId'
 import { Route as AuthenticatedAnalyticsAdminPartnersUserIdRouteImport } from './routes/_authenticated/analytics/admin/partners/$userId'
@@ -490,6 +492,12 @@ const ApiAnalyticsQuizLeadsRoute = ApiAnalyticsQuizLeadsRouteImport.update({
   path: '/api/analytics/quiz/leads',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAnalyticsFitbaseSessionRoute =
+  ApiAnalyticsFitbaseSessionRouteImport.update({
+    id: '/api/analytics/fitbase/session',
+    path: '/api/analytics/fitbase/session',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthenticatedKbBaseIdTrashRoute =
   AuthenticatedKbBaseIdTrashRouteImport.update({
     id: '/kb/$baseId/trash',
@@ -796,6 +804,12 @@ const AuthenticatedAnalyticsCrmFitbaseTrialServicesRoute =
     path: '/analytics/crm/fitbase/trial-services',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAnalyticsCrmFitbaseBasisRoute =
+  AuthenticatedAnalyticsCrmFitbaseBasisRouteImport.update({
+    id: '/analytics/crm/fitbase/basis',
+    path: '/analytics/crm/fitbase/basis',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAnalyticsCrmFitbaseConnectionIdRoute =
   AuthenticatedAnalyticsCrmFitbaseConnectionIdRouteImport.update({
     id: '/analytics/crm/fitbase/$connectionId',
@@ -925,6 +939,7 @@ export interface FileRoutesByFullPath {
   '/kb/$baseId/analytics': typeof AuthenticatedKbBaseIdAnalyticsRoute
   '/kb/$baseId/templates': typeof AuthenticatedKbBaseIdTemplatesRoute
   '/kb/$baseId/trash': typeof AuthenticatedKbBaseIdTrashRoute
+  '/api/analytics/fitbase/session': typeof ApiAnalyticsFitbaseSessionRoute
   '/api/analytics/quiz/leads': typeof ApiAnalyticsQuizLeadsRoute
   '/api/analytics/v1/$': typeof ApiAnalyticsV1SplatRoute
   '/academy/courses/': typeof AuthenticatedAcademyCoursesIndexRoute
@@ -938,6 +953,7 @@ export interface FileRoutesByFullPath {
   '/analytics/admin/partners/$userId': typeof AuthenticatedAnalyticsAdminPartnersUserIdRoute
   '/analytics/crm/amocrm/$connectionId': typeof AuthenticatedAnalyticsCrmAmocrmConnectionIdRoute
   '/analytics/crm/fitbase/$connectionId': typeof AuthenticatedAnalyticsCrmFitbaseConnectionIdRoute
+  '/analytics/crm/fitbase/basis': typeof AuthenticatedAnalyticsCrmFitbaseBasisRoute
   '/analytics/crm/fitbase/trial-services': typeof AuthenticatedAnalyticsCrmFitbaseTrialServicesRoute
   '/analytics/crm/marketing/lady-jump': typeof AuthenticatedAnalyticsCrmMarketingLadyJumpRoute
   '/analytics/crm/marketing/lady-stretch': typeof AuthenticatedAnalyticsCrmMarketingLadyStretchRoute
@@ -1048,6 +1064,7 @@ export interface FileRoutesByTo {
   '/kb/$baseId/analytics': typeof AuthenticatedKbBaseIdAnalyticsRoute
   '/kb/$baseId/templates': typeof AuthenticatedKbBaseIdTemplatesRoute
   '/kb/$baseId/trash': typeof AuthenticatedKbBaseIdTrashRoute
+  '/api/analytics/fitbase/session': typeof ApiAnalyticsFitbaseSessionRoute
   '/api/analytics/quiz/leads': typeof ApiAnalyticsQuizLeadsRoute
   '/api/analytics/v1/$': typeof ApiAnalyticsV1SplatRoute
   '/academy/courses': typeof AuthenticatedAcademyCoursesIndexRoute
@@ -1061,6 +1078,7 @@ export interface FileRoutesByTo {
   '/analytics/admin/partners/$userId': typeof AuthenticatedAnalyticsAdminPartnersUserIdRoute
   '/analytics/crm/amocrm/$connectionId': typeof AuthenticatedAnalyticsCrmAmocrmConnectionIdRoute
   '/analytics/crm/fitbase/$connectionId': typeof AuthenticatedAnalyticsCrmFitbaseConnectionIdRoute
+  '/analytics/crm/fitbase/basis': typeof AuthenticatedAnalyticsCrmFitbaseBasisRoute
   '/analytics/crm/fitbase/trial-services': typeof AuthenticatedAnalyticsCrmFitbaseTrialServicesRoute
   '/analytics/crm/marketing/lady-jump': typeof AuthenticatedAnalyticsCrmMarketingLadyJumpRoute
   '/analytics/crm/marketing/lady-stretch': typeof AuthenticatedAnalyticsCrmMarketingLadyStretchRoute
@@ -1173,6 +1191,7 @@ export interface FileRoutesById {
   '/_authenticated/kb/$baseId/analytics': typeof AuthenticatedKbBaseIdAnalyticsRoute
   '/_authenticated/kb/$baseId/templates': typeof AuthenticatedKbBaseIdTemplatesRoute
   '/_authenticated/kb/$baseId/trash': typeof AuthenticatedKbBaseIdTrashRoute
+  '/api/analytics/fitbase/session': typeof ApiAnalyticsFitbaseSessionRoute
   '/api/analytics/quiz/leads': typeof ApiAnalyticsQuizLeadsRoute
   '/api/analytics/v1/$': typeof ApiAnalyticsV1SplatRoute
   '/_authenticated/academy/courses/': typeof AuthenticatedAcademyCoursesIndexRoute
@@ -1186,6 +1205,7 @@ export interface FileRoutesById {
   '/_authenticated/analytics/admin/partners/$userId': typeof AuthenticatedAnalyticsAdminPartnersUserIdRoute
   '/_authenticated/analytics/crm/amocrm/$connectionId': typeof AuthenticatedAnalyticsCrmAmocrmConnectionIdRoute
   '/_authenticated/analytics/crm/fitbase/$connectionId': typeof AuthenticatedAnalyticsCrmFitbaseConnectionIdRoute
+  '/_authenticated/analytics/crm/fitbase/basis': typeof AuthenticatedAnalyticsCrmFitbaseBasisRoute
   '/_authenticated/analytics/crm/fitbase/trial-services': typeof AuthenticatedAnalyticsCrmFitbaseTrialServicesRoute
   '/_authenticated/analytics/crm/marketing/lady-jump': typeof AuthenticatedAnalyticsCrmMarketingLadyJumpRoute
   '/_authenticated/analytics/crm/marketing/lady-stretch': typeof AuthenticatedAnalyticsCrmMarketingLadyStretchRoute
@@ -1298,6 +1318,7 @@ export interface FileRouteTypes {
     | '/kb/$baseId/analytics'
     | '/kb/$baseId/templates'
     | '/kb/$baseId/trash'
+    | '/api/analytics/fitbase/session'
     | '/api/analytics/quiz/leads'
     | '/api/analytics/v1/$'
     | '/academy/courses/'
@@ -1311,6 +1332,7 @@ export interface FileRouteTypes {
     | '/analytics/admin/partners/$userId'
     | '/analytics/crm/amocrm/$connectionId'
     | '/analytics/crm/fitbase/$connectionId'
+    | '/analytics/crm/fitbase/basis'
     | '/analytics/crm/fitbase/trial-services'
     | '/analytics/crm/marketing/lady-jump'
     | '/analytics/crm/marketing/lady-stretch'
@@ -1421,6 +1443,7 @@ export interface FileRouteTypes {
     | '/kb/$baseId/analytics'
     | '/kb/$baseId/templates'
     | '/kb/$baseId/trash'
+    | '/api/analytics/fitbase/session'
     | '/api/analytics/quiz/leads'
     | '/api/analytics/v1/$'
     | '/academy/courses'
@@ -1434,6 +1457,7 @@ export interface FileRouteTypes {
     | '/analytics/admin/partners/$userId'
     | '/analytics/crm/amocrm/$connectionId'
     | '/analytics/crm/fitbase/$connectionId'
+    | '/analytics/crm/fitbase/basis'
     | '/analytics/crm/fitbase/trial-services'
     | '/analytics/crm/marketing/lady-jump'
     | '/analytics/crm/marketing/lady-stretch'
@@ -1545,6 +1569,7 @@ export interface FileRouteTypes {
     | '/_authenticated/kb/$baseId/analytics'
     | '/_authenticated/kb/$baseId/templates'
     | '/_authenticated/kb/$baseId/trash'
+    | '/api/analytics/fitbase/session'
     | '/api/analytics/quiz/leads'
     | '/api/analytics/v1/$'
     | '/_authenticated/academy/courses/'
@@ -1558,6 +1583,7 @@ export interface FileRouteTypes {
     | '/_authenticated/analytics/admin/partners/$userId'
     | '/_authenticated/analytics/crm/amocrm/$connectionId'
     | '/_authenticated/analytics/crm/fitbase/$connectionId'
+    | '/_authenticated/analytics/crm/fitbase/basis'
     | '/_authenticated/analytics/crm/fitbase/trial-services'
     | '/_authenticated/analytics/crm/marketing/lady-jump'
     | '/_authenticated/analytics/crm/marketing/lady-stretch'
@@ -1582,6 +1608,7 @@ export interface RootRouteChildren {
   QuizSlugRoute: typeof QuizSlugRoute
   QuizIndexRoute: typeof QuizIndexRoute
   ApiAnalyticsOpenapiDotjsonRoute: typeof ApiAnalyticsOpenapiDotjsonRoute
+  ApiAnalyticsFitbaseSessionRoute: typeof ApiAnalyticsFitbaseSessionRoute
   ApiAnalyticsQuizLeadsRoute: typeof ApiAnalyticsQuizLeadsRoute
   ApiAnalyticsV1SplatRoute: typeof ApiAnalyticsV1SplatRoute
 }
@@ -2050,6 +2077,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAnalyticsQuizLeadsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/analytics/fitbase/session': {
+      id: '/api/analytics/fitbase/session'
+      path: '/api/analytics/fitbase/session'
+      fullPath: '/api/analytics/fitbase/session'
+      preLoaderRoute: typeof ApiAnalyticsFitbaseSessionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/kb/$baseId/trash': {
       id: '/_authenticated/kb/$baseId/trash'
       path: '/kb/$baseId/trash'
@@ -2407,6 +2441,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAnalyticsCrmFitbaseTrialServicesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/analytics/crm/fitbase/basis': {
+      id: '/_authenticated/analytics/crm/fitbase/basis'
+      path: '/analytics/crm/fitbase/basis'
+      fullPath: '/analytics/crm/fitbase/basis'
+      preLoaderRoute: typeof AuthenticatedAnalyticsCrmFitbaseBasisRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/analytics/crm/fitbase/$connectionId': {
       id: '/_authenticated/analytics/crm/fitbase/$connectionId'
       path: '/analytics/crm/fitbase/$connectionId'
@@ -2545,6 +2586,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAnalyticsAdminPartnersUserIdRoute: typeof AuthenticatedAnalyticsAdminPartnersUserIdRoute
   AuthenticatedAnalyticsCrmAmocrmConnectionIdRoute: typeof AuthenticatedAnalyticsCrmAmocrmConnectionIdRoute
   AuthenticatedAnalyticsCrmFitbaseConnectionIdRoute: typeof AuthenticatedAnalyticsCrmFitbaseConnectionIdRoute
+  AuthenticatedAnalyticsCrmFitbaseBasisRoute: typeof AuthenticatedAnalyticsCrmFitbaseBasisRoute
   AuthenticatedAnalyticsCrmFitbaseTrialServicesRoute: typeof AuthenticatedAnalyticsCrmFitbaseTrialServicesRoute
   AuthenticatedAnalyticsCrmMarketingLadyJumpRoute: typeof AuthenticatedAnalyticsCrmMarketingLadyJumpRoute
   AuthenticatedAnalyticsCrmMarketingLadyStretchRoute: typeof AuthenticatedAnalyticsCrmMarketingLadyStretchRoute
@@ -2681,6 +2723,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedAnalyticsCrmAmocrmConnectionIdRoute,
   AuthenticatedAnalyticsCrmFitbaseConnectionIdRoute:
     AuthenticatedAnalyticsCrmFitbaseConnectionIdRoute,
+  AuthenticatedAnalyticsCrmFitbaseBasisRoute:
+    AuthenticatedAnalyticsCrmFitbaseBasisRoute,
   AuthenticatedAnalyticsCrmFitbaseTrialServicesRoute:
     AuthenticatedAnalyticsCrmFitbaseTrialServicesRoute,
   AuthenticatedAnalyticsCrmMarketingLadyJumpRoute:
@@ -2719,6 +2763,7 @@ const rootRouteChildren: RootRouteChildren = {
   QuizSlugRoute: QuizSlugRoute,
   QuizIndexRoute: QuizIndexRoute,
   ApiAnalyticsOpenapiDotjsonRoute: ApiAnalyticsOpenapiDotjsonRoute,
+  ApiAnalyticsFitbaseSessionRoute: ApiAnalyticsFitbaseSessionRoute,
   ApiAnalyticsQuizLeadsRoute: ApiAnalyticsQuizLeadsRoute,
   ApiAnalyticsV1SplatRoute: ApiAnalyticsV1SplatRoute,
 }

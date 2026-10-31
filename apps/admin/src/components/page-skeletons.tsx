@@ -3501,6 +3501,21 @@ export function AnalyticsFbTrialServicesPageSkeleton() {
   );
 }
 
+/** «Интеграция FitBase» → «Основания записей»: пояснение, сессия, сборщик, задания. */
+export function AnalyticsFbBasisPageSkeleton() {
+  return (
+    <ShellSkeleton title={AN_TITLES.fbBasis} network>
+      <div className="max-w-5xl space-y-4">
+        <Skeleton className="h-8 w-44 rounded-full" />
+        <Skeleton className="h-20 rounded-lg" />
+        <Skeleton className="h-44 rounded-lg" />
+        <Skeleton className="h-52 rounded-lg" />
+        <Skeleton className="h-64 rounded-lg" />
+      </div>
+    </ShellSkeleton>
+  );
+}
+
 /** «FitBase» → «Маркетинговый отчёт»: карточки городов. */
 export function AnalyticsFbMarketingBodySkeleton() {
   return (

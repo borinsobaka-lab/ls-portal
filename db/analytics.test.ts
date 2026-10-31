@@ -3781,4 +3781,88 @@ describe.skipIf(!url)("аналитика: фундамент (база)", () =>
       );
     });
   });
+
+  test("FitBase: основания со страниц — очередь заданий их jobs(), сопоставление, обзор администратору", async () => {
+    await scenario(async (tx) => {
+      const admin = await person(tx, "Админ оснований FitBase", ["an.admin"]);
+      const viewer = await person(tx, "Воронка без оснований", ["an.fb.trials"]);
+      await asServer(tx);
+      const [{ id: a }] = await tx`
+        insert into an_fb_connections (name, brand, city, domain, club_id)
+        values ('С1', 'Lady Stretch', 'Самара', 'bas', '7') returning id`;
+      const owner = '["bas", "7"]';
+      await tx`insert into an_fb_events values
+        (${a}, 'e1', '2026-08-05', 1000, 't', 'Стретчинг', false),
+        (${a}, 'e2', '2026-10-06', 1000, 't', 'Стретчинг', false)`;
+      await tx`insert into an_fb_records values (${a}, 'r1', 'e1', 'k1', '3'), (${a}, 'r2', 'e2', 'k2', '2')`;
+      const conns = [{ id: Number(a), owner }];
+      const now = 1793000000; // 2026-10-26
+      const plan = async (today: string, at = now, c = conns) => {
+        await asServer(tx);
+        const [{ p }] = await tx`select an_fb_basis_plan(${c}::jsonb, ${today}::date, ${at}) as p`;
+        return (p as { month: string }[]).map((j) => j.month).sort();
+      };
+      // Месяцы занятий, текущий и «свежие»; старые месяцы — раз в неделю.
+      expect(await plan("2026-10-26")).toEqual(["2026-08", "2026-10", "recent"]);
+      const jobs = await tx`select month, lo, hi, interval_seconds, anchor from an_fb_basis_jobs
+                            where connection_id = ${a} order by month`;
+      expect(jobs.map((j) => [j.month, j.lo, j.hi, j.interval_seconds, j.anchor])).toEqual([
+        ["2026-08", "2026-08-01", "2026-08-31", 604800, ""],
+        ["2026-10", "2026-10-01", "2026-10-31", 86400, ""],
+        ["recent", "2026-08-27", "2026-12-25", 900, "2026-10-26"],
+      ]);
+      // Сверенные ждут срока; задание с ошибкой — 15 минут.
+      await tx`update an_fb_basis_jobs set finished_at = ${now - 100} where connection_id = ${a} and month <> '2026-10'`;
+      await tx`update an_fb_basis_jobs set failed_at = ${now - 100}, error = 'http_503' where month = '2026-10'`;
+      expect(await plan("2026-10-26")).toEqual([]);
+      expect(await plan("2026-10-26", now + 1000)).toEqual(["2026-10", "recent"]);
+      // Новый день — «свежие» заново, их прочитанные ID стираются.
+      await tx`insert into an_fb_basis_seen values (${a}, 'recent', 'r2'), (${a}, '2026-08', 'r1')`;
+      await tx`update an_fb_basis_jobs set page = 9, seen = 80 where month = 'recent'`;
+      await plan("2026-10-27");
+      const [rec] = await tx`select page, seen, anchor, lo, finished_at from an_fb_basis_jobs where month = 'recent'`;
+      expect([rec.page, rec.seen, rec.anchor, rec.lo, Number(rec.finished_at)]).toEqual([1, 0, "2026-10-27", "2026-08-28", 0]);
+      expect((await tx`select month from an_fb_basis_seen order by month`).map((r) => r.month)).toEqual(["2026-08"]);
+      // Новый владелец подключения — месяцы начинаются заново.
+      await plan("2026-10-27", now, [{ id: Number(a), owner: '["bas", "8"]' }]);
+      const owners = await tx`select distinct owner from an_fb_basis_jobs where connection_id = ${a}`;
+      expect(owners.map((r) => r.owner)).toEqual(['["bas", "8"]']);
+      expect((await tx`select count(*)::int as n from an_fb_basis_seen`)[0].n).toBe(0);
+
+      // Сопоставление: владелец, запись API с днём занятия, прежнее основание.
+      await tx`insert into an_fb_trial_basis values (${a}, ${owner}, 'r2', 'e2', 'Пробное', 500, 600)`;
+      const [{ l }] = await tx`select an_fb_basis_lookup(${a}, ${["r1", "r2", "r9"]}) as l`;
+      expect(l).toEqual({
+        owner,
+        records: { r1: ["e1", "2026-08-05"], r2: ["e2", "2026-10-06"] },
+        basis: { r2: 500 },
+      });
+
+      // Обзор — администратору аналитики; очередь и сессия — только сервер.
+      await tx`insert into an_fb_basis_evidence values
+        (${a}, ${owner}, 'r2', 'Пробное', '', '06.10.2026 10:00', 500),
+        (${a}, ${owner}, 'r9', 'Пробное', '', '06.10.2026 10:00', 500)`;
+      await as(tx, admin);
+      const [{ o }] = await tx`select an_fb_basis_overview() as o`;
+      expect(o.status.state).toBe("not_authorized");
+      expect(o.session).toBeNull();
+      expect(o.basis).toEqual({ [String(a)]: 1 });
+      expect(o.pending).toBe(1);
+      expect(o.jobs.length).toBe(3);
+      for (const q of [
+        () => tx`select an_fb_basis_overview()`,
+        () => tx`select an_fb_basis_plan('[]'::jsonb, '2026-10-26'::date, 0)`,
+        () => tx`select an_fb_basis_lookup(${a}, ${["r1"]})`,
+        () => tx`select * from an_fb_basis_jobs`,
+        () => tx`select * from an_fb_web_tokens`,
+      ]) {
+        expect(
+          await failure(tx, async () => {
+            await as(tx, viewer);
+            await q();
+          }),
+        ).toMatch(/an_forbidden|permission denied/);
+      }
+    });
+  });
 });
