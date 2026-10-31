@@ -30,6 +30,7 @@ export const AN_TITLES = {
   vkTools: "Обслуживание VK Ads",
   amo: "Интеграция amoCRM",
   amoConnection: "Настройка amoCRM",
+  amoOps: "Операционная аналитика amoCRM",
   mktStretch: "Маркетинг Lady Stretch",
   mktJump: "Маркетинг Lady Jump",
   avitoAccounts: "Кабинеты Авито",

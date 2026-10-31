@@ -414,6 +414,12 @@ export const ANALYTICS_GROUPS: NavGroup<AnalyticsNavItem>[] = [
         need: "admin",
       },
       {
+        title: "Операционная аналитика amoCRM",
+        url: "/analytics/crm/operations",
+        icon: GraphUp,
+        need: "admin",
+      },
+      {
         title: "Интеграция FitBase",
         url: "/analytics/crm/fitbase",
         icon: Structure,

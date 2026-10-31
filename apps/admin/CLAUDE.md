@@ -54,6 +54,7 @@ Tailwind 4 + shadcn/radix. Пакетный менеджер — bun.
   («Мой город · FitBase»: выручка, что покупают, пробные по названию, доска) `lib/analytics/fitbase/mycity.test.ts`;
   «Диалоги VK» (ID группы, событие Callback API, первое сообщение, профили, ответ с фото, очередь) `lib/analytics/inbox/inbox.test.ts`, (статистика: номера, скорость, лиды, таблицы, CSV) `lib/analytics/inbox/stats.test.ts`,
   «Контент» (картинки формы, random_id, ссылки, часовые пояса) `lib/analytics/content/content.test.ts`;
+  «Операционная аналитика amoCRM» (их metrics и pipeline: очистка, реакция, задачи, неквал, окно) `lib/analytics/amo-ops/amo-ops.test.ts`;
   «Академия» — подписи,
   проверка вопроса, сроки и напоминания `lib/academy/logic.test.ts`;
   Kate — инструменты,
@@ -855,6 +856,14 @@ kb`. Доступ — ролями «Пользователей и ролей» 
   правки шаблона — `lib/analytics/fitbase/mycity.ts`, доска —
   `components/analytics/fitbase/mycity-board.tsx` (части и графики доски
   «Мой город» 1С).
+  «Операционная аналитика amoCRM» (2026-10-31, ANALYTICS.md; группа «CRM»,
+  `/analytics/crm/operations`, администратору аналитики) — их пилот:
+  «Собрать» за прошедший день МСК (`startAmoOpsRun` в
+  `lib/analytics/amo-ops.functions.ts`, сбор фоном —
+  `lib/analytics/server/amo-ops.server.ts`: только GET, 120 запросов за
+  5 минут, 1 в секунду; `ANALYTICS_AMOCRM_ORIGIN` — только стенд), запуски,
+  отчёт окна — их build_report и report.html в браузере
+  (`lib/analytics/amo-ops/rules.ts`; фильтры и вкладка — в адресе).
   «Контент» (2026-10-31, ANALYTICS.md) — группа меню: «Контент-план»
   (`/analytics/content`: новый пост, картинки грузит браузер в бакет
   `an-content`, затем RPC `an_content_post_create`; лента и «Опубликовать
