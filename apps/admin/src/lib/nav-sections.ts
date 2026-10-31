@@ -468,6 +468,19 @@ export const ANALYTICS_GROUPS: NavGroup<AnalyticsNavItem>[] = [
     label: "Диалоги VK",
     items: [
       {
+        title: "Все диалоги",
+        url: "/analytics/inbox",
+        icon: ChatRoundDots,
+        exact: true,
+        need: "inbox",
+      },
+      {
+        title: "Шаблоны",
+        url: "/analytics/inbox/templates",
+        icon: DocumentText,
+        need: "inbox",
+      },
+      {
         title: "Подключения",
         url: "/analytics/inbox/communities",
         icon: LinkRound,

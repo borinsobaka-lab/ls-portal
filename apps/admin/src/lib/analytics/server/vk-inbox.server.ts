@@ -15,7 +15,20 @@
  */
 import { createHash, randomBytes } from "node:crypto";
 
+import type { SupabaseClient } from "@supabase/supabase-js";
+
 import {
+  INBOX_SEND_TEXT,
+  photoAttachment,
+  replyText,
+  savedPhoto,
+  sentMessageId,
+  uploadHttpError,
+  uploadResult,
+  uploadUrlAllowed,
+  uploadedPhotoParams,
+  validateReplyImages,
+  type InboxImage,
   INBOX_FIRST_BATCH,
   INBOX_FIRST_GROUP_RETRY_MS,
   INBOX_FIRST_PAUSE_MS,
@@ -260,4 +273,160 @@ export async function inboxRefreshFirstMessages(budgetMs = 45_000): Promise<JobR
     message: `Проверено диалогов: ${processed}, дата первого сообщения подтверждена: ${confirmed}`,
     details: { processed, confirmed },
   };
+}
+
+// --- Ответ из портала (их send_operator_message) ---
+
+/** Отказ VK «нет файла в запросе» (4606): повторить загрузку другим полем. */
+class MissingPhotoFile extends InboxError {}
+
+/** Ответ не длиннее limit байт (их response.read(1_000_001)); длиннее — null. */
+async function readLimited(res: Response, limit: number): Promise<string | null> {
+  const reader = res.body?.getReader();
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  while (reader) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    size += value.length;
+    if (size > limit) {
+      await reader.cancel().catch(() => undefined);
+      return null;
+    }
+    chunks.push(value);
+  }
+  return Buffer.concat(chunks).toString("utf8");
+}
+
+/**
+ * Их _post_message_photo: multipart с полем photo (или file1), переходы —
+ * только на проверенные адреса VK (не больше 3), таймаут 60 с.
+ */
+async function postMessagePhoto(url: string, image: InboxImage, field: string) {
+  const stand = process.env.ANALYTICS_VK_API_ORIGIN;
+  if (!uploadUrlAllowed(url, stand)) throw new InboxError(INBOX_SEND_TEXT.badUploadUrl);
+  const boundary = "LadyInbox" + randomBytes(16).toString("hex");
+  const filename = image.mime === "image/png" ? "image.png" : "image.jpg";
+  const body = Buffer.concat([
+    Buffer.from(
+      `--${boundary}\r\nContent-Disposition: form-data; name="${field}"; filename="${filename}"\r\n` +
+        `Content-Type: ${image.mime}\r\n\r\n`,
+    ),
+    Buffer.from(image.data),
+    Buffer.from(`\r\n--${boundary}--\r\n`),
+  ]);
+  let target = url;
+  let method = "POST";
+  let res: Response | null = null;
+  try {
+    for (let hop = 0; hop <= 3; hop++) {
+      res = await fetch(target, {
+        method,
+        headers:
+          method === "POST"
+            ? {
+                "Content-Type": `multipart/form-data; boundary=${boundary}`,
+                "User-Agent": USER_AGENT,
+                Accept: "application/json",
+              }
+            : { "User-Agent": USER_AGENT, Accept: "application/json" },
+        body: method === "POST" ? body : undefined,
+        redirect: "manual",
+        signal: AbortSignal.timeout(60_000),
+      });
+      if (![301, 302, 303, 307, 308].includes(res.status)) break;
+      const next = new URL(res.headers.get("location") ?? "", target).toString();
+      await res.body?.cancel().catch(() => undefined);
+      if (!uploadUrlAllowed(next, stand)) throw new InboxError(INBOX_SEND_TEXT.badUploadUrl);
+      if (hop === 3) throw new InboxError(INBOX_SEND_TEXT.uploadNetwork);
+      // Как urllib: 307/308 повторяют POST, 301/302/303 — GET без тела.
+      if (res.status !== 307 && res.status !== 308) method = "GET";
+      target = next;
+    }
+  } catch (e) {
+    if (e instanceof InboxError) throw e;
+    throw new InboxError(INBOX_SEND_TEXT.uploadNetwork);
+  }
+  if (!res) throw new InboxError(INBOX_SEND_TEXT.uploadNetwork);
+  if (!res.ok) {
+    const text = (await readLimited(res, 65_536).catch(() => null)) ?? "";
+    const r = uploadHttpError(res.status, text);
+    throw r.missing ? new MissingPhotoFile(r.error) : new InboxError(r.error);
+  }
+  let raw: string | null;
+  try {
+    raw = await readLimited(res, 1_000_000);
+  } catch {
+    throw new InboxError(INBOX_SEND_TEXT.uploadNetwork);
+  }
+  const r = uploadResult(raw);
+  if (!r.ok) throw r.missing ? new MissingPhotoFile(r.error) : new InboxError(r.error);
+  return r.uploaded;
+}
+
+/** Их _upload_message_photo: сервер загрузки, файл, photos.saveMessagesPhoto. */
+async function uploadMessagePhoto(peerId: number, token: string, image: InboxImage) {
+  const server = await vkMethod("photos.getMessagesUploadServer", {
+    peer_id: String(peerId),
+    access_token: token,
+  });
+  const url =
+    server && typeof server === "object" && !Array.isArray(server)
+      ? String((server as Record<string, unknown>).upload_url ?? "")
+      : "";
+  let uploaded: Record<string, unknown>;
+  try {
+    uploaded = await postMessagePhoto(url, image, "photo");
+  } catch (e) {
+    // Повтор — только на явный отказ «нет файла»; messages.send ещё не вызывали.
+    if (!(e instanceof MissingPhotoFile)) throw e;
+    uploaded = await postMessagePhoto(url, image, "file1");
+  }
+  const saved = await vkMethod("photos.saveMessagesPhoto", {
+    ...uploadedPhotoParams(uploaded),
+    access_token: token,
+  });
+  return savedPhoto(saved);
+}
+
+/**
+ * Их send_operator_message: проверки, токен группы, картинки по очереди,
+ * messages.send, запись в переписку (an_inbox_reply_store). Диалог — в
+ * доступе вызывающего (RPC от его имени).
+ */
+export async function inboxSendReply(
+  supabase: SupabaseClient,
+  userId: string,
+  dialogId: number,
+  body: string,
+  images: InboxImage[],
+): Promise<void> {
+  validateReplyImages(images);
+  const text = replyText(body, images.length);
+  const { data: target, error } = await supabase.rpc("an_inbox_reply_target", {
+    p_dialog: dialogId,
+  });
+  if (error) throw new InboxError(error.message);
+  const t = target as { id: number; community_id: number; peer_id: number };
+  const token = await readSecret(inboxTokenRef(t.community_id));
+  if (!token) throw new InboxError("Нет токена сообщества — переподключите группу.");
+  const photos: Record<string, unknown>[] = [];
+  for (const image of images) photos.push(await uploadMessagePhoto(t.peer_id, token, image));
+  const response = await vkMethod("messages.send", {
+    peer_id: String(t.peer_id),
+    message: text,
+    random_id: String(randomBytes(4).readUInt32BE() % 2_000_000_000),
+    attachment: photos.map(photoAttachment).join(","),
+    access_token: token,
+  });
+  const messageId = sentMessageId(response);
+  await must(
+    db().rpc("an_inbox_reply_store", {
+      p_user: userId,
+      p_dialog: dialogId,
+      p_vk_message_id: messageId,
+      p_text: text,
+      p_photos: photos,
+    }),
+  );
 }

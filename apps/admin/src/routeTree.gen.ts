@@ -70,6 +70,7 @@ import { Route as AuthenticatedAcademyReportRouteImport } from './routes/_authen
 import { Route as AuthenticatedKbBaseIdIndexRouteImport } from './routes/_authenticated/kb/$baseId/index'
 import { Route as AuthenticatedAnalyticsReviewsIndexRouteImport } from './routes/_authenticated/analytics/reviews/index'
 import { Route as AuthenticatedAnalyticsQuizIndexRouteImport } from './routes/_authenticated/analytics/quiz/index'
+import { Route as AuthenticatedAnalyticsInboxIndexRouteImport } from './routes/_authenticated/analytics/inbox/index'
 import { Route as AuthenticatedAccessRolesIndexRouteImport } from './routes/_authenticated/access/roles/index'
 import { Route as AuthenticatedAcademyReviewIndexRouteImport } from './routes/_authenticated/academy/review/index'
 import { Route as AuthenticatedAcademyCoursesIndexRouteImport } from './routes/_authenticated/academy/courses/index'
@@ -101,6 +102,7 @@ import { Route as AuthenticatedAnalyticsOnecRevenueRouteImport } from './routes/
 import { Route as AuthenticatedAnalyticsOnecMycityRouteImport } from './routes/_authenticated/analytics/onec/mycity'
 import { Route as AuthenticatedAnalyticsOnecFunnelRouteImport } from './routes/_authenticated/analytics/onec/funnel'
 import { Route as AuthenticatedAnalyticsOnecActivitiesRouteImport } from './routes/_authenticated/analytics/onec/activities'
+import { Route as AuthenticatedAnalyticsInboxTemplatesRouteImport } from './routes/_authenticated/analytics/inbox/templates'
 import { Route as AuthenticatedAnalyticsInboxCommunitiesRouteImport } from './routes/_authenticated/analytics/inbox/communities'
 import { Route as AuthenticatedAnalyticsFitbaseSalesRouteImport } from './routes/_authenticated/analytics/fitbase/sales'
 import { Route as AuthenticatedAnalyticsFitbaseRevenueRouteImport } from './routes/_authenticated/analytics/fitbase/revenue'
@@ -468,6 +470,12 @@ const AuthenticatedAnalyticsQuizIndexRoute =
     path: '/analytics/quiz/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAnalyticsInboxIndexRoute =
+  AuthenticatedAnalyticsInboxIndexRouteImport.update({
+    id: '/analytics/inbox/',
+    path: '/analytics/inbox/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAccessRolesIndexRoute =
   AuthenticatedAccessRolesIndexRouteImport.update({
     id: '/access/roles/',
@@ -650,6 +658,12 @@ const AuthenticatedAnalyticsOnecActivitiesRoute =
   AuthenticatedAnalyticsOnecActivitiesRouteImport.update({
     id: '/analytics/onec/activities',
     path: '/analytics/onec/activities',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAnalyticsInboxTemplatesRoute =
+  AuthenticatedAnalyticsInboxTemplatesRouteImport.update({
+    id: '/analytics/inbox/templates',
+    path: '/analytics/inbox/templates',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedAnalyticsInboxCommunitiesRoute =
@@ -945,6 +959,7 @@ export interface FileRoutesByFullPath {
   '/analytics/fitbase/revenue': typeof AuthenticatedAnalyticsFitbaseRevenueRoute
   '/analytics/fitbase/sales': typeof AuthenticatedAnalyticsFitbaseSalesRoute
   '/analytics/inbox/communities': typeof AuthenticatedAnalyticsInboxCommunitiesRoute
+  '/analytics/inbox/templates': typeof AuthenticatedAnalyticsInboxTemplatesRoute
   '/analytics/onec/activities': typeof AuthenticatedAnalyticsOnecActivitiesRoute
   '/analytics/onec/funnel': typeof AuthenticatedAnalyticsOnecFunnelRoute
   '/analytics/onec/mycity': typeof AuthenticatedAnalyticsOnecMycityRoute
@@ -976,6 +991,7 @@ export interface FileRoutesByFullPath {
   '/academy/courses/': typeof AuthenticatedAcademyCoursesIndexRoute
   '/academy/review/': typeof AuthenticatedAcademyReviewIndexRoute
   '/access/roles/': typeof AuthenticatedAccessRolesIndexRoute
+  '/analytics/inbox/': typeof AuthenticatedAnalyticsInboxIndexRoute
   '/analytics/quiz/': typeof AuthenticatedAnalyticsQuizIndexRoute
   '/analytics/reviews/': typeof AuthenticatedAnalyticsReviewsIndexRoute
   '/kb/$baseId/': typeof AuthenticatedKbBaseIdIndexRoute
@@ -1074,6 +1090,7 @@ export interface FileRoutesByTo {
   '/analytics/fitbase/revenue': typeof AuthenticatedAnalyticsFitbaseRevenueRoute
   '/analytics/fitbase/sales': typeof AuthenticatedAnalyticsFitbaseSalesRoute
   '/analytics/inbox/communities': typeof AuthenticatedAnalyticsInboxCommunitiesRoute
+  '/analytics/inbox/templates': typeof AuthenticatedAnalyticsInboxTemplatesRoute
   '/analytics/onec/activities': typeof AuthenticatedAnalyticsOnecActivitiesRoute
   '/analytics/onec/funnel': typeof AuthenticatedAnalyticsOnecFunnelRoute
   '/analytics/onec/mycity': typeof AuthenticatedAnalyticsOnecMycityRoute
@@ -1105,6 +1122,7 @@ export interface FileRoutesByTo {
   '/academy/courses': typeof AuthenticatedAcademyCoursesIndexRoute
   '/academy/review': typeof AuthenticatedAcademyReviewIndexRoute
   '/access/roles': typeof AuthenticatedAccessRolesIndexRoute
+  '/analytics/inbox': typeof AuthenticatedAnalyticsInboxIndexRoute
   '/analytics/quiz': typeof AuthenticatedAnalyticsQuizIndexRoute
   '/analytics/reviews': typeof AuthenticatedAnalyticsReviewsIndexRoute
   '/kb/$baseId': typeof AuthenticatedKbBaseIdIndexRoute
@@ -1205,6 +1223,7 @@ export interface FileRoutesById {
   '/_authenticated/analytics/fitbase/revenue': typeof AuthenticatedAnalyticsFitbaseRevenueRoute
   '/_authenticated/analytics/fitbase/sales': typeof AuthenticatedAnalyticsFitbaseSalesRoute
   '/_authenticated/analytics/inbox/communities': typeof AuthenticatedAnalyticsInboxCommunitiesRoute
+  '/_authenticated/analytics/inbox/templates': typeof AuthenticatedAnalyticsInboxTemplatesRoute
   '/_authenticated/analytics/onec/activities': typeof AuthenticatedAnalyticsOnecActivitiesRoute
   '/_authenticated/analytics/onec/funnel': typeof AuthenticatedAnalyticsOnecFunnelRoute
   '/_authenticated/analytics/onec/mycity': typeof AuthenticatedAnalyticsOnecMycityRoute
@@ -1236,6 +1255,7 @@ export interface FileRoutesById {
   '/_authenticated/academy/courses/': typeof AuthenticatedAcademyCoursesIndexRoute
   '/_authenticated/academy/review/': typeof AuthenticatedAcademyReviewIndexRoute
   '/_authenticated/access/roles/': typeof AuthenticatedAccessRolesIndexRoute
+  '/_authenticated/analytics/inbox/': typeof AuthenticatedAnalyticsInboxIndexRoute
   '/_authenticated/analytics/quiz/': typeof AuthenticatedAnalyticsQuizIndexRoute
   '/_authenticated/analytics/reviews/': typeof AuthenticatedAnalyticsReviewsIndexRoute
   '/_authenticated/kb/$baseId/': typeof AuthenticatedKbBaseIdIndexRoute
@@ -1336,6 +1356,7 @@ export interface FileRouteTypes {
     | '/analytics/fitbase/revenue'
     | '/analytics/fitbase/sales'
     | '/analytics/inbox/communities'
+    | '/analytics/inbox/templates'
     | '/analytics/onec/activities'
     | '/analytics/onec/funnel'
     | '/analytics/onec/mycity'
@@ -1367,6 +1388,7 @@ export interface FileRouteTypes {
     | '/academy/courses/'
     | '/academy/review/'
     | '/access/roles/'
+    | '/analytics/inbox/'
     | '/analytics/quiz/'
     | '/analytics/reviews/'
     | '/kb/$baseId/'
@@ -1465,6 +1487,7 @@ export interface FileRouteTypes {
     | '/analytics/fitbase/revenue'
     | '/analytics/fitbase/sales'
     | '/analytics/inbox/communities'
+    | '/analytics/inbox/templates'
     | '/analytics/onec/activities'
     | '/analytics/onec/funnel'
     | '/analytics/onec/mycity'
@@ -1496,6 +1519,7 @@ export interface FileRouteTypes {
     | '/academy/courses'
     | '/academy/review'
     | '/access/roles'
+    | '/analytics/inbox'
     | '/analytics/quiz'
     | '/analytics/reviews'
     | '/kb/$baseId'
@@ -1595,6 +1619,7 @@ export interface FileRouteTypes {
     | '/_authenticated/analytics/fitbase/revenue'
     | '/_authenticated/analytics/fitbase/sales'
     | '/_authenticated/analytics/inbox/communities'
+    | '/_authenticated/analytics/inbox/templates'
     | '/_authenticated/analytics/onec/activities'
     | '/_authenticated/analytics/onec/funnel'
     | '/_authenticated/analytics/onec/mycity'
@@ -1626,6 +1651,7 @@ export interface FileRouteTypes {
     | '/_authenticated/academy/courses/'
     | '/_authenticated/academy/review/'
     | '/_authenticated/access/roles/'
+    | '/_authenticated/analytics/inbox/'
     | '/_authenticated/analytics/quiz/'
     | '/_authenticated/analytics/reviews/'
     | '/_authenticated/kb/$baseId/'
@@ -2095,6 +2121,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAnalyticsQuizIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/analytics/inbox/': {
+      id: '/_authenticated/analytics/inbox/'
+      path: '/analytics/inbox'
+      fullPath: '/analytics/inbox/'
+      preLoaderRoute: typeof AuthenticatedAnalyticsInboxIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/access/roles/': {
       id: '/_authenticated/access/roles/'
       path: '/access/roles'
@@ -2310,6 +2343,13 @@ declare module '@tanstack/react-router' {
       path: '/analytics/onec/activities'
       fullPath: '/analytics/onec/activities'
       preLoaderRoute: typeof AuthenticatedAnalyticsOnecActivitiesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/analytics/inbox/templates': {
+      id: '/_authenticated/analytics/inbox/templates'
+      path: '/analytics/inbox/templates'
+      fullPath: '/analytics/inbox/templates'
+      preLoaderRoute: typeof AuthenticatedAnalyticsInboxTemplatesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/analytics/inbox/communities': {
@@ -2634,6 +2674,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAnalyticsFitbaseRevenueRoute: typeof AuthenticatedAnalyticsFitbaseRevenueRoute
   AuthenticatedAnalyticsFitbaseSalesRoute: typeof AuthenticatedAnalyticsFitbaseSalesRoute
   AuthenticatedAnalyticsInboxCommunitiesRoute: typeof AuthenticatedAnalyticsInboxCommunitiesRoute
+  AuthenticatedAnalyticsInboxTemplatesRoute: typeof AuthenticatedAnalyticsInboxTemplatesRoute
   AuthenticatedAnalyticsOnecActivitiesRoute: typeof AuthenticatedAnalyticsOnecActivitiesRoute
   AuthenticatedAnalyticsOnecFunnelRoute: typeof AuthenticatedAnalyticsOnecFunnelRoute
   AuthenticatedAnalyticsOnecMycityRoute: typeof AuthenticatedAnalyticsOnecMycityRoute
@@ -2661,6 +2702,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAcademyCoursesIndexRoute: typeof AuthenticatedAcademyCoursesIndexRoute
   AuthenticatedAcademyReviewIndexRoute: typeof AuthenticatedAcademyReviewIndexRoute
   AuthenticatedAccessRolesIndexRoute: typeof AuthenticatedAccessRolesIndexRoute
+  AuthenticatedAnalyticsInboxIndexRoute: typeof AuthenticatedAnalyticsInboxIndexRoute
   AuthenticatedAnalyticsQuizIndexRoute: typeof AuthenticatedAnalyticsQuizIndexRoute
   AuthenticatedAnalyticsReviewsIndexRoute: typeof AuthenticatedAnalyticsReviewsIndexRoute
   AuthenticatedKbBaseIdIndexRoute: typeof AuthenticatedKbBaseIdIndexRoute
@@ -2764,6 +2806,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedAnalyticsFitbaseSalesRoute,
   AuthenticatedAnalyticsInboxCommunitiesRoute:
     AuthenticatedAnalyticsInboxCommunitiesRoute,
+  AuthenticatedAnalyticsInboxTemplatesRoute:
+    AuthenticatedAnalyticsInboxTemplatesRoute,
   AuthenticatedAnalyticsOnecActivitiesRoute:
     AuthenticatedAnalyticsOnecActivitiesRoute,
   AuthenticatedAnalyticsOnecFunnelRoute: AuthenticatedAnalyticsOnecFunnelRoute,
@@ -2797,6 +2841,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAcademyCoursesIndexRoute: AuthenticatedAcademyCoursesIndexRoute,
   AuthenticatedAcademyReviewIndexRoute: AuthenticatedAcademyReviewIndexRoute,
   AuthenticatedAccessRolesIndexRoute: AuthenticatedAccessRolesIndexRoute,
+  AuthenticatedAnalyticsInboxIndexRoute: AuthenticatedAnalyticsInboxIndexRoute,
   AuthenticatedAnalyticsQuizIndexRoute: AuthenticatedAnalyticsQuizIndexRoute,
   AuthenticatedAnalyticsReviewsIndexRoute:
     AuthenticatedAnalyticsReviewsIndexRoute,

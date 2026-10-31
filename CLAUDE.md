@@ -1269,6 +1269,16 @@ DEPLOY.md.
   `an_inbox_profiles_pending` / `_store`, `an_inbox_first_pending` /
   `_store` (задачи `inbox_profiles`, `inbox_first_messages`). Таблицы
   закрыты браузеру.
+  «Диалоги VK», часть 2 (2026-10-31): `db/migrations/2026-10-31_zzz_analytics_inbox_dialogs.sql`
+  — очередь `an_inbox_queue` (их list_dialogs + dialog_counts +
+  updates_marker, базовая линия прочтения при первом входе), метка
+  `an_inbox_marker`, диалог `an_inbox_open` (их mark_dialog_read +
+  dialog_messages; картинки и стикеры — `an_inbox_media` из сообщения VK,
+  само сообщение в браузер не уходит), шаблоны `an_inbox_templates` /
+  `_template_save` / `_template_delete` (общие — администратор аналитики),
+  ответ: `an_inbox_reply_target` (диалог в доступе) и `an_inbox_reply_store`
+  (итог отправки, service_role). Доступ — `an_inbox_require` (без
+  сообществ — отказ), фильтр группы — `an_inbox_visible`.
   Клубы и собственники (решение владельца 2026-10-27, ACCESS.md):
   `db/migrations/2026-10-27_zz_studio_owners.sql` — `studio_owners`
   (клуб × пользователь портала; пишут только RPC `org_studio_owners_set` /
