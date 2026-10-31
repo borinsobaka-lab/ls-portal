@@ -3501,6 +3501,54 @@ export function AnalyticsFbTrialServicesPageSkeleton() {
   );
 }
 
+/** «FitBase» → «Мой город · FitBase»: заголовок, плитки, разделы доски. */
+export function AnalyticsFbMyCityBodySkeleton() {
+  return (
+    <div className="space-y-6">
+      <div className="space-y-2">
+        <Skeleton className="h-7 w-72 max-w-full" />
+        <Skeleton className="h-4 w-96 max-w-full" />
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {[0, 1, 2, 3].map((i) => (
+          <Skeleton key={i} className="h-28 rounded-lg" />
+        ))}
+      </div>
+      <Skeleton className="h-64 rounded-lg" />
+      <Skeleton className="h-80 rounded-lg" />
+    </div>
+  );
+}
+
+export function AnalyticsFbMyCityPageSkeleton() {
+  return (
+    <ShellSkeleton title={AN_TITLES.fbMyCity} network>
+      <div className="space-y-4">
+        <ToolbarSkeleton search={false} controls={["w-56", "w-48", "w-56"]} />
+        <AnalyticsFbMyCityBodySkeleton />
+      </div>
+    </ShellSkeleton>
+  );
+}
+
+/** «Интеграция FitBase» → «Доступ партнёров»: пояснение, люди, точка 0 городов. */
+export function AnalyticsFbPartnersPageSkeleton() {
+  return (
+    <ShellSkeleton title={AN_TITLES.fbPartners} network>
+      <div className="max-w-5xl space-y-4">
+        <div className="flex gap-2">
+          <Skeleton className="h-8 w-44 rounded-full" />
+          <Skeleton className="h-8 w-44 rounded-full" />
+        </div>
+        <Skeleton className="h-16 rounded-lg" />
+        <Skeleton className="h-10 w-72 max-w-full" />
+        <Skeleton className="h-96 rounded-lg" />
+        <Skeleton className="h-48 rounded-lg" />
+      </div>
+    </ShellSkeleton>
+  );
+}
+
 /** «Интеграция FitBase» → «Основания записей»: пояснение, сессия, сборщик, задания. */
 export function AnalyticsFbBasisPageSkeleton() {
   return (

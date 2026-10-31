@@ -45,6 +45,8 @@ export const AN_TITLES = {
   fbTrialsReview: "Записи без услуги / абонемента",
   fbTrialServices: "Настройка пробных услуг",
   fbBasis: "Основания записей FitBase",
+  fbMyCity: "Мой город · FitBase",
+  fbPartners: "Доступ партнёров · FitBase",
   quiz: "Квиз-лендинги",
   quizLeads: "Заявки квиза",
 } as const;
@@ -208,6 +210,14 @@ export const AN_CARDS: AnCard[] = [
     description: "Записи, приходы и покупки после пробного по всей сети.",
     url: "/analytics/fitbase/trials",
     need: "fb.trials",
+  },
+  // Их home_cards fitbase_partner: одна карточка, город — внутри отчёта.
+  {
+    key: "fb.mycity",
+    title: "Мой город · FitBase",
+    description: "Единый борд: финансы, продажи, занятия и воронка. Выбор города внутри отчёта.",
+    url: "/analytics/fitbase/mycity",
+    need: "fb.mycity",
   },
 ];
 

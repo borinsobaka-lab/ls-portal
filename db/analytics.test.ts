@@ -3865,4 +3865,133 @@ describe.skipIf(!url)("аналитика: фундамент (база)", () =>
       }
     });
   });
+
+  test("FitBase: «Мой город · FitBase» — студии человека, город и студия, точка 0, права", async () => {
+    await scenario(async (tx) => {
+      const admin = await person(tx, "Админ города FitBase", ["an.admin"]);
+      const partner = await person(tx, "Партнёр города FitBase", ["an.reviews"]);
+      const other = await person(tx, "Без студий FitBase", ["an.fb.sales"]);
+      await asServer(tx);
+      const ids: number[] = [];
+      for (const [name, city, club] of [
+        ["С1", "Самара", "1"],
+        ["С2", "Самара", "2"],
+        ["К1", "Казань", "3"],
+      ]) {
+        const [{ id }] = await tx`
+          insert into an_fb_connections (name, brand, city, domain, club_id, revenue_synced_at,
+                                         revenue_from, revenue_to)
+          values (${name}, 'Lady Stretch', ${city}, 'myc', ${club}, 100, '2026-01-01', '2026-10-30')
+          returning id`;
+        ids.push(Number(id));
+      }
+      const [s1, s2, k1] = ids;
+      await tx`insert into an_fb_revenue_daily values (${s1}, '2026-10-05', 1000), (${s2}, '2026-10-05', 2000),
+        (${k1}, '2026-10-05', 3000), (${s1}, '2026-05-01', 7)`;
+      const data = async (uid: string, city = "", studio = "", from = "2026-10-01", to = "2026-10-30") => {
+        await as(tx, uid);
+        const [{ d }] = await tx`select an_fb_mycity_data(${from}, ${to}, ${city}, ${studio}) as d`;
+        return d;
+      };
+      const me = async (uid: string) => {
+        await asServer(tx);
+        const [{ m }] = await tx`select an_me_for(${uid}::uuid) as m`;
+        return m.reports as string[];
+      };
+
+      // Без назначенных студий — нет отчёта.
+      expect(await me(other)).not.toContain("fb.mycity");
+      expect(await failure(tx, () => data(other))).toContain("Студии FitBase вам не назначены.");
+
+      // Назначение — администратору аналитики; их проверки.
+      expect(
+        await failure(tx, async () => {
+          await as(tx, partner);
+          await tx`select an_fb_partner_access_save(${partner}::uuid, ${[s2]}::bigint[])`;
+        }),
+      ).toContain("an_forbidden");
+      expect(
+        await failure(tx, async () => {
+          await as(tx, admin);
+          await tx`select an_fb_partner_access_save(${partner}::uuid, ${[999999]}::bigint[])`;
+        }),
+      ).toContain("Подключение изменилось. Обновите страницу.");
+      await as(tx, admin);
+      await tx`select an_fb_partner_access_save(${partner}::uuid, ${[s2]}::bigint[])`;
+      expect(await me(partner)).toContain("fb.mycity");
+
+      // Партнёр: только своя студия, другой город и чужая студия — отказ.
+      const d = await data(partner);
+      expect([d.city, d.cities, d.admin]).toEqual(["Самара", ["Самара"], false]);
+      expect(d.connections.map((c: { id: number }) => c.id)).toEqual([s2]);
+      expect(d.daily).toEqual([[s2, "2026-10-05", 2000]]);
+      // ID клиентов — псевдонимы запроса (равные ID — равные псевдонимы, пустой — пустой).
+      await asServer(tx);
+      await tx`insert into an_fb_sales values (${s2}, 'c1', 'client-7', 1790000000, 100, 0),
+        (${s2}, 'c2', 'client-7', 1790000001, 100, 0)`;
+      await tx`insert into an_fb_payments values (${s2}, 'purchase', 'p1', 'c1', '', 1790000000, '2026-09-21', 100)`;
+      const pseudo = await data(partner);
+      const clients = pseudo.sales.map((r: unknown[]) => r[2]);
+      expect(clients[0]).toBe(clients[1]);
+      expect(JSON.stringify(pseudo)).not.toContain("client-7");
+      expect(pseudo.payments[0][4]).toBe("");
+      expect(d.target).toBeNull();
+      expect(await failure(tx, () => data(partner, "Казань"))).toContain("Этот город вам недоступен.");
+      expect(await failure(tx, () => data(partner, "", String(s1)))).toContain(
+        "Эта студия вам недоступна в выбранном городе.",
+      );
+      expect(await failure(tx, () => data(partner, "", "", "2026-10-31", "2026-10-01"))).toContain(
+        "Выберите период до 366 дней, не старше шести лет.",
+      );
+      expect(await failure(tx, () => data(partner, "", "", "2026-13-01"))).toContain(
+        "Выберите корректные даты.",
+      );
+
+      // Точка 0 — администратору; на доске — только когда выбран весь город.
+      expect(
+        await failure(tx, async () => {
+          await as(tx, admin);
+          await tx`select an_fb_city_target_save('Новосибирск', 100)`;
+        }),
+      ).toContain("Выберите город студий FitBase.");
+      await as(tx, admin);
+      await tx`select an_fb_city_target_save('Самара', 150000000)`;
+      const all = await data(admin);
+      expect(all.admin).toBe(true);
+      expect(all.cities).toEqual(["Казань", "Самара"]);
+      expect(all.city).toBe("Казань");
+      const samara = await data(admin, "Самара");
+      expect(samara.connections.map((c: { id: number }) => c.id).sort()).toEqual([s1, s2].sort());
+      expect(Number(samara.target)).toBe(150000000);
+      // Выручка — и пять прошлых месяцев доски (с мая).
+      expect(samara.daily.length).toBe(3);
+      expect((await data(admin, "Самара", String(s1))).target).toBeNull();
+      expect((await data(partner)).target).toBeNull();
+
+      // Смена клуба подключения закрывает назначение (их owner binding).
+      await asServer(tx);
+      await tx`update an_fb_connections set club_id = '22' where id = ${s2}`;
+      expect(await me(partner)).not.toContain("fb.mycity");
+      expect(await failure(tx, () => data(partner))).toContain("Студии FitBase вам не назначены.");
+
+      // Обзор назначений и точки 0 — администратору.
+      await as(tx, admin);
+      const [{ o }] = await tx`select an_fb_partner_access() as o`;
+      expect(o.targets).toEqual([{ city: "Самара", amount_cents: 150000000 }]);
+      expect(
+        await failure(tx, async () => {
+          await as(tx, partner);
+          await tx`select an_fb_partner_access()`;
+        }),
+      ).toContain("an_forbidden");
+      for (const q of [() => tx`select * from an_fb_user_studios`, () => tx`select * from an_fb_city_targets`]) {
+        expect(
+          await failure(tx, async () => {
+            await as(tx, partner);
+            await q();
+          }),
+        ).toContain("permission denied");
+      }
+    });
+  });
 });

@@ -455,6 +455,12 @@ export const ANALYTICS_GROUPS: NavGroup<AnalyticsNavItem>[] = [
         icon: Target,
         need: "fb.trials",
       },
+      {
+        title: "Мой город · FitBase",
+        url: "/analytics/fitbase/mycity",
+        icon: MapPoint,
+        need: "fb.mycity",
+      },
     ],
   },
   {

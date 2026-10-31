@@ -229,21 +229,26 @@ const daysBetween = (a: string, b: string) =>
   Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / DAY_MS);
 const codeCmp = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
 
+type TrialMatch = {
+  converted: Set<string>;
+  sameDay: Set<string>;
+  uncertain: Set<string>;
+  cutoff: string;
+};
+const trialId = (uid: number, rid: string) => `${uid}\u0000${rid}`;
+
 /**
- * Их calculate: покупка — первая положительная оплата платного непробного
- * абонемента с положительным остатком после возвратов; относится к последнему
- * ещё не учтённому посещённому пробному того же клиента в этой студии за 14
- * дней (договор не раньше пробного); затем счётчики периода по дате пробного.
+ * Их calculate (первая часть): покупка — первая положительная оплата
+ * платного непробного абонемента с положительным остатком после возвратов;
+ * относится к последнему ещё не учтённому посещённому пробному того же
+ * клиента в этой студии за 14 дней (договор не раньше пробного).
  */
-export function fbTrialCalculate(
-  connections: FbTrialConnection[],
+function trialMatch(
   records: FbTrialRecord[],
   sales: FbTrialSale[],
   payments: FbTrialPayment[],
-  start: string,
-  end: string,
   now: number,
-): Map<number, FbTrialStudio> {
+): TrialMatch {
   const cutoff = shift(mskDay(now), -1);
   const visits = new Map<string, FbTrialRecord[]>();
   const unknownVisits = new Map<string, FbTrialRecord[]>();
@@ -282,7 +287,6 @@ export function fbTrialCalculate(
   const converted = new Set<string>();
   const sameDay = new Set<string>();
   const uncertain = new Set<string>();
-  const id = (uid: number, rid: string) => `${uid}\u0000${rid}`;
   for (const [stamp, , sale] of candidates) {
     const uid = sale.connection_id;
     const day = mskDay(stamp);
@@ -290,7 +294,9 @@ export function fbTrialCalculate(
     const key = `${uid}\u0000${sale.client_id}`;
     const eligible = (visits.get(key) ?? []).filter((r) => {
       const gap = daysBetween(r.day, day);
-      return !converted.has(id(uid, r.registration_id)) && gap >= 0 && gap < 14 && created >= r.day;
+      return (
+        !converted.has(trialId(uid, r.registration_id)) && gap >= 0 && gap < 14 && created >= r.day
+      );
     });
     if (!eligible.length) continue;
     let trial = eligible[0];
@@ -301,7 +307,7 @@ export function fbTrialCalculate(
       )
         trial = r;
     }
-    const identity = id(uid, trial.registration_id);
+    const identity = trialId(uid, trial.registration_id);
     if (
       sale.kind < 0 ||
       (unknownVisits.get(key) ?? []).some((r) => trial.day <= r.day && r.day <= day)
@@ -312,34 +318,54 @@ export function fbTrialCalculate(
     converted.add(identity);
     if (day === trial.day) sameDay.add(identity);
   }
+  return { converted, sameDay, uncertain, cutoff };
+}
+
+/** Пустой счётчик студии с её готовностью (их начальный result[uid]). */
+function trialBucket(c: FbTrialConnection, start: string, end: string): FbTrialStudio {
+  const counts = Object.fromEntries(FB_TRIAL_COUNT_KEYS.map((k) => [k, 0])) as Record<
+    CountKey,
+    number
+  >;
+  return {
+    ...counts,
+    unknown: 0,
+    missing_client: 0,
+    uncertain: 0,
+    loaded: Boolean(
+      c.attendance_synced_at &&
+      (c.attendance_from ?? "") <= start &&
+      (c.attendance_to ?? "") >= end,
+    ),
+    paid_ready: Boolean(
+      c.sales_payments_at && c.sales_synced_at && c.sales_payments_at >= c.sales_synced_at,
+    ),
+    base_complete: false,
+    paid_complete: false,
+  };
+}
+
+/**
+ * Их calculate (вторая часть): счётчики периода по дате пробного. Запись
+ * считается в счётчик bucketOf(r) (у них — студии, в «Мой город · FitBase» —
+ * студии и названия пробного); window_same_day — их добавка trial_dimensions
+ * (покупки в день пробного среди завершённых 14-дневных окон).
+ */
+function trialCount(
+  connections: FbTrialConnection[],
+  records: FbTrialRecord[],
+  m: TrialMatch,
+  start: string,
+  end: string,
+  now: number,
+  bucketOf: (r: FbTrialRecord) => FbTrialStudio & { window_same_day?: number },
+  buckets: Iterable<FbTrialStudio>,
+) {
   const states = new Map(connections.map((c) => [c.id, c]));
-  const result = new Map<number, FbTrialStudio>();
-  for (const c of connections) {
-    const counts = Object.fromEntries(FB_TRIAL_COUNT_KEYS.map((k) => [k, 0])) as Record<
-      CountKey,
-      number
-    >;
-    result.set(c.id, {
-      ...counts,
-      unknown: 0,
-      missing_client: 0,
-      uncertain: 0,
-      loaded: Boolean(
-        c.attendance_synced_at &&
-        (c.attendance_from ?? "") <= start &&
-        (c.attendance_to ?? "") >= end,
-      ),
-      paid_ready: Boolean(
-        c.sales_payments_at && c.sales_synced_at && c.sales_payments_at >= c.sales_synced_at,
-      ),
-      base_complete: false,
-      paid_complete: false,
-    });
-  }
   for (const r of records) {
     if (!(start <= r.day && r.day <= end)) continue;
     const uid = r.connection_id;
-    const b = result.get(uid)!;
+    const b = bucketOf(r);
     const c = states.get(uid)!;
     if (r.kind === 0) continue;
     if (r.kind < 0) {
@@ -349,27 +375,116 @@ export function fbTrialCalculate(
     b.registered += 1;
     if (r.status !== "visited") continue;
     b.visited += 1;
-    const identity = id(uid, r.registration_id);
-    b.day += sameDay.has(identity) ? 1 : 0;
-    b.within += converted.has(identity) ? 1 : 0;
+    const identity = trialId(uid, r.registration_id);
+    b.day += m.sameDay.has(identity) ? 1 : 0;
+    b.within += m.converted.has(identity) ? 1 : 0;
     b.missing_client += r.client_key ? 0 : 1;
-    b.uncertain += uncertain.has(identity) ? 1 : 0;
+    b.uncertain += m.uncertain.has(identity) ? 1 : 0;
     const paidDay = shift(mskDay(Math.min(c.sales_payments_at || 0, now)), -1);
-    const horizon = paidDay < cutoff ? paidDay : cutoff;
+    const horizon = paidDay < m.cutoff ? paidDay : m.cutoff;
     if (r.day <= horizon) {
       b.day_base += 1;
-      b.day_mature += sameDay.has(identity) ? 1 : 0;
+      b.day_mature += m.sameDay.has(identity) ? 1 : 0;
     }
     if (shift(r.day, 13) <= horizon) {
       b.window_base += 1;
-      b.window_mature += converted.has(identity) ? 1 : 0;
+      b.window_mature += m.converted.has(identity) ? 1 : 0;
+      if (b.window_same_day !== undefined) b.window_same_day += m.sameDay.has(identity) ? 1 : 0;
     } else b.immature += 1;
   }
-  for (const b of result.values()) {
+  for (const b of buckets) {
     b.base_complete = b.loaded && !b.unknown;
     b.paid_complete = b.base_complete && b.paid_ready && !b.missing_client && !b.uncertain;
   }
+}
+
+/**
+ * Их calculate: сопоставление покупок с пробными, затем счётчики периода по
+ * дате пробного — по студиям.
+ */
+export function fbTrialCalculate(
+  connections: FbTrialConnection[],
+  records: FbTrialRecord[],
+  sales: FbTrialSale[],
+  payments: FbTrialPayment[],
+  start: string,
+  end: string,
+  now: number,
+): Map<number, FbTrialStudio> {
+  const m = trialMatch(records, sales, payments, now);
+  const result = new Map<number, FbTrialStudio>();
+  for (const c of connections) result.set(c.id, trialBucket(c, start, end));
+  trialCount(
+    connections,
+    records,
+    m,
+    start,
+    end,
+    now,
+    (r) => result.get(r.connection_id)!,
+    result.values(),
+  );
   return result;
+}
+
+export type FbTrialDimension = FbTrialStudio & {
+  connection_id: number;
+  label: string;
+  window_same_day: number;
+};
+
+/**
+ * Их trial_dimensions (fitbase_partner_view.py): тот же расчёт, но счётчики —
+ * на пару «студия + название пробного» (покупки сопоставляются по всем
+ * пробным, группируются на этапе подсчёта), только записи и покупки с
+ * определённым типом (их _calculate_confirmed).
+ */
+export function fbTrialCalculateByLabel(
+  connections: FbTrialConnection[],
+  records: FbTrialRecord[],
+  sales: FbTrialSale[],
+  payments: FbTrialPayment[],
+  start: string,
+  end: string,
+  now: number,
+  labelOf: (r: FbTrialRecord) => string,
+  keys: [number, string][] = [],
+): FbTrialDimension[] {
+  const confirmed = records.filter((r) => r.kind >= 0);
+  const m = trialMatch(
+    confirmed,
+    sales.filter((s) => s.kind >= 0),
+    payments,
+    now,
+  );
+  const byId = new Map(connections.map((c) => [c.id, c]));
+  // Их _dimension_keys — пары по всем записям отчёта (и обычным, и
+  // неопределённым): пустая пара тоже входит в полноту названия.
+  const result = new Map<string, FbTrialDimension>();
+  const add = (uid: number, label: string) => {
+    const key = `${uid}\u0000${label}`;
+    const c = byId.get(uid);
+    if (c && !result.has(key))
+      result.set(key, {
+        ...trialBucket(c, start, end),
+        connection_id: uid,
+        label,
+        window_same_day: 0,
+      });
+  };
+  for (const [uid, label] of keys) add(uid, label);
+  for (const r of confirmed) add(r.connection_id, labelOf(r));
+  trialCount(
+    connections,
+    confirmed,
+    m,
+    start,
+    end,
+    now,
+    (r) => result.get(`${r.connection_id}\u0000${labelOf(r)}`)!,
+    result.values(),
+  );
+  return [...result.values()];
 }
 
 /** Их _calculate_confirmed: только записи и покупки с определённым типом. */
