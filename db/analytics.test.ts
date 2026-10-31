@@ -3994,4 +3994,198 @@ describe.skipIf(!url)("аналитика: фундамент (база)", () =>
       }
     });
   });
+
+  test("Диалоги VK: подключения, доступ лид-менеджеров, приём Callback, профили и первые сообщения", async () => {
+    await scenario(async (tx) => {
+      const admin = await person(tx, "Админ диалогов", ["an.admin"]);
+      const lead = await person(tx, "Лид-менеджер диалогов", ["an.inbox"]);
+      const plain = await person(tx, "Без диалогов", ["an.onec.revenue"]);
+      const hash = (s: string) => new Bun.CryptoHasher("sha256").update(s).digest("hex");
+      const cipher = "A".repeat(40) + "==";
+      const register = (vk: number, name: string, code = "e16b9eb3", brand = "Lady Stretch") =>
+        tx`select an_inbox_community_register(${vk}, ${name}, ${brand}, 'Тула', ${code},
+             ${hash("секрет-" + vk)}, ${cipher}) as id`;
+
+      // Только администратор аналитики; таблицы закрыты браузеру.
+      await as(tx, lead);
+      expect(await failure(tx, () => register(100, "Группа"))).toContain("an_forbidden");
+      expect(await failure(tx, () => tx`select an_inbox_communities()`)).toContain("an_forbidden");
+      expect(await failure(tx, () => tx`select * from an_inbox_dialogs`)).toContain("permission denied");
+      expect(
+        await failure(tx, () => tx`select an_inbox_callback(1, 'confirmation', '', null)`),
+      ).toContain("permission denied");
+
+      // Их проверки и тексты.
+      await as(tx, admin);
+      expect(await failure(tx, () => register(100, "Группа", "e16b9eb3", "Lady"))).toContain(
+        "Укажите направление Lady Stretch или Lady Jump.",
+      );
+      expect(await failure(tx, () => register(100, "Группа", "abc"))).toContain(
+        "Вставьте строку подтверждения",
+      );
+      expect(await failure(tx, () => register(100, "Группа", "a".repeat(257)))).toContain(
+        "Вставьте строку подтверждения",
+      );
+      expect(await failure(tx, () => register(100, "  "))).toContain(
+        "Заполните название, город и токен сообщений сообщества.",
+      );
+      const [{ id: c1 }] = await register(100, "Lady Stretch Тула");
+      const [{ id: c2 }] = await register(200, "Lady Jump Тула", "a".repeat(256), "Lady Jump");
+      // Тот же group_id — замена: снова активно и не подтверждено, токен новый.
+      await asServer(tx);
+      await tx`update an_inbox_communities set last_verified_at = now() where id = ${c1}`;
+      await as(tx, admin);
+      const [{ id: again }] = await register(100, "Lady Stretch Тула 2", "newcode1");
+      expect(Number(again)).toBe(Number(c1));
+      await asServer(tx);
+      const [row] = await tx`select display_name, callback_confirmation_code, last_verified_at
+                               from an_inbox_communities where id = ${c1}`;
+      expect(row).toMatchObject({ display_name: "Lady Stretch Тула 2", callback_confirmation_code: "newcode1", last_verified_at: null });
+      const secrets = await tx`select ref from an_secrets where kind = 'vk_inbox' order by ref`;
+      expect(secrets.map((r: { ref: string }) => r.ref)).toEqual([String(c1), String(c2)].sort());
+
+      await as(tx, admin);
+      expect(
+        await failure(tx, () => tx`select an_inbox_community_update(${c1}, 'Lady Stretch', ${"Тула\nНовая"})`),
+      ).toContain("Укажите город: от 1 до 200 символов, без переносов строк.");
+      await tx`select an_inbox_community_update(${c1}, 'Lady Jump', ' Новомосковск ')`;
+      expect(await failure(tx, () => tx`select an_inbox_confirmation_save(${c1}, 'x y')`)).toContain(
+        "Вставьте код подтверждения, который показал VK.",
+      );
+      expect(await failure(tx, () => tx`select an_inbox_secret_save(999999, ${hash("x")})`)).toContain(
+        "Подключение сообщества не найдено.",
+      );
+
+      // Доступ лид-менеджеров — их inbox-access.
+      expect(await failure(tx, () => tx`select an_inbox_access_save(${admin}, ${[c1]}::bigint[])`)).toContain(
+        "У администратора уже есть доступ ко всем сообществам.",
+      );
+      expect(await failure(tx, () => tx`select an_inbox_access_save(${plain}, ${[c1]}::bigint[])`)).toContain(
+        "Сначала назначьте сотруднику роль «Лид-менеджер».",
+      );
+      expect(
+        await failure(tx, () => tx`select an_inbox_access_save(${lead}, ${[c1, 999999]}::bigint[])`),
+      ).toContain("Выберите только активные сообщества VK.");
+      await tx`select an_inbox_access_save(${lead}, ${[c2, c2]}::bigint[])`;
+      const [{ d: list }] = await tx`select an_inbox_communities() as d`;
+      // Их порядок: направление, город, название.
+      expect(list.communities.map((c: { display_name: string }) => c.display_name)).toEqual([
+        "Lady Stretch Тула 2",
+        "Lady Jump Тула",
+      ]);
+      const leadRow = list.people.find((p: { user_id: string }) => p.user_id === lead);
+      expect(leadRow).toMatchObject({ communities: [Number(c2)], manager: true, admin: false });
+      expect(list.people.some((p: { user_id: string }) => p.user_id === plain)).toBe(false);
+      await asServer(tx);
+      const scope = async (uid: string) => (await tx`select an_inbox_scope(${uid}::uuid) as s`)[0].s;
+      expect(await scope(admin)).toBeNull();
+      expect((await scope(lead)).map(Number)).toEqual([Number(c2)]);
+      expect(await scope(plain)).toEqual([]);
+
+      // Приём Callback (сервер): подтверждение, секрет, сообщения.
+      await tx`set local role service_role`;
+      const cb = (type: string, secret: string, message: unknown = null) =>
+        tx`select an_inbox_callback(${c1}, ${type}, ${secret}, ${message}::jsonb) as r`;
+      expect((await cb("confirmation", ""))[0].r).toBe("newcode1");
+      expect(await failure(tx, () => cb("message_new", hash("чужой")))).toContain(
+        "Секрет Callback API не совпадает.",
+      );
+      expect(await failure(tx, () => cb("message_new", ""))).toContain("Секрет Callback API не совпадает.");
+      const good = hash("секрет-100");
+      const m = (id: number, peer: number, date: number, extra: Record<string, unknown> = {}) => ({
+        peer_id: peer,
+        id,
+        date,
+        from_id: peer,
+        out: false,
+        conversation_message_id: null,
+        text: "Текст " + id,
+        raw: { id, peer_id: peer, text: "Текст " + id },
+        ...extra,
+      });
+      expect((await cb("message_new", good, m(1, 501, 1000)))[0].r).toBe("ok");
+      await cb("message_new", good, m(1, 501, 1000));
+      await cb("message_reply", good, m(2, 501, 1100, { out: true, from_id: -100 }));
+      await cb("message_edit", good, m(1, 501, 1000, { text: "Правка" }));
+      await cb("message_new", good, m(3, 502, 1200, { out: true, from_id: -100 }));
+      await cb("group_join", good, null);
+      await asServer(tx);
+      const dialogs = await tx`select peer_id, customer_vk_id, status, first_incoming_at, last_message_at,
+                                      last_incoming_at, last_outgoing_at
+                                 from an_inbox_dialogs where community_id = ${c1} order by peer_id`;
+      expect(dialogs.length).toBe(2);
+      expect(dialogs[0]).toMatchObject({ peer_id: "501", customer_vk_id: "501", status: "new" });
+      expect(new Date(dialogs[0].last_message_at).getTime()).toBe(1100_000);
+      expect(new Date(dialogs[0].last_outgoing_at).getTime()).toBe(1100_000);
+      expect(dialogs[1]).toMatchObject({ peer_id: "502", customer_vk_id: "502", status: "waiting_customer", first_incoming_at: null });
+      const msgs = await tx`select vk_message_id, direction, body, edited_at is not null as edited
+                              from an_inbox_messages order by vk_message_id`;
+      expect(msgs).toEqual([
+        { vk_message_id: "1", direction: "incoming", body: "Правка", edited: true },
+        { vk_message_id: "2", direction: "outgoing", body: "Текст 2", edited: false },
+        { vk_message_id: "3", direction: "outgoing", body: "Текст 3", edited: false },
+      ]);
+      const events = await tx`select event_type from an_inbox_events order by id`;
+      expect(events.map((e: { event_type: string }) => e.event_type)).toEqual([
+        "message_received",
+        "message_received",
+        "external_message",
+      ]);
+      // Закрытый диалог: новое входящее — снова «new».
+      await tx`update an_inbox_dialogs set status = 'closed' where peer_id = 501`;
+      await tx`set local role service_role`;
+      await cb("message_new", good, m(4, 501, 1300));
+      await asServer(tx);
+      expect((await tx`select status from an_inbox_dialogs where peer_id = 501`)[0].status).toBe("new");
+      await tx`update an_inbox_communities set is_active = false where id = ${c2}`;
+      await tx`set local role service_role`;
+      expect(await failure(tx, () => tx`select an_inbox_callback(${c2}, 'confirmation', '', null)`)).toContain(
+        "Подключение сообщества не найдено или отключено.",
+      );
+
+      // Имена: только пустые поля; имя менеджера не затирается.
+      await asServer(tx);
+      await tx`update an_inbox_dialogs set customer_name = 'Как обращаться' where peer_id = 502`;
+      await tx`set local role service_role`;
+      const [{ p: pending }] = await tx`select an_inbox_profiles_pending(500) as p`;
+      expect(pending.map((x: { customer_vk_id: number }) => Number(x.customer_vk_id)).sort()).toEqual([501, 502]);
+      const ids = Object.fromEntries(pending.map((x: { id: number; customer_vk_id: number }) => [Number(x.customer_vk_id), x.id]));
+      const [{ n }] = await tx`select an_inbox_profiles_store(${[
+        { id: ids[501], name: "Анна", avatar: "https://a/1.jpg" },
+        { id: ids[502], name: "Олег", avatar: "" },
+      ]}::jsonb) as n`;
+      expect(Number(n)).toBe(1);
+      await asServer(tx);
+      const names = await tx`select peer_id, customer_name, customer_avatar_url from an_inbox_dialogs order by peer_id`;
+      expect(names.map((r: { customer_name: string }) => r.customer_name)).toEqual(["Анна", "Как обращаться"]);
+
+      // Первые сообщения: пропуск сообщества, сверено — больше не спрашивается.
+      await tx`set local role service_role`;
+      const [{ p: first }] = await tx`select an_inbox_first_pending('{}'::bigint[], 100) as p`;
+      expect(first.length).toBe(2);
+      expect(first[0].oldest_local).not.toBeNull();
+      const [{ p: skipped }] = await tx`select an_inbox_first_pending(${[c1]}::bigint[], 100) as p`;
+      expect(skipped.length).toBe(0);
+      await tx`select an_inbox_first_store(${first[0].id}, '2025-01-01T00:00:00Z')`;
+      await tx`select an_inbox_first_store(${first[1].id}, null)`;
+      await tx`select an_inbox_first_store(${first[0].id}, null)`;
+      const [{ p: after }] = await tx`select an_inbox_first_pending('{}'::bigint[], 100) as p`;
+      expect(after.length).toBe(0);
+      await asServer(tx);
+      const stored = await tx`select dialog_id, first_message_at is not null as has, checked_at is not null as checked
+                                from an_inbox_first_messages order by dialog_id`;
+      expect(stored.find((r: { dialog_id: string }) => Number(r.dialog_id) === Number(first[0].id))).toMatchObject({ has: true, checked: true });
+      expect(stored.find((r: { dialog_id: string }) => Number(r.dialog_id) === Number(first[1].id))).toMatchObject({ has: false, checked: false });
+
+      // Журнал действий.
+      const audit = await tx`select event from an_audit where event like 'vk_inbox%' order by id`;
+      expect(audit.map((r: { event: string }) => r.event)).toEqual([
+        "vk_inbox_community_connected",
+        "vk_inbox_community_connected",
+        "vk_inbox_community_connected",
+        "vk_inbox_community_details_updated",
+        "vk_inbox_access_changed",
+      ]);
+    });
+  });
 });

@@ -52,6 +52,7 @@ Tailwind 4 + shadcn/radix. Пакетный менеджер — bun.
   пробных, пробные услуги, «Записи без услуги» и CSV) `lib/analytics/fitbase/trials.test.ts`,
   (основания со страниц FitBase: разбор, пагинация, приём) `lib/analytics/fitbase/web.test.ts`,
   («Мой город · FitBase»: выручка, что покупают, пробные по названию, доска) `lib/analytics/fitbase/mycity.test.ts`;
+  «Диалоги VK» (ID группы, событие Callback API, первое сообщение, профили) `lib/analytics/inbox/inbox.test.ts`;
   «Академия» — подписи,
   проверка вопроса, сроки и напоминания `lib/academy/logic.test.ts`;
   Kate — инструменты,
@@ -853,6 +854,16 @@ kb`. Доступ — ролями «Пользователей и ролей» 
   правки шаблона — `lib/analytics/fitbase/mycity.ts`, доска —
   `components/analytics/fitbase/mycity-board.tsx` (части и графики доски
   «Мой город» 1С).
+  «Диалоги VK» (2026-10-31, ANALYTICS.md) — группа меню: «Подключения»
+  (`/analytics/inbox/communities`, администратору аналитики: группы VK с
+  токеном сообщений и Callback API, код подтверждения и секрет, сообщества
+  лид-менеджеров); токен и секрет готовит сервер —
+  `lib/analytics/inbox.functions.ts`, правила их кода —
+  `lib/analytics/inbox/rules.ts`, запросы — `inbox/data.ts`. Приём событий
+  VK — публичный `routes/api/analytics/vk-callback/$id.ts` (граница —
+  секрет группы), сервер — `lib/analytics/server/vk-inbox.server.ts`
+  (задачи `inbox_profiles` и `inbox_first_messages`;
+  `ANALYTICS_VK_API_ORIGIN` — только стенд).
   Отчёты 1С — группа меню «1С · Lady Stretch» (`/analytics/onec/<доска>`,
   «Мой город» — `/mycity`): маршрут рисует `OnecReportFrame`
   (`components/analytics/onec/report-frame.tsx`: период, «С начала месяца /

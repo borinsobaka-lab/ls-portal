@@ -49,6 +49,7 @@ export const AN_TITLES = {
   fbPartners: "Доступ партнёров · FitBase",
   quiz: "Квиз-лендинги",
   quizLeads: "Заявки квиза",
+  inboxCommunities: "Подключения сообществ",
 } as const;
 
 /** «Очистка Excel» — тексты их ExcelCleaner 1.1-fast (окно, статусы, предупреждения). */

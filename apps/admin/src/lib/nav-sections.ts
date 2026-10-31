@@ -464,6 +464,18 @@ export const ANALYTICS_GROUPS: NavGroup<AnalyticsNavItem>[] = [
     ],
   },
   {
+    key: "an-inbox",
+    label: "Диалоги VK",
+    items: [
+      {
+        title: "Подключения",
+        url: "/analytics/inbox/communities",
+        icon: LinkRound,
+        need: "admin",
+      },
+    ],
+  },
+  {
     key: "an-tools",
     label: "Инструменты",
     items: [

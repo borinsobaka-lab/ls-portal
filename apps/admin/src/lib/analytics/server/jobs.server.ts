@@ -19,6 +19,7 @@ import { fbNightlyDue, fbNightlyRun } from "./fitbase.server";
 import { fbBasisRun } from "./fitbase-web.server";
 import { deliverQuizLeads } from "./quiz.server";
 import { syncAllVk } from "./vk-ads.server";
+import { inboxRefreshFirstMessages, inboxRefreshProfiles } from "./vk-inbox.server";
 import { dispatchBudgetJob, evaluateBudgetAlerts } from "./vk-budget.server";
 import { backfillLfMetrics, collectLf } from "./vk-lf.server";
 import { syncAllSs } from "./vk-ss.server";
@@ -107,6 +108,22 @@ export const ANALYTICS_JOBS: AnalyticsJob[] = [
   // 120 запросов. Внешняя: выбор клуба меняет клуб учётной записи FitBase и
   // для её других сеансов (их сборщика) — выключена, пока её не включат.
   { key: "fitbase_basis", everyMs: 5 * MINUTE, leaseSeconds: 6 * 60, run: () => fbBasisRun() },
+  // «Диалоги VK»: имена и аватарки клиентов (их refresh_inbox_profiles_in_background
+  // — при открытии диалогов; у нас ещё и по расписанию) и даты первых
+  // сообщений переписки (их inbox-first-message — постоянный поток с паузой
+  // 0,4 с). Только чтение VK API.
+  {
+    key: "inbox_profiles",
+    everyMs: 10 * MINUTE,
+    leaseSeconds: 10 * 60,
+    run: () => inboxRefreshProfiles(),
+  },
+  {
+    key: "inbox_first_messages",
+    everyMs: MINUTE,
+    leaseSeconds: 5 * 60,
+    run: () => inboxRefreshFirstMessages(),
+  },
   {
     key: "quiz_sheets",
     everyMs: 0,
