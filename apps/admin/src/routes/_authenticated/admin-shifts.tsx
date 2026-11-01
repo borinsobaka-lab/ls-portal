@@ -69,7 +69,7 @@ import { SegmentedControl } from "@/components/ui/segmented-control";
 import { AdminShiftsPageSkeleton } from "@/components/page-skeletons";
 
 export const Route = createFileRoute("/_authenticated/admin-shifts")({
-  head: () => ({ meta: [{ title: "График администраторов — Lady Stretch" }] }),
+  head: () => ({ meta: [{ title: "График администраторов — LadyFitPro" }] }),
   pendingComponent: AdminShiftsPageSkeleton,
   component: AdminShiftsPage,
 });

@@ -6,7 +6,7 @@ import { validateMktSearch, type MktSearch } from "@/lib/analytics/amo/marketing
 import { AN_TITLES } from "@/lib/analytics/labels";
 
 export const Route = createFileRoute("/_authenticated/analytics/crm/marketing/lady-jump")({
-  head: () => ({ meta: [{ title: "Маркетинг Lady Jump — Аналитика — Lady Stretch" }] }),
+  head: () => ({ meta: [{ title: "Маркетинг Lady Jump — Аналитика — LadyFitPro" }] }),
   validateSearch: validateMktSearch,
   pendingComponent: AnalyticsMktJumpPageSkeleton,
   component: AnalyticsMktJumpPage,

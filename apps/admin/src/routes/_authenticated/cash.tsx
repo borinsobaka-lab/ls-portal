@@ -58,7 +58,7 @@ const TIPS = {
 };
 
 export const Route = createFileRoute("/_authenticated/cash")({
-  head: () => ({ meta: [{ title: "Касса — Lady Stretch" }] }),
+  head: () => ({ meta: [{ title: "Касса — LadyFitPro" }] }),
   pendingComponent: CashPageSkeleton,
   component: CashPage,
 });

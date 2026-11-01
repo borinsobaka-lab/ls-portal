@@ -22,7 +22,7 @@ import {
 import { AN_TITLES } from "@/lib/analytics/labels";
 
 export const Route = createFileRoute("/_authenticated/analytics/admin/partners/$userId")({
-  head: () => ({ meta: [{ title: "Карточка партнёра — Аналитика — Lady Stretch" }] }),
+  head: () => ({ meta: [{ title: "Карточка партнёра — Аналитика — LadyFitPro" }] }),
   pendingComponent: AnalyticsPartnerPageSkeleton,
   component: AnalyticsPartnerPage,
 });

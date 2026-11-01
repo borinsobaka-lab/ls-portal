@@ -9,6 +9,7 @@ import {
   ANALYTICS_GROUPS,
   CLUB_GROUPS,
   DASHBOARD_ITEMS,
+  BUG_REPORTS_URL,
   MANAGE_GROUPS,
   MOBILE_APP_ITEMS,
   REQUESTS_URL,
@@ -30,10 +31,11 @@ import { KbSidebarResize } from "@/components/kb/kb-sidebar-resize";
 import { useKbSidebarWidth } from "@/components/kb/use-kb-sidebar-width";
 import { sectionIcon } from "@/lib/scripts/icons";
 import { useAdminAccess } from "@/hooks/use-admin-access";
+import { unwrap } from "@/lib/query";
 import { useActiveStudioId } from "@/hooks/use-active-studio";
 import { useClubRequestsBadge } from "@/hooks/use-client-requests";
 import { studioIdsKey, useSectionStudios } from "@/hooks/use-section-studios";
-import { canOpenClubSection, canOpenRail, type AdminAccess } from "@/lib/admin-access";
+import { canOpenClubSection, canOpenRail, hasRight, type AdminAccess } from "@/lib/admin-access";
 import { StudioSwitcher } from "@/components/studio-switcher";
 import { useActiveStudio, useStudios } from "@/hooks/use-studios";
 import { MenuSkeleton } from "@/components/skeletons";
@@ -200,6 +202,18 @@ function useUnreadNps(studioIds: string, enabled: boolean): number {
   return enabled ? data : 0;
 }
 
+/** Неразобранные «Сообщения об ошибках» (суперадминистратору). */
+function useOpenBugReports(enabled: boolean): number {
+  const { data = 0 } = useQuery({
+    queryKey: ["portal_bug_reports", "open-count"],
+    queryFn: async () =>
+      (await unwrap<number | null>(supabase.rpc("portal_bug_reports_open_count"))) ?? 0,
+    enabled,
+    refetchInterval: 60_000,
+  });
+  return enabled ? data : 0;
+}
+
 const STORAGE_KEY = "sidebar_groups";
 
 /** Свёрнутые блоки переживают перезагрузку — иначе меню каждый раз раскрывается заново. */
@@ -247,6 +261,10 @@ export function AppSidebar() {
   const kbBase = kbBases?.find((b) => b.id === kbBaseId);
   const kbBaseTitle = kbBase?.title ?? "База знаний";
   const kbWidth = useKbSidebarWidth();
+  // Неразобранные сообщения об ошибках — счётчик у пункта «Управления».
+  const openBugReports = useOpenBugReports(
+    railKey === "manage" && !!access && hasRight(access, "portal.admin"),
+  );
   const sectionMenu =
     railKey === "scripts"
       ? { title: "Скрипты LS", groups: scriptsMenu.groups }
@@ -295,7 +313,11 @@ export function AppSidebar() {
                   groups: access
                     ? MANAGE_GROUPS.map((g) => ({
                         ...g,
-                        items: g.items.filter((i) => canOpenPath(access, studioId, i.url)),
+                        items: g.items
+                          .filter((i) => canOpenPath(access, studioId, i.url))
+                          .map((i) =>
+                            i.url === BUG_REPORTS_URL ? { ...i, badge: openBugReports } : i,
+                          ),
                       })).filter((g) => g.items.length > 0)
                     : [],
                 }

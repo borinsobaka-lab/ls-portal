@@ -2,11 +2,13 @@ import { lazy, Suspense, useLayoutEffect, useRef, useState, type ReactNode } fro
 import { useRouter, useRouterState } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
-import { Cat, Moon, RefreshCw, Sun, X } from "lucide-react";
+import { Cat, RefreshCw, Sun, X } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { StudioSwitcher } from "@/components/studio-switcher";
 import { Button } from "@/components/ui/button";
 import { HeaderClientSearch } from "@/components/header-client-search";
+import { BugReportButton } from "@/components/bug-report";
+import { FLOATING_STACK_CLASS } from "@/lib/floating-layout";
 import { KbBaseTabs, KbHeaderSearch } from "@/components/kb/kb-header";
 import { WorkdayButton } from "@/components/workday/workday-button";
 import { KB_ACTIONS_SLOT, KB_HEADER_GRID, KB_SEARCH_SLOT } from "@/lib/kb/header-layout";
@@ -53,7 +55,7 @@ export function FloatingActions({ children }: { children: ReactNode }) {
   return (
     <div
       ref={ref}
-      className="fab-actions fixed right-4 bottom-4 z-40 flex max-w-[calc(100vw-2rem)] flex-wrap items-center justify-end gap-3 sm:right-6 sm:bottom-6 lg:right-8 lg:bottom-8"
+      className="fab-actions pointer-events-auto flex flex-wrap items-center justify-end gap-3"
     >
       {children}
     </div>
@@ -110,17 +112,21 @@ export function AdminShell({
     }
   };
 
-  const refreshButton = (
+  // В шапке базы знаний — в кружке, как кнопка темы (outline).
+  const refreshButton = (variant: "ghost" | "outline" = "ghost") => (
     <Button
-      variant="ghost"
+      variant={variant}
       size="icon"
       aria-label={refreshing ? "Обновляется…" : "Обновить"}
+      title="Обновить"
       aria-busy={refreshing}
       className="shrink-0 disabled:opacity-100"
       disabled={refreshing}
       onClick={() => void refresh()}
     >
-      <RefreshCw className={refreshing ? "h-5 w-5 animate-spin" : "h-5 w-5"} />
+      <RefreshCw
+        className={cn(variant === "ghost" ? "h-5 w-5" : "size-4", refreshing && "animate-spin")}
+      />
     </Button>
   );
 
@@ -128,8 +134,9 @@ export function AdminShell({
     <>
       {presence && <AnalyticsPresence dashboard={presence} />}
       {kb ? (
-        // Раскладка — lib/kb/header-layout.ts: с lg три колонки, поиск ровно
-        // по центру, справа от него тема, у края — «Обновить».
+        // Раскладка — lib/kb/header-layout.ts: с lg три колонки — вкладки баз
+        // (всё свободное место), поиск постоянной ширины, у края — тема и
+        // «Обновить» (решение владельца 2026-11-01).
         // Узкий экран: первая строка — меню, вкладки, кнопки; поиск — второй
         // строкой на всю ширину. Заголовок страницы — для скринридера:
         // название статьи и так крупно над текстом.
@@ -145,12 +152,10 @@ export function AdminShell({
           {kbBaseId && (
             <KbHeaderSearch key={kbBaseId} baseId={kbBaseId} className={KB_SEARCH_SLOT} />
           )}
-          <div
-            className={cn(
-              "flex items-center justify-end gap-2 lg:justify-between",
-              KB_ACTIONS_SLOT,
-            )}
-          >
+          <div className={KB_ACTIONS_SLOT}>
+            {/* Значок темы — всегда солнце (решение владельца 2026-11-01:
+                месяц из набора иконок не узнавали); включена ли тёмная —
+                aria-pressed и подсказка. */}
             <Button
               variant="outline"
               size="icon"
@@ -160,9 +165,9 @@ export function AdminShell({
               title={kbDarkTheme ? "Светлая тема" : "Тёмная тема"}
               onClick={toggleKbTheme}
             >
-              {kbDarkTheme ? <Sun /> : <Moon />}
+              <Sun />
             </Button>
-            {refreshButton}
+            {refreshButton("outline")}
           </div>
         </header>
       ) : (
@@ -217,7 +222,7 @@ export function AdminShell({
               >
                 {title}
               </h1>
-              {refreshButton}
+              {refreshButton()}
             </div>
 
             {!network && (
@@ -267,7 +272,12 @@ export function AdminShell({
         )}
       >
         {children}
-        {actions && <FloatingActions>{actions}</FloatingActions>}
+        {/* Правый нижний угол: действия страницы, под ними — «Сообщить об
+            ошибке» (во всех разделах, решение владельца 2026-11-01). */}
+        <div className={FLOATING_STACK_CLASS}>
+          {actions && <FloatingActions>{actions}</FloatingActions>}
+          <BugReportButton />
+        </div>
       </main>
 
       <DialogPrimitive.Root open={kateOpen} onOpenChange={setKateOpen}>

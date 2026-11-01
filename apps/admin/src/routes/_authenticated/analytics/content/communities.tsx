@@ -51,7 +51,7 @@ import { CONTENT_BRANDS, CONTENT_TIMEZONES, contentZoneLabel } from "@/lib/analy
 import { AN_TITLES } from "@/lib/analytics/labels";
 
 export const Route = createFileRoute("/_authenticated/analytics/content/communities")({
-  head: () => ({ meta: [{ title: "Группы и ссылки — Контент — Lady Stretch" }] }),
+  head: () => ({ meta: [{ title: "Группы и ссылки — Контент — LadyFitPro" }] }),
   pendingComponent: AnalyticsContentCommunitiesPageSkeleton,
   component: AnalyticsContentCommunitiesPage,
 });

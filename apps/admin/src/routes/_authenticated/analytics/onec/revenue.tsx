@@ -8,7 +8,7 @@ import type { RevenuePayload } from "@/lib/analytics/onec-reports/payload";
 
 export const Route = createFileRoute("/_authenticated/analytics/onec/revenue")({
   validateSearch: parseOnecSearch,
-  head: () => ({ meta: [{ title: "Выручка — Аналитика — Lady Stretch" }] }),
+  head: () => ({ meta: [{ title: "Выручка — Аналитика — LadyFitPro" }] }),
   pendingComponent: AnalyticsOnecRevenuePageSkeleton,
   component: Page,
 });

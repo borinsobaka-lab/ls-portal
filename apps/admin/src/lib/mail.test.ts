@@ -61,7 +61,7 @@ describe("sendMail", () => {
     expect(calls[0].url).toBe("https://api.resend.com/emails");
     expect(calls[0].headers.Authorization).toBe("Bearer re");
     expect(calls[0].body).toEqual({
-      from: "Lady Stretch <noreply@x.ru>",
+      from: "LadyFitPro <noreply@x.ru>",
       to: ["a@b.ru", "c@d.ru"],
       subject: "Тема",
       html: "<p>Код<br>1234</p>",
@@ -217,7 +217,7 @@ describe("SMTP", () => {
       email: "robot@x.ru",
       name: "LS",
     });
-    expect(defaultSender(SMTP)).toEqual({ email: "noreply@x.ru", name: "Lady Stretch" });
+    expect(defaultSender(SMTP)).toEqual({ email: "noreply@x.ru", name: "LadyFitPro" });
   });
 
   test("письмо уходит через транспорт: отправитель, текстовая версия", async () => {

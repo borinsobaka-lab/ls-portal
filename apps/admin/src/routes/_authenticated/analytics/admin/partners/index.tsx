@@ -47,7 +47,7 @@ import { AN_TITLES } from "@/lib/analytics/labels";
 import type { SortGetters } from "@/lib/table-sort";
 
 export const Route = createFileRoute("/_authenticated/analytics/admin/partners/")({
-  head: () => ({ meta: [{ title: "Партнёры — Аналитика — Lady Stretch" }] }),
+  head: () => ({ meta: [{ title: "Партнёры — Аналитика — LadyFitPro" }] }),
   pendingComponent: AnalyticsPartnersPageSkeleton,
   component: AnalyticsPartnersPage,
 });

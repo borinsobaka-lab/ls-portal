@@ -21,6 +21,7 @@ const ICONS: Record<string, string> = {
   BellBing: "notifications",
   BillList: "money",
   Bolt: "ui",
+  Bug: "it",
   Broom: "ui",
   Buildings2: "building",
   Book: "school",

@@ -30,7 +30,7 @@ import { AN_TITLES } from "@/lib/analytics/labels";
 type ServicesSearch = { id?: number };
 
 export const Route = createFileRoute("/_authenticated/analytics/crm/fitbase/trial-services")({
-  head: () => ({ meta: [{ title: "Настройка пробных услуг — Аналитика — Lady Stretch" }] }),
+  head: () => ({ meta: [{ title: "Настройка пробных услуг — Аналитика — LadyFitPro" }] }),
   validateSearch: (s: Record<string, unknown>): ServicesSearch => {
     const id = Number(s.id);
     return { id: Number.isInteger(id) && id > 0 ? id : undefined };

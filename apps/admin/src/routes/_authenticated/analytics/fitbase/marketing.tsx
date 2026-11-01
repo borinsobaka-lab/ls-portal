@@ -47,7 +47,7 @@ const ISO = /^\d{4}-\d{2}-\d{2}$/;
 type MarketingSearch = { from?: string; to?: string; brand?: string; city?: string };
 
 export const Route = createFileRoute("/_authenticated/analytics/fitbase/marketing")({
-  head: () => ({ meta: [{ title: "Маркетинговый отчёт FitBase — Аналитика — Lady Stretch" }] }),
+  head: () => ({ meta: [{ title: "Маркетинговый отчёт FitBase — Аналитика — LadyFitPro" }] }),
   validateSearch: (s: Record<string, unknown>): MarketingSearch => ({
     from: typeof s.from === "string" && ISO.test(s.from) ? s.from : undefined,
     to: typeof s.to === "string" && ISO.test(s.to) ? s.to : undefined,

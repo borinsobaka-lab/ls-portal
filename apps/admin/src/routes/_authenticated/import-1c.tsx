@@ -22,7 +22,7 @@ import {
 } from "@/lib/import-1c";
 
 export const Route = createFileRoute("/_authenticated/import-1c")({
-  head: () => ({ meta: [{ title: "Импорт из 1С — Lady Stretch" }] }),
+  head: () => ({ meta: [{ title: "Импорт из 1С — LadyFitPro" }] }),
   pendingComponent: Import1cPageSkeleton,
   component: Import1cPage,
 });

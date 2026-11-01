@@ -51,7 +51,7 @@ const ALL = "__all__";
 const LIVE_MS = 8000;
 
 export const Route = createFileRoute("/_authenticated/analytics/inbox/")({
-  head: () => ({ meta: [{ title: "Диалоги VK — Аналитика — Lady Stretch" }] }),
+  head: () => ({ meta: [{ title: "Диалоги VK — Аналитика — LadyFitPro" }] }),
   validateSearch: (s: Record<string, unknown>): InboxSearch => ({
     community: id(s.community),
     unread: String(s.unread ?? "") === "1" ? 1 : undefined,

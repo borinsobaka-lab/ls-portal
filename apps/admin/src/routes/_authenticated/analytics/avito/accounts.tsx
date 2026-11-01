@@ -55,7 +55,7 @@ import { formatMsk } from "@/lib/analytics/core";
 import { AN_TITLES } from "@/lib/analytics/labels";
 
 export const Route = createFileRoute("/_authenticated/analytics/avito/accounts")({
-  head: () => ({ meta: [{ title: "Кабинеты Авито — Аналитика — Lady Stretch" }] }),
+  head: () => ({ meta: [{ title: "Кабинеты Авито — Аналитика — LadyFitPro" }] }),
   pendingComponent: AnalyticsAvitoAccountsPageSkeleton,
   component: AnalyticsAvitoAccountsPage,
 });

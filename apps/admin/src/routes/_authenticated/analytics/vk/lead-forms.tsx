@@ -32,7 +32,7 @@ import {
 type LfSearch = { code?: string; state?: string; error?: string };
 
 export const Route = createFileRoute("/_authenticated/analytics/vk/lead-forms")({
-  head: () => ({ meta: [{ title: "Сбор лид-форм — Аналитика — Lady Stretch" }] }),
+  head: () => ({ meta: [{ title: "Сбор лид-форм — Аналитика — LadyFitPro" }] }),
   validateSearch: (s: Record<string, unknown>): LfSearch => ({
     code: typeof s.code === "string" ? s.code : undefined,
     state: typeof s.state === "string" ? s.state : undefined,

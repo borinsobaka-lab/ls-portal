@@ -67,7 +67,7 @@ const TIPS = {
 };
 
 export const Route = createFileRoute("/_authenticated/memberships")({
-  head: () => ({ meta: [{ title: "Номенклатуры — Lady Stretch" }] }),
+  head: () => ({ meta: [{ title: "Номенклатуры — LadyFitPro" }] }),
   pendingComponent: MembershipsPageSkeleton,
   component: MembershipsRoute,
 });

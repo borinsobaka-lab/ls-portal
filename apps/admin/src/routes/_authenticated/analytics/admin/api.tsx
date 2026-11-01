@@ -37,7 +37,7 @@ import { GPT_API_BASE } from "@/lib/analytics/gpt-api";
 import { AN_TITLES } from "@/lib/analytics/labels";
 
 export const Route = createFileRoute("/_authenticated/analytics/admin/api")({
-  head: () => ({ meta: [{ title: "API для GPT — Аналитика — Lady Stretch" }] }),
+  head: () => ({ meta: [{ title: "API для GPT — Аналитика — LadyFitPro" }] }),
   pendingComponent: AnalyticsApiPageSkeleton,
   component: AnalyticsApiPage,
 });

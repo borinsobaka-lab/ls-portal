@@ -14,7 +14,7 @@ import { runExcelCleaner, saveXlsx, xlsxName } from "@/lib/analytics/tools";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/analytics/tools/excel-cleaner")({
-  head: () => ({ meta: [{ title: "Очистка Excel — Аналитика — Lady Stretch" }] }),
+  head: () => ({ meta: [{ title: "Очистка Excel — Аналитика — LadyFitPro" }] }),
   pendingComponent: AnalyticsExcelCleanerPageSkeleton,
   component: AnalyticsExcelCleanerPage,
 });

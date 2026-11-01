@@ -28,7 +28,7 @@ import {
 import { AN_TITLES } from "@/lib/analytics/labels";
 
 export const Route = createFileRoute("/_authenticated/analytics/crm/amocrm/")({
-  head: () => ({ meta: [{ title: "Интеграция amoCRM — Аналитика — Lady Stretch" }] }),
+  head: () => ({ meta: [{ title: "Интеграция amoCRM — Аналитика — LadyFitPro" }] }),
   pendingComponent: AnalyticsAmoPageSkeleton,
   component: AnalyticsAmoPage,
 });

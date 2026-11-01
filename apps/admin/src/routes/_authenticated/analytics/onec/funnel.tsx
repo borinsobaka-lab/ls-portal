@@ -8,7 +8,7 @@ import type { FunnelPayload } from "@/lib/analytics/onec-reports/payload";
 
 export const Route = createFileRoute("/_authenticated/analytics/onec/funnel")({
   validateSearch: parseOnecSearch,
-  head: () => ({ meta: [{ title: "Воронка пробных — Аналитика — Lady Stretch" }] }),
+  head: () => ({ meta: [{ title: "Воронка пробных — Аналитика — LadyFitPro" }] }),
   pendingComponent: AnalyticsOnecFunnelPageSkeleton,
   component: Page,
 });

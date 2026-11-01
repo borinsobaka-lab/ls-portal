@@ -16,7 +16,7 @@ export const Route = createFileRoute("/_authenticated/analytics/tools/onec")({
   validateSearch: (search: Record<string, unknown>): { tab?: AnOnecTab } => ({
     tab: isTab(search.tab) ? search.tab : undefined,
   }),
-  head: () => ({ meta: [{ title: "Обработка 1С — Аналитика — Lady Stretch" }] }),
+  head: () => ({ meta: [{ title: "Обработка 1С — Аналитика — LadyFitPro" }] }),
   pendingComponent: AnalyticsOnecPageSkeleton,
   component: AnalyticsOnecPage,
 });

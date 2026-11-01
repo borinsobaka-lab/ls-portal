@@ -52,7 +52,7 @@ import { INBOX_BRANDS, inboxCallbackUrl } from "@/lib/analytics/inbox/rules";
 import { AN_TITLES } from "@/lib/analytics/labels";
 
 export const Route = createFileRoute("/_authenticated/analytics/inbox/communities")({
-  head: () => ({ meta: [{ title: "Подключения сообществ — Диалоги VK — Lady Stretch" }] }),
+  head: () => ({ meta: [{ title: "Подключения сообществ — Диалоги VK — LadyFitPro" }] }),
   pendingComponent: AnalyticsInboxCommunitiesPageSkeleton,
   component: AnalyticsInboxCommunitiesPage,
 });

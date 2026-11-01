@@ -22,7 +22,7 @@ import { fbAttendanceStateLabel } from "@/lib/analytics/fitbase/rules";
 import { AN_TITLES } from "@/lib/analytics/labels";
 
 export const Route = createFileRoute("/_authenticated/analytics/crm/fitbase/")({
-  head: () => ({ meta: [{ title: "Интеграция FitBase — Аналитика — Lady Stretch" }] }),
+  head: () => ({ meta: [{ title: "Интеграция FitBase — Аналитика — LadyFitPro" }] }),
   pendingComponent: AnalyticsFitbasePageSkeleton,
   component: AnalyticsFitbasePage,
 });

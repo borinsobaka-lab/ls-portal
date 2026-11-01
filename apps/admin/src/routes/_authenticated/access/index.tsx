@@ -72,7 +72,7 @@ const INTRO =
   "Все, у кого есть доступ к порталу: сотрудники УК, партнёры, сотрудники клубов. Вход — по коду на почту, без пароля; без роли человек не войдёт. Права удобнее давать через подразделение или должность — тогда новый человек получит их сам. Отметьте несколько строк — и проставьте им должность, тип, подразделение или роль разом.";
 
 export const Route = createFileRoute("/_authenticated/access/")({
-  head: () => ({ meta: [{ title: "Пользователи — Lady Stretch" }] }),
+  head: () => ({ meta: [{ title: "Пользователи — LadyFitPro" }] }),
   pendingComponent: AccessUsersPageSkeleton,
   component: AccessUsersPage,
 });

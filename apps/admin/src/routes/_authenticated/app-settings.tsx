@@ -30,7 +30,7 @@ import {
 } from "@/lib/studio-formats";
 
 export const Route = createFileRoute("/_authenticated/app-settings")({
-  head: () => ({ meta: [{ title: "Настройки приложения — Lady Stretch" }] }),
+  head: () => ({ meta: [{ title: "Настройки приложения — LadyFitPro" }] }),
   pendingComponent: AppSettingsPageSkeleton,
   component: AppSettingsPage,
 });

@@ -40,7 +40,7 @@ const ISO = /^\d{4}-\d{2}-\d{2}$/;
 type ReviewsSearch = { city?: string; from?: string; to?: string };
 
 export const Route = createFileRoute("/_authenticated/analytics/reviews/")({
-  head: () => ({ meta: [{ title: "Отзывы и оценки — Аналитика — Lady Stretch" }] }),
+  head: () => ({ meta: [{ title: "Отзывы и оценки — Аналитика — LadyFitPro" }] }),
   validateSearch: (s: Record<string, unknown>): ReviewsSearch => ({
     city: typeof s.city === "string" && s.city ? s.city : undefined,
     from: typeof s.from === "string" && ISO.test(s.from) ? s.from : undefined,

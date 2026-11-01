@@ -20,7 +20,7 @@ import {
 import { AN_TITLES } from "@/lib/analytics/labels";
 
 export const Route = createFileRoute("/_authenticated/analytics/inbox/templates")({
-  head: () => ({ meta: [{ title: "Шаблоны ответов — Диалоги VK — Lady Stretch" }] }),
+  head: () => ({ meta: [{ title: "Шаблоны ответов — Диалоги VK — LadyFitPro" }] }),
   pendingComponent: AnalyticsInboxTemplatesPageSkeleton,
   component: AnalyticsInboxTemplatesPage,
 });

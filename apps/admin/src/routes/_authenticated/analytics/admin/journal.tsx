@@ -20,7 +20,7 @@ import { auditLabel, formatMsk } from "@/lib/analytics/core";
 import { AN_TITLES } from "@/lib/analytics/labels";
 
 export const Route = createFileRoute("/_authenticated/analytics/admin/journal")({
-  head: () => ({ meta: [{ title: "Журнал — Аналитика — Lady Stretch" }] }),
+  head: () => ({ meta: [{ title: "Журнал — Аналитика — LadyFitPro" }] }),
   pendingComponent: AnalyticsJournalPageSkeleton,
   component: AnalyticsJournalPage,
 });

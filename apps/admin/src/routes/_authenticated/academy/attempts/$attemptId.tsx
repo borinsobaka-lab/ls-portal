@@ -6,7 +6,7 @@ import { AcademyAttemptPageSkeleton } from "@/components/page-skeletons";
 
 // Результат теста: ответы ученика, баллы и комментарии проверяющего.
 export const Route = createFileRoute("/_authenticated/academy/attempts/$attemptId")({
-  head: () => ({ meta: [{ title: "Результат теста — Академия — Lady Stretch" }] }),
+  head: () => ({ meta: [{ title: "Результат теста — Академия — LadyFitPro" }] }),
   pendingComponent: AcademyAttemptPageSkeleton,
   component: AttemptPage,
 });

@@ -39,7 +39,7 @@ import {
 import { AMO_BRANDS, AMO_FIELD_KEYS, type AmoFieldKey } from "@/lib/analytics/amo/rules";
 
 export const Route = createFileRoute("/_authenticated/analytics/crm/amocrm/$connectionId")({
-  head: () => ({ meta: [{ title: "Настройка amoCRM — Аналитика — Lady Stretch" }] }),
+  head: () => ({ meta: [{ title: "Настройка amoCRM — Аналитика — LadyFitPro" }] }),
   pendingComponent: AnalyticsAmoConnectionPageSkeleton,
   component: AnalyticsAmoConnectionPage,
 });

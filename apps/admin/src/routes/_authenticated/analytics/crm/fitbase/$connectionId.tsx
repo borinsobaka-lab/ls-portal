@@ -43,7 +43,7 @@ import { FB_TRIAL_SERVICES_TEXT } from "@/lib/analytics/fitbase/trials";
 import { AN_TITLES } from "@/lib/analytics/labels";
 
 export const Route = createFileRoute("/_authenticated/analytics/crm/fitbase/$connectionId")({
-  head: () => ({ meta: [{ title: "Настройки студии FitBase — Аналитика — Lady Stretch" }] }),
+  head: () => ({ meta: [{ title: "Настройки студии FitBase — Аналитика — LadyFitPro" }] }),
   pendingComponent: AnalyticsFitbaseConnectionPageSkeleton,
   component: AnalyticsFitbaseConnectionPage,
 });

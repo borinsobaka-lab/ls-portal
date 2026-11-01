@@ -27,7 +27,7 @@ import { cn } from "@/lib/utils";
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
 
 export const Route = createFileRoute("/_authenticated/analytics/vk/spend")({
-  head: () => ({ meta: [{ title: "Расходы по кабинетам — Аналитика — Lady Stretch" }] }),
+  head: () => ({ meta: [{ title: "Расходы по кабинетам — Аналитика — LadyFitPro" }] }),
   validateSearch: (s: Record<string, unknown>): { date?: string } => ({
     date: typeof s.date === "string" && ISO.test(s.date) ? s.date : undefined,
   }),

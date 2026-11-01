@@ -74,7 +74,7 @@ const TIPS = {
 const SHOW_APPS = STUDIO_FORMATS.some((f) => !!STUDIO_FORMAT_APP_URL[f]);
 
 export const Route = createFileRoute("/_authenticated/studios")({
-  head: () => ({ meta: [{ title: "Клубы — Lady Stretch" }] }),
+  head: () => ({ meta: [{ title: "Клубы — LadyFitPro" }] }),
   pendingComponent: StudiosPageSkeleton,
   component: StudiosPage,
 });

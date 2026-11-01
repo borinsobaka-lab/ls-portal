@@ -54,7 +54,17 @@ describe.skipIf(process.env.VITE_SHOW_CLUBS === "true")(
       expect(urls).not.toContain("/studios");
       expect(urls).not.toContain("/import-1c");
       expect(urls).toContain("/access/structure");
-      expect(MANAGE_GROUPS.map((g) => g.label)).toEqual(["Знания", "Пользователи и роли"]);
+      expect(MANAGE_GROUPS.map((g) => g.label)).toEqual([
+        "Знания",
+        "Пользователи и роли",
+        "Портал",
+      ]);
+    });
+
+    test("«Сообщения об ошибках» — только суперадминистратору", () => {
+      expect(canOpenPath(admin, "s1", "/bug-reports")).toBe(true);
+      const manager: AdminAccess = { ...admin, rights: ["users.manage", "roles.manage"] };
+      expect(canOpenPath(manager, "s1", "/bug-reports")).toBe(false);
     });
 
     test("страницы скрытых разделов закрыты даже суперадминистратору", () => {
@@ -83,6 +93,7 @@ describe.skipIf(process.env.VITE_SHOW_CLUBS === "true")(
         "/access/roles",
         "/kb-bases",
         "/access/structure",
+        "/bug-reports",
       ])
         expect(canOpenPath(admin, "s1", path)).toBe(true);
     });

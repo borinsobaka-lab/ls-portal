@@ -7,6 +7,7 @@
 import {
   Bag3,
   Book,
+  Bug,
   Book2,
   BellBing,
   BillList,
@@ -788,6 +789,8 @@ export const ACCESS_ITEMS: NavItem[] = [
   // Перенос клиентов из 1С (2026-10-18) — владельцу клуба.
   { title: "Импорт из 1С", url: "/import-1c", icon: ClipboardList },
 ];
+/** Сообщения «Сообщить об ошибке» (components/bug-report.tsx). */
+export const BUG_REPORTS_URL = "/bug-reports";
 export const STUDIOS_ITEMS: NavItem[] = [{ title: "Настройки", url: "/studios", icon: Widget3 }];
 // Пункты клубов («Клубы», «Импорт из 1С») пока скрыты — lib/launch.ts: клубы
 // ведут в «Оргструктуре» → «Сеть клубов».
@@ -799,6 +802,12 @@ export const MANAGE_GROUPS: NavGroup[] = [
   },
   { key: "manage-access", label: "Пользователи и роли", items: ACCESS_ITEMS },
   { key: "manage-studios", label: "Клубы", items: STUDIOS_ITEMS },
+  // «Сообщить об ошибке» (2026-11-01) — суперадминистратору.
+  {
+    key: "manage-portal",
+    label: "Портал",
+    items: [{ title: "Сообщения об ошибках", url: BUG_REPORTS_URL, icon: Bug }],
+  },
 ]
   .map((g) => ({ ...g, items: g.items.filter((i) => !HIDDEN_MANAGE_URLS.has(i.url)) }))
   .filter((g) => g.items.length > 0);
@@ -889,6 +898,7 @@ export function canOpenManagePath(access: AdminAccess, pathname: string): boolea
   if ([...HIDDEN_MANAGE_URLS].some((url) => matches(pathname, url))) return false;
   if (STUDIOS_ITEMS.some((i) => matches(pathname, i.url))) return true;
   if (matches(pathname, KB_BASES_URL)) return access.kbAdmin;
+  if (matches(pathname, BUG_REPORTS_URL)) return any("portal.admin");
   if (matches(pathname, "/import-1c")) return Object.values(access.studios).some((s) => s.owner);
   if (matches(pathname, "/access/log")) return any("audit.view", "roles.manage");
   if (matches(pathname, "/access/structure"))

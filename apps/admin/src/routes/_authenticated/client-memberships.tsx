@@ -342,7 +342,7 @@ const COLUMN_COUNT = 10;
 const TRANSFERABLE_STATES = new Set(["active", "awaiting", "frozen", "pending"]);
 
 export const Route = createFileRoute("/_authenticated/client-memberships")({
-  head: () => ({ meta: [{ title: "Абонементы — Lady Stretch" }] }),
+  head: () => ({ meta: [{ title: "Абонементы — LadyFitPro" }] }),
   pendingComponent: ClientMembershipsPageSkeleton,
   component: ClientMembershipsRoute,
 });

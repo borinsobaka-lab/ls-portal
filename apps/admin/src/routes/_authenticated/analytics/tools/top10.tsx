@@ -47,7 +47,7 @@ import { formatNumber } from "@/lib/format";
 import { onecErrorText } from "@/lib/analytics/onec-page";
 
 export const Route = createFileRoute("/_authenticated/analytics/tools/top10")({
-  head: () => ({ meta: [{ title: "Топ-10 городов — Аналитика — Lady Stretch" }] }),
+  head: () => ({ meta: [{ title: "Топ-10 городов — Аналитика — LadyFitPro" }] }),
   pendingComponent: AnalyticsTop10PageSkeleton,
   component: AnalyticsTop10Page,
 });

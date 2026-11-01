@@ -34,7 +34,7 @@ const ALL = "__all__";
 type RegisterSearch = { from?: string; to?: string; brand?: string; t?: string };
 
 export const Route = createFileRoute("/_authenticated/analytics/vk/register")({
-  head: () => ({ meta: [{ title: "Реестр таргета — Аналитика — Lady Stretch" }] }),
+  head: () => ({ meta: [{ title: "Реестр таргета — Аналитика — LadyFitPro" }] }),
   validateSearch: (s: Record<string, unknown>): RegisterSearch => ({
     from: typeof s.from === "string" && ISO.test(s.from) ? s.from : undefined,
     to: typeof s.to === "string" && ISO.test(s.to) ? s.to : undefined,
