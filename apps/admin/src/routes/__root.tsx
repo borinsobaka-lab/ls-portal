@@ -14,6 +14,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { Button } from "@/components/ui/button";
 import { UpdateBanner } from "@/components/update-banner";
 import { isStaleChunkError } from "@/lib/update-check";
+import { resetQueriesForUser } from "@/lib/query";
 import { KB_THEME_BOOT } from "@/lib/kb/theme";
 import { supabase } from "@/integrations/supabase/client";
 import { PORTAL_NAME, PORTAL_TITLE } from "@/lib/brand";
@@ -164,11 +165,19 @@ function RootComponent() {
   // на экране перезапрашивает студии уже без сессии, получает [] и держит
   // его (staleTime: Infinity) — после входа клубов нет до перезагрузки.
   // Сверяем id, а не событие: SIGNED_IN приходит и при возврате во вкладку.
+  //
+  // Не queryClient.clear() (2026-11-01): при обновлении страницы сессия
+  // приходит вторым событием, когда меню базы знаний и статья уже грузятся;
+  // clear() «тихо» отменял эти запросы, а экран оставался подписан на
+  // удалённые — вечный скелетон, пока не перейдёшь на другую базу или
+  // статью. Теперь запросы в полёте отменяются с уведомлением экрана,
+  // неактивные удаляются, активные сбрасываются и грузятся заново уже с
+  // новой сессией (resetQueries).
   useEffect(() => {
     let userId: string | null | undefined;
     const { data } = supabase.auth.onAuthStateChange((_event, session) => {
       const next = session?.user.id ?? null;
-      if (userId !== undefined && next !== userId) queryClient.clear();
+      if (userId !== undefined && next !== userId) void resetQueriesForUser(queryClient);
       userId = next;
     });
     return () => data.subscription.unsubscribe();
