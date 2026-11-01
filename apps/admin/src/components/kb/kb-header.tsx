@@ -1,18 +1,9 @@
-import {
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-  type KeyboardEvent,
-  type PointerEvent as ReactPointerEvent,
-} from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronLeft, ChevronRight, Hash } from "lucide-react";
+import { Hash } from "lucide-react";
 import { Link, useNavigate, useRouter, useRouterState } from "@tanstack/react-router";
 
 import { DocumentText, Folder } from "@/components/nav-icons";
-import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { SearchInput } from "@/components/ui/search-input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -23,7 +14,7 @@ import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { canEditKb } from "@/lib/kb/access";
 import { kbBasesQuery, snippetParts, useKbNodeTags, useKbSearch, useKbTree } from "@/lib/kb/data";
 import { kbTagColor, matchTags, tagArticleCounts } from "@/lib/kb/tags";
-import { KB_TABS_SLOT } from "@/lib/kb/header-layout";
+import { KB_TABS_ROW, kbTabsRowMemory } from "@/lib/kb/header-layout";
 import { kbIcon } from "@/lib/kb/icons";
 import { ancestorsOf, indexTree, readerNodes, type KbTreeIndex } from "@/lib/kb/tree";
 import { KB_LAST_BASE_KEY, useMyKbBases } from "@/lib/kb/my-bases";
@@ -34,18 +25,17 @@ import { cn } from "@/lib/utils";
 const tabsScroll = { left: 0 };
 
 /**
- * Вкладки баз знаний в шапке (решение владельца 2026-10-25): раздел рейки
- * один, базы — вкладками с иконкой и подписью вкладки (rail_title), порядок
- * — как в «Управлении» → «Знания». Вкладка открывает главную базы, меню
+ * Переключатель баз знаний — вторая строка шапки базы (решения владельца
+ * 2026-10-25, 2026-11-01): базы — вкладками с иконкой и полным названием
+ * (не сокращается), порядок — как в «Управлении» → «Знания». Строки нет,
+ * если сотруднику открыта одна база. Вкладка открывает главную базы, меню
  * слева переключается на её дерево.
  *
- * Баз больше, чем места (решение владельца 2026-11-01), — строка
- * прокручивается: мышью — перетаскиванием и колесом (на Windows у мыши
- * горизонтальной прокрутки нет), стрелками по краям, на телефоне — пальцем.
- * Выбранная база встаёт по центру строки: нажал на крайнюю — видно, что
- * дальше. Названия не сокращаются. Переход — по клику (не по нажатию
- * кнопки мыши, как у Radix: иначе перетаскивание начиналось бы с перехода),
- * с клавиатуры — стрелки и Enter / пробел (activationMode="manual").
+ * Переключение — только нажатием на вкладку: строку не тянут, не листают
+ * колесом, стрелок нет. Не помещаются все — выбранная база встаёт по центру
+ * строки (нажал на крайнюю — видно, какие базы дальше), у края, за которым
+ * есть ещё базы, — затухание. С клавиатуры — стрелки и Enter / пробел
+ * (activationMode="manual").
  */
 export function KbBaseTabs() {
   const navigate = useNavigate();
@@ -70,20 +60,18 @@ export function KbBaseTabs() {
   }, [baseId]);
 
   const listRef = useRef<HTMLDivElement>(null);
-  // Есть ли что прокручивать влево / вправо — для стрелок и затухания краёв.
+  // Есть ли базы за левым / правым краем — для затухания.
   const [edges, setEdges] = useState({ start: false, end: false });
-  const dragged = useRef(false);
-
-  const select = (id: string) => {
-    setPicked(id);
-    void navigate({ to: "/kb/$baseId", params: { baseId: id } });
-  };
+  const shown = !loading && bases.length > 1;
+  useEffect(() => {
+    if (!loading) kbTabsRowMemory.shown = shown;
+  }, [loading, shown]);
 
   // Прежнее место прокрутки — до первой отрисовки, потом плавно к выбранной.
   useLayoutEffect(() => {
     const el = listRef.current;
     if (el) el.scrollLeft = tabsScroll.left;
-  }, [loading]);
+  }, [shown]);
 
   useEffect(() => {
     const el = listRef.current;
@@ -94,25 +82,17 @@ export function KbBaseTabs() {
       tabsScroll.left = el.scrollLeft;
     };
     update();
-    // Колесо мыши: вертикальная прокрутка двигает вкладки вбок.
-    const onWheel = (e: WheelEvent) => {
-      if (el.scrollWidth <= el.clientWidth || Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
-      e.preventDefault();
-      el.scrollLeft += e.deltaY;
-    };
     el.addEventListener("scroll", update, { passive: true });
-    el.addEventListener("wheel", onWheel, { passive: false });
     const resize = new ResizeObserver(update);
     resize.observe(el);
     el.querySelectorAll('[role="tab"]').forEach((tab) => resize.observe(tab));
     return () => {
       el.removeEventListener("scroll", update);
-      el.removeEventListener("wheel", onWheel);
       resize.disconnect();
     };
-  }, [loading, bases]);
+  }, [shown, bases]);
 
-  // Выбранная база — по центру строки.
+  // Выбранная база — по центру строки (строка прокручивается только так).
   useEffect(() => {
     const el = listRef.current;
     const tab = activeId ? el?.querySelector<HTMLElement>(`[data-base-id="${activeId}"]`) : null;
@@ -120,144 +100,58 @@ export function KbBaseTabs() {
     const left = tab.offsetLeft - (el.clientWidth - tab.offsetWidth) / 2;
     const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
     el.scrollTo({ left: Math.max(0, left), behavior: reduce ? "auto" : "smooth" });
-  }, [activeId, loading, bases]);
+  }, [activeId, shown, bases]);
 
-  // Перетаскивание мышью. Палец прокручивает сам; клик после перетаскивания
-  // не открывает базу.
-  const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
-    const el = listRef.current;
-    if (!el || e.pointerType !== "mouse" || e.button !== 0) return;
-    if (el.scrollWidth <= el.clientWidth) return;
-    const startX = e.clientX;
-    const startLeft = el.scrollLeft;
-    let moved = false;
-    const move = (ev: PointerEvent) => {
-      const dx = ev.clientX - startX;
-      if (!moved && Math.abs(dx) < 5) return;
-      if (!moved) {
-        moved = true;
-        el.dataset.dragging = "true";
-      }
-      el.scrollLeft = startLeft - dx;
-    };
-    const up = () => {
-      window.removeEventListener("pointermove", move);
-      window.removeEventListener("pointerup", up);
-      window.removeEventListener("pointercancel", up);
-      delete el.dataset.dragging;
-      if (moved) {
-        // click придёт сразу после pointerup — его и гасим.
-        dragged.current = true;
-        setTimeout(() => (dragged.current = false), 0);
-      }
-    };
-    window.addEventListener("pointermove", move);
-    window.addEventListener("pointerup", up);
-    window.addEventListener("pointercancel", up);
-  };
+  if (!shown) return null;
 
-  const scrollBy = (dir: -1 | 1) => {
-    const el = listRef.current;
-    if (el) el.scrollBy({ left: dir * el.clientWidth * 0.7, behavior: "smooth" });
-  };
-
-  if (loading)
-    return (
-      <div className={cn("flex gap-1 overflow-hidden", KB_TABS_SLOT)}>
-        {Array.from({ length: 3 }, (_, i) => (
-          <Skeleton key={i} className="h-10 w-32 shrink-0 rounded-full" />
-        ))}
-      </div>
-    );
-
-  const overflow = edges.start || edges.end;
-  // Затухание у края, за которым есть ещё вкладки.
-  const fade = 28;
-  const mask = overflow
-    ? `linear-gradient(to right, ${edges.start ? "transparent" : "#000"} 0, #000 ${
-        edges.start ? fade : 0
-      }px, #000 calc(100% - ${edges.end ? fade : 0}px), ${edges.end ? "transparent" : "#000"} 100%)`
-    : undefined;
-  const arrow =
-    "size-8 shrink-0 rounded-full text-muted-foreground pointer-coarse:hidden disabled:opacity-30";
+  const fade = 32;
+  const mask =
+    edges.start || edges.end
+      ? `linear-gradient(to right, ${edges.start ? "transparent" : "#000"} 0, #000 ${
+          edges.start ? fade : 0
+        }px, #000 calc(100% - ${edges.end ? fade : 0}px), ${edges.end ? "transparent" : "#000"} 100%)`
+      : undefined;
 
   return (
-    <div className={cn("flex items-center gap-1", KB_TABS_SLOT)}>
-      {overflow && (
-        <Button
-          variant="ghost"
-          size="icon"
-          className={arrow}
-          aria-label="Предыдущие базы"
-          tabIndex={-1}
-          disabled={!edges.start}
-          onClick={() => scrollBy(-1)}
-        >
-          <ChevronLeft className="size-4" />
-        </Button>
-      )}
-      <Tabs
-        value={activeId ?? ""}
-        // Выбор — в onClick вкладки: клик приходит и с Enter / пробела,
-        // onValueChange открыл бы базу второй раз.
-        activationMode="manual"
-        className="min-w-0 flex-1"
+    <Tabs
+      value={activeId ?? ""}
+      onValueChange={(id) => {
+        setPicked(id);
+        void navigate({ to: "/kb/$baseId", params: { baseId: id } });
+      }}
+      activationMode="manual"
+      className={KB_TABS_ROW}
+    >
+      <TabsList
+        ref={listRef}
+        aria-label="Базы знаний"
+        indicatorMemoryKey="kb-bases"
+        style={{ maskImage: mask, WebkitMaskImage: mask }}
+        className="max-w-full justify-start overflow-hidden"
       >
-        <TabsList
-          ref={listRef}
-          aria-label="Базы знаний"
-          indicatorMemoryKey="kb-bases"
-          onPointerDown={onPointerDown}
-          style={{ maskImage: mask, WebkitMaskImage: mask }}
-          className="max-w-full cursor-default justify-start overflow-x-auto overscroll-x-contain [scrollbar-width:none] data-[dragging=true]:cursor-grabbing data-[dragging=true]:select-none [&::-webkit-scrollbar]:hidden"
-        >
-          {bases.map((b) => {
-            const Icon = kbIcon(b.icon);
-            return (
-              <TabsTrigger
-                key={b.id}
-                value={b.id}
-                data-base-id={b.id}
-                title={b.title}
-                className="shrink-0 gap-1.5 px-3"
-                // Radix выбирает вкладку по нажатию кнопки мыши — отменяем:
-                // выбор по клику, чтобы с вкладки можно было начать
-                // перетаскивание строки.
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => {
-                  if (!dragged.current) select(b.id);
-                }}
-                onMouseEnter={() =>
-                  router
-                    .preloadRoute({ to: "/kb/$baseId", params: { baseId: b.id } })
-                    .catch(() => {})
-                }
-              >
-                {/* Иконка открытой базы — её цвет (--brand внутри базы — цвет базы). */}
-                <Icon
-                  active={b.id === activeId}
-                  className={cn("size-4 shrink-0", b.id === baseId && "text-brand-on-dark")}
-                />
-                {b.rail_title || b.title}
-              </TabsTrigger>
-            );
-          })}
-        </TabsList>
-      </Tabs>
-      {overflow && (
-        <Button
-          variant="ghost"
-          size="icon"
-          className={arrow}
-          aria-label="Следующие базы"
-          tabIndex={-1}
-          disabled={!edges.end}
-          onClick={() => scrollBy(1)}
-        >
-          <ChevronRight className="size-4" />
-        </Button>
-      )}
-    </div>
+        {bases.map((b) => {
+          const Icon = kbIcon(b.icon);
+          return (
+            <TabsTrigger
+              key={b.id}
+              value={b.id}
+              data-base-id={b.id}
+              className="shrink-0 gap-1.5 px-3"
+              onMouseEnter={() =>
+                router.preloadRoute({ to: "/kb/$baseId", params: { baseId: b.id } }).catch(() => {})
+              }
+            >
+              {/* Иконка открытой базы — её цвет (--brand внутри базы — цвет базы). */}
+              <Icon
+                active={b.id === activeId}
+                className={cn("size-4 shrink-0", b.id === baseId && "text-brand-on-dark")}
+              />
+              {b.title}
+            </TabsTrigger>
+          );
+        })}
+      </TabsList>
+    </Tabs>
   );
 }
 
