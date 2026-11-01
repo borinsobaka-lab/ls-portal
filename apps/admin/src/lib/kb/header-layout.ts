@@ -8,10 +8,11 @@
  * кнопки.
  *
  * Вторая строка — переключатель баз (KbBaseTabs, решение владельца
- * 2026-11-01): только если сотруднику открыто больше одной базы.
+ * 2026-11-01): только если сотруднику открыто больше одной базы; с md —
+ * вкладки, на телефоне — выпадающий список с иконками.
  */
 export const KB_HEADER_ROW =
-  "flex items-center gap-2 px-3 py-2 lg:grid lg:h-16 lg:grid-cols-[minmax(0,1fr)_minmax(0,32rem)_minmax(0,1fr)] lg:gap-3 lg:px-4 lg:py-0";
+  "flex items-center gap-2 px-3 py-2 lg:grid lg:h-16 lg:grid-cols-[minmax(0,1fr)_minmax(0,28rem)_minmax(0,1fr)] lg:gap-3 lg:px-4 lg:py-0";
 
 /** Колонка у каждой части задана явно: место не зависит от соседей. */
 export const KB_SEARCH_SLOT = "min-w-0 flex-1 lg:col-start-2 lg:row-start-1";
