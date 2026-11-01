@@ -2106,6 +2106,23 @@ export function ScriptsSettingsPageSkeleton() {
 // ---------------------------------------------------------------------------
 // База знаний
 
+/** «Сообщения об ошибках» (/bug-reports): статус и таблица. */
+export function BugReportsPageSkeleton() {
+  return (
+    <ShellSkeleton title="Сообщения об ошибках">
+      <div className="space-y-3">
+        <ToolbarSkeleton search={false}>
+          <TabsSkeleton labels={["Новые", "Исправленные", "Все"]} />
+        </ToolbarSkeleton>
+        <TableCardSkeleton
+          pagination
+          headers={["Дата", "Кто", "Страница", "Сообщение", "Статус"]}
+        />
+      </div>
+    </ShellSkeleton>
+  );
+}
+
 /** «Базы знаний» (/kb): список баз. */
 export function KbBasesPageSkeleton() {
   return (

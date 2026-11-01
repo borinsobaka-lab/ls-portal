@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { useRouter, useRouterState } from "@tanstack/react-router";
-import { PanelLeft, RefreshCw } from "lucide-react";
+import { Bug, PanelLeft, RefreshCw, Sun } from "lucide-react";
 
 import { Skeleton } from "@/components/ui/skeleton";
 import { RailVersion } from "@/components/rail-version";
@@ -19,6 +19,7 @@ import {
   KB_SEARCH_SLOT,
   KB_TABS_SLOT,
 } from "@/lib/kb/header-layout";
+import { BUG_BUTTON_CLASS, FLOATING_STACK_CLASS } from "@/lib/floating-layout";
 import { cn } from "@/lib/utils";
 import { CLUBS_HIDDEN } from "@/lib/launch";
 
@@ -152,21 +153,19 @@ export function ShellSkeleton({
           </span>
           <h1 className="sr-only">{title}</h1>
           {/* Вкладки баз, поиск и кнопки — те же колонки, что у AdminShell. */}
-          <div className={cn("flex gap-1", KB_TABS_SLOT)}>
+          <div className={cn("flex gap-1 overflow-hidden", KB_TABS_SLOT)}>
             {Array.from({ length: 3 }, (_, i) => (
-              <Skeleton key={i} className="h-10 w-32 rounded-full" />
+              <Skeleton key={i} className="h-10 w-32 shrink-0 rounded-full" />
             ))}
           </div>
           <Skeleton className={cn("h-10", KB_SEARCH_SLOT)} />
-          <div
-            className={cn(
-              "flex items-center justify-end gap-2 lg:justify-between",
-              KB_ACTIONS_SLOT,
-            )}
-          >
-            <Skeleton className="size-10 shrink-0 rounded-full" />
-            <span className="inline-flex size-10 shrink-0 items-center justify-center">
-              <RefreshCw className="h-5 w-5" />
+          {/* Тема и «Обновить» — два кружка, как в AdminShell. */}
+          <div className={KB_ACTIONS_SLOT}>
+            <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-full border">
+              <Sun className="size-4" />
+            </span>
+            <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-full border">
+              <RefreshCw className="size-4" />
             </span>
           </div>
         </header>
@@ -215,25 +214,31 @@ export function ShellSkeleton({
         aria-busy="true"
       >
         {children}
-        {/* Плавающие действия — как FloatingActions: тот же контейнер,
-            «пилюли» размера .fab-actions button. */}
-        {actions.length > 0 && (
-          <div className="fab-actions fixed right-4 bottom-4 z-40 flex max-w-[calc(100vw-2rem)] flex-wrap items-center justify-end gap-3 sm:right-6 sm:bottom-6 lg:right-8 lg:bottom-8">
-            {actions.map((a, i) => (
-              <ControlSkeletonView
-                key={i}
-                control={
-                  typeof a === "string"
-                    ? cn("h-12 rounded-full", a)
-                    : {
-                        ...a,
-                        className: cn("h-12 rounded-full px-5 text-[0.9375rem]", a.className),
-                      }
-                }
-              />
-            ))}
-          </div>
-        )}
+        {/* Плавающий угол — как в AdminShell: действия страницы («пилюли»
+            размера .fab-actions button), под ними «Сообщить об ошибке». */}
+        <div className={FLOATING_STACK_CLASS}>
+          {actions.length > 0 && (
+            <div className="fab-actions flex flex-wrap items-center justify-end gap-3">
+              {actions.map((a, i) => (
+                <ControlSkeletonView
+                  key={i}
+                  control={
+                    typeof a === "string"
+                      ? cn("h-12 rounded-full", a)
+                      : {
+                          ...a,
+                          className: cn("h-12 rounded-full px-5 text-[0.9375rem]", a.className),
+                        }
+                  }
+                />
+              ))}
+            </div>
+          )}
+          <span className={BUG_BUTTON_CLASS} aria-hidden="true">
+            <Bug className="size-5 sm:size-4" />
+            <span className="max-sm:sr-only">Сообщить об ошибке</span>
+          </span>
+        </div>
       </main>
     </>
   );

@@ -44,6 +44,7 @@ import { Route as AuthenticatedClubSettingsRouteImport } from './routes/_authent
 import { Route as AuthenticatedClientsRouteImport } from './routes/_authenticated/clients'
 import { Route as AuthenticatedClientMembershipsRouteImport } from './routes/_authenticated/client-memberships'
 import { Route as AuthenticatedCashRouteImport } from './routes/_authenticated/cash'
+import { Route as AuthenticatedBugReportsRouteImport } from './routes/_authenticated/bug-reports'
 import { Route as AuthenticatedBookingsLogRouteImport } from './routes/_authenticated/bookings-log'
 import { Route as AuthenticatedAutorenewCancellationsRouteImport } from './routes/_authenticated/autorenew-cancellations'
 import { Route as AuthenticatedAssistantRouteImport } from './routes/_authenticated/assistant'
@@ -320,6 +321,11 @@ const AuthenticatedClientMembershipsRoute =
 const AuthenticatedCashRoute = AuthenticatedCashRouteImport.update({
   id: '/cash',
   path: '/cash',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedBugReportsRoute = AuthenticatedBugReportsRouteImport.update({
+  id: '/bug-reports',
+  path: '/bug-reports',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedBookingsLogRoute =
@@ -920,6 +926,7 @@ export interface FileRoutesByFullPath {
   '/assistant': typeof AuthenticatedAssistantRoute
   '/autorenew-cancellations': typeof AuthenticatedAutorenewCancellationsRoute
   '/bookings-log': typeof AuthenticatedBookingsLogRoute
+  '/bug-reports': typeof AuthenticatedBugReportsRoute
   '/cash': typeof AuthenticatedCashRoute
   '/client-memberships': typeof AuthenticatedClientMembershipsRoute
   '/clients': typeof AuthenticatedClientsRoute
@@ -1054,6 +1061,7 @@ export interface FileRoutesByTo {
   '/assistant': typeof AuthenticatedAssistantRoute
   '/autorenew-cancellations': typeof AuthenticatedAutorenewCancellationsRoute
   '/bookings-log': typeof AuthenticatedBookingsLogRoute
+  '/bug-reports': typeof AuthenticatedBugReportsRoute
   '/cash': typeof AuthenticatedCashRoute
   '/client-memberships': typeof AuthenticatedClientMembershipsRoute
   '/clients': typeof AuthenticatedClientsRoute
@@ -1191,6 +1199,7 @@ export interface FileRoutesById {
   '/_authenticated/assistant': typeof AuthenticatedAssistantRoute
   '/_authenticated/autorenew-cancellations': typeof AuthenticatedAutorenewCancellationsRoute
   '/_authenticated/bookings-log': typeof AuthenticatedBookingsLogRoute
+  '/_authenticated/bug-reports': typeof AuthenticatedBugReportsRoute
   '/_authenticated/cash': typeof AuthenticatedCashRoute
   '/_authenticated/client-memberships': typeof AuthenticatedClientMembershipsRoute
   '/_authenticated/clients': typeof AuthenticatedClientsRoute
@@ -1329,6 +1338,7 @@ export interface FileRouteTypes {
     | '/assistant'
     | '/autorenew-cancellations'
     | '/bookings-log'
+    | '/bug-reports'
     | '/cash'
     | '/client-memberships'
     | '/clients'
@@ -1463,6 +1473,7 @@ export interface FileRouteTypes {
     | '/assistant'
     | '/autorenew-cancellations'
     | '/bookings-log'
+    | '/bug-reports'
     | '/cash'
     | '/client-memberships'
     | '/clients'
@@ -1599,6 +1610,7 @@ export interface FileRouteTypes {
     | '/_authenticated/assistant'
     | '/_authenticated/autorenew-cancellations'
     | '/_authenticated/bookings-log'
+    | '/_authenticated/bug-reports'
     | '/_authenticated/cash'
     | '/_authenticated/client-memberships'
     | '/_authenticated/clients'
@@ -1989,6 +2001,13 @@ declare module '@tanstack/react-router' {
       path: '/cash'
       fullPath: '/cash'
       preLoaderRoute: typeof AuthenticatedCashRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/bug-reports': {
+      id: '/_authenticated/bug-reports'
+      path: '/bug-reports'
+      fullPath: '/bug-reports'
+      preLoaderRoute: typeof AuthenticatedBugReportsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/bookings-log': {
@@ -2694,6 +2713,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAssistantRoute: typeof AuthenticatedAssistantRoute
   AuthenticatedAutorenewCancellationsRoute: typeof AuthenticatedAutorenewCancellationsRoute
   AuthenticatedBookingsLogRoute: typeof AuthenticatedBookingsLogRoute
+  AuthenticatedBugReportsRoute: typeof AuthenticatedBugReportsRoute
   AuthenticatedCashRoute: typeof AuthenticatedCashRoute
   AuthenticatedClientMembershipsRoute: typeof AuthenticatedClientMembershipsRoute
   AuthenticatedClientsRoute: typeof AuthenticatedClientsRoute
@@ -2818,6 +2838,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAutorenewCancellationsRoute:
     AuthenticatedAutorenewCancellationsRoute,
   AuthenticatedBookingsLogRoute: AuthenticatedBookingsLogRoute,
+  AuthenticatedBugReportsRoute: AuthenticatedBugReportsRoute,
   AuthenticatedCashRoute: AuthenticatedCashRoute,
   AuthenticatedClientMembershipsRoute: AuthenticatedClientMembershipsRoute,
   AuthenticatedClientsRoute: AuthenticatedClientsRoute,

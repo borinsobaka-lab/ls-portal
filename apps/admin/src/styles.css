@@ -605,10 +605,30 @@ input[type="number"]::-webkit-outer-spin-button {
   color: var(--muted-foreground);
   border-color: var(--border);
 }
-/* Запас снизу у рабочей области, пока на странице есть плавающие действия:
-   конец таблицы и пагинация прокручиваются из-под кнопок. */
+/* Запас снизу у рабочей области под плавающий угол: «Сообщить об ошибке»
+   есть всегда (решение владельца 2026-11-01), над ней — действия страницы.
+   Конец статьи, таблицы и пагинация прокручиваются из-под кнопок. */
+.admin-main {
+  padding-bottom: 5.5rem;
+}
 .admin-main:has(.fab-actions) {
-  padding-bottom: 6.5rem;
+  padding-bottom: 9.5rem;
+}
+@media (min-width: 640px) {
+  .admin-main {
+    padding-bottom: 5rem;
+  }
+  .admin-main:has(.fab-actions) {
+    padding-bottom: 9.5rem;
+  }
+}
+@media (min-width: 1024px) {
+  .admin-main {
+    padding-bottom: 5.5rem;
+  }
+  .admin-main:has(.fab-actions) {
+    padding-bottom: 9.75rem;
+  }
 }
 /* Стрелки пагинации — левее плавающих кнопок: пока таблица не докручена до
    конца, кнопки лежали прямо на них. --fab-width ставит FloatingActions.

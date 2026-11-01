@@ -34,6 +34,7 @@ import {
   Banknote as BanknoteArt,
   Bold as BoldArt,
   Briefcase as BriefcaseArt,
+  Bug as BugArt,
   Building2 as Building2Art,
   CalendarDays as CalendarDaysArt,
   CalendarIcon as CalendarIconArt,
@@ -111,7 +112,6 @@ import {
   ArrowShrinkIcon as MinimizeArt,
   Minus as MinusArt,
   MonitorPlay as MonitorPlayArt,
-  Moon as MoonArt,
   Music as MusicArt,
   Network as NetworkArt,
   PanelLeft as PanelLeftArt,
@@ -190,6 +190,7 @@ export const Ban = icon(BanArt, "Ban");
 export const Banknote = icon(BanknoteArt, "Banknote");
 export const Bold = icon(BoldArt, "Bold");
 export const Briefcase = icon(BriefcaseArt, "Briefcase");
+export const Bug = icon(BugArt, "Bug");
 export const Building2 = icon(Building2Art, "Building2");
 export const CalendarDays = icon(CalendarDaysArt, "CalendarDays");
 export const CalendarIcon = icon(CalendarIconArt, "CalendarIcon");
@@ -267,7 +268,6 @@ export const Mic = icon(MicArt, "Mic");
 export const Minimize = icon(MinimizeArt, "Minimize");
 export const Minus = icon(MinusArt, "Minus");
 export const MonitorPlay = icon(MonitorPlayArt, "MonitorPlay");
-export const Moon = icon(MoonArt, "Moon");
 export const Music = icon(MusicArt, "Music");
 export const Network = icon(NetworkArt, "Network");
 export const PanelLeft = icon(PanelLeftArt, "PanelLeft");
