@@ -11,7 +11,7 @@ import { BugReportButton } from "@/components/bug-report";
 import { FLOATING_STACK_CLASS } from "@/lib/floating-layout";
 import { KbBaseTabs, KbHeaderSearch } from "@/components/kb/kb-header";
 import { WorkdayButton } from "@/components/workday/workday-button";
-import { KB_ACTIONS_SLOT, KB_HEADER_GRID, KB_SEARCH_SLOT } from "@/lib/kb/header-layout";
+import { KB_ACTIONS_SLOT, KB_HEADER_ROW, KB_SEARCH_SLOT } from "@/lib/kb/header-layout";
 import { MAIN_HEADER_GRID, MAIN_HEADER_STUDIO } from "@/lib/header-layout";
 import { useKbDarkTheme } from "@/lib/kb/theme";
 import { isKbToolPath, kbBaseIdOf, railSectionKey } from "@/lib/nav-sections";
@@ -134,41 +134,36 @@ export function AdminShell({
     <>
       {presence && <AnalyticsPresence dashboard={presence} />}
       {kb ? (
-        // Раскладка — lib/kb/header-layout.ts: с lg три колонки — вкладки баз
-        // (всё свободное место), поиск постоянной ширины, у края — тема и
-        // «Обновить» (решение владельца 2026-11-01).
-        // Узкий экран: первая строка — меню, вкладки, кнопки; поиск — второй
-        // строкой на всю ширину. Заголовок страницы — для скринридера:
-        // название статьи и так крупно над текстом.
-        <header
-          className={cn(
-            "flex shrink-0 flex-wrap items-center gap-2 border-b bg-background px-3 py-2 text-foreground lg:h-16 lg:gap-3 lg:px-4 lg:py-0",
-            KB_HEADER_GRID,
-          )}
-        >
-          <SidebarTrigger className="-ml-1 size-10 md:hidden" />
-          <h1 className="sr-only">{title}</h1>
-          <KbBaseTabs />
-          {kbBaseId && (
-            <KbHeaderSearch key={kbBaseId} baseId={kbBaseId} className={KB_SEARCH_SLOT} />
-          )}
-          <div className={KB_ACTIONS_SLOT}>
-            {/* Значок темы — всегда солнце (решение владельца 2026-11-01:
-                месяц из набора иконок не узнавали); включена ли тёмная —
-                aria-pressed и подсказка. */}
-            <Button
-              variant="outline"
-              size="icon"
-              className="shrink-0"
-              aria-pressed={kbDarkTheme}
-              aria-label={kbDarkTheme ? "Светлая тема" : "Тёмная тема"}
-              title={kbDarkTheme ? "Светлая тема" : "Тёмная тема"}
-              onClick={toggleKbTheme}
-            >
-              <Sun />
-            </Button>
-            {refreshButton("outline")}
+        // Раскладка — lib/kb/header-layout.ts: первая строка — поиск ровно по
+        // центру, тема и «Обновить» у края; вторая — базы знаний (если их
+        // больше одной). Заголовок страницы — для скринридера: название
+        // статьи и так крупно над текстом.
+        <header className="shrink-0 border-b bg-background text-foreground">
+          <div className={KB_HEADER_ROW}>
+            <SidebarTrigger className="-ml-1 size-10 md:hidden" />
+            <h1 className="sr-only">{title}</h1>
+            {kbBaseId && (
+              <KbHeaderSearch key={kbBaseId} baseId={kbBaseId} className={KB_SEARCH_SLOT} />
+            )}
+            <div className={KB_ACTIONS_SLOT}>
+              {/* Значок темы — всегда солнце (решение владельца 2026-11-01:
+                  месяц из набора иконок не узнавали); включена ли тёмная —
+                  aria-pressed и подсказка. */}
+              <Button
+                variant="outline"
+                size="icon"
+                className="shrink-0"
+                aria-pressed={kbDarkTheme}
+                aria-label={kbDarkTheme ? "Светлая тема" : "Тёмная тема"}
+                title={kbDarkTheme ? "Светлая тема" : "Тёмная тема"}
+                onClick={toggleKbTheme}
+              >
+                <Sun />
+              </Button>
+              {refreshButton("outline")}
+            </div>
           </div>
+          <KbBaseTabs />
         </header>
       ) : (
         <>

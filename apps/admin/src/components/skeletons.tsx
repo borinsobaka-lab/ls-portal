@@ -15,9 +15,10 @@ import {
 import { MAIN_HEADER_GRID } from "@/lib/header-layout";
 import {
   KB_ACTIONS_SLOT,
-  KB_HEADER_GRID,
+  KB_HEADER_ROW,
   KB_SEARCH_SLOT,
-  KB_TABS_SLOT,
+  KB_TABS_ROW,
+  kbTabsRowMemory,
 } from "@/lib/kb/header-layout";
 import { BUG_BUTTON_CLASS, FLOATING_STACK_CLASS } from "@/lib/floating-layout";
 import { cn } from "@/lib/utils";
@@ -142,32 +143,34 @@ export function ShellSkeleton({
   return (
     <>
       {kb ? (
-        <header
-          className={cn(
-            "flex shrink-0 flex-wrap items-center gap-2 border-b bg-background px-3 py-2 lg:h-16 lg:gap-3 lg:px-4 lg:py-0",
-            KB_HEADER_GRID,
+        <header className="shrink-0 border-b bg-background">
+          <div className={KB_HEADER_ROW}>
+            <span className="-ml-1 inline-flex size-10 shrink-0 items-center justify-center md:hidden">
+              <PanelLeft className="size-4" />
+            </span>
+            <h1 className="sr-only">{title}</h1>
+            {/* Поиск по центру и кнопки — те же колонки, что у AdminShell. */}
+            <Skeleton className={cn("h-10", KB_SEARCH_SLOT)} />
+            {/* Тема и «Обновить» — два кружка, как в AdminShell. */}
+            <div className={KB_ACTIONS_SLOT}>
+              <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-full border">
+                <Sun className="size-4" />
+              </span>
+              <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-full border">
+                <RefreshCw className="size-4" />
+              </span>
+            </div>
+          </div>
+          {/* Строка баз — если она была у последней шапки (баз больше одной). */}
+          {kbTabsRowMemory.shown && (
+            <div className={KB_TABS_ROW}>
+              <div className="flex max-w-full gap-1 overflow-hidden">
+                {Array.from({ length: 3 }, (_, i) => (
+                  <Skeleton key={i} className="h-10 w-36 shrink-0 rounded-full" />
+                ))}
+              </div>
+            </div>
           )}
-        >
-          <span className="-ml-1 inline-flex size-10 shrink-0 items-center justify-center md:hidden">
-            <PanelLeft className="size-4" />
-          </span>
-          <h1 className="sr-only">{title}</h1>
-          {/* Вкладки баз, поиск и кнопки — те же колонки, что у AdminShell. */}
-          <div className={cn("flex gap-1 overflow-hidden", KB_TABS_SLOT)}>
-            {Array.from({ length: 3 }, (_, i) => (
-              <Skeleton key={i} className="h-10 w-32 shrink-0 rounded-full" />
-            ))}
-          </div>
-          <Skeleton className={cn("h-10", KB_SEARCH_SLOT)} />
-          {/* Тема и «Обновить» — два кружка, как в AdminShell. */}
-          <div className={KB_ACTIONS_SLOT}>
-            <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-full border">
-              <Sun className="size-4" />
-            </span>
-            <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-full border">
-              <RefreshCw className="size-4" />
-            </span>
-          </div>
         </header>
       ) : (
         <header
