@@ -135,13 +135,14 @@ export function KbBaseTabs() {
 
   return (
     <div className={KB_TABS_ROW}>
-      {/* Телефон (решение владельца 2026-11-01): баз много и названия
-          длинные — выпадающий список с иконками; название целиком, длинное
-          переносится. */}
+      {/* Телефон (решения владельца 2026-11-01): баз много и названия
+          длинные — выпадающий список с иконками. Само поле — всегда в одну
+          строку, длинное название обрывается троеточием (поле не растёт в
+          высоту); в раскрытом списке название целиком. */}
       <Select value={activeId ?? undefined} onValueChange={select}>
         <SelectTrigger
           aria-label="База знаний"
-          className="h-auto min-h-10 w-full whitespace-normal py-2 md:hidden [&>span]:line-clamp-none"
+          className="w-full md:hidden [&>span]:line-clamp-none [&>span]:min-w-0 [&>span]:flex-1 [&>span]:overflow-hidden [&_.kb-base-name]:truncate"
         >
           <SelectValue placeholder="База знаний" />
         </SelectTrigger>
@@ -150,7 +151,7 @@ export function KbBaseTabs() {
             const Icon = kbIcon(b.icon);
             return (
               <SelectItem key={b.id} value={b.id} textValue={b.title}>
-                <span className="flex items-start gap-2">
+                <span className="flex min-w-0 items-start gap-2">
                   <Icon
                     active={b.id === activeId}
                     className={cn(
@@ -158,7 +159,8 @@ export function KbBaseTabs() {
                       b.id === activeId ? "text-brand-on-light" : "text-muted-foreground",
                     )}
                   />
-                  <span className="whitespace-normal">{b.title}</span>
+                  {/* В поле — truncate (класс у SelectTrigger), в списке — переносится. */}
+                  <span className="kb-base-name min-w-0 whitespace-normal">{b.title}</span>
                 </span>
               </SelectItem>
             );
