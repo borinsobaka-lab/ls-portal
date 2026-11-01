@@ -57,6 +57,7 @@ import {
   accessUserQuery,
   invalidateAccess,
   orgUnitsQuery,
+  portalLoginQuery,
 } from "@/lib/access/data";
 import {
   inheritedVia,
@@ -122,6 +123,10 @@ function UserCard({ user }: { user: PortalUserCard }) {
   const [blocking, setBlocking] = useState(false);
   const status = userStatus({ ...user, portal: !!user.effective.portal }, todayISO());
   const canManage = user.can_manage;
+  const { data: loginInfo } = useQuery({
+    ...portalLoginQuery(user.user_id),
+    enabled: canManage || isSelf,
+  });
 
   const unblock = async () => {
     try {
@@ -178,9 +183,21 @@ function UserCard({ user }: { user: PortalUserCard }) {
               )}
             </div>
             <div className="text-sm text-muted-foreground">
-              {[realEmail(user.email) ?? "без почты — войти не может", user.phone]
+              {[
+                realEmail(user.email) ??
+                  (loginInfo ? "без почты" : "без почты и логина — войти не может"),
+                loginInfo ? `логин Platrum: ${loginInfo.login}` : null,
+                user.phone,
+              ]
                 .filter(Boolean)
                 .join(" · ")}
+              {loginInfo?.locked_until && (
+                <span className="text-destructive">
+                  {" "}
+                  · вход по логину закрыт до {formatDateTime(loginInfo.locked_until)} (неверный
+                  пароль 10 раз)
+                </span>
+              )}
             </div>
             <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
               <span>

@@ -100,6 +100,33 @@ describe("buildImportRows", () => {
     expect(rows[2].duplicate).toBe("Повтор строки 2");
     expect(rows[3].error).toBe("Нет фамилии или имени");
   });
+
+  test("логин и пароль Platrum", () => {
+    expect(detectColumns(["ФИО", "Логин", "Пароль"])).toEqual({
+      full_name: 0,
+      login: 1,
+      password: 2,
+    });
+    const { rows } = buildImportRows(
+      [
+        ["ФИО", "Логин", "Пароль"],
+        ["Петрова Ольга", "petrova", "secret1"],
+        ["Иванова Мария", "Petrova", "secret2"],
+        ["Сидорова Анна", "sidorova", ""],
+        ["Козлова Ирина", "koz lova", "secret3"],
+        ["Орлова Нина", "orlova", "123"],
+        ["Белова Вера", "", "secret4"],
+      ],
+      dict,
+    );
+    expect(rows[0]).toMatchObject({ login: "petrova", password: "secret1", error: null });
+    expect(rows[1].error).toBe("Логин «Petrova» уже выше в файле");
+    expect(rows[2].error).toBe("Есть логин, но нет пароля");
+    expect(rows[3].error).toBe("В логине «koz lova» есть пробелы");
+    expect(rows[4].error).toBe("Пароль короче 4 знаков");
+    expect(rows[5]).toMatchObject({ login: "", password: "", error: null });
+    expect(rows[5].warnings).toEqual(["Пароль без логина — пропущен"]);
+  });
 });
 
 describe("почта", () => {
