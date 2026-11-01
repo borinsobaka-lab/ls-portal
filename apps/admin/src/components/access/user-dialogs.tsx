@@ -34,7 +34,11 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useAdminAccess } from "@/hooks/use-admin-access";
 import { hasRight } from "@/lib/admin-access";
-import { createPortalUser, updatePortalUserAccount } from "@/lib/access.functions";
+import {
+  createPortalUser,
+  setPortalUserLogin,
+  updatePortalUserAccount,
+} from "@/lib/access.functions";
 import {
   accessCatalogQuery,
   accessRolesQuery,
@@ -43,6 +47,7 @@ import {
   invalidateAccess,
   orgPositionsQuery,
   orgUnitsQuery,
+  portalLoginQuery,
 } from "@/lib/access/data";
 import {
   findDuplicates,
@@ -61,7 +66,11 @@ const NONE = "none";
 
 const TIPS = {
   email:
-    "Логин: при каждом входе на эту почту приходит 6-значный код, пароля нет. Нет почты — оставьте пустым: человек будет в портале (подразделения, курсы, собственник клубов), но войти не сможет, пока почту не впишут.",
+    "Вход по почте: при каждом входе на неё приходит 6-значный код. Можно вместе с логином Platrum или вместо него. Нет почты и логина — человек будет в портале (подразделения, курсы, собственник клубов), но войти не сможет.",
+  login:
+    "Вход по логину и паролю — те же реквизиты, что в Platrum. Регистр букв в логине при входе не важен. Можно вместе с почтой.",
+  password:
+    "Пароль для входа по логину, не короче 4 знаков. Его видно только при вводе: потом его не узнать — только задать новый.",
   unit: "Подразделение управляющей компании. Роли, выданные подразделению, человек получит сам.",
   clubs:
     "Клубы, где человек собственник. Роли с областью «Клубы собственника» действуют у него в этих клубах.",
@@ -250,6 +259,62 @@ function DuplicatesNote({
 
 type DraftRole = { key: number; role_id: string; scope: Scope };
 
+/** Проверка логина и пароля Platrum (те же правила, что на сервере). */
+function checkLogin(login: string, password: string, hasPassword: boolean): string | null {
+  const l = login.trim();
+  if (!l) return password ? "Укажите логин или уберите пароль" : null;
+  if (/\s/.test(l)) return "В логине не должно быть пробелов";
+  if (l.length > 100) return "Логин длиннее 100 знаков";
+  if (!password && !hasPassword) return "Укажите пароль для логина";
+  if (password && password.length < 4) return "Пароль — не короче 4 знаков";
+  if (password.length > 200) return "Пароль длиннее 200 знаков";
+  return null;
+}
+
+/** Логин и пароль Platrum — в окнах добавления и правки. */
+function LoginInputs({
+  login,
+  password,
+  onLogin,
+  onPassword,
+  hasPassword,
+  disabled,
+}: {
+  login: string;
+  password: string;
+  onLogin: (v: string) => void;
+  onPassword: (v: string) => void;
+  /** Пароль уже задан — пустое поле оставляет прежний. */
+  hasPassword: boolean;
+  disabled?: boolean;
+}) {
+  return (
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <FormField label="Логин Platrum" tip={TIPS.login} optional>
+        <Input
+          autoComplete="off"
+          autoCapitalize="none"
+          spellCheck={false}
+          value={login}
+          disabled={disabled}
+          placeholder="Нет логина — оставьте пустым"
+          onChange={(e) => onLogin(e.target.value)}
+        />
+      </FormField>
+      <FormField label="Пароль" tip={TIPS.password} required={!!login.trim() && !hasPassword}>
+        <Input
+          autoComplete="new-password"
+          spellCheck={false}
+          value={password}
+          disabled={disabled || (!login.trim() && !password)}
+          placeholder={hasPassword ? "Не менять" : undefined}
+          onChange={(e) => onPassword(e.target.value)}
+        />
+      </FormField>
+    </div>
+  );
+}
+
 /** Добавить человека: данные, почта для входа и (сразу) роли. */
 export function NewUserDialog({
   open,
@@ -276,6 +341,8 @@ function NewUserForm({ onDone }: { onDone: () => void }) {
   const { data: catalog } = useQuery(accessCatalogQuery);
   const restricted = !access?.manageAll && !hasRight(access, "portal.admin");
   const [email, setEmail] = useState("");
+  const [login, setLogin] = useState("");
+  const [password, setPassword] = useState("");
   const [avatar, setAvatar] = useState<string | null>(null);
   const [profile, setProfile] = useState<ProfileFields>({
     last_name: "",
@@ -308,7 +375,7 @@ function NewUserForm({ onDone }: { onDone: () => void }) {
     ]);
 
   const save = async () => {
-    const problem = checkProfile(profile, email, false);
+    const problem = checkProfile(profile, email, false) ?? checkLogin(login, password, false);
     if (problem) {
       toast.error(problem);
       return;
@@ -335,6 +402,8 @@ function NewUserForm({ onDone }: { onDone: () => void }) {
           first_name: profile.first_name.trim(),
           last_name: profile.last_name.trim(),
           email: email.trim() || null,
+          login: login.trim() || null,
+          password: login.trim() ? password : null,
           phone: profile.phone.trim() || undefined,
           user_type: profile.user_type,
           position_id: profile.position_id,
@@ -366,12 +435,16 @@ function NewUserForm({ onDone }: { onDone: () => void }) {
           () => extra.push("клубы собственника"),
         );
       }
+      const ways = [
+        email.trim() ? "по коду на почту" : null,
+        login.trim() ? "по логину и паролю Platrum" : null,
+      ].filter(Boolean);
       toast.success(
         res.existing
           ? "Добавлен в портал. У человека уже была учётная запись — вход по коду на ту же почту"
-          : email.trim()
-            ? "Добавлен. Вход — по коду, который придёт на указанную почту"
-            : "Добавлен без почты: войти он не сможет, пока почту не впишут в карточке",
+          : ways.length
+            ? `Добавлен. Вход — ${ways.join(" или ")}`
+            : "Добавлен без почты и логина: войти он не сможет, пока их не впишут в карточке",
       );
       if (extra.length)
         toast.error(`Не удалось сохранить: ${extra.join(", ")} — допишите в карточке`);
@@ -398,8 +471,9 @@ function NewUserForm({ onDone }: { onDone: () => void }) {
       <DialogHeader>
         <DialogTitle>Новый пользователь</DialogTitle>
         <DialogDescription>
-          Вход в портал — по 6-значному коду на почту, пароля нет. Если у человека уже есть учётная
-          запись (например, он клиент приложения), она просто получит доступ.
+          Вход в портал — по 6-значному коду на почту и (или) по логину и паролю из Platrum. Если у
+          человека уже есть учётная запись с этой почтой (например, он клиент приложения), она
+          просто получит доступ.
         </DialogDescription>
       </DialogHeader>
       <DialogForm onSubmit={save}>
@@ -432,9 +506,17 @@ function NewUserForm({ onDone }: { onDone: () => void }) {
                 onChange={(e) => setEmail(e.target.value)}
               />
             </FormField>
-            {!email.trim() && (
+            <LoginInputs
+              login={login}
+              password={password}
+              onLogin={setLogin}
+              onPassword={setPassword}
+              hasPassword={false}
+              disabled={saving}
+            />
+            {!email.trim() && !login.trim() && (
               <p className="-mt-2 text-xs text-muted-foreground">
-                Без почты человек не войдёт в портал — почту можно вписать потом в карточке.
+                Без почты и логина человек не войдёт в портал — их можно вписать потом в карточке.
               </p>
             )}
             <DuplicatesNote profile={profile} email={email} />
@@ -603,18 +685,37 @@ function EditUserForm({
     access_until: user.access_until ?? "",
     note: user.note ?? "",
   });
+  const setLoginFn = useServerFn(setPortalUserLogin);
+  const { data: loginInfo, isPending: loginPending } = useQuery(portalLoginQuery(user.user_id));
+  const [login, setLogin] = useState<string | null>(null);
+  const [password, setPassword] = useState("");
+  // Пока логин не тронут — показываем сохранённый.
+  const loginValue = login ?? loginInfo?.login ?? "";
+  const loginChanged = (loginInfo?.login ?? "") !== loginValue.trim() || !!password;
+  const loginRemoved = !!loginInfo && !loginValue.trim();
   const [saving, setSaving] = useState(false);
   const emailChanged =
     !!email.trim() && email.trim().toLowerCase() !== (shownEmail ?? "").toLowerCase();
 
   const save = async () => {
-    const problem = checkProfile(profile, email, !!shownEmail);
+    const problem =
+      checkProfile(profile, email, !!shownEmail) ??
+      (loginChanged && !loginRemoved ? checkLogin(loginValue, password, !!loginInfo) : null);
     if (problem) {
       toast.error(problem);
       return;
     }
     setSaving(true);
     try {
+      if (loginChanged) {
+        await setLoginFn({
+          data: {
+            user_id: user.user_id,
+            login: loginRemoved ? null : loginValue.trim(),
+            password: loginRemoved ? null : password || null,
+          },
+        });
+      }
       await accessRpc("access_user_save", {
         p_user: user.user_id,
         p: {
@@ -701,6 +802,20 @@ function EditUserForm({
               <InfoNote>
                 Почта — логин: после сохранения человек сможет входить по коду на неё (если у него
                 есть роли).
+              </InfoNote>
+            )}
+            <LoginInputs
+              login={loginValue}
+              password={password}
+              onLogin={setLogin}
+              onPassword={setPassword}
+              hasPassword={!!loginInfo}
+              disabled={saving || loginPending}
+            />
+            {loginRemoved && (
+              <InfoNote>
+                Логин будет убран: войти по логину и паролю Platrum человек больше не сможет
+                {shownEmail ? " — только по почте." : "."}
               </InfoNote>
             )}
             {!isSelf && <DuplicatesNote profile={profile} email={email} exceptId={user.user_id} />}

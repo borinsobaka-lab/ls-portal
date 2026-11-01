@@ -6,6 +6,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { getSupabaseAdmin } from "@/integrations/supabase/client.server";
 import { accessErrorText, isPlaceholderEmail, NO_EMAIL_DOMAIN } from "@/lib/access/logic";
 import type { AccessMe } from "@/lib/access/types";
+import { hashPassword } from "@/lib/password.server";
 import { STAFF_ROLES } from "@/lib/roles";
 
 /**
@@ -55,6 +56,78 @@ const avatarSchema = z
   .regex(/^staff\/[\w-]+\.(webp|png|jpe?g)$/, "Неверная аватарка")
   .nullable();
 
+/**
+ * Логин Platrum (db/migrations/2026-11-01_zz_portal_logins.sql): без пробелов,
+ * регистр при входе не важен.
+ */
+const platrumLogin = z
+  .string()
+  .trim()
+  .min(1, "Укажите логин")
+  .max(100, "Логин длиннее 100 знаков")
+  .regex(/^\S+$/, "В логине не должно быть пробелов");
+const platrumPassword = z
+  .string()
+  .min(4, "Пароль — не короче 4 знаков")
+  .max(200, "Пароль длиннее 200 знаков");
+
+/** Логин уже у другого человека? (без регистра) */
+async function loginTaken(admin: SupabaseClient, login: string, exceptUser: string | null) {
+  let q = admin
+    .from("portal_logins")
+    .select("user_id")
+    .ilike("login", login.replace(/[\\%_]/g, "\\$&"))
+    .limit(1);
+  if (exceptUser) q = q.neq("user_id", exceptUser);
+  const { data, error } = await q;
+  if (error) throw new Error(error.message);
+  return !!data?.length;
+}
+
+/**
+ * Записать логин и пароль (пароль пустой — оставить прежний; нового логина
+ * без пароля не бывает). Только сервис-ключом, после проверки прав.
+ */
+async function writeLogin(
+  admin: SupabaseClient,
+  userId: string,
+  login: string,
+  password: string | null,
+  actor: string,
+) {
+  if (await loginTaken(admin, login, userId)) throw new Error("Такой логин уже занят");
+  const now = new Date().toISOString();
+  const { data: current, error: curErr } = await admin
+    .from("portal_logins")
+    .select("user_id")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (curErr) throw new Error(curErr.message);
+  if (!current && !password) throw new Error("Укажите пароль");
+  const patch = {
+    login,
+    updated_at: now,
+    updated_by: actor,
+    ...(password
+      ? {
+          password_hash: await hashPassword(password),
+          password_set_at: now,
+          failed_count: 0,
+          locked_until: null,
+        }
+      : {}),
+  };
+  const { error } = current
+    ? await admin.from("portal_logins").update(patch).eq("user_id", userId)
+    : await admin.from("portal_logins").insert({ user_id: userId, ...patch });
+  if (error) {
+    if (/portal_logins_login_key|duplicate key/i.test(error.message)) {
+      throw new Error("Такой логин уже занят");
+    }
+    throw new Error(error.message);
+  }
+}
+
 const assignmentSchema = z
   .object({
     role_id: z.string().uuid(),
@@ -70,6 +143,9 @@ const createSchema = z
     last_name: z.string().trim().min(1, "Укажите фамилию").max(100),
     /** null — без почты: учётная запись со служебным адресом, войти не сможет. */
     email: loginEmail.nullable(),
+    /** Вход по логину и паролю Platrum; можно вместе с почтой. */
+    login: platrumLogin.nullable().optional(),
+    password: platrumPassword.nullable().optional(),
     phone: z.string().trim().max(40).optional(),
     user_type: z.enum(["hq", "partner", "studio", "contractor", "service"]).nullable(),
     position_id: z.string().uuid().nullable(),
@@ -99,6 +175,10 @@ export const createPortalUser = createServerFn({ method: "POST" })
     }
     const admin = getSupabaseAdmin();
     const fullName = `${data.last_name} ${data.first_name}`;
+    if (data.login) {
+      if (!data.password) throw new Error("Укажите пароль для логина");
+      if (await loginTaken(admin, data.login, null)) throw new Error("Такой логин уже занят");
+    }
 
     let userId: string | null = null;
     if (data.email) {
@@ -204,6 +284,9 @@ export const createPortalUser = createServerFn({ method: "POST" })
             valid_until: a.valid_until ?? null,
           },
         });
+      }
+      if (data.login && data.password) {
+        await writeLogin(admin, userId, data.login, data.password, context.userId);
       }
       if (data.avatar_url) {
         const { error: avErr } = await admin
@@ -332,6 +415,42 @@ export const updatePortalUserAccount = createServerFn({ method: "POST" })
   });
 
 /**
+ * Вход по логину и паролю Platrum: задать, сменить логин или пароль, убрать.
+ * Сам человек или тот, кто им управляет (access_can_manage). login null —
+ * убрать вход по логину; password пустой — оставить прежний пароль.
+ */
+export const setPortalUserLogin = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data) =>
+    parseOrThrow(
+      z
+        .object({
+          user_id: z.string().uuid(),
+          login: platrumLogin.nullable(),
+          password: platrumPassword.nullable(),
+        })
+        .strict(),
+      data,
+    ),
+  )
+  .handler(async ({ context, data }) => {
+    if (data.user_id !== context.userId) {
+      const can = await rpcAs<boolean>(context.supabase, "access_can_manage", {
+        p_user: data.user_id,
+      });
+      if (!can) throw new Error("Нет прав менять этого пользователя");
+    }
+    const admin = getSupabaseAdmin();
+    if (data.login === null) {
+      const { error } = await admin.from("portal_logins").delete().eq("user_id", data.user_id);
+      if (error) throw new Error(error.message);
+      return { ok: true };
+    }
+    await writeLogin(admin, data.user_id, data.login, data.password, context.userId);
+    return { ok: true };
+  });
+
+/**
  * Убрать из портала (RPC access_user_remove — роли и доступ снимаются) и,
  * если учётная запись больше ни к чему не привязана, удалить её. Клиент
  * приложения или сотрудник клуба вне модели остаётся со своим входом.
@@ -343,6 +462,12 @@ export const removePortalUser = createServerFn({ method: "POST" })
     if (data.user_id === context.userId) throw new Error("Нельзя удалить самого себя");
     await rpcAs(context.supabase, "access_user_remove", { p_user: data.user_id });
     const admin = getSupabaseAdmin();
+    // Вход по логину Platrum — только в портал: уходит вместе с доступом.
+    const { error: loginErr } = await admin
+      .from("portal_logins")
+      .delete()
+      .eq("user_id", data.user_id);
+    if (loginErr) throw new Error(loginErr.message);
     const links = await Promise.all([
       admin
         .from("user_roles")

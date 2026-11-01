@@ -174,8 +174,9 @@ Selectel, один облачный сервер (Coolify + self-hosted Supabase
 
 ## Авторизация (оба приложения)
 
-Вход везде — по 6-значному коду из письма, паролей нет ни у клиентов, ни у
-сотрудников. Письма для обоих приложений шлёт хук в админке
+Вход везде — по 6-значному коду из письма, паролей GoTrue нет ни у клиентов,
+ни у сотрудников. В портал — ещё и по логину и паролю из Platrum
+(2026-11-01, `portal_logins`, `apps/admin/CLAUDE.md`). Письма для обоих приложений шлёт хук в админке
 (`/api/auth-email`) — подробно в `apps/admin/CLAUDE.md` («Auth-письма»),
 клиентская сторона — `apps/client/CLAUDE.md` («Авторизация»), настройка —
 DEPLOY.md.
@@ -1352,6 +1353,16 @@ DEPLOY.md.
   статья, только `is_portal_user`, иначе `kb_bad_author`); корзина возвращает
   автора триггером `kb_trash_author_ad`; актуальные определения `kb_authors`,
   `kb_audience_pairs`, `kb_article_audience` (автор — не читатель) — здесь.
+  **Вход по логину и паролю Platrum** (решение владельца 2026-11-01):
+  `db/migrations/2026-11-01_zz_portal_logins.sql` — `portal_logins`
+  (человек × логин, уникален без регистра, хэш scrypt — считает сервер
+  портала; счётчик неверных паролей, `locked_until`, `last_login_at`).
+  Таблица закрыта браузеру: пишет и проверяет сервер сервис-ключом после
+  проверки прав (`apps/admin/src/lib/auth.functions.ts`,
+  `access.functions.ts`); логин без пароля — RPC `portal_login_info` (себе
+  и `access_can_manage`), 10 неверных паролей подряд — закрыт на 15 минут
+  (`portal_login_failed`, только service_role). Тесты —
+  `db/portal-logins.test.ts`.
   **«Сообщить об ошибке»** (решение владельца 2026-11-01):
   `db/migrations/2026-11-01_portal_bug_reports.sql` — `portal_bug_reports`
   (кто — снимок имени и почты профиля, страница — путь и заголовок, текст,

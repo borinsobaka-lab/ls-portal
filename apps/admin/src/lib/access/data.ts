@@ -205,3 +205,20 @@ export const accessRoleNamesQuery = queryOptions({
   staleTime: 5 * 60_000,
   meta: { errorMessage: "Не удалось загрузить роли" },
 });
+
+/** Вход по логину Platrum (без пароля) — db/migrations/2026-11-01_zz_portal_logins.sql. */
+export type PortalLoginInfo = {
+  login: string;
+  last_login_at: string | null;
+  password_set_at: string;
+  /** Логин закрыт после 10 неверных паролей — до этого времени. */
+  locked_until: string | null;
+};
+
+export const portalLoginQuery = (userId: string) =>
+  queryOptions({
+    queryKey: [ACCESS_KEY, "login", userId],
+    queryFn: async () =>
+      (await accessRpc<PortalLoginInfo[]>("portal_login_info", { p_user: userId }))[0] ?? null,
+    meta: { errorMessage: "Не удалось загрузить логин" },
+  });

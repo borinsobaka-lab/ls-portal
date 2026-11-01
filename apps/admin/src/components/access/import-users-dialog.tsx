@@ -19,7 +19,7 @@ import { CheckboxOption, FormField, InfoNote } from "@/components/ui/form-field"
 import { Textarea } from "@/components/ui/textarea";
 import { useAdminAccess } from "@/hooks/use-admin-access";
 import { hasRight } from "@/lib/admin-access";
-import { createPortalUser } from "@/lib/access.functions";
+import { createPortalUser, setPortalUserLogin } from "@/lib/access.functions";
 import {
   accessCatalogQuery,
   accessRolesQuery,
@@ -41,7 +41,7 @@ import { hasStudioPerms, USER_TYPE_LABEL } from "@/lib/access/logic";
 import { cn } from "@/lib/utils";
 
 const EXAMPLE =
-  "Фамилия;Имя;Email;Телефон;Тип;Должность;Подразделение;Роль;Клубы собственника\nИванова;Анна;anna@example.ru;+79170000000;Партнёр;Партнёр;;Партнёр — аналитика;Казань Центр";
+  "Фамилия;Имя;Email;Логин;Пароль;Телефон;Тип;Должность;Подразделение;Роль;Клубы собственника\nИванова;Анна;anna@example.ru;ivanova;Пароль123;+79170000000;Партнёр;Партнёр;;Партнёр — аналитика;Казань Центр";
 
 /**
  * «Импорт из таблицы» в «Пользователях»: CSV или вставка из Excel / Google
@@ -68,6 +68,7 @@ export function ImportUsersDialog({
 function ImportForm({ onDone }: { onDone: () => void }) {
   const qc = useQueryClient();
   const create = useServerFn(createPortalUser);
+  const setLogin = useServerFn(setPortalUserLogin);
   const access = useAdminAccess();
   const canStructure = hasRight(access, "structure.manage");
   const { data: users } = useQuery(accessUsersQuery);
@@ -130,6 +131,8 @@ function ImportForm({ onDone }: { onDone: () => void }) {
             first_name: r.first_name,
             last_name: r.last_name,
             email: r.email || null,
+            login: r.login || null,
+            password: r.login ? r.password : null,
             phone: r.phone || undefined,
             user_type: r.user_type,
             position_id: r.position_id,
@@ -155,6 +158,22 @@ function ImportForm({ onDone }: { onDone: () => void }) {
         ok++;
       } catch (e) {
         const message = e instanceof Error ? e.message : "ошибка";
+        // Уже в портале (та же почта), а в строке логин Platrum — дописываем логин.
+        const existing = /^already_in_portal:(.+)$/.exec(message);
+        if (existing && r.login) {
+          try {
+            await setLogin({
+              data: { user_id: existing[1], login: r.login, password: r.password },
+            });
+            ok++;
+            continue;
+          } catch (e2) {
+            failed.push(
+              `Строка ${r.line}: уже в портале, логин не записан — ${e2 instanceof Error ? e2.message : "ошибка"}`,
+            );
+            continue;
+          }
+        }
         failed.push(
           `Строка ${r.line}: ${/^already_in_portal:/.test(message) ? "уже в портале" : message}`,
         );
@@ -206,7 +225,7 @@ function ImportForm({ onDone }: { onDone: () => void }) {
             </div>
             <FormField
               label="Таблица"
-              tip="Колонки узнаются по заголовку: Фамилия, Имя (или ФИО), Email, Телефон, Тип, Должность, Подразделение, Роль, Клубы собственника. Остальные пропускаются."
+              tip="Колонки узнаются по заголовку: Фамилия, Имя (или ФИО), Email, Логин и Пароль (Platrum), Телефон, Тип, Должность, Подразделение, Роль, Клубы собственника. Остальные пропускаются."
             >
               <Textarea
                 rows={5}
@@ -218,8 +237,10 @@ function ImportForm({ onDone }: { onDone: () => void }) {
             </FormField>
             <InfoNote>
               Должности, подразделения, роли и клубы ищутся по названию — заведите их заранее. Роли
-              из таблицы — только общие для сети (без прав в клубе), на всю сеть. Без почты человек
-              будет добавлен, но войти не сможет, пока почту не впишут в карточке.
+              из таблицы — только общие для сети (без прав в клубе), на всю сеть. Логин и пароль —
+              вход по реквизитам Platrum; человеку, который уже есть в портале с той же почтой,
+              логин допишется (снимите «Пропускать похожих»). Без почты и логина человек будет
+              добавлен, но войти не сможет, пока их не впишут в карточке.
               {!canStructure &&
                 " Подразделения и клубы собственника заполнит тот, у кого право «Оргструктура и сеть»."}
             </InfoNote>
@@ -287,7 +308,11 @@ function PreviewTable({ rows, skipDuplicates }: { rows: ImportRow[]; skipDuplica
                     <div className="font-medium">
                       {[r.last_name, r.first_name].filter(Boolean).join(" ") || "—"}
                     </div>
-                    <div>{[r.email || "без почты", r.phone].filter(Boolean).join(" · ")}</div>
+                    <div>
+                      {[r.email || "без почты", r.login && `логин ${r.login}`, r.phone]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </div>
                   </td>
                   <td className="px-2 py-1.5 align-top">
                     {r.user_type ? USER_TYPE_LABEL[r.user_type] : "—"}

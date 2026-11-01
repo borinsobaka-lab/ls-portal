@@ -13,6 +13,8 @@ export type ImportColumn =
   | "first_name"
   | "full_name"
   | "email"
+  | "login"
+  | "password"
   | "phone"
   | "user_type"
   | "position"
@@ -41,8 +43,10 @@ const HEADERS: Record<ImportColumn, string[]> = {
     "e mail",
     "рабочий e-mail",
     "рабочая почта",
-    "логин",
   ],
+  // Логин и пароль Platrum (вход по логину, 2026-11-01).
+  login: ["логин", "login", "логин platrum", "имя пользователя", "username"],
+  password: ["пароль", "password", "пароль platrum"],
   phone: ["телефон", "phone", "мобильный", "мобильный телефон", "рабочий телефон"],
   user_type: ["тип", "тип пользователя", "type"],
   position: ["должность", "position", "job title"],
@@ -56,6 +60,8 @@ export const IMPORT_COLUMN_LABEL: Record<ImportColumn, string> = {
   first_name: "Имя",
   full_name: "ФИО",
   email: "Email",
+  login: "Логин Platrum",
+  password: "Пароль",
   phone: "Телефон",
   user_type: "Тип",
   position: "Должность",
@@ -149,6 +155,9 @@ export type ImportRow = {
   last_name: string;
   first_name: string;
   email: string;
+  /** Логин и пароль Platrum (пусто — без входа по логину). */
+  login: string;
+  password: string;
   phone: string;
   user_type: UserType | null;
   position_id: string | null;
@@ -207,6 +216,7 @@ export function buildImportRows(
     const i = columns[c];
     return i === undefined ? "" : (r[i] ?? "").trim();
   };
+  const seenLogins = new Set<string>();
   const rows = body.map((r, idx): ImportRow => {
     const warnings: string[] = [];
     let last = get(r, "last_name");
@@ -219,9 +229,18 @@ export function buildImportRows(
     }
     const email = get(r, "email").toLowerCase();
     const phone = get(r, "phone");
+    const login = get(r, "login");
+    const password = get(r, "password");
     let error: string | null = null;
     if (!last || !first) error = "Нет фамилии или имени";
     else if (email && !EMAIL_RE.test(email)) error = `Неверная почта «${email}»`;
+    else if (login && /\s/.test(login)) error = `В логине «${login}» есть пробелы`;
+    else if (login && !password) error = "Есть логин, но нет пароля";
+    else if (login && password.length < 4) error = "Пароль короче 4 знаков";
+    else if (!login && password) warnings.push("Пароль без логина — пропущен");
+    else if (login && seenLogins.has(login.toLowerCase()))
+      error = `Логин «${login}» уже выше в файле`;
+    if (login && !error) seenLogins.add(login.toLowerCase());
 
     const typeCell = get(r, "user_type");
     const type = parseUserType(typeCell);
@@ -272,6 +291,8 @@ export function buildImportRows(
       last_name: last,
       first_name: first,
       email,
+      login: login && !error ? login : "",
+      password: login && !error ? password : "",
       phone,
       user_type: type === "bad" ? null : type,
       position_id: pos?.id ?? null,
