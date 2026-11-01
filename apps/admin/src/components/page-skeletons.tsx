@@ -2369,8 +2369,9 @@ export function AcademyAttemptPageSkeleton() {
 
 export function AcademyReviewPageSkeleton() {
   return (
-    <ShellSkeleton title="Проверка ответов" network>
-      <div className="mx-auto max-w-5xl">
+    <ShellSkeleton title="Проверка" network>
+      <div className="mx-auto max-w-5xl space-y-3">
+        <ToolbarSkeleton search={false} controls={["w-72"]} />
         <TableCardSkeleton
           headers={["Сотрудник", "Курс и тест", "Свободных ответов", "Отправлено"]}
           rows={4}

@@ -273,7 +273,8 @@ export function AppSidebar() {
         : railKey === "academy"
           ? {
               // Пункты — по правам в «Академии»; счётчики: свои непройденные
-              // курсы и ответы, ждущие проверки.
+              // курсы; у «Проверки» — ответы, ждущие проверки, и новые
+              // прохождения курсов.
               title: "Академия",
               groups: access
                 ? [
@@ -285,7 +286,8 @@ export function AppSidebar() {
                           ...i,
                           badge:
                             i.need === "review"
-                              ? access.academy?.to_review
+                              ? (access.academy?.to_review ?? 0) +
+                                (access.academy?.new_completions ?? 0)
                               : i.need === "any"
                                 ? access.academy?.my_open
                                 : undefined,

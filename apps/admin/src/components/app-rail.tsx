@@ -149,7 +149,9 @@ export function AppRail({ onNavigate }: { onNavigate?: () => void }) {
               section.key === "club"
                 ? openRequests
                 : section.key === "academy"
-                  ? (access.academy?.my_open ?? 0) + (access.academy?.to_review ?? 0)
+                  ? (access.academy?.my_open ?? 0) +
+                    (access.academy?.to_review ?? 0) +
+                    (access.academy?.new_completions ?? 0)
                   : undefined
             }
             onNavigate={onNavigate}

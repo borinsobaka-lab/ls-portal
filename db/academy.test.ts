@@ -415,6 +415,62 @@ describe.skipIf(!url)("академия (база)", () => {
       expect(st).toBe("passed");
     }));
 
+  test("пройденные курсы: проверяющий видит прохождение и итоги, отметка «просмотрено» — своя", () =>
+    scenario(async (tx) => {
+      const t = await setup(tx);
+      const counter = async (u: string) =>
+        ((await rpc(tx, u, () => tx`select acad_access() as acc`))[0].acc as { new_completions: number })
+          .new_completions;
+      expect(await counter(t.reviewer)).toBe(0);
+
+      await as(tx, t.learner);
+      await tx`select acad_lesson_complete(${t.lesson})`;
+      const [{ a }] = await tx`
+        select acad_quiz_submit(${t.quiz}, ${JSON.stringify([
+          { question_id: t.q1, options: ["a"] },
+          { question_id: t.q2, options: ["x", "y"] },
+        ])}::text::jsonb) as a`;
+      // Ученику список и отметка закрыты, счётчика нет.
+      expect(await failure(tx, () => tx`select * from acad_completions()`)).toContain("acad_forbidden");
+      expect(
+        await failure(tx, () => tx`select acad_completion_mark_seen(${t.course}, ${t.learner})`),
+      ).toContain("acad_forbidden");
+      expect(await failure(tx, () => tx`select * from acad_completion_seen`)).toContain("permission denied");
+      await asServer(tx);
+      expect(await counter(t.learner)).toBe(0);
+
+      expect(await counter(t.reviewer)).toBe(1);
+      expect(await counter(t.owner)).toBe(1);
+      const list = await rpc(tx, t.reviewer, () => tx`select * from acad_completions()`);
+      expect(list).toHaveLength(1);
+      expect(list[0]).toMatchObject({ course_id: t.course, user_id: t.learner, full_name: "Ученица", seen: false, is_new: true });
+      expect(Number(list[0].avg_percent)).toBe(100);
+      expect(list[0].tests).toEqual([
+        expect.objectContaining({ step_id: t.quiz, step_title: "Проверка", attempt_id: a, status: "passed" }),
+      ]);
+
+      // Просмотрел один проверяющий — у другого прохождение по-прежнему новое.
+      const [{ n }] = await rpc(tx, t.reviewer, () => tx`select acad_completion_mark_seen(${t.course}, ${t.learner}) as n`);
+      expect(n).toBe(1);
+      expect(await counter(t.reviewer)).toBe(0);
+      expect(await counter(t.owner)).toBe(1);
+      const [again] = await rpc(tx, t.reviewer, () => tx`select seen, is_new from acad_completions()`);
+      expect(again).toMatchObject({ seen: true, is_new: false });
+      // «Все просмотрены».
+      await rpc(tx, t.owner, () => tx`select acad_completion_mark_seen()`);
+      expect(await counter(t.owner)).toBe(0);
+
+      // Старое (больше 30 дней) — в списке, но не новое и не в счётчике.
+      await tx`delete from acad_completion_seen`;
+      await tx`update acad_enrollments set completed_at = now() - interval '40 days' where user_id = ${t.learner}`;
+      expect(await counter(t.reviewer)).toBe(0);
+      const [old] = await rpc(tx, t.reviewer, () => tx`select seen, is_new from acad_completions()`);
+      expect(old).toMatchObject({ seen: false, is_new: false });
+      // Своё прохождение проверяющему не показывается.
+      await tx`update acad_enrollments set user_id = ${t.reviewer} where user_id = ${t.learner}`;
+      expect(await rpc(tx, t.reviewer, () => tx`select * from acad_completions()`)).toHaveLength(0);
+    }));
+
   test("замок «по порядку» — в порядке интерфейса и при равном sort_order", () =>
     scenario(async (tx) => {
       const t = await setup(tx);
