@@ -27,6 +27,7 @@ const admin: AdminAccess = {
     my_courses: 1,
     my_open: 0,
     to_review: 0,
+    new_completions: 0,
   },
   analytics: {
     visible: true,

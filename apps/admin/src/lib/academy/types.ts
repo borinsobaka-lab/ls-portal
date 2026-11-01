@@ -22,6 +22,8 @@ export type AcadAccessInfo = {
   my_open: number;
   /** Попыток ждут проверки (проверяющему). */
   to_review: number;
+  /** Новых прохождений курсов за 30 дней, не просмотренных этим проверяющим. */
+  new_completions: number;
 };
 
 export type AcadFolder = { id: string; title: string; sort_order: number };
@@ -233,6 +235,32 @@ export type AcadReviewItem = {
   attempt_no: number;
   submitted_at: string;
   open_answers: number;
+};
+
+/** Прохождение курса — вкладка «Пройденные курсы» в «Проверке». */
+export type AcadCompletion = {
+  course_id: string;
+  course_title: string;
+  user_id: string;
+  full_name: string | null;
+  avatar_url: string | null;
+  completed_at: string;
+  /** Этот проверяющий уже открывал прохождение. */
+  seen: boolean;
+  /** Не просмотрено и не старше 30 дней — в счётчике. */
+  is_new: boolean;
+  /** Средний процент последних попыток тестов; null — тестов нет. */
+  avg_percent: number | null;
+  /** Последняя попытка каждого теста курса. */
+  tests: {
+    step_id: string;
+    step_title: string;
+    attempt_id: string;
+    attempt_no: number;
+    status: AcadAttemptStatus;
+    percent: number;
+    submitted_at: string;
+  }[];
 };
 
 export type AcadReportRow = {

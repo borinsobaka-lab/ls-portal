@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/query";
 import type {
   AcadAccessInfo,
+  AcadCompletion,
   AcadAssignment,
   AcadAttempt,
   AcadCourse,
@@ -224,6 +225,20 @@ export const acadReviewQueueQuery = queryOptions({
   queryFn: () => rpc<AcadReviewItem[]>("acad_review_queue"),
   meta: { errorMessage: "Не удалось загрузить ответы на проверку" },
 });
+
+export const acadCompletionsQuery = queryOptions({
+  queryKey: [ACAD_KEY, "completions"],
+  queryFn: () => rpc<AcadCompletion[]>("acad_completions"),
+  meta: { errorMessage: "Не удалось загрузить пройденные курсы" },
+});
+
+/** Отметить прохождение просмотренным; без аргументов — все за 90 дней. */
+export function markAcadCompletionSeen(courseId?: string, userId?: string) {
+  return rpc<number>(
+    "acad_completion_mark_seen",
+    courseId && userId ? { p_course: courseId, p_user: userId } : {},
+  );
+}
 
 export function acadCourseReportQuery(courseId: string) {
   return queryOptions({

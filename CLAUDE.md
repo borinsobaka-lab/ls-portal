@@ -919,7 +919,15 @@ DEPLOY.md.
   `sort_order, created_at`, как в интерфейсе), свои ответы не проверяют
   (`acad_own_attempt`; нет в `acad_review_queue` и счётчике `acad_access`);
   актуальные определения `acad_step_unlocked`, `acad_course_view`,
-  `acad_access`, `acad_review_queue`, `acad_review_submit` — здесь. Тесты —
+  `acad_access`, `acad_review_queue`, `acad_review_submit` — здесь.
+  Пройденные курсы — проверяющим (решение владельца 2026-11-01):
+  `db/migrations/2026-11-01_z_academy_completions.sql` — отметки
+  «просмотрено» `acad_completion_seen` (проверяющий × курс × сотрудник,
+  закрыта браузеру), RPC `acad_completions` (прохождения за 90 дней,
+  последняя попытка каждого теста, `seen` / `is_new`; свои — нет) и
+  `acad_completion_mark_seen` (одно или все), `acad_access.new_completions`
+  (непросмотренные за 30 дней; актуальное определение `acad_access` —
+  здесь). Тесты —
   `db/academy.test.ts`.
   **Пользователи портала, роли и доступы** (решение владельца 2026-10-25,
   под сеть Lady Stretch; подробно — ACCESS.md):
@@ -959,7 +967,7 @@ DEPLOY.md.
   здесь). Актуальные определения `kb_base_people`, `kb_article_audience`,
   `kb_mention_candidates` (без администраторов баз, а не без владельцев
   клубов), `kb_base_level`, `auth_kb_view_base_ids` / `auth_kb_edit_base_ids`,
-  `acad_can_create` / `acad_can_review` / `acad_access` — здесь. Тесты —
+  `acad_can_create` / `acad_can_review` — здесь (`acad_access` — `2026-11-01_z_academy_completions.sql`). Тесты —
   `db/access.test.ts`.
   **«Рабочий день»** (решение владельца 2026-10-25):
   `db/migrations/2026-10-26_workday_checklist.sql` — порядок рабочего дня
