@@ -1,8 +1,10 @@
-# Портал Lady Stretch (Россия) — админка + клиентское приложение
+# Портал LadyFitPro (Lady Stretch, Россия) — админка + клиентское приложение
 
 Копия портала Base40 для Lady Stretch в России (решение владельца
 2026-10-26, RU_SELECTEL.md): развёртывается на Selectel и развивается
-отдельно. Первый этап — **база знаний и «Академия»** для сотрудников
+отдельно. С 2026-11-01 портал называется **LadyFitPro** (домен
+ladyfitpro.ru — DOMAIN_MOVE.md): в нём материалы обоих брендов франшизы,
+Lady Stretch и Lady Jump. Первый этап — **база знаний и «Академия»** для сотрудников
 (портал = админка, `apps/admin`); остальные разделы пока видит только
 суперадминистратор. ИИ (Kate, диктовка) выключен: переменные `AI_*` не
 задаются. Оба приложения — TanStack Start (SSR) + React 19 + Tailwind 4 +
@@ -1342,6 +1344,15 @@ DEPLOY.md.
   статья, только `is_portal_user`, иначе `kb_bad_author`); корзина возвращает
   автора триггером `kb_trash_author_ad`; актуальные определения `kb_authors`,
   `kb_audience_pairs`, `kb_article_audience` (автор — не читатель) — здесь.
+  **«Сообщить об ошибке»** (решение владельца 2026-11-01):
+  `db/migrations/2026-11-01_portal_bug_reports.sql` — `portal_bug_reports`
+  (кто — снимок имени и почты профиля, страница — путь и заголовок, текст,
+  версия портала, браузер, размер окна; «Исправлено» — `resolved_at` /
+  `resolved_by_name`). Таблица закрыта браузеру: отправить — RPC
+  `portal_bug_report_submit` (любой `is_portal_user`, не больше 20 в час),
+  список, отметка, удаление, счётчик — `portal_bug_reports_list` /
+  `_resolve` / `_delete` / `portal_bug_reports_open_count` (только
+  `portal.admin`). Тесты — `db/bug-reports.test.ts`.
   Рейтинг тренеров и чаевые: `db/migrations/2026-10-11_zzzzzzzzzzzzz_trainer_ratings.sql`
   — `trainer_reviews` (оценка 1–5, одна от учётной записи на тренера; клиент
   читает и правит свою, ставит — тренеру, которого видит в приложении,
