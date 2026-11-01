@@ -4,10 +4,10 @@ import { QueryClient, QueryObserver } from "@tanstack/query-core";
 import { resetQueriesForUser } from "./query";
 
 /** Запрос, который ещё грузится, когда приходит сессия (обновление страницы). */
-function slowObserver(client: QueryClient) {
+function slowObserver(client: QueryClient, key = "kb_nodes") {
   let calls = 0;
   const observer = new QueryObserver(client, {
-    queryKey: ["kb_nodes", "base"],
+    queryKey: [key],
     queryFn: () =>
       new Promise<string>((resolve) => {
         calls += 1;
@@ -16,9 +16,9 @@ function slowObserver(client: QueryClient) {
       }),
     retry: false,
   });
-  const states: string[] = [];
-  const unsubscribe = observer.subscribe((r) => states.push(`${r.status}/${r.fetchStatus}`));
-  return { observer, unsubscribe, calls: () => calls, states };
+  const datas: (string | undefined)[] = [];
+  const unsubscribe = observer.subscribe((r) => datas.push(r.data));
+  return { observer, unsubscribe, calls: () => calls, datas };
 }
 
 describe("смена вошедшего — кэш запросов", () => {
@@ -34,16 +34,28 @@ describe("смена вошедшего — кэш запросов", () => {
     unsubscribe();
   });
 
-  test("resetQueriesForUser — экран получает ответ нового запроса", async () => {
+  test("запрос в полёте доходит до ответа", async () => {
     const client = new QueryClient();
-    const { observer, unsubscribe, calls } = slowObserver(client);
+    const { observer, unsubscribe } = slowObserver(client);
     await Bun.sleep(1);
     await resetQueriesForUser(client);
     await Bun.sleep(60);
     const r = observer.getCurrentResult();
     expect(r.status).toBe("success");
-    expect(r.data).toBe("ответ 2");
+    expect(r.data).toBeDefined();
+    unsubscribe();
+  });
+
+  test("загруженные данные на экране не обнуляются, а перезапрашиваются", async () => {
+    const client = new QueryClient();
+    const { observer, unsubscribe, calls, datas } = slowObserver(client, "access");
+    await Bun.sleep(60);
+    expect(observer.getCurrentResult().data).toBe("ответ 1");
+    const before = datas.length;
+    await resetQueriesForUser(client);
     expect(calls()).toBe(2);
+    expect(observer.getCurrentResult().data).toBe("ответ 2");
+    expect(datas.slice(before)).not.toContain(undefined);
     unsubscribe();
   });
 

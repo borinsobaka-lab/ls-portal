@@ -66,6 +66,15 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
         <p className="mt-2 text-sm text-muted-foreground">
           Что-то пошло не так. Попробуйте ещё раз или вернитесь на главную.
         </p>
+        {/* Текст ошибки — его можно прислать через «Сообщить об ошибке». */}
+        {error?.message && (
+          <details className="mt-4 text-left text-xs text-muted-foreground">
+            <summary className="cursor-pointer text-center">Подробности</summary>
+            <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap break-words rounded-md bg-muted p-2">
+              {error.message}
+            </pre>
+          </details>
+        )}
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <Button
             onClick={() => {
@@ -170,9 +179,8 @@ function RootComponent() {
   // приходит вторым событием, когда меню базы знаний и статья уже грузятся;
   // clear() «тихо» отменял эти запросы, а экран оставался подписан на
   // удалённые — вечный скелетон, пока не перейдёшь на другую базу или
-  // статью. Теперь запросы в полёте отменяются с уведомлением экрана,
-  // неактивные удаляются, активные сбрасываются и грузятся заново уже с
-  // новой сессией (resetQueries).
+  // статью. Теперь неактивные удаляются, активные перезапрашиваются, данные
+  // на экране остаются до ответа (resetQueriesForUser в lib/query.ts).
   useEffect(() => {
     let userId: string | null | undefined;
     const { data } = supabase.auth.onAuthStateChange((_event, session) => {
