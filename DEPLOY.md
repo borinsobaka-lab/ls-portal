@@ -20,18 +20,20 @@ Base40, AGENT_TASKS.md) с решениями владельца от 2026-10-26
 
 | Что                   | Значение                                                                                                     |
 | --------------------- | ------------------------------------------------------------------------------------------------------------ |
-| Домен                 | `lady-stretching.ru`, DNS на reg.ru (`ns1.reg.ru`, `ns2.reg.ru`)                                             |
-| Портал                | `https://portal.lady-stretching.ru`                                                                          |
-| API Supabase и Studio | `https://api.lady-stretching.ru`                                                                             |
-| Coolify               | `https://coolify.lady-stretching.ru`                                                                         |
+| Домен                 | `ladyfitpro.ru`, DNS на reg.ru (`ns1.reg.ru`, `ns2.reg.ru`)                                             |
+| Портал                | `https://portal.ladyfitpro.ru`                                                                          |
+| API Supabase и Studio | `https://api.ladyfitpro.ru`                                                                             |
+| Coolify               | `https://coolify.ladyfitpro.ru`                                                                         |
 | Сервер                | Selectel, облачный Standard 4 vCPU / 8 ГБ / 80 ГБ «Универсальный SSD v2», Москва, Ubuntu 24.04, публичный IP |
 | Бэкапы                | S3 Selectel, холодный класс, Санкт-Петербург (`ru-1`), бакет `ls-portal-backups`                             |
-| Почта с кодом         | `noreply@lady-stretching.ru`, почтовый хостинг reg.ru, SMTP `mail.hosting.reg.ru:465` (SSL)                  |
+| Почта с кодом         | `noreply@ladyfitpro.ru`, почтовый хостинг reg.ru, SMTP `mail.hosting.reg.ru:465` (SSL)                  |
 | Репозиторий           | `github.com/borinsobaka-lab/ls-portal`, ветка `main`                                                         |
 
-**Заняты, не трогать:** записи `@`, `www`, `analytics`, `inbox`, `quiz`,
-`test.analytics` и **MX** (`emx.mail.ru` — входящая почта домена остаётся
-на Mail.ru).
+**Заняты, не трогать:** в зоне `ladyfitpro.ru` — `@`, `www`, MX и прочие
+существующие записи (сайт и почта компании). Прежний домен портала —
+`lady-stretching.ru` (до 2026-11, переезд — **DOMAIN_MOVE.md**): там
+работает старый портал аналитики (`analytics`, `inbox`, `quiz`,
+`test.analytics`), MX — Mail.ru, `portal` переадресует на новый адрес.
 
 ## Шаги
 
@@ -49,7 +51,7 @@ Base40, AGENT_TASKS.md) с решениями владельца от 2026-10-26
 
 ### 2. DNS на reg.ru
 
-В зоне `lady-stretching.ru` добавить три A-записи → `<IP>`:
+В зоне `ladyfitpro.ru` добавить три A-записи → `<IP>`:
 `portal`, `api`, `coolify`. Остальные записи не менять. Проверить на
 dnschecker.org, что все три отвечают `<IP>`.
 
@@ -72,7 +74,7 @@ dnschecker.org, что все три отвечают `<IP>`.
 1. `curl -fsSL https://cdn.coollabs.io/coolify/install.sh | bash`.
 2. Сразу открыть `http://<IP>:8000` → Register (почта владельца, пароль —
    в менеджер паролей).
-3. Settings → Instance Settings → Domain `https://coolify.lady-stretching.ru`,
+3. Settings → Instance Settings → Domain `https://coolify.ladyfitpro.ru`,
    дождаться сертификата и открыть по нему.
 4. Settings → Concurrent Builds = **1** (8 ГБ памяти: сборки по одной).
 5. Закрыть TCP 8000 в файрволе и проверить, что `http://<IP>:8000`
@@ -94,7 +96,7 @@ dnschecker.org, что все три отвечают `<IP>`.
 
 Coolify → + New → Service → **Supabase**.
 
-1. Домен сервиса Kong — `https://api.lady-stretching.ru` (Studio открывается
+1. Домен сервиса Kong — `https://api.ladyfitpro.ru` (Studio открывается
    через него; логин и пароль — `SERVICE_USER_ADMIN` /
    `SERVICE_PASSWORD_ADMIN` или `DASHBOARD_*` в переменных сервиса — в
    менеджер паролей).
@@ -104,8 +106,8 @@ Coolify → + New → Service → **Supabase**.
 
    | Переменная                      | Значение                                                                        |
    | ------------------------------- | ------------------------------------------------------------------------------- |
-   | `GOTRUE_SITE_URL`               | `https://portal.lady-stretching.ru`                                             |
-   | `GOTRUE_URI_ALLOW_LIST`         | `https://portal.lady-stretching.ru/**`                                          |
+   | `GOTRUE_SITE_URL`               | `https://portal.ladyfitpro.ru`                                             |
+   | `GOTRUE_URI_ALLOW_LIST`         | `https://portal.ladyfitpro.ru/**`                                          |
    | `GOTRUE_EXTERNAL_EMAIL_ENABLED` | `true`                                                                          |
    | `GOTRUE_DISABLE_SIGNUP`         | `true` (сотрудников заводит портал; клиентского приложения на первом этапе нет) |
    | `GOTRUE_MAILER_OTP_LENGTH`      | `6`                                                                             |
@@ -125,15 +127,15 @@ Coolify → + New → Service → **Supabase**.
 
 ### 7. Почта на reg.ru
 
-1. Почтовый хостинг клиента → создать ящик `noreply@lady-stretching.ru`,
+1. Почтовый хостинг клиента → создать ящик `noreply@ladyfitpro.ru`,
    пароль — в менеджер паролей.
-2. **SPF** — одна TXT-запись на `@`, с обоими отправителями. Если SPF уже
-   есть (с Mail.ru) — дописать в неё reg.ru, вторую не создавать:
-   `v=spf1 include:_spf.mail.ru include:_spf.hosting.reg.ru ~all`
+2. **SPF** — одна TXT-запись на `@`, со всеми отправителями. Если SPF уже
+   есть (например, с почтой компании) — дописать в неё reg.ru, вторую не
+   создавать: `v=spf1 … include:_spf.hosting.reg.ru ~all`
    (точный include reg.ru — из справки почтового хостинга).
 3. **DKIM** — в панели почтового хостинга reg.ru получить DKIM-ключ домена
-   и вручную добавить TXT `<селектор>._domainkey` в DNS reg.ru. DKIM
-   Mail.ru (если есть) не трогать.
+   и вручную добавить TXT `<селектор>._domainkey` в DNS reg.ru. Чужие DKIM
+   (если есть) не трогать.
 4. **DMARC** — если нет записи `_dmarc`, добавить TXT `_dmarc`:
    `v=DMARC1; p=none`.
 5. MX не менять.
@@ -145,24 +147,24 @@ Coolify → + New → Service → **Supabase**.
 2. - New → Private Repository (GitHub App) → `ls-portal`, ветка `main`.
      Build Pack — Dockerfile, Base Directory `/`, Dockerfile
      `/apps/admin/Dockerfile`, порт `3000`, домен
-     `https://portal.lady-stretching.ru`, Watch Paths `apps/admin/**` и
+     `https://portal.ladyfitpro.ru`, Watch Paths `apps/admin/**` и
      `db/**`.
 3. Переменные (значения — из шагов 6 и 7; секрет хука сгенерировать:
    `echo "v1,whsec_$(openssl rand -base64 32)"`, в менеджер паролей):
 
    | Переменная                      | Тип            | Значение                                                        |
    | ------------------------------- | -------------- | --------------------------------------------------------------- |
-   | `VITE_SUPABASE_URL`             | Build Variable | `https://api.lady-stretching.ru`                                |
+   | `VITE_SUPABASE_URL`             | Build Variable | `https://api.ladyfitpro.ru`                                |
    | `VITE_SUPABASE_PUBLISHABLE_KEY` | Build Variable | anon-ключ                                                       |
    | `APP_SUPABASE_SERVICE_KEY`      | секрет         | service_role-ключ                                               |
    | `DATABASE_URL`                  | секрет         | `postgres://postgres:<пароль Postgres>@<db-host>:5432/postgres` |
-   | `ADMIN_APP_URL`                 |                | `https://portal.lady-stretching.ru`                             |
+   | `ADMIN_APP_URL`                 |                | `https://portal.ladyfitpro.ru`                             |
    | `SEND_EMAIL_HOOK_SECRET`        | секрет         | `v1,whsec_…`                                                    |
    | `SMTP_HOST`                     |                | `mail.hosting.reg.ru`                                           |
    | `SMTP_PORT`                     |                | `465` (если не соединяется — `587`)                             |
-   | `SMTP_USER`                     |                | `noreply@lady-stretching.ru`                                    |
+   | `SMTP_USER`                     |                | `noreply@ladyfitpro.ru`                                    |
    | `SMTP_PASS`                     | секрет         | пароль ящика                                                    |
-   | `MAIL_FROM`                     |                | `noreply@lady-stretching.ru`                                    |
+   | `MAIL_FROM`                     |                | `noreply@ladyfitpro.ru`                                    |
    | `MAIL_FROM_NAME`                |                | `Lady Stretch`                                                  |
 
    Больше ничего не задавать (полный список с пояснениями —
@@ -179,7 +181,7 @@ Coolify → + New → Service → **Supabase**.
 
 ```
 GOTRUE_HOOK_SEND_EMAIL_ENABLED=true
-GOTRUE_HOOK_SEND_EMAIL_URI=https://portal.lady-stretching.ru/api/auth-email
+GOTRUE_HOOK_SEND_EMAIL_URI=https://portal.ladyfitpro.ru/api/auth-email
 GOTRUE_HOOK_SEND_EMAIL_SECRETS=<тот же v1,whsec_… из шага 8>
 ```
 
@@ -218,18 +220,18 @@ https://raw.githubusercontent.com/borinsobaka-lab/ls-portal/main/deploy/backup-s
 
 ### 11. Первый суперадминистратор
 
-Studio (`https://api.lady-stretching.ru`) → SQL Editor → текст
+Studio (`https://api.ladyfitpro.ru`) → SQL Editor → текст
 `deploy/first-superadmin.sql` из репозитория. В блоке «Поменять» —
 почта, имя и фамилия владельца, название клуба (`Lady Stretch`). Run:
 в конце строка с почтой и `portal_admin = true`.
 
-Войти в `https://portal.lady-stretching.ru` по коду из письма. Отметить,
+Войти в `https://portal.ladyfitpro.ru` по коду из письма. Отметить,
 где письмо: «Входящие» или спам — в Яндексе, Mail.ru и Gmail.
 
 ### 12. Мониторинг
 
-UptimeRobot (бесплатно): `https://portal.lady-stretching.ru` и
-`https://api.lady-stretching.ru/auth/v1/health` раз в 5 минут, уведомления —
+UptimeRobot (бесплатно): `https://portal.ladyfitpro.ru` и
+`https://api.ladyfitpro.ru/auth/v1/health` раз в 5 минут, уведомления —
 на почту владельца.
 
 ### 13. Смоук-тест
@@ -256,7 +258,7 @@ https://github.com/borinsobaka-lab/ls-portal`):
 
    ```
    docker run --rm -i --network host -v "$PWD/deploy/load:/load" grafana/k6:1.3.0 run \
-     -e SUPABASE_URL=https://api.lady-stretching.ru \
+     -e SUPABASE_URL=https://api.ladyfitpro.ru \
      -e ANON_KEY=<anon-ключ> -e JWT_SECRET=<SERVICE_PASSWORD_JWT> /load/k6.js
    ```
 
