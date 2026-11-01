@@ -71,6 +71,11 @@ export function KbBaseTabs() {
   // Есть ли базы за левым / правым краем — для затухания.
   const [edges, setEdges] = useState({ start: false, end: false });
   const shown = !loading && bases.length > 1;
+  // Ключ списка баз строкой: сам список (useMyKbBases) собирается заново при
+  // каждой отрисовке — в зависимостях эффекта он перезапускал бы эффект
+  // каждый раз, а setEdges в нём — новую отрисовку: бесконечный круг
+  // (React #185, «Страница не загрузилась», 2026-11-01).
+  const basesKey = bases.map((b) => b.id).join(",");
   useEffect(() => {
     if (!loading) kbTabsRowMemory.shown = shown;
   }, [loading, shown]);
@@ -86,7 +91,10 @@ export function KbBaseTabs() {
     if (!el) return;
     const update = () => {
       const max = el.scrollWidth - el.clientWidth;
-      setEdges({ start: el.scrollLeft > 1, end: el.scrollLeft < max - 1 });
+      const start = el.scrollLeft > 1;
+      const end = el.scrollLeft < max - 1;
+      // Не изменилось — то же состояние, без новой отрисовки.
+      setEdges((prev) => (prev.start === start && prev.end === end ? prev : { start, end }));
       tabsScroll.left = el.scrollLeft;
     };
     update();
@@ -98,7 +106,7 @@ export function KbBaseTabs() {
       el.removeEventListener("scroll", update);
       resize.disconnect();
     };
-  }, [shown, bases]);
+  }, [shown, basesKey]);
 
   // Выбранная база — по центру строки (строка прокручивается только так).
   useEffect(() => {
@@ -108,7 +116,7 @@ export function KbBaseTabs() {
     const left = tab.offsetLeft - (el.clientWidth - tab.offsetWidth) / 2;
     const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
     el.scrollTo({ left: Math.max(0, left), behavior: reduce ? "auto" : "smooth" });
-  }, [activeId, shown, bases]);
+  }, [activeId, shown, basesKey]);
 
   if (!shown) return null;
 
