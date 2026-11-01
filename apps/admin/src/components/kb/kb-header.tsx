@@ -6,6 +6,13 @@ import { Link, useNavigate, useRouter, useRouterState } from "@tanstack/react-ro
 import { DocumentText, Folder } from "@/components/nav-icons";
 import { Checkbox } from "@/components/ui/checkbox";
 import { SearchInput } from "@/components/ui/search-input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAdminAccess } from "@/hooks/use-admin-access";
@@ -35,7 +42,8 @@ const tabsScroll = { left: 0 };
  * колесом, стрелок нет. Не помещаются все — выбранная база встаёт по центру
  * строки (нажал на крайнюю — видно, какие базы дальше), у края, за которым
  * есть ещё базы, — затухание. С клавиатуры — стрелки и Enter / пробел
- * (activationMode="manual").
+ * (activationMode="manual"). На телефоне (до md) вместо вкладок —
+ * выпадающий список баз с иконками и полными названиями.
  */
 export function KbBaseTabs() {
   const navigate = useNavigate();
@@ -112,46 +120,82 @@ export function KbBaseTabs() {
         }px, #000 calc(100% - ${edges.end ? fade : 0}px), ${edges.end ? "transparent" : "#000"} 100%)`
       : undefined;
 
+  const select = (id: string) => {
+    setPicked(id);
+    void navigate({ to: "/kb/$baseId", params: { baseId: id } });
+  };
+
   return (
-    <Tabs
-      value={activeId ?? ""}
-      onValueChange={(id) => {
-        setPicked(id);
-        void navigate({ to: "/kb/$baseId", params: { baseId: id } });
-      }}
-      activationMode="manual"
-      className={KB_TABS_ROW}
-    >
-      <TabsList
-        ref={listRef}
-        aria-label="Базы знаний"
-        indicatorMemoryKey="kb-bases"
-        style={{ maskImage: mask, WebkitMaskImage: mask }}
-        className="max-w-full justify-start overflow-hidden"
+    <div className={KB_TABS_ROW}>
+      {/* Телефон (решение владельца 2026-11-01): баз много и названия
+          длинные — выпадающий список с иконками; название целиком, длинное
+          переносится. */}
+      <Select value={activeId ?? undefined} onValueChange={select}>
+        <SelectTrigger
+          aria-label="База знаний"
+          className="h-auto min-h-10 w-full whitespace-normal py-2 md:hidden [&>span]:line-clamp-none"
+        >
+          <SelectValue placeholder="База знаний" />
+        </SelectTrigger>
+        <SelectContent>
+          {bases.map((b) => {
+            const Icon = kbIcon(b.icon);
+            return (
+              <SelectItem key={b.id} value={b.id} textValue={b.title}>
+                <span className="flex items-start gap-2">
+                  <Icon
+                    active={b.id === activeId}
+                    className={cn(
+                      "mt-0.5 size-4 shrink-0",
+                      b.id === activeId ? "text-brand-on-light" : "text-muted-foreground",
+                    )}
+                  />
+                  <span className="whitespace-normal">{b.title}</span>
+                </span>
+              </SelectItem>
+            );
+          })}
+        </SelectContent>
+      </Select>
+      <Tabs
+        value={activeId ?? ""}
+        onValueChange={select}
+        activationMode="manual"
+        className="flex max-w-full justify-center max-md:hidden"
       >
-        {bases.map((b) => {
-          const Icon = kbIcon(b.icon);
-          return (
-            <TabsTrigger
-              key={b.id}
-              value={b.id}
-              data-base-id={b.id}
-              className="shrink-0 gap-1.5 px-3"
-              onMouseEnter={() =>
-                router.preloadRoute({ to: "/kb/$baseId", params: { baseId: b.id } }).catch(() => {})
-              }
-            >
-              {/* Иконка открытой базы — её цвет (--brand внутри базы — цвет базы). */}
-              <Icon
-                active={b.id === activeId}
-                className={cn("size-4 shrink-0", b.id === baseId && "text-brand-on-dark")}
-              />
-              {b.title}
-            </TabsTrigger>
-          );
-        })}
-      </TabsList>
-    </Tabs>
+        <TabsList
+          ref={listRef}
+          aria-label="Базы знаний"
+          indicatorMemoryKey="kb-bases"
+          style={{ maskImage: mask, WebkitMaskImage: mask }}
+          className="max-w-full justify-start overflow-hidden"
+        >
+          {bases.map((b) => {
+            const Icon = kbIcon(b.icon);
+            return (
+              <TabsTrigger
+                key={b.id}
+                value={b.id}
+                data-base-id={b.id}
+                className="shrink-0 gap-1.5 px-3"
+                onMouseEnter={() =>
+                  router
+                    .preloadRoute({ to: "/kb/$baseId", params: { baseId: b.id } })
+                    .catch(() => {})
+                }
+              >
+                {/* Иконка открытой базы — её цвет (--brand внутри базы — цвет базы). */}
+                <Icon
+                  active={b.id === activeId}
+                  className={cn("size-4 shrink-0", b.id === baseId && "text-brand-on-dark")}
+                />
+                {b.title}
+              </TabsTrigger>
+            );
+          })}
+        </TabsList>
+      </Tabs>
+    </div>
   );
 }
 
@@ -279,7 +323,7 @@ export function KbHeaderSearch({ baseId, className }: { baseId: string; classNam
           id="kb-header-search-results"
           ref={listRef}
           onKeyDown={(e) => moveFocus(e, "list")}
-          className="absolute inset-x-0 top-full z-50 mt-1 max-h-[min(28rem,70vh)] overflow-y-auto rounded-md border bg-popover p-1 text-popover-foreground shadow-lg lg:left-auto lg:w-[28rem]"
+          className="absolute inset-x-0 top-full z-50 mt-1 max-h-[min(28rem,70vh)] overflow-y-auto rounded-md border bg-popover p-1 text-popover-foreground shadow-lg"
         >
           {scopeFolder && (
             <label className="flex cursor-pointer items-center gap-2 border-b px-2 pt-1 pb-2 text-xs text-muted-foreground">

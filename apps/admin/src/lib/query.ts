@@ -74,3 +74,16 @@ export async function unwrapPage<T>(
   if (error) throw new Error(error.message);
   return { rows: (data ?? []) as T[], count: count ?? 0 };
 }
+
+/**
+ * Кэш под нового вошедшего (onAuthStateChange в __root.tsx): запросы в
+ * полёте отменяются с уведомлением экрана, неактивные удаляются, активные
+ * сбрасываются и грузятся заново. Не queryClient.clear(): он «тихо»
+ * отменял запросы в полёте, а экран оставался подписан на удалённый запрос
+ * — вечный скелетон (меню базы знаний, статья после обновления страницы).
+ */
+export async function resetQueriesForUser(queryClient: QueryClient) {
+  await queryClient.cancelQueries();
+  queryClient.removeQueries({ type: "inactive" });
+  await queryClient.resetQueries();
+}

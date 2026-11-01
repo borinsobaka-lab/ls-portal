@@ -164,7 +164,9 @@ export function ShellSkeleton({
           {/* Строка баз — если она была у последней шапки (баз больше одной). */}
           {kbTabsRowMemory.shown && (
             <div className={KB_TABS_ROW}>
-              <div className="flex max-w-full gap-1 overflow-hidden">
+              {/* Телефон — выпадающий список баз, с md — вкладки. */}
+              <Skeleton className="h-10 w-full md:hidden" />
+              <div className="flex max-w-full gap-1 overflow-hidden max-md:hidden">
                 {Array.from({ length: 3 }, (_, i) => (
                   <Skeleton key={i} className="h-10 w-36 shrink-0 rounded-full" />
                 ))}
