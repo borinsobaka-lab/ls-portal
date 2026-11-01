@@ -56,7 +56,7 @@ import {
 } from "@/lib/analytics/vk.functions";
 
 export const Route = createFileRoute("/_authenticated/analytics/vk/accounts")({
-  head: () => ({ meta: [{ title: "Рекламные кабинеты — Аналитика — Lady Stretch" }] }),
+  head: () => ({ meta: [{ title: "Рекламные кабинеты — Аналитика — LadyFitPro" }] }),
   pendingComponent: AnalyticsVkAccountsPageSkeleton,
   component: AnalyticsVkAccountsPage,
 });

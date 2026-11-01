@@ -55,7 +55,7 @@ import { cn } from "@/lib/utils";
 type RevenueSearch = { offset?: number; q?: string; status?: "active" | "archived" };
 
 export const Route = createFileRoute("/_authenticated/analytics/fitbase/revenue")({
-  head: () => ({ meta: [{ title: "Выручка по городам FitBase — Аналитика — Lady Stretch" }] }),
+  head: () => ({ meta: [{ title: "Выручка по городам FitBase — Аналитика — LadyFitPro" }] }),
   validateSearch: (s: Record<string, unknown>): RevenueSearch => {
     const offset = Number(s.offset);
     return {

@@ -40,7 +40,7 @@ import { unwrap } from "@/lib/query";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/academy/settings")({
-  head: () => ({ meta: [{ title: "Настройки — Академия — Lady Stretch" }] }),
+  head: () => ({ meta: [{ title: "Настройки — Академия — LadyFitPro" }] }),
   pendingComponent: AcademySettingsPageSkeleton,
   component: SettingsPage,
 });

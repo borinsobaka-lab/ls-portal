@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/select";
 
 export const Route = createFileRoute("/_authenticated/access/log")({
-  head: () => ({ meta: [{ title: "Журнал доступа — Lady Stretch" }] }),
+  head: () => ({ meta: [{ title: "Журнал доступа — LadyFitPro" }] }),
   pendingComponent: AccessLogPageSkeleton,
   component: AccessLogPage,
 });

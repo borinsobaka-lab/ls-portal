@@ -50,7 +50,7 @@ const list = (v: unknown) =>
     .slice(0, 200);
 
 export const Route = createFileRoute("/_authenticated/analytics/inbox/statistics")({
-  head: () => ({ meta: [{ title: "Статистика менеджеров — Диалоги VK — Lady Stretch" }] }),
+  head: () => ({ meta: [{ title: "Статистика менеджеров — Диалоги VK — LadyFitPro" }] }),
   validateSearch: (s: Record<string, unknown>): StatsSearch => {
     const manager = list(s.manager);
     const group = list(s.group);

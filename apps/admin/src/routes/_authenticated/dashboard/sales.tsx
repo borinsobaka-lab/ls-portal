@@ -51,7 +51,7 @@ import { formatMoney } from "@/lib/format";
 import { PAYMENT_METHOD_LABEL, PAYMENT_METHODS, type PaymentMethod } from "@/lib/payments";
 
 export const Route = createFileRoute("/_authenticated/dashboard/sales")({
-  head: () => ({ meta: [{ title: "Продажи — Дашборд — Lady Stretch" }] }),
+  head: () => ({ meta: [{ title: "Продажи — Дашборд — LadyFitPro" }] }),
   pendingComponent: DashboardSalesPageSkeleton,
   component: SalesPage,
 });

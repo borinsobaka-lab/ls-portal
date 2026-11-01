@@ -51,7 +51,7 @@ import {
 import { formatNumber } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/dashboard/classes")({
-  head: () => ({ meta: [{ title: "Занятия — Дашборд — Lady Stretch" }] }),
+  head: () => ({ meta: [{ title: "Занятия — Дашборд — LadyFitPro" }] }),
   pendingComponent: DashboardClassesPageSkeleton,
   component: ClassesPage,
 });

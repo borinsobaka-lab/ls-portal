@@ -16,7 +16,7 @@ import {
 } from "@/lib/analytics/labels";
 
 export const Route = createFileRoute("/_authenticated/analytics/")({
-  head: () => ({ meta: [{ title: "Аналитика — Lady Stretch" }] }),
+  head: () => ({ meta: [{ title: "Аналитика — LadyFitPro" }] }),
   pendingComponent: AnalyticsHomePageSkeleton,
   component: AnalyticsHomePage,
 });

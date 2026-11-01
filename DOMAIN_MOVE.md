@@ -152,7 +152,8 @@ Coolify → приложение портала (`ls-portal`).
    | `SMTP_PASS`         | секрет         | пароль нового ящика (шаг A3)   |
    | `MAIL_FROM`         |                | `noreply@ladyfitpro.ru`        |
 
-   `SMTP_HOST`, `SMTP_PORT`, `MAIL_FROM_NAME` — как были. Если заданы
+   `MAIL_FROM_NAME` = `LadyFitPro` (ребрендинг портала; было `Lady Stretch`).
+   `SMTP_HOST`, `SMTP_PORT` — как были. Если заданы
    `VAPID_SUBJECT`, `EMAIL_LOGO_URL`, `ANALYTICS_QUIZ_ORIGINS` или любая
    другая переменная со `lady-stretching.ru` — заменить домен на
    `ladyfitpro.ru` и перечислить в отчёте (`ANALYTICS_QUIZ_ORIGINS` со

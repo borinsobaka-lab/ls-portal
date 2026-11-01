@@ -166,16 +166,17 @@ describe("Lady Stretch — письма клиентам пакетных клу
     expect(isPackagesApp("")).toBe(false);
   });
 
-  test("бренд: пакеты — Lady Stretch, портал — бренд портала (по умолчанию Lady Stretch)", () => {
+  test("бренд: пакеты — Lady Stretch, портал — бренд портала (по умолчанию LadyFitPro)", () => {
     expect(emailBrand(LS, {})).toBe("ladyStretch");
     expect(emailBrand(PACK, {})).toBe("ladyStretch");
-    expect(emailBrand(CLIENT, {})).toBe("ladyStretch");
-    expect(emailBrand(ADMIN, {})).toBe("ladyStretch");
-    expect(emailBrand("", {})).toBe("ladyStretch");
+    expect(emailBrand(CLIENT, {})).toBe("ladyFitPro");
+    expect(emailBrand(ADMIN, {})).toBe("ladyFitPro");
+    expect(emailBrand("", {})).toBe("ladyFitPro");
     expect(emailBrand(CLIENT, { EMAIL_BRAND: "base40" })).toBe("base40");
     expect(emailBrand(ADMIN, { EMAIL_BRAND: "base40" })).toBe("base40");
+    expect(emailBrand(ADMIN, { EMAIL_BRAND: "ladyStretch" })).toBe("ladyStretch");
     expect(emailBrand(LS, { EMAIL_BRAND: "base40" })).toBe("ladyStretch");
-    expect(portalBrand({ EMAIL_BRAND: "что-то" })).toBe("ladyStretch");
+    expect(portalBrand({ EMAIL_BRAND: "что-то" })).toBe("ladyFitPro");
   });
 
   test("вход — код Lady Stretch в розовом, без ссылки и без Base40", () => {
@@ -216,19 +217,34 @@ describe("Lady Stretch — письма клиентам пакетных клу
 
   test("портал — бренд портала, даже если передали Base40", () => {
     const { html, subject } = buildEmail(payload(ADMIN), true, "base40");
-    expect(subject).toBe("Код для входа в портал Lady Stretch");
+    expect(subject).toBe("Код для входа в портал LadyFitPro");
     expect(html).toContain("#f763fc");
     expect(html).not.toContain("Base40");
   });
 
-  test("отправитель — MAIL_FROM, имя — MAIL_FROM_NAME или бренд", () => {
-    expect(emailSender("ladyStretch", { MAIL_FROM: "noreply@lady-stretching.ru" })).toEqual({
-      email: "noreply@lady-stretching.ru",
-      name: "Lady Stretch",
+  test("LadyFitPro — надпись в шапке, без логотипа Lady Stretch", () => {
+    const { html } = buildEmail(payload(ADMIN), true, "ladyStretch");
+    expect(html).toContain("LadyFit<span");
+    expect(html).toContain(">Pro</span>");
+    expect(html).not.toContain("lady-stretch-logo");
+    expect(html).not.toContain("Lady Stretch");
+    expect(html).toContain("#1a2027");
+    expect(hasCode(html)).toBe(true);
+  });
+
+  test("отправитель — MAIL_FROM, имя — MAIL_FROM_NAME (у бренда портала) или бренд", () => {
+    expect(emailSender("ladyFitPro", { MAIL_FROM: "noreply@ladyfitpro.ru" })).toEqual({
+      email: "noreply@ladyfitpro.ru",
+      name: "LadyFitPro",
     });
     expect(
-      emailSender("ladyStretch", { MAIL_FROM: "noreply@x.ru", MAIL_FROM_NAME: "Леди Стретч" }),
-    ).toEqual({ email: "noreply@x.ru", name: "Леди Стретч" });
+      emailSender("ladyFitPro", { MAIL_FROM: "noreply@x.ru", MAIL_FROM_NAME: "Портал LadyFitPro" }),
+    ).toEqual({ email: "noreply@x.ru", name: "Портал LadyFitPro" });
+    // Клиентам пакетных клубов — Lady Stretch, MAIL_FROM_NAME портала не трогает.
+    expect(
+      emailSender("ladyStretch", { MAIL_FROM: "noreply@x.ru", MAIL_FROM_NAME: "Портал LadyFitPro" })
+        .name,
+    ).toBe("Lady Stretch");
     expect(emailSender("base40", { MAIL_FROM: "noreply@x.ru" }).name).toBe("Base40");
   });
 
@@ -310,7 +326,7 @@ describe("язык письма клиенту — выбранный в при�
 
   test("админка — русское письмо", () => {
     const { subject, html } = buildEmail(payload(`${ADMIN}?lang=en`), true);
-    expect(subject).toBe("Код для входа в портал Lady Stretch");
+    expect(subject).toBe("Код для входа в портал LadyFitPro");
     expect(html).toContain("Код действует 1 час.");
   });
 });

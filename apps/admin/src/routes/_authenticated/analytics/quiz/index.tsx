@@ -56,7 +56,7 @@ import { QUIZ_SHEET_NAME, quizSpreadsheetId } from "@/lib/analytics/quiz/rules";
 import { plural } from "@/lib/payroll";
 
 export const Route = createFileRoute("/_authenticated/analytics/quiz/")({
-  head: () => ({ meta: [{ title: "Квиз-лендинги — Аналитика — Lady Stretch" }] }),
+  head: () => ({ meta: [{ title: "Квиз-лендинги — Аналитика — LadyFitPro" }] }),
   pendingComponent: AnalyticsQuizPageSkeleton,
   component: AnalyticsQuizPage,
 });

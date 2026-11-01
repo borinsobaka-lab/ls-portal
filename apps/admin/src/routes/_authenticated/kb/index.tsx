@@ -6,7 +6,7 @@ import { KbNodePageSkeleton } from "@/components/page-skeletons";
 import { useAdminAccess } from "@/hooks/use-admin-access";
 
 export const Route = createFileRoute("/_authenticated/kb/")({
-  head: () => ({ meta: [{ title: "База знаний — Lady Stretch" }] }),
+  head: () => ({ meta: [{ title: "База знаний — LadyFitPro" }] }),
   pendingComponent: KbNodePageSkeleton,
   component: KbEntry,
 });

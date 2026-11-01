@@ -43,7 +43,7 @@ import {
 } from "@/lib/analytics/vk-budget.functions";
 
 export const Route = createFileRoute("/_authenticated/analytics/vk/alerts")({
-  head: () => ({ meta: [{ title: "Контроль бюджетов — Аналитика — Lady Stretch" }] }),
+  head: () => ({ meta: [{ title: "Контроль бюджетов — Аналитика — LadyFitPro" }] }),
   pendingComponent: AnalyticsVkAlertsPageSkeleton,
   component: AnalyticsVkAlertsPage,
 });

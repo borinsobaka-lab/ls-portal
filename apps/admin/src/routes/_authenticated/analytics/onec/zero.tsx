@@ -8,7 +8,7 @@ import type { ZeroPayload } from "@/lib/analytics/onec-reports/payload";
 
 export const Route = createFileRoute("/_authenticated/analytics/onec/zero")({
   validateSearch: parseOnecSearch,
-  head: () => ({ meta: [{ title: "Нулевая номенклатура — Аналитика — Lady Stretch" }] }),
+  head: () => ({ meta: [{ title: "Нулевая номенклатура — Аналитика — LadyFitPro" }] }),
   pendingComponent: AnalyticsOnecZeroPageSkeleton,
   component: Page,
 });

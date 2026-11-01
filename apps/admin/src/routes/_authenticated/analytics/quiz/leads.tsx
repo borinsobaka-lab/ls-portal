@@ -51,7 +51,7 @@ const isStatus = (v: unknown): v is LeadStatus => STATUSES.some((s) => s.value =
 const ALL_CITIES = "__all";
 
 export const Route = createFileRoute("/_authenticated/analytics/quiz/leads")({
-  head: () => ({ meta: [{ title: "Заявки квиза — Аналитика — Lady Stretch" }] }),
+  head: () => ({ meta: [{ title: "Заявки квиза — Аналитика — LadyFitPro" }] }),
   validateSearch: (s: Record<string, unknown>): { city?: string; status?: LeadStatus } => ({
     city: typeof s.city === "string" && s.city ? s.city : undefined,
     status: isStatus(s.status) && s.status !== "all" ? s.status : undefined,

@@ -39,7 +39,7 @@ const ISO = /^\d{4}-\d{2}-\d{2}$/;
 type RegisterSearch = { from?: string; to?: string };
 
 export const Route = createFileRoute("/_authenticated/analytics/avito/register")({
-  head: () => ({ meta: [{ title: "Реестр Авито — Аналитика — Lady Stretch" }] }),
+  head: () => ({ meta: [{ title: "Реестр Авито — Аналитика — LadyFitPro" }] }),
   validateSearch: (s: Record<string, unknown>): RegisterSearch => ({
     from: typeof s.from === "string" && ISO.test(s.from) ? s.from : undefined,
     to: typeof s.to === "string" && ISO.test(s.to) ? s.to : undefined,

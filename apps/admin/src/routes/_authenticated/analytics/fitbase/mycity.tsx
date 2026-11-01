@@ -34,7 +34,7 @@ const CITY_FIELD_ID = "fb-mycity-city";
 type MyCitySearch = { from?: string; to?: string; city?: string; studio?: string };
 
 export const Route = createFileRoute("/_authenticated/analytics/fitbase/mycity")({
-  head: () => ({ meta: [{ title: "Мой город · FitBase — Аналитика — Lady Stretch" }] }),
+  head: () => ({ meta: [{ title: "Мой город · FitBase — Аналитика — LadyFitPro" }] }),
   validateSearch: (s: Record<string, unknown>): MyCitySearch => ({
     from: typeof s.from === "string" && ISO.test(s.from) ? s.from : undefined,
     to: typeof s.to === "string" && ISO.test(s.to) ? s.to : undefined,

@@ -87,7 +87,7 @@ import { unwrap } from "@/lib/query";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/access/users/$userId")({
-  head: () => ({ meta: [{ title: "Пользователь — Lady Stretch" }] }),
+  head: () => ({ meta: [{ title: "Пользователь — LadyFitPro" }] }),
   pendingComponent: AccessUserPageSkeleton,
   component: UserCardPage,
 });

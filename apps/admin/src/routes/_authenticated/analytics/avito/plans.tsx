@@ -30,7 +30,7 @@ import { cn } from "@/lib/utils";
 const MONTH = /^\d{4}-(0[1-9]|1[0-2])$/;
 
 export const Route = createFileRoute("/_authenticated/analytics/avito/plans")({
-  head: () => ({ meta: [{ title: "Планы Авито — Аналитика — Lady Stretch" }] }),
+  head: () => ({ meta: [{ title: "Планы Авито — Аналитика — LadyFitPro" }] }),
   validateSearch: (s: Record<string, unknown>): { month?: string } => ({
     month: typeof s.month === "string" && MONTH.test(s.month) ? s.month : undefined,
   }),

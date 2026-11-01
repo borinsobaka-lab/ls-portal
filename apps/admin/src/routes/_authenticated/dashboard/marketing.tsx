@@ -59,7 +59,7 @@ import {
 import { formatMoney, formatNumber } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/dashboard/marketing")({
-  head: () => ({ meta: [{ title: "Маркетинг — Дашборд — Lady Stretch" }] }),
+  head: () => ({ meta: [{ title: "Маркетинг — Дашборд — LadyFitPro" }] }),
   pendingComponent: DashboardMarketingPageSkeleton,
   component: MarketingPage,
 });

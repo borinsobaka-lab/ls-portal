@@ -32,7 +32,7 @@ const TIPS = {
 };
 
 export const Route = createFileRoute("/_authenticated/club-settings")({
-  head: () => ({ meta: [{ title: "Контакты и правила — Lady Stretch" }] }),
+  head: () => ({ meta: [{ title: "Контакты и правила — LadyFitPro" }] }),
   pendingComponent: ClubSettingsPageSkeleton,
   component: ClubSettingsPage,
 });

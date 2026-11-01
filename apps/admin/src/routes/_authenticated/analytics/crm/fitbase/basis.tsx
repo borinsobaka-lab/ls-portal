@@ -42,7 +42,7 @@ import { AN_TITLES } from "@/lib/analytics/labels";
 import { unwrap } from "@/lib/query";
 
 export const Route = createFileRoute("/_authenticated/analytics/crm/fitbase/basis")({
-  head: () => ({ meta: [{ title: "Основания записей FitBase — Аналитика — Lady Stretch" }] }),
+  head: () => ({ meta: [{ title: "Основания записей FitBase — Аналитика — LadyFitPro" }] }),
   pendingComponent: AnalyticsFbBasisPageSkeleton,
   component: AnalyticsFbBasisPage,
 });

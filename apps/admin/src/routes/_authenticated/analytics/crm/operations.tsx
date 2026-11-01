@@ -72,7 +72,7 @@ const posInt = (v: unknown) =>
 const text = (v: unknown) => (typeof v === "string" && v && v.length <= 300 ? v : undefined);
 
 export const Route = createFileRoute("/_authenticated/analytics/crm/operations")({
-  head: () => ({ meta: [{ title: "Операционная аналитика amoCRM — Lady Stretch" }] }),
+  head: () => ({ meta: [{ title: "Операционная аналитика amoCRM — LadyFitPro" }] }),
   validateSearch: (s: Record<string, unknown>): OpsSearch => ({
     connection: posInt(s.connection),
     start: posInt(s.start),

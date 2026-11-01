@@ -42,7 +42,7 @@ import { formatDateTime, formatPhone } from "@/lib/format";
 import { BookingsLogPageSkeleton } from "@/components/page-skeletons";
 
 export const Route = createFileRoute("/_authenticated/bookings-log")({
-  head: () => ({ meta: [{ title: "История записей — Lady Stretch" }] }),
+  head: () => ({ meta: [{ title: "История записей — LadyFitPro" }] }),
   pendingComponent: BookingsLogPageSkeleton,
   component: BookingsLogPage,
 });

@@ -22,7 +22,7 @@ import {
 import { formatNumber } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/analytics/reviews/upload")({
-  head: () => ({ meta: [{ title: "Отзывы · загрузка — Аналитика — Lady Stretch" }] }),
+  head: () => ({ meta: [{ title: "Отзывы · загрузка — Аналитика — LadyFitPro" }] }),
   pendingComponent: AnalyticsReviewsUploadPageSkeleton,
   component: AnalyticsReviewsUploadPage,
 });

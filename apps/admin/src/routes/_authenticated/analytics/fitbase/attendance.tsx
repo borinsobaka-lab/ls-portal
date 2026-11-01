@@ -74,7 +74,7 @@ type AttendanceSearch = {
 
 export const Route = createFileRoute("/_authenticated/analytics/fitbase/attendance")({
   head: () => ({
-    meta: [{ title: "Занятия и посещаемость FitBase — Аналитика — Lady Stretch" }],
+    meta: [{ title: "Занятия и посещаемость FitBase — Аналитика — LadyFitPro" }],
   }),
   validateSearch: (s: Record<string, unknown>): AttendanceSearch => {
     const str = (v: unknown) => (typeof v === "string" && v.trim() ? v.slice(0, 200) : undefined);

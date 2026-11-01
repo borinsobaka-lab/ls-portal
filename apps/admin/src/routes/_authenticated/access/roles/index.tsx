@@ -22,7 +22,7 @@ import { accessCatalogQuery, accessRolesQuery } from "@/lib/access/data";
 import { roleSummary } from "@/lib/access/logic";
 
 export const Route = createFileRoute("/_authenticated/access/roles/")({
-  head: () => ({ meta: [{ title: "Роли — Lady Stretch" }] }),
+  head: () => ({ meta: [{ title: "Роли — LadyFitPro" }] }),
   pendingComponent: AccessRolesPageSkeleton,
   component: AccessRolesPage,
 });

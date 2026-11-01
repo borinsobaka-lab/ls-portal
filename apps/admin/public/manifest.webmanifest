@@ -1,8 +1,8 @@
 {
   "id": "/",
-  "name": "Портал Lady Stretch",
-  "short_name": "Lady Stretch",
-  "description": "Портал Lady Stretch: база знаний и Академия.",
+  "name": "Портал LadyFitPro",
+  "short_name": "LadyFitPro",
+  "description": "Портал LadyFitPro: база знаний и Академия.",
   "lang": "ru",
   "start_url": "/",
   "scope": "/",

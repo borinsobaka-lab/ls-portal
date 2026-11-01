@@ -29,7 +29,7 @@ import { formatDateTime } from "@/lib/format";
 import { unwrap } from "@/lib/query";
 
 export const Route = createFileRoute("/_authenticated/analytics/admin/jobs")({
-  head: () => ({ meta: [{ title: "Фоновые задачи — Аналитика — Lady Stretch" }] }),
+  head: () => ({ meta: [{ title: "Фоновые задачи — Аналитика — LadyFitPro" }] }),
   pendingComponent: AnalyticsJobsPageSkeleton,
   component: AnalyticsJobsPage,
 });

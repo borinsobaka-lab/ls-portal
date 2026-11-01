@@ -37,7 +37,7 @@ import {
 import { feedbackUrl, rvInitials, staffMatches } from "@/lib/analytics/reviews/view";
 
 export const Route = createFileRoute("/_authenticated/analytics/reviews/staff/")({
-  head: () => ({ meta: [{ title: "Отзывы · ссылки сотрудников — Аналитика — Lady Stretch" }] }),
+  head: () => ({ meta: [{ title: "Отзывы · ссылки сотрудников — Аналитика — LadyFitPro" }] }),
   pendingComponent: AnalyticsStaffLinksPageSkeleton,
   component: AnalyticsStaffLinksPage,
 });

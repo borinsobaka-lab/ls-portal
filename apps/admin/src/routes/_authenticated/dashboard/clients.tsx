@@ -24,7 +24,7 @@ import {
 import { formatMoney, formatNumber } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/dashboard/clients")({
-  head: () => ({ meta: [{ title: "Клиенты — Дашборд — Lady Stretch" }] }),
+  head: () => ({ meta: [{ title: "Клиенты — Дашборд — LadyFitPro" }] }),
   pendingComponent: DashboardClientsPageSkeleton,
   component: ClientsPage,
 });

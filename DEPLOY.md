@@ -165,7 +165,7 @@ Coolify → + New → Service → **Supabase**.
    | `SMTP_USER`                     |                | `noreply@ladyfitpro.ru`                                    |
    | `SMTP_PASS`                     | секрет         | пароль ящика                                                    |
    | `MAIL_FROM`                     |                | `noreply@ladyfitpro.ru`                                    |
-   | `MAIL_FROM_NAME`                |                | `Lady Stretch`                                                  |
+   | `MAIL_FROM_NAME`                |                | `LadyFitPro`                                                    |
 
    Больше ничего не задавать (полный список с пояснениями —
    `apps/admin/.env.example`).

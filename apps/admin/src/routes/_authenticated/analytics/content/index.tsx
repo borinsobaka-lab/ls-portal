@@ -41,7 +41,7 @@ import {
 import { AN_TITLES } from "@/lib/analytics/labels";
 
 export const Route = createFileRoute("/_authenticated/analytics/content/")({
-  head: () => ({ meta: [{ title: "Контент-план — Аналитика — Lady Stretch" }] }),
+  head: () => ({ meta: [{ title: "Контент-план — Аналитика — LadyFitPro" }] }),
   pendingComponent: AnalyticsContentPageSkeleton,
   component: AnalyticsContentPage,
 });

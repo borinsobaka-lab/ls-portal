@@ -8,7 +8,7 @@ import type { PartnerPayload } from "@/lib/analytics/onec-reports/payload";
 
 export const Route = createFileRoute("/_authenticated/analytics/onec/mycity")({
   validateSearch: parseOnecSearch,
-  head: () => ({ meta: [{ title: "Мой город — Аналитика — Lady Stretch" }] }),
+  head: () => ({ meta: [{ title: "Мой город — Аналитика — LadyFitPro" }] }),
   pendingComponent: AnalyticsOnecMycityPageSkeleton,
   component: Page,
 });

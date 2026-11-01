@@ -75,7 +75,7 @@ const TIPS = {
 };
 
 export const Route = createFileRoute("/_authenticated/push")({
-  head: () => ({ meta: [{ title: "Пуш-уведомления — Lady Stretch" }] }),
+  head: () => ({ meta: [{ title: "Пуш-уведомления — LadyFitPro" }] }),
   pendingComponent: PushPageSkeleton,
   component: PushPage,
 });

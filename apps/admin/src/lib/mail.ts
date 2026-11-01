@@ -9,7 +9,7 @@ import nodemailer, { type Transporter } from "nodemailer";
 
 const RESEND_ENDPOINT = "https://api.resend.com/emails";
 
-const DEFAULT_FROM_NAME = "Lady Stretch";
+const DEFAULT_FROM_NAME = "LadyFitPro";
 const EMAIL_RE = /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/;
 
 // Сколько ждём ответа провайдера. GoTrue ждёт хук писем ~5 секунд и при

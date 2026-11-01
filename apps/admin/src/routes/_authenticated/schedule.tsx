@@ -110,7 +110,7 @@ import { EntryCardSkeleton, SchedulePageSkeleton } from "@/components/page-skele
 import { SCHEDULE_SKELETON_HOURS, isScheduleSkeletonCell } from "@/lib/page-skeleton-layout";
 
 export const Route = createFileRoute("/_authenticated/schedule")({
-  head: () => ({ meta: [{ title: "Расписание — Lady Stretch" }] }),
+  head: () => ({ meta: [{ title: "Расписание — LadyFitPro" }] }),
   pendingComponent: SchedulePageSkeleton,
   component: SchedulePage,
 });

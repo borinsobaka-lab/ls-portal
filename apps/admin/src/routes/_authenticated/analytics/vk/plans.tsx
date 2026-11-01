@@ -63,7 +63,7 @@ const MONTH = /^\d{4}-(0[1-9]|1[0-2])$/;
 const CITIES_LIST = "vk-plan-cities";
 
 export const Route = createFileRoute("/_authenticated/analytics/vk/plans")({
-  head: () => ({ meta: [{ title: "Планы таргета — Аналитика — Lady Stretch" }] }),
+  head: () => ({ meta: [{ title: "Планы таргета — Аналитика — LadyFitPro" }] }),
   validateSearch: (s: Record<string, unknown>): { month?: string } => ({
     month: typeof s.month === "string" && MONTH.test(s.month) ? s.month : undefined,
   }),

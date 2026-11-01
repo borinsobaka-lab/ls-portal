@@ -37,7 +37,7 @@ import { AN_TITLES } from "@/lib/analytics/labels";
 import { unwrap } from "@/lib/query";
 
 export const Route = createFileRoute("/_authenticated/analytics/crm/fitbase/partners")({
-  head: () => ({ meta: [{ title: "Доступ партнёров FitBase — Аналитика — Lady Stretch" }] }),
+  head: () => ({ meta: [{ title: "Доступ партнёров FitBase — Аналитика — LadyFitPro" }] }),
   pendingComponent: AnalyticsFbPartnersPageSkeleton,
   component: AnalyticsFbPartnersPage,
 });

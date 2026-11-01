@@ -46,7 +46,7 @@ import {
 } from "@/lib/analytics/vk/data";
 
 export const Route = createFileRoute("/_authenticated/analytics/vk/targetologists")({
-  head: () => ({ meta: [{ title: "Таргетологи — Аналитика — Lady Stretch" }] }),
+  head: () => ({ meta: [{ title: "Таргетологи — Аналитика — LadyFitPro" }] }),
   pendingComponent: AnalyticsVkTargetologistsPageSkeleton,
   component: AnalyticsVkTargetologistsPage,
 });

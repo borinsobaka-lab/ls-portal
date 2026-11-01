@@ -52,30 +52,43 @@ export function isPackagesApp(redirectTo: string | undefined): boolean {
 }
 
 // ---------------------------------------------------------------------------
-// Бренд письма. Копия Lady Stretch (2026-10-26): письма портала (админки) и
-// приложения пакетных клубов — Lady Stretch (розовый #f763fc, серые бокового
-// меню); EMAIL_BRAND=base40 — прежний вид Base40 у портала и подписочного
-// приложения.
+// Бренд письма. Портал называется LadyFitPro (ребрендинг 2026-11-01: в нём
+// материалы обоих брендов франшизы — Lady Stretch и Lady Jump), его письма —
+// бренд «ladyFitPro»: та же светлая вёрстка и цвета, что у Lady Stretch, но
+// в шапке — надпись LadyFitPro вместо логотипа Lady Stretch. Письма
+// клиентам приложения пакетных клубов (студии Lady Stretch) — по-прежнему
+// «ladyStretch». EMAIL_BRAND меняет бренд писем портала и подписочного
+// приложения: ladyStretch — прежний вид копии, base40 — вид Base40.
 // ---------------------------------------------------------------------------
 
-export type EmailBrand = "base40" | "ladyStretch";
+export type EmailBrand = "base40" | "ladyStretch" | "ladyFitPro";
 
 type Env = Record<string, string | undefined>;
 
 /** Бренд писем портала и подписочного приложения (EMAIL_BRAND). */
 export function portalBrand(env: Env = process.env): EmailBrand {
-  return env.EMAIL_BRAND === "base40" ? "base40" : "ladyStretch";
+  const brand = env.EMAIL_BRAND?.trim();
+  return brand === "base40" || brand === "ladyStretch" ? brand : "ladyFitPro";
 }
 
 export function emailBrand(redirectTo: string | undefined, env: Env = process.env): EmailBrand {
   return !isAdminApp(redirectTo) && isPackagesApp(redirectTo) ? "ladyStretch" : portalBrand(env);
 }
 
-const BRAND_NAME: Record<EmailBrand, string> = { base40: "Base40", ladyStretch: "Lady Stretch" };
+const BRAND_NAME: Record<EmailBrand, string> = {
+  base40: "Base40",
+  ladyStretch: "Lady Stretch",
+  ladyFitPro: "LadyFitPro",
+};
 
-/** Название в письмах: MAIL_FROM_NAME, иначе имя бренда. */
+/**
+ * Название в письмах: у бренда портала — MAIL_FROM_NAME, иначе имя бренда;
+ * письма клиентам пакетных клубов — всегда Lady Stretch (студии называются
+ * так, как бы ни назывался портал).
+ */
 export function brandName(brand: EmailBrand, env: Env = process.env): string {
-  return env.MAIL_FROM_NAME?.trim() || BRAND_NAME[brand];
+  const own = brand === portalBrand(env) ? env.MAIL_FROM_NAME?.trim() : "";
+  return own || BRAND_NAME[brand];
 }
 
 /**
@@ -252,7 +265,7 @@ const codeBase40 = (title: string, lead: string, token: string, tx: EmailTexts) 
     tx,
   );
 
-// Lady Stretch: светлое письмо (решение владельца 2026-10-15: тёмное —
+// Lady Stretch и LadyFitPro: светлое письмо (решение владельца 2026-10-15: тёмное —
 // «мрачно»). Подложка — светло-серая, карточка белая, шапка карточки —
 // тёмно-серая, как боковое меню админки #1a2027, с белым логотипом; текст и
 // цифры кода — тот же серый, код — на бледно-розовой плашке с розовой
@@ -270,13 +283,24 @@ const lsLogoUrl = () =>
   process.env.EMAIL_LOGO_URL?.trim() ||
   `${(process.env.ADMIN_APP_URL ?? "").replace(/\/+$/, "")}/email/lady-stretch-logo-dark.png`;
 
-const codeLadyStretch = (title: string, lead: string, token: string, tx: EmailTexts) => `
+/**
+ * Светлое письмо с тёмной шапкой: общее у Lady Stretch и LadyFitPro, шапка
+ * и имя внизу — свои у бренда.
+ */
+const codeLight = (
+  header: string,
+  brand: EmailBrand,
+  title: string,
+  lead: string,
+  token: string,
+  tx: EmailTexts,
+) => `
 <div style="margin:0;padding:0;background:${LS_PAGE}">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${LS_PAGE}" style="background:${LS_PAGE};font-family:Roboto,Arial,Helvetica,sans-serif">
   <tr><td align="center" style="padding:32px 16px">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:440px">
       <tr><td align="center" bgcolor="${LS_INK}" style="background:${LS_INK};border-radius:20px 20px 0 0;padding:22px 16px">
-        <img src="${lsLogoUrl()}" width="140" height="40" alt="Lady Stretch" style="display:block;width:140px;height:40px;border:0;color:#ffffff;font-size:22px;font-weight:600">
+        ${header}
       </td></tr>
       <tr><td bgcolor="#ffffff" style="background:#ffffff;border-radius:0 0 20px 20px;padding:32px 28px">
         <h2 style="margin:0;font-size:20px;font-weight:600;line-height:1.3;color:${LS_INK}">${title}</h2>
@@ -290,18 +314,38 @@ const codeLadyStretch = (title: string, lead: string, token: string, tx: EmailTe
       </td></tr>
       <tr><td align="center" style="padding:24px 8px 0;color:${LS_FAINT};font-size:12px;line-height:1.5">
         ${tx.ignore}<br>
-        <span style="color:${LS_PINK}">&#9679;</span>&nbsp; ${brandName("ladyStretch")}
+        <span style="color:${LS_PINK}">&#9679;</span>&nbsp; ${brandName(brand)}
       </td></tr>
     </table>
   </td></tr>
 </table>
 </div>`;
 
+const codeLadyStretch = (title: string, lead: string, token: string, tx: EmailTexts) =>
+  codeLight(
+    `<img src="${lsLogoUrl()}" width="140" height="40" alt="Lady Stretch" style="display:block;width:140px;height:40px;border:0;color:#ffffff;font-size:22px;font-weight:600">`,
+    "ladyStretch",
+    title,
+    lead,
+    token,
+    tx,
+  );
+
+// LadyFitPro: надпись текстом, не картинкой — видна и там, где почтовик не
+// грузит картинки; «Pro» — розовым бренда, остальное белым.
+const LADYFITPRO_WORDMARK =
+  `<span style="display:inline-block;font-family:Roboto,Arial,Helvetica,sans-serif;font-size:26px;line-height:40px;font-weight:700;letter-spacing:0.02em;color:#ffffff">` +
+  `LadyFit<span style="color:${LS_PINK}">Pro</span></span>`;
+
+const codeLadyFitPro = (title: string, lead: string, token: string, tx: EmailTexts) =>
+  codeLight(LADYFITPRO_WORDMARK, "ladyFitPro", title, lead, token, tx);
+
 type CodeEmail = (title: string, lead: string, token: string, tx: EmailTexts) => string;
 
 const CODE_EMAIL: Record<EmailBrand, CodeEmail> = {
   base40: codeBase40,
   ladyStretch: codeLadyStretch,
+  ladyFitPro: codeLadyFitPro,
 };
 
 export type OutgoingEmail = { to: string; subject: string; html: string };

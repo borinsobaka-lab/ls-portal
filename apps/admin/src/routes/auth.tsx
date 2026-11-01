@@ -144,7 +144,7 @@ function AuthPage() {
           </CardTitle>
           <CardDescription>
             {step === "email"
-              ? "Вход для сотрудников и партнёров Lady Stretch — по коду из письма"
+              ? "Вход для сотрудников и партнёров — по коду из письма"
               : "Введите код из письма"}
           </CardDescription>
         </CardHeader>

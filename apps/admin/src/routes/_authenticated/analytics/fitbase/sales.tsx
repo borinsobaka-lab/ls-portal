@@ -61,7 +61,7 @@ type SalesSearch = {
 };
 
 export const Route = createFileRoute("/_authenticated/analytics/fitbase/sales")({
-  head: () => ({ meta: [{ title: "Продажи абонементов FitBase — Аналитика — Lady Stretch" }] }),
+  head: () => ({ meta: [{ title: "Продажи абонементов FitBase — Аналитика — LadyFitPro" }] }),
   validateSearch: (s: Record<string, unknown>): SalesSearch => {
     const str = (v: unknown) => (typeof v === "string" && v.trim() ? v.slice(0, 200) : undefined);
     return {

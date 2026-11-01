@@ -62,7 +62,7 @@ import {
 } from "@/lib/analytics/vk-ss.functions";
 
 export const Route = createFileRoute("/_authenticated/analytics/vk/sources")({
-  head: () => ({ meta: [{ title: "Источники СС — Аналитика — Lady Stretch" }] }),
+  head: () => ({ meta: [{ title: "Источники СС — Аналитика — LadyFitPro" }] }),
   pendingComponent: AnalyticsVkSourcesPageSkeleton,
   component: AnalyticsVkSourcesPage,
 });

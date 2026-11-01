@@ -79,7 +79,7 @@ const TIPS = {
 };
 
 export const Route = createFileRoute("/_authenticated/trainers")({
-  head: () => ({ meta: [{ title: "Сотрудники — Lady Stretch" }] }),
+  head: () => ({ meta: [{ title: "Сотрудники — LadyFitPro" }] }),
   pendingComponent: TrainersPageSkeleton,
   component: StaffPage,
 });
