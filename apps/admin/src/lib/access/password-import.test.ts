@@ -40,6 +40,7 @@ describe("импорт паролей", () => {
         password: "qwerty1",
         user_id: "u1",
         portal_name: "Семёнова Анна",
+        create: null,
         error: null,
       },
     ]);
@@ -108,5 +109,29 @@ describe("импорт паролей", () => {
   test("полное имя из одного слова — ошибка", () => {
     const [row] = buildPasswordRows([["Петрова", "petrova", "secret1"]], users);
     expect(row.error).toBe("Нужны и фамилия, и имя");
+  });
+
+  test("ненайденных — добавить на портал", () => {
+    const rows = buildPasswordRows(
+      [
+        ["Фамилия", "Имя", "Логин", "Пароль"],
+        ["Новикова", "Вера", "novikova", "secret1"],
+        ["Вера", "Новикова", "novikova2", "secret2"],
+        ["Орлова", "Нина", "", "secret3"],
+        ["Петрова", "Ольга", "petrova", "secret4"],
+      ],
+      users,
+      { createMissing: true },
+    );
+    expect(rows.map((r) => [r.create, r.user_id, r.error])).toEqual([
+      [{ last_name: "Новикова", first_name: "Вера" }, null, null],
+      [null, null, "Этот человек уже в строке 2"],
+      [null, null, "Нет логина"],
+      [null, "u2", null],
+    ]);
+    const [full] = buildPasswordRows([["Орлова Нина Петровна", "orlova", "secret5"]], users, {
+      createMissing: true,
+    });
+    expect(full.create).toEqual({ last_name: "Орлова", first_name: "Нина" });
   });
 });

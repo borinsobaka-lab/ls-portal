@@ -8,7 +8,10 @@
  *   - или одна колонка с полным именем («ФИО», «Пользователь»; без
  *     заголовков — три колонки: имя, логин, пароль).
  * Порядок фамилии и имени не важен («Анна Иванова» = «Иванова Анна»), как и
- * регистр, «ё» и лишние пробелы; отчество в полном имени не мешает. Логика
+ * регистр, «ё» и лишние пробелы; отчество в полном имени не мешает.
+ * Ненайденных (`createMissing`) добавляют на портал с логином и паролем из
+ * файла: фамилия и имя — из своих колонок, в полном имени — первое слово
+ * фамилия, второе — имя (как на портале «Фамилия Имя»). Логика
  * без React — тест password-import.test.ts.
  */
 import { normalizeName } from "./logic";
@@ -21,6 +24,8 @@ export type PasswordImportRow = {
   user_id: string | null;
   /** Имя на портале у найденного человека. */
   portal_name: string | null;
+  /** Не найден на портале — будет добавлен с этими фамилией и именем. */
+  create: { last_name: string; first_name: string } | null;
   /** Строка не импортируется. */
   error: string | null;
 };
@@ -71,6 +76,7 @@ const splitWords = (v: string | null | undefined) => normalizeName(v).split(" ")
 export function buildPasswordRows(
   table: string[][],
   users: { user_id: string; full_name: string | null }[],
+  opts: { createMissing?: boolean } = {},
 ): PasswordImportRow[] {
   const byName = new Map<string, { user_id: string; full_name: string }[]>();
   for (const u of users) {
@@ -90,6 +96,7 @@ export function buildPasswordRows(
     i === undefined ? "" : (r[i] ?? "").trim().replace(/\s+/g, " ");
 
   const seenUsers = new Map<string, number>();
+  const seenNew = new Map<string, number>();
   const seenLogins = new Map<string, number>();
   const out: PasswordImportRow[] = [];
   table.slice(start).forEach((r, i) => {
@@ -112,13 +119,22 @@ export function buildPasswordRows(
       if (found.length) break;
     }
     const user = found.length === 1 ? found[0] : null;
+    // Фамилия и имя нового человека — как в файле (без отчества).
+    const raw = name.split(" ").filter(Boolean);
+    const create =
+      opts.createMissing && found.length === 0
+        ? separate
+          ? { last_name: last, first_name: first }
+          : { last_name: raw[0] ?? "", first_name: raw[1] ?? "" }
+        : null;
+    const newKey = create ? nameKey([create.last_name, create.first_name]) : "";
 
     let error: string | null = null;
     if (separate && !last) error = "Нет фамилии";
     else if (separate && !first) error = "Нет имени";
     else if (!name) error = "Нет фамилии и имени";
     else if (!separate && words.length < 2) error = "Нужны и фамилия, и имя";
-    else if (found.length === 0) error = "Нет такого пользователя на портале";
+    else if (found.length === 0 && !create) error = "Нет такого пользователя на портале";
     else if (found.length > 1)
       error = `На портале ${found.length} человека с такими фамилией и именем — задайте в карточке`;
     else if (!login) error = "Нет логина";
@@ -127,12 +143,17 @@ export function buildPasswordRows(
     else if (!password) error = "Нет пароля";
     else if (password.length < 4) error = "Пароль короче 4 знаков";
     else if (password.length > 200) error = "Пароль длиннее 200 знаков";
-    else if (seenUsers.has(user!.user_id))
-      error = `Этот человек уже в строке ${seenUsers.get(user!.user_id)}`;
+    else if (create && (create.last_name.length > 100 || create.first_name.length > 100))
+      error = "Фамилия или имя длиннее 100 знаков";
+    else if (user && seenUsers.has(user.user_id))
+      error = `Этот человек уже в строке ${seenUsers.get(user.user_id)}`;
+    else if (create && seenNew.has(newKey))
+      error = `Этот человек уже в строке ${seenNew.get(newKey)}`;
     else if (seenLogins.has(login.toLowerCase()))
       error = `Логин уже в строке ${seenLogins.get(login.toLowerCase())}`;
-    if (!error && user) {
-      seenUsers.set(user.user_id, line);
+    if (!error && (user || create)) {
+      if (user) seenUsers.set(user.user_id, line);
+      else seenNew.set(newKey, line);
       seenLogins.set(login.toLowerCase(), line);
     }
     out.push({
@@ -142,6 +163,7 @@ export function buildPasswordRows(
       password,
       user_id: user?.user_id ?? null,
       portal_name: user?.full_name ?? null,
+      create: error ? null : create,
       error,
     });
   });

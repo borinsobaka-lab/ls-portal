@@ -15,12 +15,24 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { FormField, InfoNote } from "@/components/ui/form-field";
+import { CheckboxOption, FormField, InfoNote } from "@/components/ui/form-field";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { importPortalLogins } from "@/lib/access.functions";
-import { accessUsersQuery, invalidateAccess } from "@/lib/access/data";
+import { createPortalUser, importPortalLogins } from "@/lib/access.functions";
+import {
+  accessCatalogQuery,
+  accessRolesQuery,
+  accessUsersQuery,
+  invalidateAccess,
+} from "@/lib/access/data";
 import { parseTable } from "@/lib/access/import";
-import { normalizeName } from "@/lib/access/logic";
+import { hasStudioPerms, normalizeName } from "@/lib/access/logic";
 import { buildPasswordRows, readPasswordXlsx } from "@/lib/access/password-import";
 import { cn } from "@/lib/utils";
 
@@ -28,12 +40,15 @@ const EXAMPLE =
   "Фамилия\tИмя\tЛогин\tПароль\nИванова\tАнна\tivanova\tПароль123\nПетрова\tОльга\tpetrova\tqwerty77";
 /** Сколько человек за один вызов сервера (хэш пароля считается на сервере). */
 const CHUNK = 25;
+const NO_ROLE = "none";
 
 /**
  * «Импорт паролей» в «Пользователях» (решение владельца 2026-11-02): логины
  * и пароли Platrum для тех, кто уже есть на портале. Excel-файл или
  * вставка из Excel: фамилия и имя (отдельными колонками или одной), логин,
- * пароль; человек ищется по фамилии и имени вместе. Разбор —
+ * пароль; человек ищется по фамилии и имени вместе, ненайденные (по
+ * выбору) добавляются на портал — createPortalUser с логином, паролем и
+ * ролью для новых. Разбор —
  * lib/access/password-import.ts, запись — importPortalLogins пачками.
  */
 export function ImportPasswordsDialog({
@@ -55,7 +70,20 @@ export function ImportPasswordsDialog({
 function ImportPasswordsForm({ onDone }: { onDone: () => void }) {
   const qc = useQueryClient();
   const save = useServerFn(importPortalLogins);
+  const create = useServerFn(createPortalUser);
   const { data: users } = useQuery(accessUsersQuery);
+  const { data: roles } = useQuery(accessRolesQuery);
+  const { data: catalog } = useQuery(accessCatalogQuery);
+  const [createMissing, setCreateMissing] = useState(true);
+  const [roleId, setRoleId] = useState(NO_ROLE);
+  // Роль для новых — только общая для сети (без прав в клубе), на всю сеть.
+  const networkRoles = useMemo(
+    () =>
+      (roles ?? []).filter(
+        (r) => !r.grant_problem && !hasStudioPerms(r.permissions, catalog ?? []),
+      ),
+    [roles, catalog],
+  );
   const [table, setTable] = useState<string[][] | null>(null);
   const [text, setText] = useState("");
   const [fileName, setFileName] = useState<string | null>(null);
@@ -64,9 +92,11 @@ function ImportPasswordsForm({ onDone }: { onDone: () => void }) {
 
   const rows = useMemo(() => {
     const source = table ?? (text.trim() ? parseTable(text) : null);
-    return source ? buildPasswordRows(source, users ?? []) : [];
-  }, [table, text, users]);
-  const ready = rows.filter((r) => !r.error && r.user_id);
+    return source ? buildPasswordRows(source, users ?? [], { createMissing }) : [];
+  }, [table, text, users, createMissing]);
+  const existing = rows.filter((r) => !r.error && r.user_id);
+  const fresh = rows.filter((r) => !r.error && r.create);
+  const ready = [...existing, ...fresh];
   const bad = rows.length - ready.length;
 
   const readFile = async (file: File) => {
@@ -96,11 +126,12 @@ function ImportPasswordsForm({ onDone }: { onDone: () => void }) {
       return;
     }
     let ok = 0;
+    let added = 0;
     const failed: string[] = [];
     try {
-      for (let i = 0; i < ready.length; i += CHUNK) {
-        const part = ready.slice(i, i + CHUNK);
-        setProgress(`${Math.min(i + CHUNK, ready.length)} из ${ready.length}`);
+      for (let i = 0; i < existing.length; i += CHUNK) {
+        const part = existing.slice(i, i + CHUNK);
+        setProgress(`${Math.min(i + CHUNK, existing.length)} из ${ready.length}`);
         try {
           const res = await save({
             data: {
@@ -120,17 +151,44 @@ function ImportPasswordsForm({ onDone }: { onDone: () => void }) {
           for (const r of part) failed.push(`Строка ${r.line} (${r.name}): ${message}`);
         }
       }
+      for (const [j, r] of fresh.entries()) {
+        setProgress(`${existing.length + j + 1} из ${ready.length}`);
+        try {
+          await create({
+            data: {
+              last_name: r.create!.last_name,
+              first_name: r.create!.first_name,
+              email: null,
+              login: r.login,
+              password: r.password,
+              user_type: null,
+              position_id: null,
+              access_until: null,
+              avatar_url: null,
+              assignments:
+                roleId === NO_ROLE
+                  ? []
+                  : [{ role_id: roleId, scope_type: "all" as const, scope_ids: [] }],
+            },
+          });
+          added++;
+        } catch (e) {
+          failed.push(`Строка ${r.line} (${r.name}): ${e instanceof Error ? e.message : "ошибка"}`);
+        }
+      }
     } finally {
       setProgress(null);
     }
     await invalidateAccess(qc);
     if (failed.length) {
-      toast.error(`Записано ${ok}, не получилось ${failed.length}`, {
+      toast.error(`Записано ${ok}, добавлено ${added}, не получилось ${failed.length}`, {
         description: failed.slice(0, 6).join("\n"),
         duration: 20_000,
       });
     } else {
-      toast.success(`Логины и пароли записаны: ${ok}`);
+      toast.success(
+        added ? `Логины записаны: ${ok}, новых пользователей: ${added}` : `Логины записаны: ${ok}`,
+      );
     }
     onDone();
   };
@@ -141,8 +199,9 @@ function ImportPasswordsForm({ onDone }: { onDone: () => void }) {
       <DialogHeader>
         <DialogTitle>Импорт паролей</DialogTitle>
         <DialogDescription>
-          Логины и пароли Platrum для людей, которые уже есть на портале. Колонки: Фамилия, Имя,
-          Логин, Пароль — или одна колонка с фамилией и именем вместо первых двух.
+          Логины и пароли Platrum: тем, кто уже есть на портале, — записать, кого нет — добавить.
+          Колонки: Фамилия, Имя, Логин, Пароль — или одна колонка с фамилией и именем вместо первых
+          двух.
         </DialogDescription>
       </DialogHeader>
       <DialogForm onSubmit={run}>
@@ -201,13 +260,45 @@ function ImportPasswordsForm({ onDone }: { onDone: () => void }) {
             <InfoNote>
               Человек ищется по фамилии и имени вместе — как они записаны на портале; порядок,
               регистр и «ё» не важны. Если у человека уже был логин, он заменится логином и паролем
-              из файла. Вход по почте у него останется.
+              из файла, вход по почте останется. Новые добавляются без почты: фамилия и имя — из
+              своих колонок, в полном имени — первое слово фамилия, второе имя.
             </InfoNote>
+            <CheckboxOption checked={createMissing} onCheckedChange={setCreateMissing}>
+              Кого нет на портале — добавить с логином и паролем из файла
+            </CheckboxOption>
+            {createMissing && (
+              <FormField
+                label="Роль для новых"
+                tip="Без роли новый пользователь появится на портале, но войти не сможет, пока ему не выдадут роль. Здесь — только роли на всю сеть (без прав в клубе)."
+                htmlFor={null}
+                optional
+              >
+                <Select value={roleId} onValueChange={setRoleId}>
+                  <SelectTrigger aria-label="Роль для новых">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={NO_ROLE}>Без роли — выдать потом</SelectItem>
+                    {networkRoles.map((r) => (
+                      <SelectItem key={r.id} value={r.id}>
+                        {r.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormField>
+            )}
             {rows.length > 0 && (
               <>
                 <p className="text-sm">
-                  Строк: {rows.length} · будет записано:{" "}
-                  <span className="font-medium">{ready.length}</span>
+                  Строк: {rows.length} · логин будет записан:{" "}
+                  <span className="font-medium">{existing.length}</span>
+                  {createMissing && (
+                    <>
+                      {" "}
+                      · новых пользователей: <span className="font-medium">{fresh.length}</span>
+                    </>
+                  )}
                   {bad > 0 && <span className="text-destructive"> · с ошибкой: {bad}</span>}
                 </p>
                 <div className="max-h-80 overflow-auto rounded-md border">
@@ -235,8 +326,12 @@ function ImportPasswordsForm({ onDone }: { onDone: () => void }) {
                           <td className="px-2 py-1.5 align-top">
                             {r.error ? (
                               <span className="text-destructive">{r.error} — пропущена</span>
+                            ) : r.create ? (
+                              <span className="text-emerald-700 dark:text-emerald-300">
+                                новый: {r.create.last_name} {r.create.first_name}
+                              </span>
                             ) : (
-                              "будет записан"
+                              "логин будет записан"
                             )}
                           </td>
                         </tr>
