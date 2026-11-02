@@ -1,10 +1,11 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { FileUp, UserPlus } from "lucide-react";
+import { FileUp, KeyRound, UserPlus } from "lucide-react";
 
 import { AdminShell } from "@/components/admin-shell";
 import { BulkActionsBar } from "@/components/access/bulk-actions";
+import { ImportPasswordsDialog } from "@/components/access/import-passwords-dialog";
 import { ImportUsersDialog } from "@/components/access/import-users-dialog";
 import { PageIntro, PersonLine, RoleChip, UserStatusChip } from "@/components/access/parts";
 import { NewUserDialog } from "@/components/access/user-dialogs";
@@ -93,6 +94,7 @@ function AccessUsersPage() {
   const { data: studios } = useQuery(networkStudiosQuery);
   const [adding, setAdding] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [importingPasswords, setImportingPasswords] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [city, setCity] = useState(ALL);
   const [q, setQ] = useState("");
@@ -217,6 +219,10 @@ function AccessUsersPage() {
             <Button variant="outline" onClick={() => setImporting(true)}>
               <FileUp />
               Импорт
+            </Button>
+            <Button variant="outline" onClick={() => setImportingPasswords(true)}>
+              <KeyRound />
+              Импорт паролей
             </Button>
             <Button onClick={() => setAdding(true)}>
               <UserPlus />
@@ -484,6 +490,7 @@ function AccessUsersPage() {
       </div>
       <NewUserDialog open={adding} onOpenChange={setAdding} />
       <ImportUsersDialog open={importing} onOpenChange={setImporting} />
+      <ImportPasswordsDialog open={importingPasswords} onOpenChange={setImportingPasswords} />
     </AdminShell>
   );
 }
