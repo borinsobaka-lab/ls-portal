@@ -1248,8 +1248,11 @@ function ArticleView({
               canCopy={canEdit}
               className="px-5 py-5 sm:px-10 sm:py-8"
             >
-              <header className="flex items-start gap-3">
-                <div className="min-w-0 flex-1">
+              {/* На телефоне (решение владельца 2026-11-02): крошки, название и
+                  автор — во всю ширину, кнопки статьи — справа в строке статуса;
+                  с sm — кнопки справа сверху, как раньше. */}
+              <header className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3">
+                <div className="col-span-2 min-w-0 sm:col-span-1 sm:col-start-1">
                   <Crumbs baseId={baseId} baseTitle={baseTitle} index={index} nodeId={node.id} />
                   {editing ? (
                     <TitleInput
@@ -1261,28 +1264,30 @@ function ArticleView({
                       {node.title || "Без названия"}
                     </h2>
                   )}
-                  <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
-                    {/* Одной строкой (решение владельца 2026-10-25): статус
+                </div>
+                <div className="col-start-1 mt-2 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 self-center text-sm text-muted-foreground sm:self-start">
+                  {/* Одной строкой (решение владельца 2026-10-25): статус
                         (редактору), теги, чек-лист; автор — строкой ниже. */}
-                    {canEdit && <KbStatusBadge status={node.status} />}
-                    {!editing && <KbArticleTags baseId={baseId} nodeId={node.id} />}
-                    {!editing && checkItems.length > 0 && (
-                      <span title="Отметки чек-листа — ваши, их видите только вы">
-                        Чек-лист: {doneCount} из {checkItems.length}
-                      </span>
-                    )}
-                    {protectOn && (
-                      <span
-                        className="inline-flex items-center gap-1"
-                        title="Копирование и печать закрыты, поверх текста — водяной знак с почтой и датой"
-                      >
-                        <ShieldCheck className="size-3.5" />
-                        Защищено
-                      </span>
-                    )}
-                    {canEdit && hasDraft && node.status === "published" && <KbDraftBadge />}
-                    {!node.published_at && <span>Ещё не опубликована</span>}
-                  </div>
+                  {canEdit && <KbStatusBadge status={node.status} />}
+                  {!editing && <KbArticleTags baseId={baseId} nodeId={node.id} />}
+                  {!editing && checkItems.length > 0 && (
+                    <span title="Отметки чек-листа — ваши, их видите только вы">
+                      Чек-лист: {doneCount} из {checkItems.length}
+                    </span>
+                  )}
+                  {protectOn && (
+                    <span
+                      className="inline-flex items-center gap-1"
+                      title="Копирование и печать закрыты, поверх текста — водяной знак с почтой и датой"
+                    >
+                      <ShieldCheck className="size-3.5" />
+                      Защищено
+                    </span>
+                  )}
+                  {canEdit && hasDraft && node.status === "published" && <KbDraftBadge />}
+                  {!node.published_at && <span>Ещё не опубликована</span>}
+                </div>
+                <div className="col-span-2 min-w-0 sm:col-span-1 sm:col-start-1">
                   {editing && <KbArticleTagsEditor baseId={baseId} nodeId={node.id} />}
                   {node.published_at && (
                     <ArticleAuthor
@@ -1295,22 +1300,24 @@ function ArticleView({
                     />
                   )}
                 </div>
-                <FavoriteButton baseId={baseId} nodeId={node.id} />
-                <CopyLinkButton baseId={baseId} nodeId={node.id} />
-                {canEdit && (
-                  <NodeMenu
-                    baseId={baseId}
-                    node={node}
-                    hasChildren={childrenOf(index, node.id).length > 0}
-                    onAddChild={() => setDialog("child")}
-                    onRename={() => setDialog("rename")}
-                    onMove={() => setDialog("move")}
-                    onVersions={() => setDialog("versions")}
-                    onSaveTemplate={() => setDialog("template")}
-                    onProtect={() => setDialog("protect")}
-                    onSettings={() => setDialog("settings")}
-                  />
-                )}
+                <div className="col-start-2 row-start-2 mt-2 flex items-center gap-3 self-center sm:row-span-3 sm:row-start-1 sm:mt-0 sm:self-start">
+                  <FavoriteButton baseId={baseId} nodeId={node.id} />
+                  <CopyLinkButton baseId={baseId} nodeId={node.id} />
+                  {canEdit && (
+                    <NodeMenu
+                      baseId={baseId}
+                      node={node}
+                      hasChildren={childrenOf(index, node.id).length > 0}
+                      onAddChild={() => setDialog("child")}
+                      onRename={() => setDialog("rename")}
+                      onMove={() => setDialog("move")}
+                      onVersions={() => setDialog("versions")}
+                      onSaveTemplate={() => setDialog("template")}
+                      onProtect={() => setDialog("protect")}
+                      onSettings={() => setDialog("settings")}
+                    />
+                  )}
+                </div>
               </header>
 
               {canEdit && !editing && (hasDraft || node.status !== "published") && (
@@ -1572,7 +1579,7 @@ function ArticleAuthor({
       )}
       <div className="min-w-0 leading-snug text-muted-foreground">
         {fullName && (
-          <p className="truncate">
+          <p className="break-words">
             Автор:{" "}
             <PersonButton
               userId={userId}
