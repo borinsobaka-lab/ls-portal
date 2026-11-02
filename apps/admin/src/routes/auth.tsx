@@ -225,7 +225,7 @@ function AuthPage() {
             {method === "login"
               ? "Вход для сотрудников и партнёров — по логину и паролю из Platrum"
               : step === "email"
-                ? "Вход для сотрудников и партнёров — по коду из письма"
+                ? "Вход для сотрудников и партнёров — по коду из письма на почту, которая служит логином в Битрикс24"
                 : "Введите код из письма"}
           </CardDescription>
         </CardHeader>
@@ -277,7 +277,7 @@ function AuthPage() {
             </form>
           ) : step === "email" ? (
             <form noValidate onSubmit={submitEmail} className="space-y-4">
-              <FormField label="Электронная почта" required error={error}>
+              <FormField label="Почта — логин в Битрикс24" required error={error}>
                 <Input
                   type="email"
                   autoComplete="email"
@@ -293,7 +293,8 @@ function AuthPage() {
                 Получить код для входа
               </Button>
               <p className="text-xs text-muted-foreground text-center">
-                Вход открыт сотрудникам и партнёрам — собственникам клубов, которым выдан доступ к
+                Укажите почту, с которой входите в Битрикс24, — на неё придёт 6-значный код. Вход
+                открыт сотрудникам и партнёрам — собственникам клубов, которым выдан доступ к
                 порталу.
               </p>
             </form>
