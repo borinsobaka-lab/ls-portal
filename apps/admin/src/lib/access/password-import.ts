@@ -1,10 +1,15 @@
 /**
- * «Импорт паролей» в «Пользователях» (решение владельца 2026-11-02): логины и
- * пароли Platrum из Excel — файлом .xlsx или вставкой из буфера. Колонки по
- * порядку: точное имя пользователя, как на портале; логин; пароль. Строка
- * заголовков в начале пропускается сама. Человек ищется по имени без учёта
- * регистра, «ё» и лишних пробелов. Логика без React — тест
- * password-import.test.ts.
+ * «Импорт паролей» в «Пользователях» (решения владельца 2026-11-02): логины
+ * и пароли Platrum из Excel — файлом .xlsx или вставкой из буфера. Человек
+ * ищется по фамилии и имени вместе (оба поля обязательны на портале):
+ *   - колонки «Фамилия», «Имя», «Логин», «Пароль» (по заголовкам — в любом
+ *     порядке; без заголовков — четыре колонки по порядку: фамилия, имя,
+ *     логин, пароль);
+ *   - или одна колонка с полным именем («ФИО», «Пользователь»; без
+ *     заголовков — три колонки: имя, логин, пароль).
+ * Порядок фамилии и имени не важен («Анна Иванова» = «Иванова Анна»), как и
+ * регистр, «ё» и лишние пробелы; отчество в полном имени не мешает. Логика
+ * без React — тест password-import.test.ts.
  */
 import { normalizeName } from "./logic";
 
@@ -20,13 +25,48 @@ export type PasswordImportRow = {
   error: string | null;
 };
 
-const HEADER_NAME = /имя|фио|пользоват|сотрудник|name|user/i;
-const HEADER_PASS = /парол|password/i;
+type Columns = { last?: number; first?: number; full?: number; login: number; password: number };
 
-/** Похожа ли первая строка на заголовки («Пользователь; Логин; Пароль»). */
-export function isHeaderRow(row: string[]): boolean {
-  return HEADER_NAME.test(row[0] ?? "") && HEADER_PASS.test(row[2] ?? "");
+const headerKey = (v: string) =>
+  normalizeName(v)
+    .replace(/[^a-zа-я0-9 ]+/g, " ")
+    .trim();
+const HEADERS: Record<keyof Columns, RegExp> = {
+  last: /^(фамилия|last ?name|surname)$/,
+  first: /^(имя|first ?name)$/,
+  full: /^(фио|фамилия имя( отчество)?|имя фамилия|пользователь|имя пользователя|сотрудник|full ?name|name|user)$/,
+  login: /^(логин|login|логин platrum|username)$/,
+  password: /^(пароль|password|пароль platrum)$/,
+};
+
+/** Колонки по строке заголовков (null — это не заголовки). */
+export function detectPasswordColumns(row: string[]): Columns | null {
+  const found: Partial<Columns> = {};
+  row.forEach((cell, i) => {
+    const key = headerKey(cell);
+    for (const col of Object.keys(HEADERS) as (keyof Columns)[]) {
+      if (found[col] === undefined && HEADERS[col].test(key)) {
+        found[col] = i;
+        return;
+      }
+    }
+  });
+  const hasName =
+    (found.last !== undefined && found.first !== undefined) || found.full !== undefined;
+  if (!hasName || found.login === undefined || found.password === undefined) return null;
+  return found as Columns;
 }
+
+/** Ключ человека: слова фамилии и имени без порядка. */
+function nameKey(words: string[]): string {
+  return words
+    .map((w) => normalizeName(w))
+    .filter(Boolean)
+    .sort()
+    .join(" ");
+}
+
+const splitWords = (v: string | null | undefined) => normalizeName(v).split(" ").filter(Boolean);
 
 export function buildPasswordRows(
   table: string[][],
@@ -34,27 +74,53 @@ export function buildPasswordRows(
 ): PasswordImportRow[] {
   const byName = new Map<string, { user_id: string; full_name: string }[]>();
   for (const u of users) {
-    const key = normalizeName(u.full_name);
+    const key = nameKey(splitWords(u.full_name));
     if (!key) continue;
     byName.set(key, [...(byName.get(key) ?? []), { user_id: u.user_id, full_name: u.full_name! }]);
   }
-  const start = table.length && isHeaderRow(table[0]) ? 1 : 0;
+  const header = table.length ? detectPasswordColumns(table[0]) : null;
+  const width = Math.max(0, ...table.slice(0, 5).map((r) => r.filter((c) => c !== "").length));
+  const cols: Columns =
+    header ??
+    (width >= 4
+      ? { last: 0, first: 1, login: 2, password: 3 }
+      : { full: 0, login: 1, password: 2 });
+  const start = header ? 1 : 0;
+  const cell = (r: string[], i: number | undefined) =>
+    i === undefined ? "" : (r[i] ?? "").trim().replace(/\s+/g, " ");
+
   const seenUsers = new Map<string, number>();
   const seenLogins = new Map<string, number>();
   const out: PasswordImportRow[] = [];
   table.slice(start).forEach((r, i) => {
     const line = start + i + 1;
-    const name = (r[0] ?? "").trim().replace(/\s+/g, " ");
-    const login = (r[1] ?? "").trim();
-    const password = (r[2] ?? "").trim();
+    const separate = cols.last !== undefined && cols.first !== undefined;
+    const last = separate ? cell(r, cols.last) : "";
+    const first = separate ? cell(r, cols.first) : "";
+    const name = separate ? [last, first].filter(Boolean).join(" ") : cell(r, cols.full);
+    const login = (r[cols.login] ?? "").trim();
+    const password = (r[cols.password] ?? "").trim();
     if (!name && !login && !password) return;
-    const found = byName.get(normalizeName(name)) ?? [];
+
+    // Все слова; в полном имени с отчеством — ещё и первые два слова.
+    const words = separate ? [...splitWords(last), ...splitWords(first)] : splitWords(name);
+    const keys = [nameKey(words)];
+    if (!separate && words.length > 2) keys.push(nameKey(words.slice(0, 2)));
+    let found: { user_id: string; full_name: string }[] = [];
+    for (const k of keys) {
+      found = byName.get(k) ?? [];
+      if (found.length) break;
+    }
     const user = found.length === 1 ? found[0] : null;
+
     let error: string | null = null;
-    if (!name) error = "Нет имени";
+    if (separate && !last) error = "Нет фамилии";
+    else if (separate && !first) error = "Нет имени";
+    else if (!name) error = "Нет фамилии и имени";
+    else if (!separate && words.length < 2) error = "Нужны и фамилия, и имя";
     else if (found.length === 0) error = "Нет такого пользователя на портале";
     else if (found.length > 1)
-      error = `На портале ${found.length} человека с таким именем — задайте в карточке`;
+      error = `На портале ${found.length} человека с такими фамилией и именем — задайте в карточке`;
     else if (!login) error = "Нет логина";
     else if (/\s/.test(login)) error = "В логине есть пробелы";
     else if (login.length > 100) error = "Логин длиннее 100 знаков";
@@ -107,7 +173,7 @@ export async function readPasswordXlsx(file: File): Promise<string[][]> {
   const sheet = await book.open(0, { raw: true });
   const rows: string[][] = [];
   for await (const row of sheet.rows()) {
-    rows.push(row.cells.slice(0, 3).map((v) => (v === null ? "" : String(v).trim())));
+    rows.push(row.cells.slice(0, 10).map((v) => (v === null ? "" : String(v).trim())));
   }
   return rows;
 }
