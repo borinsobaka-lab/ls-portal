@@ -20,17 +20,20 @@ import { Textarea } from "@/components/ui/textarea";
 import { importPortalLogins } from "@/lib/access.functions";
 import { accessUsersQuery, invalidateAccess } from "@/lib/access/data";
 import { parseTable } from "@/lib/access/import";
+import { normalizeName } from "@/lib/access/logic";
 import { buildPasswordRows, readPasswordXlsx } from "@/lib/access/password-import";
 import { cn } from "@/lib/utils";
 
-const EXAMPLE = "Иванова Анна\tivanova\tПароль123\nПетрова Ольга\tpetrova\tqwerty77";
+const EXAMPLE =
+  "Фамилия\tИмя\tЛогин\tПароль\nИванова\tАнна\tivanova\tПароль123\nПетрова\tОльга\tpetrova\tqwerty77";
 /** Сколько человек за один вызов сервера (хэш пароля считается на сервере). */
 const CHUNK = 25;
 
 /**
  * «Импорт паролей» в «Пользователях» (решение владельца 2026-11-02): логины
  * и пароли Platrum для тех, кто уже есть на портале. Excel-файл или
- * вставка из Excel: имя (точно как на портале), логин, пароль. Разбор —
+ * вставка из Excel: фамилия и имя (отдельными колонками или одной), логин,
+ * пароль; человек ищется по фамилии и имени вместе. Разбор —
  * lib/access/password-import.ts, запись — importPortalLogins пачками.
  */
 export function ImportPasswordsDialog({
@@ -138,8 +141,8 @@ function ImportPasswordsForm({ onDone }: { onDone: () => void }) {
       <DialogHeader>
         <DialogTitle>Импорт паролей</DialogTitle>
         <DialogDescription>
-          Логины и пароли Platrum для людей, которые уже есть на портале. Три колонки по порядку:
-          имя пользователя точно как на портале, логин, пароль.
+          Логины и пароли Platrum для людей, которые уже есть на портале. Колонки: Фамилия, Имя,
+          Логин, Пароль — или одна колонка с фамилией и именем вместо первых двух.
         </DialogDescription>
       </DialogHeader>
       <DialogForm onSubmit={run}>
@@ -177,14 +180,14 @@ function ImportPasswordsForm({ onDone }: { onDone: () => void }) {
                 </span>
               ) : (
                 <span className="text-xs text-muted-foreground">
-                  или скопируйте три колонки в Excel и вставьте ниже
+                  или скопируйте колонки в Excel и вставьте ниже
                 </span>
               )}
             </div>
             {!fileName && (
               <FormField
                 label="Таблица"
-                tip="Выделите в Excel три колонки (имя, логин, пароль) и вставьте сюда. Строку заголовков можно не убирать — она пропустится."
+                tip="Выделите в Excel колонки вместе со строкой заголовков (Фамилия, Имя, Логин, Пароль — в любом порядке) и вставьте сюда. Без заголовков — по порядку: фамилия, имя, логин, пароль."
               >
                 <Textarea
                   rows={5}
@@ -196,9 +199,9 @@ function ImportPasswordsForm({ onDone }: { onDone: () => void }) {
               </FormField>
             )}
             <InfoNote>
-              Человек ищется по имени, как оно записано на портале (регистр и «ё» не важны). Если у
-              человека уже был логин, он заменится логином и паролем из файла. Вход по почте у него
-              останется.
+              Человек ищется по фамилии и имени вместе — как они записаны на портале; порядок,
+              регистр и «ё» не важны. Если у человека уже был логин, он заменится логином и паролем
+              из файла. Вход по почте у него останется.
             </InfoNote>
             {rows.length > 0 && (
               <>
@@ -212,7 +215,7 @@ function ImportPasswordsForm({ onDone }: { onDone: () => void }) {
                     <thead className="sticky top-0 bg-muted text-left">
                       <tr>
                         <th className="px-2 py-1.5 font-medium">Стр.</th>
-                        <th className="px-2 py-1.5 font-medium">Пользователь</th>
+                        <th className="px-2 py-1.5 font-medium">Фамилия и имя</th>
                         <th className="px-2 py-1.5 font-medium">Логин</th>
                         <th className="px-2 py-1.5 font-medium">Итог</th>
                       </tr>
@@ -223,6 +226,10 @@ function ImportPasswordsForm({ onDone }: { onDone: () => void }) {
                           <td className="px-2 py-1.5 align-top">{r.line}</td>
                           <td className="px-2 py-1.5 align-top">
                             <div className="font-medium">{r.portal_name ?? (r.name || "—")}</div>
+                            {r.portal_name &&
+                              normalizeName(r.portal_name) !== normalizeName(r.name) && (
+                                <div className="text-muted-foreground">в файле: {r.name}</div>
+                              )}
                           </td>
                           <td className="px-2 py-1.5 align-top">{r.login || "—"}</td>
                           <td className="px-2 py-1.5 align-top">
