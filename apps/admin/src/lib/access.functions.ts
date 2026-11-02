@@ -451,6 +451,54 @@ export const setPortalUserLogin = createServerFn({ method: "POST" })
   });
 
 /**
+ * «Импорт паролей»: логины и пароли Platrum пачкой (до 50 человек за вызов).
+ * Каждого проверяем так же, как в setPortalUserLogin (access_can_manage);
+ * прежний логин и пароль человека заменяются. Ответ — итог по каждой строке.
+ */
+export const importPortalLogins = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data) =>
+    parseOrThrow(
+      z
+        .object({
+          rows: z
+            .array(
+              z
+                .object({
+                  user_id: z.string().uuid(),
+                  login: platrumLogin,
+                  password: platrumPassword,
+                })
+                .strict(),
+            )
+            .min(1)
+            .max(50),
+        })
+        .strict(),
+      data,
+    ),
+  )
+  .handler(async ({ context, data }) => {
+    const admin = getSupabaseAdmin();
+    const results: { user_id: string; error: string | null }[] = [];
+    for (const r of data.rows) {
+      try {
+        if (r.user_id !== context.userId) {
+          const can = await rpcAs<boolean>(context.supabase, "access_can_manage", {
+            p_user: r.user_id,
+          });
+          if (!can) throw new Error("Нет прав менять этого пользователя");
+        }
+        await writeLogin(admin, r.user_id, r.login, r.password, context.userId);
+        results.push({ user_id: r.user_id, error: null });
+      } catch (e) {
+        results.push({ user_id: r.user_id, error: e instanceof Error ? e.message : "ошибка" });
+      }
+    }
+    return { results };
+  });
+
+/**
  * Убрать из портала (RPC access_user_remove — роли и доступ снимаются) и,
  * если учётная запись больше ни к чему не привязана, удалить её. Клиент
  * приложения или сотрудник клуба вне модели остаётся со своим входом.
