@@ -26,10 +26,8 @@ export function RailAccount() {
 
   const handleSignOut = async () => {
     const ok = await confirm({
-      title: "Выйти из админки?",
-      description: name
-        ? `${name}: чтобы войти снова, понадобится код из письма.`
-        : "Чтобы войти снова, понадобится код из письма.",
+      title: "Выйти из аккаунта?",
+      description: name ? `Вы вошли как ${name}.` : undefined,
       confirmLabel: "Выйти",
       destructive: false,
     });
