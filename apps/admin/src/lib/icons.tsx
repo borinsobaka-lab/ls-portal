@@ -32,6 +32,8 @@ import {
   AtSign as AtSignArt,
   BanIcon as BanArt,
   Banknote as BanknoteArt,
+  Bell as BellArt,
+  BellOff as BellOffArt,
   Bold as BoldArt,
   Briefcase as BriefcaseArt,
   Bug as BugArt,
@@ -44,6 +46,7 @@ import {
   ChartColumnIcon as ChartColumnArt,
   ChartLineIcon as ChartLineArt,
   Check as CheckArt,
+  CheckCheck as CheckCheckArt,
   CheckCircle as CheckCircle2Art,
   CheckIcon as CheckIconArt,
   ChevronDown as ChevronDownArt,
@@ -132,6 +135,7 @@ import {
   Settings as SettingsArt,
   Settings2 as Settings2Art,
   Shapes as ShapesArt,
+  Share as ShareArt,
   ShieldCheck as ShieldCheckArt,
   ShoppingBag as ShoppingBagArt,
   SlidersHorizontal as SlidersHorizontalArt,
@@ -188,6 +192,8 @@ export const ArrowUpRight = icon(ArrowUpRightArt, "ArrowUpRight");
 export const AtSign = icon(AtSignArt, "AtSign");
 export const Ban = icon(BanArt, "Ban");
 export const Banknote = icon(BanknoteArt, "Banknote");
+export const Bell = icon(BellArt, "Bell");
+export const BellOff = icon(BellOffArt, "BellOff");
 export const Bold = icon(BoldArt, "Bold");
 export const Briefcase = icon(BriefcaseArt, "Briefcase");
 export const Bug = icon(BugArt, "Bug");
@@ -200,6 +206,7 @@ export const ChartArea = icon(ChartAreaArt, "ChartArea");
 export const ChartColumn = icon(ChartColumnArt, "ChartColumn");
 export const ChartLine = icon(ChartLineArt, "ChartLine");
 export const Check = icon(CheckArt, "Check");
+export const CheckCheck = icon(CheckCheckArt, "CheckCheck");
 export const CheckCircle2 = icon(CheckCircle2Art, "CheckCircle2");
 export const CheckIcon = icon(CheckIconArt, "CheckIcon");
 export const ChevronDown = icon(ChevronDownArt, "ChevronDown");
@@ -288,6 +295,7 @@ export const Send = icon(SendArt, "Send");
 export const Settings = icon(SettingsArt, "Settings");
 export const Settings2 = icon(Settings2Art, "Settings2");
 export const Shapes = icon(ShapesArt, "Shapes");
+export const Share = icon(ShareArt, "Share");
 export const ShieldCheck = icon(ShieldCheckArt, "ShieldCheck");
 export const ShoppingBag = icon(ShoppingBagArt, "ShoppingBag");
 export const SlidersHorizontal = icon(SlidersHorizontalArt, "SlidersHorizontal");

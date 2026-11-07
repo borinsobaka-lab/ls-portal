@@ -6,6 +6,7 @@
 // Те же Solar-иконки, что у пунктов меню: Outline, у активного раздела BoldDuotone.
 import {
   Bag3,
+  Bell,
   Book,
   Bug,
   Book2,
@@ -81,6 +82,8 @@ export type RailSectionKey =
   | "scripts"
   | "kb"
   | "academy"
+  | "company"
+  | "notifications"
   | "manage";
 
 export type RailSection = {
@@ -96,6 +99,8 @@ export type RailSection = {
   icon: NavIcon;
   /** Страницы раздела, кроме самого url (у раздела со своим меню). */
   paths?: string[];
+  /** Не показывать в рейке: раздел открывается не из неё (уведомления — колокольчик в шапке). */
+  noRail?: boolean;
 };
 
 export type NavItem = {
@@ -709,6 +714,29 @@ export function hasAcademyRight(access: AdminAccess, need: AcademyNeed): boolean
 }
 
 /**
+ * «Компания» (TASKS_CHATS_PLAN.md, веха 1) — справочник людей портала и
+ * оргструктура для просмотра, всем людям портала (партнёры видят друг друга —
+ * решение владельца 2026-11-07). Правят людей и структуру по-прежнему в
+ * «Управлении» → «Пользователи и роли».
+ */
+export const COMPANY_URL = "/company";
+export const COMPANY_ITEMS: NavItem[] = [
+  { title: "Сотрудники", url: COMPANY_URL, icon: UsersGroupRounded, exact: true },
+  { title: "Структура", url: "/company/structure", icon: Structure },
+];
+
+/**
+ * Уведомления портала — колокольчик в шапке, лента и настройки (пуши,
+ * «Не беспокоить», установка приложения). В рейке раздела нет.
+ */
+export const NOTIFICATIONS_URL = "/notifications";
+export const NOTIFICATIONS_SETTINGS_URL = "/notifications/settings";
+export const NOTIFICATIONS_ITEMS: NavItem[] = [
+  { title: "Все уведомления", url: NOTIFICATIONS_URL, icon: Bell, exact: true },
+  { title: "Настройки", url: NOTIFICATIONS_SETTINGS_URL, icon: Settings },
+];
+
+/**
  * Все разделы рейки — и скрытые на первом этапе (lib/launch.ts): по ним
  * railSectionKey узнаёт раздел страницы. Раздел без url — заготовка: виден
  * в рейке, но не нажимается.
@@ -752,6 +780,23 @@ const ALL_SECTIONS: RailSection[] = [
     icon: SquareAcademicCap,
     paths: ACADEMY_ITEMS.slice(1).map((i) => i.url),
   },
+  {
+    key: "company",
+    title: "Компа\u00ADния",
+    fullTitle: "Компания — сотрудники и структура",
+    url: COMPANY_URL,
+    icon: UsersGroupRounded,
+    paths: COMPANY_ITEMS.slice(1).map((i) => i.url),
+  },
+  {
+    key: "notifications",
+    title: "Уведом\u00ADления",
+    fullTitle: "Уведомления",
+    url: NOTIFICATIONS_URL,
+    icon: Bell,
+    paths: [NOTIFICATIONS_SETTINGS_URL],
+    noRail: true,
+  },
   // Перенос портала аналитики Lady Stretch — в конце рейки (решение
   // владельца 2026-10-26).
   {
@@ -765,7 +810,9 @@ const ALL_SECTIONS: RailSection[] = [
 ];
 
 /** Разделы в рейке — без скрытых (lib/launch.ts). */
-export const SECTIONS: RailSection[] = ALL_SECTIONS.filter((s) => !HIDDEN_RAIL_SECTIONS.has(s.key));
+export const SECTIONS: RailSection[] = ALL_SECTIONS.filter(
+  (s) => !HIDDEN_RAIL_SECTIONS.has(s.key) && !s.noRail,
+);
 
 /**
  * «Управление» внизу рейки (решение владельца 2026-10-25: вместо трёх
@@ -877,6 +924,8 @@ export function canOpenPath(
   if (section === "analytics")
     return anCan(access.analytics, analyticsNavItemOf(pathname)?.need ?? "home");
   if (section === "app" || section === "scripts") return canOpenRail(access, section);
+  // Справочник и свои уведомления — любому человеку портала.
+  if (section === "company" || section === "notifications") return true;
   if (section === "club") {
     // «Сотрудники» общие для клубов: право — раздел рейки, не раздел клуба.
     if (isStaffPath(pathname)) return canOpenRail(access, "staff");

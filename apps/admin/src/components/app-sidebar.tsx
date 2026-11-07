@@ -8,10 +8,12 @@ import {
   ACADEMY_ITEMS,
   ANALYTICS_GROUPS,
   CLUB_GROUPS,
+  COMPANY_ITEMS,
   DASHBOARD_ITEMS,
   BUG_REPORTS_URL,
   MANAGE_GROUPS,
   MOBILE_APP_ITEMS,
+  NOTIFICATIONS_ITEMS,
   REQUESTS_URL,
   SCRIPTS_SETTINGS_URL,
   SCRIPTS_URL,
@@ -77,6 +79,14 @@ const SECTION_MENUS: Partial<Record<RailSectionKey, { title: string; groups: Nav
   app: {
     title: "Мобильное приложение",
     groups: [{ key: "mobile", label: "Разделы", items: MOBILE_APP_ITEMS }],
+  },
+  company: {
+    title: "Компания",
+    groups: [{ key: "company", label: "Разделы", items: COMPANY_ITEMS }],
+  },
+  notifications: {
+    title: "Уведомления",
+    groups: [{ key: "notifications", label: "Разделы", items: NOTIFICATIONS_ITEMS }],
   },
 };
 

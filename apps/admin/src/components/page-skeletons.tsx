@@ -3951,3 +3951,79 @@ export function AnalyticsContentCommunitiesPageSkeleton() {
     </ShellSkeleton>
   );
 }
+
+/** «Компания» → «Сотрудники» (/company): поиск, фильтры, таблица людей. */
+export function CompanyPeoplePageSkeleton() {
+  return (
+    <ShellSkeleton title="Сотрудники">
+      <div className="space-y-3">
+        <ToolbarSkeleton controls={["w-48", "w-48", "w-48", "w-24"]} />
+        <TableCardSkeleton
+          pagination
+          headers={["Сотрудник", "Подразделение", "Клубы и города", "Контакты", "Статус"]}
+        />
+      </div>
+    </ShellSkeleton>
+  );
+}
+
+/** «Компания» → «Структура» (/company/structure): подразделения карточками. */
+export function CompanyStructurePageSkeleton() {
+  return (
+    <ShellSkeleton title="Структура компании">
+      <div className="space-y-3">
+        <ToolbarSkeleton controls={["w-32", "w-32"]} />
+        <div className="space-y-2">
+          {Array.from({ length: 4 }, (_, i) => (
+            <div key={i} className={cn("rounded-lg border bg-background p-4", i > 0 && "ml-5")}>
+              <Skeleton className="h-5 w-48" />
+              <div className="mt-3 flex gap-4">
+                <Skeleton className="h-7 w-40 rounded-full" />
+                <Skeleton className="h-7 w-36 rounded-full" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </ShellSkeleton>
+  );
+}
+
+/** «Уведомления» (/notifications): лента. */
+export function NotificationsPageSkeleton() {
+  return (
+    <ShellSkeleton title="Уведомления">
+      <div className="mx-auto max-w-3xl space-y-4">
+        <TabsSkeleton labels={["Все", "Непрочитанные"]} />
+        <div className="divide-y rounded-xl border bg-background p-1.5">
+          {Array.from({ length: 6 }, (_, i) => (
+            <div key={i} className="flex items-start gap-3 px-3 py-3">
+              <Skeleton className="size-9 rounded-full" />
+              <div className="flex-1 space-y-1.5">
+                <Skeleton className="h-4 w-1/3" />
+                <Skeleton className="h-4 w-2/3" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </ShellSkeleton>
+  );
+}
+
+/** «Настройки уведомлений» (/notifications/settings): карточки настроек. */
+export function NotificationSettingsPageSkeleton() {
+  return (
+    <ShellSkeleton title="Настройки уведомлений">
+      <div className="mx-auto max-w-3xl space-y-4">
+        {Array.from({ length: 4 }, (_, i) => (
+          <div key={i} className="space-y-3 rounded-xl border bg-background p-6">
+            <Skeleton className="h-5 w-56" />
+            <Skeleton className="h-4 w-full max-w-md" />
+            <Skeleton className="h-10 w-48" />
+          </div>
+        ))}
+      </div>
+    </ShellSkeleton>
+  );
+}

@@ -1394,6 +1394,27 @@ DEPLOY.md.
   список, отметка, удаление, счётчик — `portal_bug_reports_list` /
   `_resolve` / `_delete` / `portal_bug_reports_open_count` (только
   `portal.admin`). Тесты — `db/bug-reports.test.ts`.
+  **Уведомления портала, пуши сотрудникам, «в сети», «Компания»**
+  (TASKS_CHATS_PLAN.md, веха 1, 2026-11-07):
+  `db/migrations/2026-11-07_zz_portal_notifications.sql` — личные настройки
+  `portal_user_settings` (часовой пояс, по умолчанию Москва; конец
+  рабочего дня; пуши по видам `prefs` — только отличия от умолчаний
+  `notif_default_push`; «Не беспокоить» `dnd_until` и тихие часы `quiet_*`
+  в поясе человека), лента `notif_items` (`group_key` — одно непрочитанное
+  на ключ со счётчиком `count`; 90 дней), устройства сотрудников
+  `portal_push_subscriptions` (отдельно от клиентских `push_subscriptions`,
+  ключи VAPID общие) и очередь `portal_push_deliveries`, пульс
+  `portal_presence` (`portal_ping`: «в сети» — 2 минуты, активная вкладка
+  — пуш не нужен). Все таблицы закрыты браузеру. **Отправить уведомление —
+  только функцией `notif_send`** (вызывают другие функции базы; браузеру не
+  выдана): лента всегда, пуш — если вид не выключен, нет «Не беспокоить» и
+  тихих часов и человек не смотрит на портал. Браузеру — `notif_list` /
+  `notif_unread_count` / `notif_mark_read`, `portal_settings_get` /
+  `_save`, `portal_push_register` / `_unregister` / `_devices` /
+  `_device_delete`, `notif_test`; серверу — `portal_push_claim` /
+  `_finish`, `notif_housekeeping`. Справочник — `company_people`,
+  `company_structure` (любому `is_portal_user`: партнёры видят друг друга).
+  Тесты — `db/notifications.test.ts`.
   Рейтинг тренеров и чаевые: `db/migrations/2026-10-11_zzzzzzzzzzzzz_trainer_ratings.sql`
   — `trainer_reviews` (оценка 1–5, одна от учётной записи на тренера; клиент
   читает и правит свою, ставит — тренеру, которого видит в приложении,

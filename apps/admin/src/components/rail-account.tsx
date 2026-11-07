@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useStaffProfile } from "@/hooks/use-staff-profile";
 import { initials } from "@/lib/format";
 import { useStorageUrl } from "@/lib/storage";
+import { unregisterPushDevice } from "@/lib/notifications/push-client";
 
 /**
  * Последний пункт рейки, под «Клубами»: аватарка сотрудника и «Выход» под ней — по
@@ -32,6 +33,8 @@ export function RailAccount() {
       destructive: false,
     });
     if (!ok) return;
+    // Этот браузер больше не получает пуши ушедшего (не дольше 3 с).
+    await unregisterPushDevice();
     // scope local: учётная запись у сотрудника-клиента общая с клиентским
     // приложением, глобальный выход (по умолчанию) выкинул бы и оттуда.
     const { error } = await supabase.auth.signOut({ scope: "local" });

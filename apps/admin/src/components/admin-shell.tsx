@@ -8,6 +8,7 @@ import { StudioSwitcher } from "@/components/studio-switcher";
 import { Button } from "@/components/ui/button";
 import { HeaderClientSearch } from "@/components/header-client-search";
 import { BugReportButton } from "@/components/bug-report";
+import { NotifBell } from "@/components/notifications/notif-bell";
 import { FLOATING_STACK_CLASS } from "@/lib/floating-layout";
 import { KbBaseTabs, KbHeaderSearch } from "@/components/kb/kb-header";
 import { WorkdayButton } from "@/components/workday/workday-button";
@@ -161,6 +162,7 @@ export function AdminShell({
                 <Sun />
               </Button>
               {refreshButton("outline")}
+              <NotifBell variant="outline" />
             </div>
           </div>
           <KbBaseTabs />
@@ -231,25 +233,31 @@ export function AdminShell({
 
             <div
               className={cn(
-                "flex shrink-0 items-center justify-end gap-2 lg:flex-1 lg:basis-0 xl:col-start-3",
-                network && "hidden",
+                "flex shrink-0 items-center justify-end gap-2",
+                !network && "lg:flex-1 lg:basis-0 xl:col-start-3",
               )}
             >
-              <button
-                type="button"
-                onClick={() => setKateOpen(true)}
-                onPointerEnter={() => void loadKateChat()}
-                onFocus={() => void loadKateChat()}
-                aria-label="Kate — AI ассистент"
-                className="ai-gradient group relative inline-flex h-10 shrink-0 items-center gap-2 overflow-hidden rounded-full px-4 text-sm font-medium text-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 max-sm:w-10 max-sm:justify-center max-sm:px-0"
-              >
-                <Cat className="h-4 w-4" />
-                <span className="max-sm:hidden">Kate</span>
-              </button>
+              {/* Колокольчик — во всех разделах (уведомления портала). */}
+              <NotifBell />
+              {!network && (
+                <button
+                  type="button"
+                  onClick={() => setKateOpen(true)}
+                  onPointerEnter={() => void loadKateChat()}
+                  onFocus={() => void loadKateChat()}
+                  aria-label="Kate — AI ассистент"
+                  className="ai-gradient group relative inline-flex h-10 shrink-0 items-center gap-2 overflow-hidden rounded-full px-4 text-sm font-medium text-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 max-sm:w-10 max-sm:justify-center max-sm:px-0"
+                >
+                  <Cat className="h-4 w-4" />
+                  <span className="max-sm:hidden">Kate</span>
+                </button>
+              )}
               {/* «Выход» — в рейке слева, под аватаркой сотрудника (RailAccount). */}
-              <div className="hidden items-center gap-2 lg:flex">
-                <StudioSwitcher triggerClassName={MAIN_HEADER_STUDIO} />
-              </div>
+              {!network && (
+                <div className="hidden items-center gap-2 lg:flex">
+                  <StudioSwitcher triggerClassName={MAIN_HEADER_STUDIO} />
+                </div>
+              )}
             </div>
           </header>
         </>

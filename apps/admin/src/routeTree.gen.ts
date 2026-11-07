@@ -52,18 +52,22 @@ import { Route as AuthenticatedAppSettingsRouteImport } from './routes/_authenti
 import { Route as AuthenticatedAppAboutRouteImport } from './routes/_authenticated/app-about'
 import { Route as AuthenticatedAdminShiftsRouteImport } from './routes/_authenticated/admin-shifts'
 import { Route as AuthenticatedScriptsIndexRouteImport } from './routes/_authenticated/scripts/index'
+import { Route as AuthenticatedNotificationsIndexRouteImport } from './routes/_authenticated/notifications/index'
 import { Route as AuthenticatedKbIndexRouteImport } from './routes/_authenticated/kb/index'
 import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated/dashboard/index'
+import { Route as AuthenticatedCompanyIndexRouteImport } from './routes/_authenticated/company/index'
 import { Route as AuthenticatedAnalyticsIndexRouteImport } from './routes/_authenticated/analytics/index'
 import { Route as AuthenticatedAccessIndexRouteImport } from './routes/_authenticated/access/index'
 import { Route as AuthenticatedAcademyIndexRouteImport } from './routes/_authenticated/academy/index'
 import { Route as ApiAnalyticsOpenapiDotjsonRouteImport } from './routes/api/analytics/openapi[.]json'
 import { Route as AuthenticatedScriptsSettingsRouteImport } from './routes/_authenticated/scripts/settings'
 import { Route as AuthenticatedScriptsSectionIdRouteImport } from './routes/_authenticated/scripts/$sectionId'
+import { Route as AuthenticatedNotificationsSettingsRouteImport } from './routes/_authenticated/notifications/settings'
 import { Route as AuthenticatedDashboardSalesRouteImport } from './routes/_authenticated/dashboard/sales'
 import { Route as AuthenticatedDashboardMarketingRouteImport } from './routes/_authenticated/dashboard/marketing'
 import { Route as AuthenticatedDashboardClientsRouteImport } from './routes/_authenticated/dashboard/clients'
 import { Route as AuthenticatedDashboardClassesRouteImport } from './routes/_authenticated/dashboard/classes'
+import { Route as AuthenticatedCompanyStructureRouteImport } from './routes/_authenticated/company/structure'
 import { Route as AuthenticatedAccessStructureRouteImport } from './routes/_authenticated/access/structure'
 import { Route as AuthenticatedAccessLogRouteImport } from './routes/_authenticated/access/log'
 import { Route as AuthenticatedAcademySettingsRouteImport } from './routes/_authenticated/academy/settings'
@@ -368,6 +372,12 @@ const AuthenticatedScriptsIndexRoute =
     path: '/scripts/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedNotificationsIndexRoute =
+  AuthenticatedNotificationsIndexRouteImport.update({
+    id: '/notifications/',
+    path: '/notifications/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedKbIndexRoute = AuthenticatedKbIndexRouteImport.update({
   id: '/kb/',
   path: '/kb/',
@@ -377,6 +387,12 @@ const AuthenticatedDashboardIndexRoute =
   AuthenticatedDashboardIndexRouteImport.update({
     id: '/dashboard/',
     path: '/dashboard/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedCompanyIndexRoute =
+  AuthenticatedCompanyIndexRouteImport.update({
+    id: '/company/',
+    path: '/company/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedAnalyticsIndexRoute =
@@ -415,6 +431,12 @@ const AuthenticatedScriptsSectionIdRoute =
     path: '/scripts/$sectionId',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedNotificationsSettingsRoute =
+  AuthenticatedNotificationsSettingsRouteImport.update({
+    id: '/notifications/settings',
+    path: '/notifications/settings',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedDashboardSalesRoute =
   AuthenticatedDashboardSalesRouteImport.update({
     id: '/dashboard/sales',
@@ -437,6 +459,12 @@ const AuthenticatedDashboardClassesRoute =
   AuthenticatedDashboardClassesRouteImport.update({
     id: '/dashboard/classes',
     path: '/dashboard/classes',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedCompanyStructureRoute =
+  AuthenticatedCompanyStructureRouteImport.update({
+    id: '/company/structure',
+    path: '/company/structure',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedAccessStructureRoute =
@@ -963,18 +991,22 @@ export interface FileRoutesByFullPath {
   '/academy/settings': typeof AuthenticatedAcademySettingsRoute
   '/access/log': typeof AuthenticatedAccessLogRoute
   '/access/structure': typeof AuthenticatedAccessStructureRoute
+  '/company/structure': typeof AuthenticatedCompanyStructureRoute
   '/dashboard/classes': typeof AuthenticatedDashboardClassesRoute
   '/dashboard/clients': typeof AuthenticatedDashboardClientsRoute
   '/dashboard/marketing': typeof AuthenticatedDashboardMarketingRoute
   '/dashboard/sales': typeof AuthenticatedDashboardSalesRoute
+  '/notifications/settings': typeof AuthenticatedNotificationsSettingsRoute
   '/scripts/$sectionId': typeof AuthenticatedScriptsSectionIdRoute
   '/scripts/settings': typeof AuthenticatedScriptsSettingsRoute
   '/api/analytics/openapi.json': typeof ApiAnalyticsOpenapiDotjsonRoute
   '/academy/': typeof AuthenticatedAcademyIndexRoute
   '/access/': typeof AuthenticatedAccessIndexRoute
   '/analytics/': typeof AuthenticatedAnalyticsIndexRoute
+  '/company/': typeof AuthenticatedCompanyIndexRoute
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/kb/': typeof AuthenticatedKbIndexRoute
+  '/notifications/': typeof AuthenticatedNotificationsIndexRoute
   '/scripts/': typeof AuthenticatedScriptsIndexRoute
   '/academy/attempts/$attemptId': typeof AuthenticatedAcademyAttemptsAttemptIdRoute
   '/academy/my/$courseId': typeof AuthenticatedAcademyMyCourseIdRoute
@@ -1099,18 +1131,22 @@ export interface FileRoutesByTo {
   '/academy/settings': typeof AuthenticatedAcademySettingsRoute
   '/access/log': typeof AuthenticatedAccessLogRoute
   '/access/structure': typeof AuthenticatedAccessStructureRoute
+  '/company/structure': typeof AuthenticatedCompanyStructureRoute
   '/dashboard/classes': typeof AuthenticatedDashboardClassesRoute
   '/dashboard/clients': typeof AuthenticatedDashboardClientsRoute
   '/dashboard/marketing': typeof AuthenticatedDashboardMarketingRoute
   '/dashboard/sales': typeof AuthenticatedDashboardSalesRoute
+  '/notifications/settings': typeof AuthenticatedNotificationsSettingsRoute
   '/scripts/$sectionId': typeof AuthenticatedScriptsSectionIdRoute
   '/scripts/settings': typeof AuthenticatedScriptsSettingsRoute
   '/api/analytics/openapi.json': typeof ApiAnalyticsOpenapiDotjsonRoute
   '/academy': typeof AuthenticatedAcademyIndexRoute
   '/access': typeof AuthenticatedAccessIndexRoute
   '/analytics': typeof AuthenticatedAnalyticsIndexRoute
+  '/company': typeof AuthenticatedCompanyIndexRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
   '/kb': typeof AuthenticatedKbIndexRoute
+  '/notifications': typeof AuthenticatedNotificationsIndexRoute
   '/scripts': typeof AuthenticatedScriptsIndexRoute
   '/academy/attempts/$attemptId': typeof AuthenticatedAcademyAttemptsAttemptIdRoute
   '/academy/my/$courseId': typeof AuthenticatedAcademyMyCourseIdRoute
@@ -1237,18 +1273,22 @@ export interface FileRoutesById {
   '/_authenticated/academy/settings': typeof AuthenticatedAcademySettingsRoute
   '/_authenticated/access/log': typeof AuthenticatedAccessLogRoute
   '/_authenticated/access/structure': typeof AuthenticatedAccessStructureRoute
+  '/_authenticated/company/structure': typeof AuthenticatedCompanyStructureRoute
   '/_authenticated/dashboard/classes': typeof AuthenticatedDashboardClassesRoute
   '/_authenticated/dashboard/clients': typeof AuthenticatedDashboardClientsRoute
   '/_authenticated/dashboard/marketing': typeof AuthenticatedDashboardMarketingRoute
   '/_authenticated/dashboard/sales': typeof AuthenticatedDashboardSalesRoute
+  '/_authenticated/notifications/settings': typeof AuthenticatedNotificationsSettingsRoute
   '/_authenticated/scripts/$sectionId': typeof AuthenticatedScriptsSectionIdRoute
   '/_authenticated/scripts/settings': typeof AuthenticatedScriptsSettingsRoute
   '/api/analytics/openapi.json': typeof ApiAnalyticsOpenapiDotjsonRoute
   '/_authenticated/academy/': typeof AuthenticatedAcademyIndexRoute
   '/_authenticated/access/': typeof AuthenticatedAccessIndexRoute
   '/_authenticated/analytics/': typeof AuthenticatedAnalyticsIndexRoute
+  '/_authenticated/company/': typeof AuthenticatedCompanyIndexRoute
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/_authenticated/kb/': typeof AuthenticatedKbIndexRoute
+  '/_authenticated/notifications/': typeof AuthenticatedNotificationsIndexRoute
   '/_authenticated/scripts/': typeof AuthenticatedScriptsIndexRoute
   '/_authenticated/academy/attempts/$attemptId': typeof AuthenticatedAcademyAttemptsAttemptIdRoute
   '/_authenticated/academy/my/$courseId': typeof AuthenticatedAcademyMyCourseIdRoute
@@ -1375,18 +1415,22 @@ export interface FileRouteTypes {
     | '/academy/settings'
     | '/access/log'
     | '/access/structure'
+    | '/company/structure'
     | '/dashboard/classes'
     | '/dashboard/clients'
     | '/dashboard/marketing'
     | '/dashboard/sales'
+    | '/notifications/settings'
     | '/scripts/$sectionId'
     | '/scripts/settings'
     | '/api/analytics/openapi.json'
     | '/academy/'
     | '/access/'
     | '/analytics/'
+    | '/company/'
     | '/dashboard/'
     | '/kb/'
+    | '/notifications/'
     | '/scripts/'
     | '/academy/attempts/$attemptId'
     | '/academy/my/$courseId'
@@ -1511,18 +1555,22 @@ export interface FileRouteTypes {
     | '/academy/settings'
     | '/access/log'
     | '/access/structure'
+    | '/company/structure'
     | '/dashboard/classes'
     | '/dashboard/clients'
     | '/dashboard/marketing'
     | '/dashboard/sales'
+    | '/notifications/settings'
     | '/scripts/$sectionId'
     | '/scripts/settings'
     | '/api/analytics/openapi.json'
     | '/academy'
     | '/access'
     | '/analytics'
+    | '/company'
     | '/dashboard'
     | '/kb'
+    | '/notifications'
     | '/scripts'
     | '/academy/attempts/$attemptId'
     | '/academy/my/$courseId'
@@ -1648,18 +1696,22 @@ export interface FileRouteTypes {
     | '/_authenticated/academy/settings'
     | '/_authenticated/access/log'
     | '/_authenticated/access/structure'
+    | '/_authenticated/company/structure'
     | '/_authenticated/dashboard/classes'
     | '/_authenticated/dashboard/clients'
     | '/_authenticated/dashboard/marketing'
     | '/_authenticated/dashboard/sales'
+    | '/_authenticated/notifications/settings'
     | '/_authenticated/scripts/$sectionId'
     | '/_authenticated/scripts/settings'
     | '/api/analytics/openapi.json'
     | '/_authenticated/academy/'
     | '/_authenticated/access/'
     | '/_authenticated/analytics/'
+    | '/_authenticated/company/'
     | '/_authenticated/dashboard/'
     | '/_authenticated/kb/'
+    | '/_authenticated/notifications/'
     | '/_authenticated/scripts/'
     | '/_authenticated/academy/attempts/$attemptId'
     | '/_authenticated/academy/my/$courseId'
@@ -2059,6 +2111,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedScriptsIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/notifications/': {
+      id: '/_authenticated/notifications/'
+      path: '/notifications'
+      fullPath: '/notifications/'
+      preLoaderRoute: typeof AuthenticatedNotificationsIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/kb/': {
       id: '/_authenticated/kb/'
       path: '/kb'
@@ -2071,6 +2130,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard/'
       preLoaderRoute: typeof AuthenticatedDashboardIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/company/': {
+      id: '/_authenticated/company/'
+      path: '/company'
+      fullPath: '/company/'
+      preLoaderRoute: typeof AuthenticatedCompanyIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/analytics/': {
@@ -2115,6 +2181,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedScriptsSectionIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/notifications/settings': {
+      id: '/_authenticated/notifications/settings'
+      path: '/notifications/settings'
+      fullPath: '/notifications/settings'
+      preLoaderRoute: typeof AuthenticatedNotificationsSettingsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/dashboard/sales': {
       id: '/_authenticated/dashboard/sales'
       path: '/dashboard/sales'
@@ -2141,6 +2214,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard/classes'
       fullPath: '/dashboard/classes'
       preLoaderRoute: typeof AuthenticatedDashboardClassesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/company/structure': {
+      id: '/_authenticated/company/structure'
+      path: '/company/structure'
+      fullPath: '/company/structure'
+      preLoaderRoute: typeof AuthenticatedCompanyStructureRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/access/structure': {
@@ -2744,17 +2824,21 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAcademySettingsRoute: typeof AuthenticatedAcademySettingsRoute
   AuthenticatedAccessLogRoute: typeof AuthenticatedAccessLogRoute
   AuthenticatedAccessStructureRoute: typeof AuthenticatedAccessStructureRoute
+  AuthenticatedCompanyStructureRoute: typeof AuthenticatedCompanyStructureRoute
   AuthenticatedDashboardClassesRoute: typeof AuthenticatedDashboardClassesRoute
   AuthenticatedDashboardClientsRoute: typeof AuthenticatedDashboardClientsRoute
   AuthenticatedDashboardMarketingRoute: typeof AuthenticatedDashboardMarketingRoute
   AuthenticatedDashboardSalesRoute: typeof AuthenticatedDashboardSalesRoute
+  AuthenticatedNotificationsSettingsRoute: typeof AuthenticatedNotificationsSettingsRoute
   AuthenticatedScriptsSectionIdRoute: typeof AuthenticatedScriptsSectionIdRoute
   AuthenticatedScriptsSettingsRoute: typeof AuthenticatedScriptsSettingsRoute
   AuthenticatedAcademyIndexRoute: typeof AuthenticatedAcademyIndexRoute
   AuthenticatedAccessIndexRoute: typeof AuthenticatedAccessIndexRoute
   AuthenticatedAnalyticsIndexRoute: typeof AuthenticatedAnalyticsIndexRoute
+  AuthenticatedCompanyIndexRoute: typeof AuthenticatedCompanyIndexRoute
   AuthenticatedDashboardIndexRoute: typeof AuthenticatedDashboardIndexRoute
   AuthenticatedKbIndexRoute: typeof AuthenticatedKbIndexRoute
+  AuthenticatedNotificationsIndexRoute: typeof AuthenticatedNotificationsIndexRoute
   AuthenticatedScriptsIndexRoute: typeof AuthenticatedScriptsIndexRoute
   AuthenticatedAcademyAttemptsAttemptIdRoute: typeof AuthenticatedAcademyAttemptsAttemptIdRoute
   AuthenticatedAcademyMyCourseIdRoute: typeof AuthenticatedAcademyMyCourseIdRoute
@@ -2869,17 +2953,22 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAcademySettingsRoute: AuthenticatedAcademySettingsRoute,
   AuthenticatedAccessLogRoute: AuthenticatedAccessLogRoute,
   AuthenticatedAccessStructureRoute: AuthenticatedAccessStructureRoute,
+  AuthenticatedCompanyStructureRoute: AuthenticatedCompanyStructureRoute,
   AuthenticatedDashboardClassesRoute: AuthenticatedDashboardClassesRoute,
   AuthenticatedDashboardClientsRoute: AuthenticatedDashboardClientsRoute,
   AuthenticatedDashboardMarketingRoute: AuthenticatedDashboardMarketingRoute,
   AuthenticatedDashboardSalesRoute: AuthenticatedDashboardSalesRoute,
+  AuthenticatedNotificationsSettingsRoute:
+    AuthenticatedNotificationsSettingsRoute,
   AuthenticatedScriptsSectionIdRoute: AuthenticatedScriptsSectionIdRoute,
   AuthenticatedScriptsSettingsRoute: AuthenticatedScriptsSettingsRoute,
   AuthenticatedAcademyIndexRoute: AuthenticatedAcademyIndexRoute,
   AuthenticatedAccessIndexRoute: AuthenticatedAccessIndexRoute,
   AuthenticatedAnalyticsIndexRoute: AuthenticatedAnalyticsIndexRoute,
+  AuthenticatedCompanyIndexRoute: AuthenticatedCompanyIndexRoute,
   AuthenticatedDashboardIndexRoute: AuthenticatedDashboardIndexRoute,
   AuthenticatedKbIndexRoute: AuthenticatedKbIndexRoute,
+  AuthenticatedNotificationsIndexRoute: AuthenticatedNotificationsIndexRoute,
   AuthenticatedScriptsIndexRoute: AuthenticatedScriptsIndexRoute,
   AuthenticatedAcademyAttemptsAttemptIdRoute:
     AuthenticatedAcademyAttemptsAttemptIdRoute,

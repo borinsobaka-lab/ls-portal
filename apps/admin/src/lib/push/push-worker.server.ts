@@ -153,11 +153,17 @@ async function loadVapidKeys(admin: SupabaseClient): Promise<VapidKeyPair> {
   return { publicKey: row.public_key, privateJwk: row.private_jwk };
 }
 
-function getSigner(admin: SupabaseClient): Promise<VapidSigner> {
+/** Подпись VAPID — общая с рассылкой портала (portal-push-worker.server.ts). */
+export function getSigner(admin: SupabaseClient): Promise<VapidSigner> {
   state.signer ??= loadVapidKeys(admin).then(
     (keys) => new VapidSigner(keys, process.env.VAPID_SUBJECT?.trim() || defaultSubject()),
   );
   return state.signer;
+}
+
+/** Ключи перечитать при следующей подписи (сбой чтения или создания). */
+export function resetSigner() {
+  state.signer = null;
 }
 
 /** Иконка приложения для Android — своя у каждого формата (app_install_settings). */
