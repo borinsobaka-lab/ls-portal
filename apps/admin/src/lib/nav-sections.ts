@@ -99,8 +99,6 @@ export type RailSection = {
   icon: NavIcon;
   /** Страницы раздела, кроме самого url (у раздела со своим меню). */
   paths?: string[];
-  /** Не показывать в рейке: раздел открывается не из неё (уведомления — колокольчик в шапке). */
-  noRail?: boolean;
 };
 
 export type NavItem = {
@@ -726,8 +724,8 @@ export const COMPANY_ITEMS: NavItem[] = [
 ];
 
 /**
- * Уведомления портала — колокольчик в шапке, лента и настройки (пуши,
- * «Не беспокоить», установка приложения). В рейке раздела нет.
+ * Уведомления портала — раздел внизу рейки над «Управлением»: лента и
+ * настройки (пуши, «Не беспокоить», установка приложения).
  */
 export const NOTIFICATIONS_URL = "/notifications";
 export const NOTIFICATIONS_SETTINGS_URL = "/notifications/settings";
@@ -788,15 +786,6 @@ const ALL_SECTIONS: RailSection[] = [
     icon: UsersGroupRounded,
     paths: COMPANY_ITEMS.slice(1).map((i) => i.url),
   },
-  {
-    key: "notifications",
-    title: "Уведом\u00ADления",
-    fullTitle: "Уведомления",
-    url: NOTIFICATIONS_URL,
-    icon: Bell,
-    paths: [NOTIFICATIONS_SETTINGS_URL],
-    noRail: true,
-  },
   // Перенос портала аналитики Lady Stretch — в конце рейки (решение
   // владельца 2026-10-26).
   {
@@ -810,9 +799,7 @@ const ALL_SECTIONS: RailSection[] = [
 ];
 
 /** Разделы в рейке — без скрытых (lib/launch.ts). */
-export const SECTIONS: RailSection[] = ALL_SECTIONS.filter(
-  (s) => !HIDDEN_RAIL_SECTIONS.has(s.key) && !s.noRail,
-);
+export const SECTIONS: RailSection[] = ALL_SECTIONS.filter((s) => !HIDDEN_RAIL_SECTIONS.has(s.key));
 
 /**
  * «Управление» внизу рейки (решение владельца 2026-10-25: вместо трёх
@@ -862,6 +849,17 @@ const MANAGE_URLS = MANAGE_GROUPS.flatMap((g) => g.items.map((i) => i.url));
 
 /** Внизу рейки. url — первая страница; AppRail ведёт на первую открытую. */
 export const ADMIN_SECTIONS: RailSection[] = [
+  // Уведомления портала — над «Управлением» (решение владельца 2026-11-07:
+  // в шапке справа колокольчик был незаметен). Счётчик непрочитанного —
+  // на значке (AppRail).
+  {
+    key: "notifications",
+    title: "Уведом\u00ADления",
+    fullTitle: "Уведомления",
+    url: NOTIFICATIONS_URL,
+    icon: Bell,
+    paths: [NOTIFICATIONS_SETTINGS_URL],
+  },
   {
     key: "manage",
     title: "Управ\u00ADление",

@@ -190,7 +190,7 @@ function ThisDeviceCard() {
   return (
     <Section
       title="Уведомления на этом устройстве"
-      description="Пуш придёт, даже когда портал закрыт. Пока вы на портале, пуши не приходят — новое видно в колокольчике."
+      description="Пуш придёт, даже когда портал закрыт. Пока вы на портале, пуши не приходят — новое видно в «Уведомлениях» в меню слева."
     >
       <div className="flex flex-wrap items-center gap-3">
         <span className="text-sm">Сейчас:</span>
@@ -286,7 +286,7 @@ function DndCard({ settings, update }: { settings: PortalSettings; update: Updat
   return (
     <Section
       title="Не беспокоить"
-      description="Пуши не приходят, уведомления копятся в колокольчике."
+      description="Пуши не приходят, уведомления копятся в «Уведомлениях» на портале."
     >
       <div className="flex flex-wrap items-center gap-2">
         {active ? (
@@ -363,7 +363,7 @@ function KindsCard({ settings, update }: { settings: PortalSettings; update: Upd
   return (
     <Section
       title="Что присылать пушем"
-      description="В колокольчик на портале уведомления приходят всегда — здесь только пуши на телефон и компьютер."
+      description="В «Уведомления» на портале приходит всё — здесь только пуши на телефон и компьютер."
     >
       {groups.map((group) => (
         <div key={group} className="space-y-2">

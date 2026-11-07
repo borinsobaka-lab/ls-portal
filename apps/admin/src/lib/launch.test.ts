@@ -45,9 +45,9 @@ describe.skipIf(process.env.VITE_SHOW_CLUBS === "true")(
   () => {
     test("по умолчанию клубы скрыты", () => expect(CLUBS_HIDDEN).toBe(true));
 
-    test("в рейке — база знаний, Академия, Компания, Аналитика и Управление", () => {
+    test("в рейке — база знаний, Академия, Компания, Аналитика, Уведомления и Управление", () => {
       expect(SECTIONS.map((s) => s.key)).toEqual(["kb", "academy", "company", "analytics"]);
-      expect(ADMIN_SECTIONS.map((s) => s.key)).toEqual(["manage"]);
+      expect(ADMIN_SECTIONS.map((s) => s.key)).toEqual(["notifications", "manage"]);
     });
 
     test("в Управлении нет «Клубов» (они в «Сети клубов») и переноса из 1С", () => {

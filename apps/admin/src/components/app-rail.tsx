@@ -3,6 +3,7 @@ import { useAdminAccess } from "@/hooks/use-admin-access";
 import { useActiveStudioId } from "@/hooks/use-active-studio";
 import { useClubRequestsBadge } from "@/hooks/use-client-requests";
 import { useOpenBugReports } from "@/hooks/use-bug-reports";
+import { useNotifUnread } from "@/lib/notifications/data";
 import {
   ADMIN_SECTIONS,
   MANAGE_GROUPS,
@@ -21,6 +22,7 @@ import { CountBadge } from "@/components/ui/status-chip";
 const BADGE_LABELS: Record<string, string> = {
   academy: "ждут внимания",
   manage: "новых сообщений об ошибках",
+  notifications: "непрочитанных",
 };
 
 function RailItem({
@@ -119,6 +121,7 @@ export function AppRail({ onNavigate }: { onNavigate?: () => void }) {
   // Новые сообщения об ошибках — и на «Управлении», не только в его меню:
   // иначе их не видно, пока не откроешь раздел.
   const openBugReports = useOpenBugReports(!!access && hasRight(access, "portal.admin"));
+  const unreadNotifs = useNotifUnread();
 
   // Разделы, закрытые сотруднику в «Доступах», не показываем; заготовки без
   // url — как есть. «Клуб» виден, если открыт раздел рейки, — даже когда
@@ -164,7 +167,9 @@ export function AppRail({ onNavigate }: { onNavigate?: () => void }) {
                     (access.academy?.new_completions ?? 0)
                   : section.key === "manage"
                     ? openBugReports
-                    : undefined
+                    : section.key === "notifications"
+                      ? unreadNotifs
+                      : undefined
             }
             onNavigate={onNavigate}
           />

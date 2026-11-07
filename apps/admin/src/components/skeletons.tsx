@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { useRouter, useRouterState } from "@tanstack/react-router";
-import { Bell, Bug, PanelLeft, RefreshCw, Sun } from "lucide-react";
+import { Bug, PanelLeft, RefreshCw, Sun } from "lucide-react";
 
 import { Skeleton } from "@/components/ui/skeleton";
 import { RailVersion } from "@/components/rail-version";
@@ -151,16 +151,13 @@ export function ShellSkeleton({
             <h1 className="sr-only">{title}</h1>
             {/* Поиск по центру и кнопки — те же колонки, что у AdminShell. */}
             <Skeleton className={cn("h-10", KB_SEARCH_SLOT)} />
-            {/* Тема, «Обновить» и колокольчик — кружки, как в AdminShell. */}
+            {/* Тема и «Обновить» — два кружка, как в AdminShell. */}
             <div className={KB_ACTIONS_SLOT}>
               <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-full border">
                 <Sun className="size-4" />
               </span>
               <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-full border">
                 <RefreshCw className="size-4" />
-              </span>
-              <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-full border">
-                <Bell className="size-4" />
               </span>
             </div>
           </div>
@@ -196,12 +193,6 @@ export function ShellSkeleton({
               <RefreshCw className="h-5 w-5" />
             </span>
           </div>
-          {/* Колокольчик уведомлений — во всех разделах, как в AdminShell. */}
-          {network && (
-            <span className="inline-flex size-10 shrink-0 items-center justify-center">
-              <Bell className="h-5 w-5" />
-            </span>
-          )}
           {!network && (
             <>
               {/* Поиск клиента и «Рабочий день» — как в AdminShell. */}
@@ -210,9 +201,6 @@ export function ShellSkeleton({
                 <Skeleton className="h-10 w-10 shrink-0 rounded-full sm:w-36 lg:max-xl:w-10" />
               </div>
               <div className="flex shrink-0 items-center justify-end gap-2 lg:flex-1 lg:basis-0 xl:col-start-3">
-                <span className="inline-flex size-10 shrink-0 items-center justify-center">
-                  <Bell className="h-5 w-5" />
-                </span>
                 <Skeleton className="h-10 w-10 shrink-0 rounded-full sm:w-20" />
                 {/* Выбор клуба; «Выход» — в рейке (RailAccount), не в шапке. */}
                 <div className="hidden items-center gap-2 lg:flex">

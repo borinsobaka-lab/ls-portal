@@ -8,7 +8,7 @@ import { StudioSwitcher } from "@/components/studio-switcher";
 import { Button } from "@/components/ui/button";
 import { HeaderClientSearch } from "@/components/header-client-search";
 import { BugReportButton } from "@/components/bug-report";
-import { NotifBell } from "@/components/notifications/notif-bell";
+import { useNotifUnread } from "@/lib/notifications/data";
 import { FLOATING_STACK_CLASS } from "@/lib/floating-layout";
 import { KbBaseTabs, KbHeaderSearch } from "@/components/kb/kb-header";
 import { WorkdayButton } from "@/components/workday/workday-button";
@@ -60,6 +60,26 @@ export function FloatingActions({ children }: { children: ReactNode }) {
     >
       {children}
     </div>
+  );
+}
+
+/**
+ * Кнопка меню на узком экране (меню и рейка — в шторке). Есть непрочитанные
+ * уведомления — красная точка: раздел «Уведомления» в рейке, а рейку на
+ * телефоне без шторки не видно.
+ */
+function MenuTrigger() {
+  const unread = useNotifUnread();
+  return (
+    <span className="relative -ml-1 inline-flex shrink-0 md:hidden">
+      <SidebarTrigger className="size-10" />
+      {unread > 0 && (
+        <span
+          aria-label={`Непрочитанных уведомлений: ${unread}`}
+          className="pointer-events-none absolute top-1.5 right-1.5 size-2.5 rounded-full bg-destructive ring-2 ring-background"
+        />
+      )}
+    </span>
   );
 }
 
@@ -141,7 +161,7 @@ export function AdminShell({
         // статьи и так крупно над текстом.
         <header className="shrink-0 border-b bg-background text-foreground">
           <div className={KB_HEADER_ROW}>
-            <SidebarTrigger className="-ml-1 size-10 md:hidden" />
+            <MenuTrigger />
             <h1 className="sr-only">{title}</h1>
             {kbBaseId && (
               <KbHeaderSearch key={kbBaseId} baseId={kbBaseId} className={KB_SEARCH_SLOT} />
@@ -162,7 +182,6 @@ export function AdminShell({
                 <Sun />
               </Button>
               {refreshButton("outline")}
-              <NotifBell variant="outline" />
             </div>
           </div>
           <KbBaseTabs />
@@ -202,7 +221,7 @@ export function AdminShell({
             На узком экране боковое меню уходит в шторку и кнопка сворачивания
             внутри него недоступна — открыть меню больше нечем.
           */}
-              <SidebarTrigger className="-ml-1 size-10 md:hidden" />
+              <MenuTrigger />
               {/*
             Заголовок раздела: font-semibold — тот же вес, что у заголовков
             диалогов и карточек, и он же прописан в дизайн-системе как вес
@@ -233,31 +252,25 @@ export function AdminShell({
 
             <div
               className={cn(
-                "flex shrink-0 items-center justify-end gap-2",
-                !network && "lg:flex-1 lg:basis-0 xl:col-start-3",
+                "flex shrink-0 items-center justify-end gap-2 lg:flex-1 lg:basis-0 xl:col-start-3",
+                network && "hidden",
               )}
             >
-              {/* Колокольчик — во всех разделах (уведомления портала). */}
-              <NotifBell />
-              {!network && (
-                <button
-                  type="button"
-                  onClick={() => setKateOpen(true)}
-                  onPointerEnter={() => void loadKateChat()}
-                  onFocus={() => void loadKateChat()}
-                  aria-label="Kate — AI ассистент"
-                  className="ai-gradient group relative inline-flex h-10 shrink-0 items-center gap-2 overflow-hidden rounded-full px-4 text-sm font-medium text-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 max-sm:w-10 max-sm:justify-center max-sm:px-0"
-                >
-                  <Cat className="h-4 w-4" />
-                  <span className="max-sm:hidden">Kate</span>
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={() => setKateOpen(true)}
+                onPointerEnter={() => void loadKateChat()}
+                onFocus={() => void loadKateChat()}
+                aria-label="Kate — AI ассистент"
+                className="ai-gradient group relative inline-flex h-10 shrink-0 items-center gap-2 overflow-hidden rounded-full px-4 text-sm font-medium text-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 max-sm:w-10 max-sm:justify-center max-sm:px-0"
+              >
+                <Cat className="h-4 w-4" />
+                <span className="max-sm:hidden">Kate</span>
+              </button>
               {/* «Выход» — в рейке слева, под аватаркой сотрудника (RailAccount). */}
-              {!network && (
-                <div className="hidden items-center gap-2 lg:flex">
-                  <StudioSwitcher triggerClassName={MAIN_HEADER_STUDIO} />
-                </div>
-              )}
+              <div className="hidden items-center gap-2 lg:flex">
+                <StudioSwitcher triggerClassName={MAIN_HEADER_STUDIO} />
+              </div>
             </div>
           </header>
         </>

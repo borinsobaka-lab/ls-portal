@@ -45,7 +45,7 @@ export type PushDeviceRow = {
 
 const KEY = "notif_items";
 
-/** Счётчик на колокольчике: раз в 30 секунд и при возврате во вкладку. */
+/** Счётчик «Уведомлений» в рейке: раз в 30 секунд и при возврате во вкладку. */
 export const notifUnreadQuery = queryOptions({
   queryKey: [KEY, "unread"],
   queryFn: async () => (await unwrap<number | null>(supabase.rpc("notif_unread_count"))) ?? 0,
