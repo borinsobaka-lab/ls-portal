@@ -55,6 +55,14 @@ describe("дерево базы знаний", () => {
     expect(articleCount(index, "empty")).toBe(0);
   });
 
+  test("видно шире раздела выше (свой доступ) — на верхнем уровне", () => {
+    // Читателю пришли статья и её вложенная, а папки выше нет.
+    const partial = indexTree([n("trainers", "hidden"), n("hammocks", "trainers"), n("top", null)]);
+    expect(childrenOf(partial, null).map((x) => x.id)).toEqual(["trainers", "top"]);
+    expect(childrenOf(partial, "trainers").map((x) => x.id)).toEqual(["hammocks"]);
+    expect(ancestorsOf(partial, "hammocks").map((x) => x.id)).toEqual(["trainers"]);
+  });
+
   test("читателю пустые папки не показываются", () => {
     expect(readerNodes(nodes).map((x) => x.id)).toEqual(["LS", "admin", "open", "close", "office"]);
   });

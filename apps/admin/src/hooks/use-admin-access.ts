@@ -81,9 +81,11 @@ export function useAdminAccess(): AdminAccess | null {
       ) as AccessRight[]);
   const kbAdmin = rights.includes("kb.admin");
   const kb: Record<string, KbLevel> = {};
+  // Базы отдаёт RLS: выданные целиком и те, где открыт хоть один раздел
+  // (свой список «кто видит», db/migrations/2026-11-07_kb_section_access.sql)
+  // — во второй читатель видит только свои разделы.
   for (const base of kbBases ?? []) {
-    const level = kbLevelOf(kbAdmin, kbGrants ?? [], base.id);
-    if (level) kb[base.id] = level;
+    kb[base.id] = kbLevelOf(kbAdmin, kbGrants ?? [], base.id) ?? "view";
   }
   return {
     rights,

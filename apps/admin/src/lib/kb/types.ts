@@ -47,6 +47,10 @@ export type KbTreeNode = {
   published_by: string | null;
   /** Автор, выбранный редактором; null — автор тот, кто опубликовал. */
   author_id: string | null;
+  /** Свой список «кто видит» (иначе — как у раздела выше или у базы). */
+  access_custom: boolean;
+  /** Чей список действует: свой узел или ближайший выше; null — доступ к базе. */
+  access_node_id: string | null;
 };
 
 /** Статья целиком: опубликованный текст (документ BlockNote). */

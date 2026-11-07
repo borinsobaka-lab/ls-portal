@@ -32,7 +32,7 @@ export const KB_TAGS_KEY = "kb_tags";
 export const KB_NODE_TAGS_KEY = "kb_node_tags";
 
 const TREE_COLUMNS =
-  "id, base_id, parent_id, kind, title, description, icon, protect, feedback_enabled, pager_enabled, sort_order, status, reader_visible, created_at, updated_at, published_at, published_by, author_id";
+  "id, base_id, parent_id, kind, title, description, icon, protect, feedback_enabled, pager_enabled, sort_order, status, reader_visible, created_at, updated_at, published_at, published_by, author_id, access_custom, access_node_id";
 
 /** Доступные базы — для вкладок в шапке и прав; заранее грузит проверка входа. */
 export const kbBasesQuery = queryOptions({
@@ -159,6 +159,10 @@ export function kbErrorText(error: unknown, fallback = "Не удалось со
   if (message.includes("kb_tag_not_article")) return "Теги ставятся только статьям";
   if (message.includes("kb_bad_author"))
     return "Автором можно выбрать только действующего пользователя портала";
+  if (message.includes("kb_access_bad_subject"))
+    return "Кого-то из списка уже нет в портале — обновите страницу и проверьте список";
+  if (message.includes("kb_access_too_many"))
+    return "В списке доступа может быть не больше 200 строк";
   if (message.includes("kb_not_found")) return "Не нашлось — возможно, уже удалили";
   if (message.includes("kb_forbidden") || message.includes("row-level security"))
     return "Нет права на правку этой базы знаний";

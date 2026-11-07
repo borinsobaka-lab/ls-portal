@@ -29,7 +29,8 @@ Tailwind 4 + shadcn/radix. Пакетный менеджер — bun.
   `lib/color-contrast.test.ts`, телефон в таблицах — `lib/format-phone.test.ts`;
   база знаний — дерево `lib/kb/tree.test.ts`, документ и размер файла
   `lib/kb/document.test.ts`, сравнение версий `lib/kb/diff.test.ts`,
-  аналитика чтения `lib/kb/analytics.test.ts`, теги `lib/kb/tags.test.ts`;
+  аналитика чтения `lib/kb/analytics.test.ts`, теги `lib/kb/tags.test.ts`,
+  «Кто видит» раздела `lib/kb/access-rules.test.ts`;
   «Рабочий день» — время по Тбилиси, просрочка, порядок `lib/workday/logic.test.ts`;
   «Аналитика» — права `lib/analytics/access.test.ts`, ключи интеграций
   `lib/analytics/server/secrets.test.ts`, обработка 1С (чтение .xlsx,
@@ -487,7 +488,17 @@ GoTrue и видит только хук писем — в браузер он �
   названием, полужирный, `text-brand-on-light`. Скелетоны — `ShellSkeleton
 kb`. Доступ — ролями «Пользователей и ролей» (право «База знаний»:
   «Просмотр / Правка» на базу или на все базы, ACCESS.md; строки
-  `kb_grants` пишет пересчёт прав);
+  `kb_grants` пишет пересчёт прав); внутри базы — «Кто видит…» у раздела,
+  папки и статьи (решение владельца 2026-11-07, как в Platrum): «⋯» в
+  дереве, у папки и у статьи (редакторам) → окно
+  `components/kb/access-dialog.tsx` (`KbAccessForm`: «Как выше / в базе» или
+  «Свой список» — должности, подразделения, сотрудники, роли; RPC
+  `kb_node_access_get` / `kb_node_access_save`; логика — `lib/kb/access-rules.ts`
+  + тест), в дереве у узла со своим списком — замок (только редактору).
+  Читатель получает от RLS только видимое: статья, открытая шире раздела
+  выше, стоит у него на верхнем уровне базы (`indexTree` поднимает узел без
+  пришедшего родителя); база, где открыт только раздел, — во вкладках с
+  уровнем `view` (`useAdminAccess`). Правят по-прежнему редакторы базы;
   права в интерфейсе — `useAdminAccess().kb` (`lib/kb/access.ts`),
   `canOpenPath` для `/kb/<база>`. Роуты: `/kb/$baseId` (главная базы),
   `/kb/$baseId/$nodeId` (папка или статья; `?edit=1` — сразу в редактор),

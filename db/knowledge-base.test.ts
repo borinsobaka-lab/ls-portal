@@ -969,6 +969,208 @@ describe.skipIf(!url)("база знаний (база)", () => {
       await asServer(tx);
     }));
 
+  /** Сотрудник клуба — человек портала с должностью (без доступа к базе). */
+  async function portalStaff(tx: Tx, studioId: string, positionId: string | null = null) {
+    const id = await staff(tx, studioId);
+    await tx`insert into portal_users (user_id, position_id) values (${id}, ${positionId})`;
+    return id;
+  }
+
+  async function saveAccess(tx: Tx, userId: string, nodeId: string, rules: Row[] | null) {
+    await as(tx, userId);
+    await tx`select kb_node_access_save(${nodeId}, ${rules !== null}, ${JSON.stringify(rules ?? [])}::text::jsonb)`;
+    await asServer(tx);
+  }
+
+  test("доступ к разделу: свой список заменяет базу, наследуется, бывает шире и уже", () =>
+    scenario(async (tx) => {
+      const t = await setup(tx);
+      const [{ id: pos }] = await tx`insert into org_positions (name) values ('Менеджер офиса') returning id`;
+      const [{ id: unit }] = await tx`insert into org_units (name) values ('Штаб тренеров') returning id`;
+      const [{ id: role }] = await tx`insert into access_roles (name) values ('Партнёры') returning id`;
+      const manager = await portalStaff(tx, t.s, pos as string);
+      const head = await portalStaff(tx, t.s);
+      const coach = await portalStaff(tx, t.s);
+      const partner = await portalStaff(tx, t.s);
+      await tx`insert into org_unit_members (unit_id, user_id, member_role)
+               values (${unit}, ${head}, 'head'), (${unit}, ${coach}, 'member')`;
+      await tx`insert into access_assignments (role_id, subject_type, user_id) values (${role}, 'user', ${partner})`;
+
+      const office = await node(tx, t.b, { kind: "folder", title: "Офис" });
+      const memo = await node(tx, t.b, { parent: office, title: "Регламент офиса" });
+      const coaches = await node(tx, t.b, { parent: office, title: "Тренерам" });
+      const sub = await node(tx, t.b, { parent: coaches, title: "Стирка гамаков" });
+
+      // Читатель базы не задаёт доступ; неизвестный субъект — ошибка.
+      await as(tx, t.reader);
+      expect(
+        await failure(tx, () => tx`select kb_node_access_save(${office}, true, '[]'::jsonb)`),
+      ).toContain("kb_forbidden");
+      await as(tx, t.editor);
+      expect(
+        await failure(
+          tx,
+          () =>
+            tx`select kb_node_access_save(${office}, true, ${JSON.stringify([
+              { subject_type: "position", subject_id: crypto.randomUUID() },
+            ])}::text::jsonb)`,
+        ),
+      ).toContain("kb_access_bad_subject");
+      expect(
+        await failure(tx, () => tx`select kb_node_access_save(${office}, true, '"[]"'::jsonb)`),
+      ).toContain("kb_access_bad_rules");
+      await asServer(tx);
+
+      // Раздел «Офис» — должности; статья «Тренерам» — своя: руководителям штаба.
+      await saveAccess(tx, t.editor, office, [{ subject_type: "position", subject_id: pos }]);
+      await saveAccess(tx, t.editor, coaches, [
+        { subject_type: "unit", subject_id: unit, unit_members: "heads", with_subunits: false },
+        { subject_type: "role", subject_id: role },
+      ]);
+      const [o] = await tx`select access_node_id from kb_nodes where id = ${memo}`;
+      expect(o.access_node_id).toBe(office);
+      const [s2] = await tx`select access_node_id from kb_nodes where id = ${sub}`;
+      expect(s2.access_node_id).toBe(coaches);
+
+      const all = ["Администратор", "Открытие смены", "Офис", "Регламент офиса", "Стирка гамаков", "Тренерам", "Черновик"];
+      expect(await visible(tx, t.owner, t.b)).toEqual(all);
+      expect(await visible(tx, t.editor, t.b)).toEqual(all);
+      // Читатель базы раздела «Офис» не видит.
+      expect(await visible(tx, t.reader, t.b)).toEqual(["Администратор", "Открытие смены"]);
+      // Должность — только «Офис», без статьи со своим списком.
+      expect(await visible(tx, manager, t.b)).toEqual(["Офис", "Регламент офиса"]);
+      // Руководитель штаба — статью шире раздела (раздела выше не видит); сотрудник штаба — ничего.
+      expect(await visible(tx, head, t.b)).toEqual(["Стирка гамаков", "Тренерам"]);
+      expect(await visible(tx, coach, t.b)).toEqual([]);
+      expect(await visible(tx, partner, t.b)).toEqual(["Стирка гамаков", "Тренерам"]);
+
+      // База видна во вкладках и тому, кому открыт только раздел.
+      await as(tx, manager);
+      expect(await tx`select id from kb_bases where id = ${t.b}`).toHaveLength(1);
+      const [lvl] = await tx`select kb_base_level(${manager}, ${t.b}) as l, kb_node_level(${manager}, ${coaches}) as n`;
+      expect(lvl.l).toBe("view");
+      expect(lvl.n).toBeNull();
+      await as(tx, coach);
+      expect(await tx`select id from kb_bases where id = ${t.b}`).toHaveLength(0);
+
+      // Чтение недоступного не пишется; доступного — пишется.
+      await as(tx, t.reader);
+      await tx`select kb_mark_read(${memo})`;
+      await as(tx, manager);
+      await tx`select kb_mark_read(${memo})`;
+      await asServer(tx);
+      const reads = (await tx`select user_id from kb_reads where node_id = ${memo}`) as Row[];
+      expect(reads.map((r) => r.user_id)).toEqual([manager]);
+
+      // Отчёты: кто видит статью (без администраторов, с редактором базы).
+      const aud = (await tx`select user_id from kb_article_audience(${sub})`) as Row[];
+      expect(aud.map((r) => r.user_id).sort()).toEqual([t.editor, head, partner].sort());
+      const audMemo = (await tx`select user_id from kb_article_audience(${memo})`) as Row[];
+      expect(audMemo.map((r) => r.user_id).sort()).toEqual([t.editor, manager].sort());
+      const audPub = (await tx`select user_id from kb_article_audience(${t.pub})`) as Row[];
+      expect(audPub.map((r) => r.user_id).sort()).toEqual([t.editor, t.reader].sort());
+      const people = (await tx`select user_id, level from kb_base_people(${t.b})`) as Row[];
+      expect(Object.fromEntries(people.map((r) => [r.user_id, r.level]))).toEqual({
+        [t.reader]: "view",
+        [t.editor]: "edit",
+        [manager]: "view",
+        [head]: "view",
+        [partner]: "view",
+      });
+      const pairs = (await tx`select node_id, user_id from kb_audience_pairs(${t.b})`) as Row[];
+      expect(pairs.filter((p) => p.user_id === t.reader).map((p) => p.node_id)).toEqual([t.pub]);
+
+      // Что задано: редактору — список и сколько видят.
+      await as(tx, t.editor);
+      const [{ g }] = await tx`select kb_node_access_get(${sub}) as g`;
+      expect(g.custom).toBe(false);
+      expect(g.source_id).toBe(coaches);
+      expect(g.source_title).toBe("Тренерам");
+      expect(g.rules).toHaveLength(2);
+      expect(g.viewers).toBe(3);
+      await as(tx, t.reader);
+      expect(await failure(tx, () => tx`select kb_node_access_get(${sub})`)).toContain("kb_forbidden");
+      // Таблица списков браузеру закрыта.
+      expect(await failure(tx, () => tx`select * from kb_node_access`)).toContain("permission denied");
+      await asServer(tx);
+
+      // «Как выше» — снова по базе.
+      await saveAccess(tx, t.editor, office, null);
+      expect(await visible(tx, t.reader, t.b)).toEqual(["Администратор", "Открытие смены", "Офис", "Регламент офиса"]);
+      expect(await visible(tx, manager, t.b)).toEqual([]);
+      expect(await tx`select 1 from kb_node_access where node_id = ${office}`).toHaveLength(0);
+
+      // Пустой свой список — только редакторам.
+      await saveAccess(tx, t.editor, office, []);
+      expect(await visible(tx, t.reader, t.b)).toEqual(["Администратор", "Открытие смены"]);
+      expect(await visible(tx, head, t.b)).toEqual(["Стирка гамаков", "Тренерам"]);
+    }));
+
+  test("доступ к разделу: перенос, корзина, копия, файлы, заблокированный человек", () =>
+    scenario(async (tx) => {
+      const t = await setup(tx);
+      const [{ id: pos }] = await tx`insert into org_positions (name) values ('Менеджер офиса') returning id`;
+      const manager = await portalStaff(tx, t.s, pos as string);
+      const office = await node(tx, t.b, { kind: "folder", title: "Офис" });
+      const memo = await node(tx, t.b, { parent: office, title: "Регламент офиса" });
+      await saveAccess(tx, t.editor, office, [{ subject_type: "position", subject_id: pos }]);
+
+      // Перенос из закрытого раздела наверх — снова по базе; обратно — по разделу.
+      await as(tx, t.editor);
+      await tx`select kb_move_node(${memo}, null, 0)`;
+      await asServer(tx);
+      expect(await visible(tx, t.reader, t.b)).toContain("Регламент офиса");
+      await as(tx, t.editor);
+      await tx`select kb_move_node(${memo}, ${office}, 0)`;
+      await asServer(tx);
+      expect(await visible(tx, t.reader, t.b)).not.toContain("Регламент офиса");
+
+      // Файлы статьи закрытого раздела: читателю базы — нет, должности — да.
+      await tx`grant usage on schema storage to authenticated`;
+      await tx`grant select on storage.objects to authenticated`;
+      await tx`insert into storage.objects (bucket_id, name)
+               values ('kb-media', ${`${t.b}/${memo}/a.png`}), ('kb-media', ${`${t.b}/${t.pub}/b.png`})`;
+      const files = async (u: string) => {
+        await as(tx, u);
+        const rows = (await tx`select name from storage.objects where bucket_id = 'kb-media' order by name`) as Row[];
+        await asServer(tx);
+        return rows.map((r) => (r.name as string).split("/")[1]);
+      };
+      expect(await files(t.reader)).toEqual([t.pub]);
+      expect(await files(manager)).toEqual([memo]);
+      expect((await files(t.editor)).sort()).toEqual([memo, t.pub].sort());
+
+      // Копия статьи со своим списком — с тем же списком.
+      await saveAccess(tx, t.editor, memo, [{ subject_type: "user", subject_id: t.reader }]);
+      await as(tx, t.editor);
+      const [{ kb_copy_node: copy }] = await tx`select kb_copy_node(${memo})`;
+      await asServer(tx);
+      const [c] = await tx`select access_custom, access_node_id from kb_nodes where id = ${copy}`;
+      expect(c.access_custom).toBe(true);
+      expect(c.access_node_id).toBe(copy);
+      expect(await tx`select 1 from kb_node_access where node_id = ${copy} and subject_id = ${t.reader}`).toHaveLength(1);
+
+      // Корзина: раздел возвращается со своими списками.
+      await as(tx, t.editor);
+      const [{ kb_trash_node: trashId }] = await tx`select kb_trash_node(${office})`;
+      await asServer(tx);
+      expect(await tx`select 1 from kb_node_access where base_id = ${t.b}`).toHaveLength(0);
+      await as(tx, t.editor);
+      await tx`select kb_trash_restore(${trashId})`;
+      await asServer(tx);
+      const back = (await tx`select id, access_custom, access_node_id from kb_nodes where id in (${office}, ${memo})`) as Row[];
+      expect(Object.fromEntries(back.map((r) => [r.id, [r.access_custom, r.access_node_id]]))).toEqual({
+        [office]: [true, office],
+        [memo]: [true, memo],
+      });
+      expect(await visible(tx, manager, t.b)).toEqual(["Офис"]);
+      expect(await visible(tx, t.reader, t.b)).toContain("Регламент офиса");
+
+      // Заблокированный (не человек портала) не видит и выданного разделу.
+      await tx`delete from user_roles where user_id = ${manager}`;
+      expect(await visible(tx, manager, t.b)).toEqual([]);
+    }));
+
   test("файлы: читатель базы читает, пишет только редактор, чужая база закрыта", () =>
     scenario(async (tx) => {
       const t = await setup(tx);

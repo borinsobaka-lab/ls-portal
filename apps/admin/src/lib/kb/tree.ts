@@ -17,10 +17,10 @@ export function indexTree(nodes: KbTreeNode[]): KbTreeIndex {
   const byId = new Map(nodes.map((n) => [n.id, n]));
   const children = new Map<string | null, KbTreeNode[]>();
   for (const n of nodes) {
-    // Родитель не пришёл (читателю не видна папка выше) — строку не показываем:
-    // RLS такого не отдаёт, но кэш между запросами может.
+    // Родитель не пришёл: статья или папка открыта шире раздела выше
+    // (свой список «кто видит», db/migrations/2026-11-07_kb_section_access.sql)
+    // — читателю она видна на верхнем уровне базы, как в Platrum.
     const parent = n.parent_id && byId.has(n.parent_id) ? n.parent_id : null;
-    if (n.parent_id && parent === null) continue;
     const list = children.get(parent) ?? [];
     list.push(n);
     children.set(parent, list);

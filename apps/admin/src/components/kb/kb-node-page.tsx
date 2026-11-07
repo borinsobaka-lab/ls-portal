@@ -18,6 +18,7 @@ import {
   LayoutTemplate,
   Link2,
   Loader2,
+  Lock,
   Pencil,
   Send,
   Settings2,
@@ -35,6 +36,7 @@ import { PersonButton } from "@/components/people/person-card";
 import { DocumentText, Folder } from "@/components/nav-icons";
 import { KbArticleBodySkeleton, KbFolderBodySkeleton } from "@/components/page-skeletons";
 import { KbBaseForm } from "@/components/kb/base-dialog";
+import { KbAccessForm } from "@/components/kb/access-dialog";
 import { KbArticlePager, KbArticleRating } from "@/components/kb/article-footer";
 import { KbAuthorPicker } from "@/components/kb/author-picker";
 import { KbPageSettingsForm } from "@/components/kb/page-settings-dialog";
@@ -618,7 +620,7 @@ function FolderView({
   const { data: drafts } = useKbDrafts(baseId, canEdit);
   const draftIds = new Set((drafts ?? []).map((d) => d.node_id));
   const [dialog, setDialog] = useState<
-    "article" | "folder" | "rename" | "move" | "base" | "tags" | null
+    "article" | "folder" | "rename" | "move" | "base" | "tags" | "access" | null
   >(null);
   const items = childrenOf(index, folder?.id ?? null);
   // Раздел (папка верхнего уровня) — со своей иконкой, как в меню.
@@ -689,6 +691,7 @@ function FolderView({
               hasChildren={items.length > 0}
               onRename={() => setDialog("rename")}
               onMove={() => setDialog("move")}
+              onAccess={() => setDialog("access")}
             />
           )}
           {!folder && base && (
@@ -753,6 +756,9 @@ function FolderView({
           )}
           {dialog === "base" && base && <KbBaseForm base={base} onDone={() => setDialog(null)} />}
           {dialog === "tags" && <KbTagsManageForm baseId={baseId} onDone={() => setDialog(null)} />}
+          {dialog === "access" && folder && (
+            <KbAccessForm baseId={baseId} node={folder} onDone={() => setDialog(null)} />
+          )}
           {dialog === "move" && folder && (
             <KbMoveForm
               node={folder}
@@ -843,6 +849,7 @@ function NodeMenu({
   onSaveTemplate,
   onProtect,
   onSettings,
+  onAccess,
 }: {
   baseId: string;
   node: KbTreeNode;
@@ -855,6 +862,8 @@ function NodeMenu({
   onSaveTemplate?: () => void;
   onProtect?: () => void;
   onSettings?: () => void;
+  /** «Кто видит…» — свой список у раздела, папки, статьи. */
+  onAccess?: () => void;
 }) {
   const actions = useKbActions(baseId);
   const navigate = useNavigate();
@@ -925,6 +934,7 @@ function NodeMenu({
           {onSaveTemplate && item("Сохранить как шаблон…", LayoutTemplate, onSaveTemplate)}
           {onSettings && item("Настройки страницы…", Settings2, onSettings)}
           {onProtect && item("Защита содержимого…", ShieldCheck, onProtect)}
+          {onAccess && item("Кто видит…", Lock, onAccess)}
           {isFolder &&
             node.status === "draft" &&
             item("Опубликовать папку", Send, () => actions.setStatus(node, "published"))}
@@ -1053,6 +1063,7 @@ function ArticleView({
     | "protect"
     | "settings"
     | "child"
+    | "access"
     | null
   >(null);
   const [pickHeadings, setPickHeadings] = useState<KbHeading[]>([]);
@@ -1315,6 +1326,7 @@ function ArticleView({
                       onSaveTemplate={() => setDialog("template")}
                       onProtect={() => setDialog("protect")}
                       onSettings={() => setDialog("settings")}
+                      onAccess={() => setDialog("access")}
                     />
                   )}
                 </div>
@@ -1500,6 +1512,9 @@ function ArticleView({
               defaultTitle={node.title}
               onDone={() => setDialog(null)}
             />
+          )}
+          {dialog === "access" && (
+            <KbAccessForm baseId={baseId} node={node} onDone={() => setDialog(null)} />
           )}
           {dialog === "protect" && (
             <KbProtectForm

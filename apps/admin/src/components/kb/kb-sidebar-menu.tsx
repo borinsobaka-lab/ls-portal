@@ -11,6 +11,7 @@ import {
   FilePlus,
   FolderInput,
   FolderPlus,
+  Lock,
   Pencil,
   Send,
   Trash2,
@@ -21,6 +22,7 @@ import { toast } from "sonner";
 import { ChartSquare } from "@/components/nav-icons";
 import { kbSectionIcon } from "@/lib/kb/icons";
 import { DropIndicator } from "@/components/kb/drop-indicator";
+import { KbAccessForm } from "@/components/kb/access-dialog";
 import { KbMoveForm, KbNodeTitleForm } from "@/components/kb/node-dialogs";
 import { useKbActions } from "@/components/kb/use-kb-actions";
 import { useConfirm } from "@/components/confirm-dialog";
@@ -93,6 +95,7 @@ type Dialogs =
   | { kind: "create"; nodeKind: KbKind; parentId: string | null }
   | { kind: "rename"; node: KbTreeNode }
   | { kind: "move"; node: KbTreeNode }
+  | { kind: "access"; node: KbTreeNode }
   | null;
 
 /**
@@ -209,6 +212,12 @@ export function KbSidebarMenu({ baseId, onNavigate }: { baseId: string; onNaviga
       label: "Переместить…",
       icon: FolderInput,
       onSelect: () => setDialog({ kind: "move", node }),
+    });
+    // Кто видит — как в Platrum: свой список у раздела, папки, статьи.
+    items.push({
+      label: "Кто видит…",
+      icon: Lock,
+      onSelect: () => setDialog({ kind: "access", node }),
     });
     if (!isFolder) {
       items.push({ label: "Сделать копию", icon: Copy, onSelect: () => actions.copy(node.id) });
@@ -426,6 +435,9 @@ export function KbSidebarMenu({ baseId, onNavigate }: { baseId: string; onNaviga
               onDone={() => setDialog(null)}
             />
           )}
+          {dialog?.kind === "access" && (
+            <KbAccessForm baseId={baseId} node={dialog.node} onDone={() => setDialog(null)} />
+          )}
           {dialog?.kind === "move" && (
             <KbMoveForm
               node={dialog.node}
@@ -557,6 +569,10 @@ function TreeRow({
           >
             {node.title || "Без названия"}
           </span>
+          {canEdit && node.access_custom && (
+            // Свой список «кто видит» — редактору видно, где доступ отличается.
+            <Lock className="size-3 shrink-0 text-white/45" aria-label="Свой список «кто видит»" />
+          )}
           {expandable && (
             // Шеврон сворачивает и раскрывает, не открывая папку (статью); с
             // клавиатуры — стрелками на строке.

@@ -1353,6 +1353,28 @@ DEPLOY.md.
   статья, только `is_portal_user`, иначе `kb_bad_author`); корзина возвращает
   автора триггером `kb_trash_author_ad`; актуальные определения `kb_authors`,
   `kb_audience_pairs`, `kb_article_audience` (автор — не читатель) — здесь.
+  **Кто видит раздел, папку, статью** (решение владельца 2026-11-07, «как в
+  Platrum»; KNOWLEDGE_BASE.md): `db/migrations/2026-11-07_kb_section_access.sql`
+  — у узла свой список «кто видит» (`kb_nodes.access_custom` + строки
+  `kb_node_access`: сотрудник, должность, подразделение — все или
+  руководители, с подразделениями ниже или без, — роль портала); без него
+  действует список ближайшего раздела выше (`kb_nodes.access_node_id`,
+  ставят триггеры `kb_nodes_zaccess_*`), без него — доступ к базе из ролей
+  (`kb_grants`). Свой список заменяет список выше (может быть и шире, и уже),
+  пустой — видят только редакторы базы и администраторы баз. Редакторы базы
+  видят и правят всё и задают списки (RPC `kb_node_access_get` /
+  `kb_node_access_save`; таблица закрыта браузеру); правка по разделам —
+  следующим шагом. Кому открыт только раздел — видит базу
+  (`auth_kb_view_base_ids`, `kb_base_level` = `view`) и только свои разделы.
+  Хелперы: `kb_node_level`, `auth_kb_access_node_ids`, `auth_kb_grant_base_ids`
+  (базы, выданные целиком; прежнее `auth_kb_view_base_ids`),
+  `kb_user_access_node_ids`, `kb_node_access_users` (внутренние). Актуальные
+  определения политик «kb_nodes read» и «kb-media read» (файл статьи — по
+  видимости статьи), `kb_base_level`, `auth_kb_view_base_ids`, `kb_mark_read`,
+  `kb_track_reading`, `kb_rate`, `acad_course_sources`, `kb_base_people`,
+  `kb_audience_pairs`, `kb_article_audience`, `kb_mention_candidates`,
+  `kb_copy_node` — здесь; корзина уносит и возвращает списки триггерами
+  `kb_trash_access_bi` / `_ad`. Тесты — `db/knowledge-base.test.ts`.
   **Вход по логину и паролю Platrum** (решение владельца 2026-11-01):
   `db/migrations/2026-11-01_zz_portal_logins.sql` — `portal_logins`
   (человек × логин, уникален без регистра, хэш scrypt — считает сервер
