@@ -2,6 +2,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { useAdminAccess } from "@/hooks/use-admin-access";
 import { useActiveStudioId } from "@/hooks/use-active-studio";
 import { useClubRequestsBadge } from "@/hooks/use-client-requests";
+import { useOpenBugReports } from "@/hooks/use-bug-reports";
 import {
   ADMIN_SECTIONS,
   MANAGE_GROUPS,
@@ -10,11 +11,17 @@ import {
   railSectionKey,
   type RailSection,
 } from "@/lib/nav-sections";
-import { canOpenRail } from "@/lib/admin-access";
+import { canOpenRail, hasRight } from "@/lib/admin-access";
 import { cn } from "@/lib/utils";
 import { RailSkeleton } from "@/components/skeletons";
 import { RailAccount } from "@/components/rail-account";
 import { CountBadge } from "@/components/ui/status-chip";
+
+/** Что считает счётчик раздела — для aria-label ссылки. */
+const BADGE_LABELS: Record<string, string> = {
+  academy: "ждут внимания",
+  manage: "новых сообщений об ошибках",
+};
 
 function RailItem({
   section,
@@ -84,7 +91,7 @@ function RailItem({
       // Счётчик внутри ссылки aria-label глушит — число добавляем сюда.
       aria-label={
         badge
-          ? `${section.fullTitle}, ${section.key === "academy" ? "ждут внимания" : "новых заявок"}: ${badge}`
+          ? `${section.fullTitle}, ${BADGE_LABELS[section.key] ?? "новых заявок"}: ${badge}`
           : section.fullTitle
       }
       aria-current={active ? "page" : undefined}
@@ -109,6 +116,9 @@ export function AppRail({ onNavigate }: { onNavigate?: () => void }) {
   const access = useAdminAccess();
   const studioId = useActiveStudioId();
   const openRequests = useClubRequestsBadge();
+  // Новые сообщения об ошибках — и на «Управлении», не только в его меню:
+  // иначе их не видно, пока не откроешь раздел.
+  const openBugReports = useOpenBugReports(!!access && hasRight(access, "portal.admin"));
 
   // Разделы, закрытые сотруднику в «Доступах», не показываем; заготовки без
   // url — как есть. «Клуб» виден, если открыт раздел рейки, — даже когда
@@ -152,7 +162,9 @@ export function AppRail({ onNavigate }: { onNavigate?: () => void }) {
                   ? (access.academy?.my_open ?? 0) +
                     (access.academy?.to_review ?? 0) +
                     (access.academy?.new_completions ?? 0)
-                  : undefined
+                  : section.key === "manage"
+                    ? openBugReports
+                    : undefined
             }
             onNavigate={onNavigate}
           />
