@@ -253,3 +253,38 @@ describe("срок из шаблона", () => {
     expect(templateDeadline(fri, MSK, "18:00", cal, null)).toBeNull();
   });
 });
+
+describe("этап 2: сообщение, порядок, история", () => {
+  test("название из сообщения — первая непустая строка, до 300 знаков", async () => {
+    const { titleFromMessage } = await import("./logic");
+    expect(titleFromMessage("\n  Отчёт по Казани  \nподробности")).toBe("Отчёт по Казани");
+    const long = titleFromMessage("а".repeat(400));
+    expect(long.length).toBe(300);
+    expect(long.endsWith("…")).toBe(true);
+    expect(titleFromMessage("")).toBe("");
+  });
+
+  test("порядок списка — в адресе и в RPC, но не фильтр", async () => {
+    const { parseTaskFilters, filtersToParams, hasExtraFilters } = await import("./logic");
+    expect(parseTaskFilters({ sort: "urgent" })).toEqual({ sort: "urgent" });
+    expect(parseTaskFilters({ sort: "bad" })).toEqual({});
+    expect(filtersToParams({}).sort).toBe("deadline");
+    expect(filtersToParams({ sort: "created" }).sort).toBe("created");
+    expect(hasExtraFilters({ sort: "urgent" })).toBe(false);
+  });
+
+  test("история: подзадачи и результат", async () => {
+    const { eventText } = await import("./logic");
+    const ev = (kind: string, data: Record<string, unknown>) =>
+      eventText({ id: 1, actor_id: null, kind, data, reason: null, created_at: "" }, () => "", MSK);
+    expect(ev("subtask", { number: 12, title: "Ремонт" })).toBe(
+      "добавил(а) подзадачу #12 «Ремонт»",
+    );
+    expect(ev("subtask_status", { number: 12, title: "Ремонт", to: "done" })).toBe(
+      "подзадача #12 «Ремонт» — завершена",
+    );
+    expect(ev("parent", { from: null, to: 7 })).toBe("сделал(а) подзадачей #7");
+    expect(ev("parent", { from: 7, to: null })).toBe("отвязал(а) от задачи #7");
+    expect(ev("result", { cleared: false })).toBe("написал(а) результат");
+  });
+});

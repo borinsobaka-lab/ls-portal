@@ -73,7 +73,7 @@ import {
   STATUS_LABEL,
   STATUS_ORDER,
 } from "@/lib/tasks/logic";
-import type { RoleTab, TaskFilters, TaskRow, TaskStatus } from "@/lib/tasks/types";
+import type { RoleTab, TaskFilters, TaskRow, TaskSort, TaskStatus } from "@/lib/tasks/types";
 import { cn } from "@/lib/utils";
 
 const ALL = "all";
@@ -206,6 +206,19 @@ export function TasksListPage({
               </SelectContent>
             </Select>
           )}
+          <Select
+            value={filters.sort ?? "deadline"}
+            onValueChange={(v) => set({ sort: v === "deadline" ? undefined : (v as TaskSort) })}
+          >
+            <SelectTrigger className="w-48" aria-label="Порядок">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="deadline">По сроку</SelectItem>
+              <SelectItem value="urgent">Срочные — первыми</SelectItem>
+              <SelectItem value="created">Новые — первыми</SelectItem>
+            </SelectContent>
+          </Select>
           <PersonFilter
             label="Постановщик"
             value={filters.creator}

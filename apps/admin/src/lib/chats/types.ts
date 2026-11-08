@@ -18,8 +18,13 @@ export type ChatSystem = {
     | "task_status"
     | "task_chat"
     | "call"
-    | "project_created";
+    | "project_created"
+    | "task_created";
   title?: string;
+  /** Задача из сообщения (type = task_created): номера, сколько, сообщение. */
+  numbers?: number[];
+  count?: number;
+  seq?: number;
   users?: string[];
   /** Видеозвонок (type = call, lib/chats/call-logic.ts). */
   call_id?: string;

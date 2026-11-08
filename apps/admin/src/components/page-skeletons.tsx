@@ -4056,7 +4056,7 @@ export function TasksPageSkeleton() {
   return (
     <ShellSkeleton title="Задачи" actions={["w-36"]}>
       <div className="space-y-3">
-        <ToolbarSkeleton controls={["w-44", "w-40", "w-36", "w-28"]} />
+        <ToolbarSkeleton controls={["w-44", "w-40", "w-48", "w-36", "w-28"]} />
         <TableCardSkeleton
           headers={["№", "Задача", "Срок", "Исполнитель", "Постановщик", "Статус"]}
         />

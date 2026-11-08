@@ -52,6 +52,7 @@ import {
   CheckCheck as CheckCheckArt,
   CheckCircle as CheckCircle2Art,
   CheckIcon as CheckIconArt,
+  CheckSquare as CheckSquareArt,
   ChevronDown as ChevronDownArt,
   ChevronDownIcon as ChevronDownIconArt,
   ChevronLeft as ChevronLeftArt,
@@ -72,6 +73,7 @@ import {
   Columns3 as Columns3Art,
   Copy as CopyArt,
   CopyCheck as CopyCheckArt,
+  CornerLeftUp as CornerLeftUpArt,
   CreditCard as CreditCardArt,
   Database as DatabaseArt,
   Download as DownloadArt,
@@ -124,6 +126,7 @@ import {
   MessageCirclePlus as MessageCirclePlusArt,
   MessageSquare as MessageSquareArt,
   MessageSquarePlus as MessageSquarePlusArt,
+  MessageSquareText as MessageSquareTextArt,
   MessagesSquare as MessagesSquareArt,
   Mic as MicArt,
   ArrowShrinkIcon as MinimizeArt,
@@ -175,6 +178,7 @@ import {
   Type as TypeArt,
   Underline as UnderlineArt,
   Undo2 as Undo2Art,
+  Unlink as UnlinkArt,
   Upload as UploadArt,
   User as UserArt,
   UserArrowLeftRightIcon as UserArrowLeftRightArt,
@@ -241,6 +245,7 @@ export const Check = icon(CheckArt, "Check");
 export const CheckCheck = icon(CheckCheckArt, "CheckCheck");
 export const CheckCircle2 = icon(CheckCircle2Art, "CheckCircle2");
 export const CheckIcon = icon(CheckIconArt, "CheckIcon");
+export const CheckSquare = icon(CheckSquareArt, "CheckSquare");
 export const ChevronDown = icon(ChevronDownArt, "ChevronDown");
 export const ChevronDownIcon = icon(ChevronDownIconArt, "ChevronDownIcon");
 export const ChevronLeft = icon(ChevronLeftArt, "ChevronLeft");
@@ -261,6 +266,7 @@ export const Columns2 = icon(Columns2Art, "Columns2");
 export const Columns3 = icon(Columns3Art, "Columns3");
 export const Copy = icon(CopyArt, "Copy");
 export const CopyCheck = icon(CopyCheckArt, "CopyCheck");
+export const CornerLeftUp = icon(CornerLeftUpArt, "CornerLeftUp");
 export const CreditCard = icon(CreditCardArt, "CreditCard");
 export const Database = icon(DatabaseArt, "Database");
 export const Download = icon(DownloadArt, "Download");
@@ -313,6 +319,7 @@ export const MessageCircle = icon(MessageCircleArt, "MessageCircle");
 export const MessageCirclePlus = icon(MessageCirclePlusArt, "MessageCirclePlus");
 export const MessageSquare = icon(MessageSquareArt, "MessageSquare");
 export const MessageSquarePlus = icon(MessageSquarePlusArt, "MessageSquarePlus");
+export const MessageSquareText = icon(MessageSquareTextArt, "MessageSquareText");
 export const MessagesSquare = icon(MessagesSquareArt, "MessagesSquare");
 export const Mic = icon(MicArt, "Mic");
 export const Minimize = icon(MinimizeArt, "Minimize");
@@ -364,6 +371,7 @@ export const TrendingUp = icon(TrendingUpArt, "TrendingUp");
 export const Type = icon(TypeArt, "Type");
 export const Underline = icon(UnderlineArt, "Underline");
 export const Undo2 = icon(Undo2Art, "Undo2");
+export const Unlink = icon(UnlinkArt, "Unlink");
 export const Upload = icon(UploadArt, "Upload");
 export const User = icon(UserArt, "User");
 export const UserArrowLeftRight = icon(UserArrowLeftRightArt, "UserArrowLeftRight");

@@ -4,7 +4,14 @@
  * строкой-сводкой (раскрывается).
  */
 import { useMemo, useState, type ReactNode } from "react";
-import { ChevronDown, ChevronRight, FileText, ListChecks } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronRight,
+  CornerLeftUp,
+  FileText,
+  ListChecks,
+  ListTodo,
+} from "lucide-react";
 
 import { TableSkeletonRows } from "@/components/skeletons";
 import { TaskCard } from "@/components/tasks/task-card";
@@ -223,7 +230,11 @@ function TaskLine({
           </span>
           {task.urgent && <UrgentMark className="shrink-0" />}
         </div>
-        {(task.check_total > 0 || task.files_count > 0 || (showProject && task.project)) && (
+        {(task.check_total > 0 ||
+          task.files_count > 0 ||
+          task.subtasks_total > 0 ||
+          task.parent_number != null ||
+          (showProject && task.project)) && (
           <div
             className={cn(
               "mt-0.5 flex flex-wrap gap-3 text-xs text-muted-foreground",
@@ -231,6 +242,17 @@ function TaskLine({
             )}
           >
             {showProject && task.project && <ProjectTag project={task.project} />}
+            {task.parent_number != null && (
+              <span className="inline-flex items-center gap-1" title="Подзадача">
+                <CornerLeftUp className="size-3.5" />#{task.parent_number}
+              </span>
+            )}
+            {task.subtasks_total > 0 && (
+              <span className="inline-flex items-center gap-1" title="Подзадачи: готово из всех">
+                <ListTodo className="size-3.5" />
+                {task.subtasks_done}/{task.subtasks_total}
+              </span>
+            )}
             {task.check_total > 0 && (
               <span className="inline-flex items-center gap-1">
                 <ListChecks className="size-3.5" />

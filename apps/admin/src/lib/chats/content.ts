@@ -138,9 +138,29 @@ export function systemText(
       return `${who}: статус задачи — ${(STATUS_LABEL[system.title as TaskStatus] ?? system.title ?? "").toLowerCase()}`;
     case "call":
       return callSystemText({ ...system, type: "call" }, who);
+    case "task_created":
+      return taskCreatedText(system, who);
     default:
       return "";
   }
+}
+
+/** «задачу» / «задачи» / «задач» после числа. */
+export function tasksWord(n: number): string {
+  const m10 = n % 10;
+  const m100 = n % 100;
+  if (m10 === 1 && m100 !== 11) return "задачу";
+  if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return "задачи";
+  return "задач";
+}
+
+/** «Анна поставил(а) задачу #12 «…»» / «… 3 задачи: #12, #13, #14». */
+export function taskCreatedText(system: ChatSystem, who: string): string {
+  const nums = system.numbers ?? [];
+  const count = system.count ?? nums.length;
+  if (count <= 1) return `${who} поставил(а) задачу #${nums[0] ?? ""} «${system.title ?? ""}»`;
+  const list = nums.map((n) => `#${n}`).join(", ") + (count > nums.length ? "…" : "");
+  return `${who} поставил(а) ${count} ${tasksWord(count)}: ${list}`;
 }
 
 /** «12:40», «вчера», «пн», «3 нояб.», «3 нояб. 2025» — время в списке чатов. */

@@ -6,6 +6,7 @@
  * 2.10, 2.12, 2.13).
  */
 import { memo, useState, type ReactNode } from "react";
+import { Link } from "@tanstack/react-router";
 import {
   AlertCircle,
   Check,
@@ -21,6 +22,7 @@ import {
   PinOff,
   RefreshCw,
   Reply,
+  CheckSquare,
   Trash2,
   Video,
 } from "lucide-react";
@@ -37,7 +39,7 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { QUICK_REACTIONS, systemText, timeOf } from "@/lib/chats/content";
+import { QUICK_REACTIONS, systemText, tasksWord, timeOf } from "@/lib/chats/content";
 import { isLocal } from "@/lib/chats/data";
 import type { ChatDoc, ChatMessage, ChatSystem } from "@/lib/chats/types";
 import { cn } from "@/lib/utils";
@@ -48,6 +50,8 @@ export type MessageActions = {
   copyText: (m: ChatMessage) => void;
   copyLink: (m: ChatMessage) => void;
   forward: (m: ChatMessage) => void;
+  /** «Поставить задачу» из сообщения (этап 2, 1.18). */
+  task: (m: ChatMessage) => void;
   pin: (m: ChatMessage, on: boolean) => void;
   receipts: (m: ChatMessage) => void;
   edit: (m: ChatMessage) => void;
@@ -84,6 +88,8 @@ function menuItems(p: Props): MenuItem[] {
     items.push({ label: "Скопировать текст", icon: Copy, run: () => actions.copyText(m) });
   items.push({ label: "Ссылка на сообщение", icon: Link2, run: () => actions.copyLink(m) });
   items.push({ label: "Переслать", icon: Forward, run: () => actions.forward(m) });
+  if (m.kind === "text")
+    items.push({ label: "Поставить задачу", icon: CheckSquare, run: () => actions.task(m) });
   if (p.canPin)
     items.push(
       m.pinned
@@ -133,8 +139,54 @@ function ReactionsRow({
   );
 }
 
-function SystemLine({ m, name }: { m: ChatMessage; name: Props["name"] }) {
+function SystemLine({
+  m,
+  name,
+  onJump,
+}: {
+  m: ChatMessage;
+  name: Props["name"];
+  onJump: (seq: number) => void;
+}) {
   const system = (m.content as { system?: ChatSystem } | null)?.system;
+  if (system?.type === "task_created") {
+    const nums = system.numbers ?? [];
+    const count = system.count ?? nums.length;
+    return (
+      <div className="my-2 flex justify-center px-4">
+        <span className="inline-flex flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5 rounded-full bg-muted px-3 py-1 text-center text-xs text-muted-foreground">
+          <CheckSquare className="size-3.5 shrink-0" />
+          <span>
+            {m.author_id ? name(m.author_id) : "Кто-то"} поставил(а){" "}
+            {count > 1 ? `${count} ${tasksWord(count)}:` : "задачу"}
+          </span>
+          {nums.map((n) => (
+            <Link
+              key={n}
+              to="/tasks/$number"
+              params={{ number: String(n) }}
+              className="font-medium text-chat-accent hover:underline"
+            >
+              #{n}
+            </Link>
+          ))}
+          {count > nums.length && <span>…</span>}
+          {count <= 1 && system.title && (
+            <span className="max-w-64 truncate">«{system.title}»</span>
+          )}
+          {system.seq != null && (
+            <button
+              type="button"
+              className="underline-offset-2 hover:text-foreground hover:underline"
+              onClick={() => onJump(system.seq!)}
+            >
+              к сообщению
+            </button>
+          )}
+        </span>
+      </div>
+    );
+  }
   if (system?.type === "call") {
     const missed = system.state === "ended" && system.reason !== "finished";
     return (
@@ -176,7 +228,7 @@ function Quote({ children, onClick }: { children: ReactNode; onClick?: () => voi
 export const MessageItem = memo(function MessageItem(p: Props) {
   const { m, me, first, showAuthor, readByOthers, highlighted, name, avatar, actions } = p;
   const [menuOpen, setMenuOpen] = useState(false);
-  if (m.kind === "system") return <SystemLine m={m} name={name} />;
+  if (m.kind === "system") return <SystemLine m={m} name={name} onJump={actions.jump} />;
   const mine = m.author_id === me;
   const items = menuItems(p);
   const local = isLocal(m) ? m.local : null;

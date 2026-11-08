@@ -203,6 +203,10 @@ export function taskErrorText(e: unknown): string {
     task_too_many_files: "Не больше 200 файлов у задачи",
     task_bad_file: "Файл не подходит",
     task_filter_invalid: "Название фильтра — до 60 символов",
+    task_result_required: "Сначала напишите результат — постановщик просил его",
+    task_result_invalid: "Результат — до 5000 символов",
+    task_parent_invalid: "Задача не может быть подзадачей самой себя или своей подзадачи",
+    task_source_invalid: "Сообщение не найдено или вы не в этом чате",
     task_too_many_filters: "Не больше 30 фильтров",
     project_forbidden: "Это может только владелец или модератор проекта",
     project_not_found: "Проект не найден или закрыт",
@@ -247,6 +251,11 @@ export type NewTask = {
   }[];
   reminder?: { remind_at?: string; before_minutes?: number } | null;
   project_id?: string | null;
+  /** Подзадача к задаче. */
+  parent_id?: string | null;
+  /** Задача из сообщения чата. */
+  source?: { chat_id: string; seq: number } | null;
+  result_required?: boolean;
 };
 
 export async function createTask(qc: QueryClient, t: NewTask) {
@@ -287,6 +296,11 @@ export const setTaskStatus = (
       p_action: action,
       p_comment: comment ?? null,
     }),
+  );
+
+export const setTaskResult = (qc: QueryClient, t: Pick<TaskFull, "id" | "number">, text: string) =>
+  withCard(qc, t.number, () =>
+    taskRpc<TaskFull>("task_set_result", { p_task: t.id, p_text: text }),
   );
 
 export const taskAction = async (qc: QueryClient, fn: string, args: Record<string, unknown>) => {

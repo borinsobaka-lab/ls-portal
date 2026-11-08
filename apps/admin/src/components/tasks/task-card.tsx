@@ -2,7 +2,8 @@
  * Карточка задачи (план, 3.4): слева — название, описание (редактор базы
  * знаний: картинки, файлы, оформление), чек-листы, файлы, «Обсуждение» и
  * «История»; справа — статус и действия, срок, люди, «Требует проверки»,
- * напоминания, уведомления. Открывается панелью поверх списка (`?task=`) и
+ * напоминания, уведомления; этап 2 — подзадачи, результат, «Подзадача к» и
+ * «Из сообщения в чате». Открывается панелью поверх списка (`?task=`) и
  * своей страницей `/tasks/1234`. Что можно — taskPerms (lib/tasks/logic.ts),
  * последнее слово — у базы.
  */
@@ -14,6 +15,7 @@ import {
   Bell,
   Copy,
   CopyCheck,
+  CornerLeftUp,
   Eye,
   EyeOff,
   Loader2,
@@ -27,6 +29,8 @@ import { DeadlinePicker } from "@/components/tasks/deadline-picker";
 import { TaskChecklists } from "@/components/tasks/task-checklists";
 import { TaskDiscussion, TaskHistory } from "@/components/tasks/task-discussion";
 import { TaskFiles } from "@/components/tasks/task-files";
+import { TaskOrigin, TaskResult, TaskSubtasks } from "@/components/tasks/task-subtasks";
+import { useConfirm } from "@/components/confirm-dialog";
 import { TemplateDialog } from "@/components/tasks/templates-page";
 import {
   PeopleField,
@@ -64,8 +68,10 @@ import { useStaffProfile } from "@/hooks/use-staff-profile";
 import { formatDateTime } from "@/lib/format";
 import {
   projectQuery,
+  setTaskResult,
   setTaskStatus,
   taskAction,
+  taskRpc,
   taskErrorText,
   updateTask,
   useMyProjects,
@@ -79,6 +85,7 @@ import {
   formatMoment,
   isOverdue,
   memberIds,
+  plural,
   REMINDER_OPTIONS,
   taskPerms,
   type StatusAction,
@@ -94,6 +101,7 @@ const KbDocument = lazy(() =>
 
 const TIPS = {
   review: "Исполнитель не завершит сам — отправит на проверку, постановщик примет или вернёт.",
+  result: "Исполнитель не завершит задачу, пока не напишет результат: что сделано, ссылка, цифры.",
   notify:
     "«Только моё» — когда от вас нужно действие (поставили, на проверке, вернули, срок). Своё напоминание приходит всегда.",
 };
@@ -104,6 +112,9 @@ type Ask = {
   label: string;
   required: boolean;
   confirm: string;
+  /** Текст в поле сразу (правка результата). */
+  initial?: string;
+  rows?: number;
   run: (text: string) => Promise<void>;
 };
 
@@ -143,6 +154,7 @@ function TaskCardBody({ task, onClose }: { task: TaskFull; onClose?: () => void 
   const [editTitle, setEditTitle] = useState<string | null>(null);
   const [editDesc, setEditDesc] = useState(false);
   const [asTemplate, setAsTemplate] = useState(false);
+  const { confirm, confirmDialog } = useConfirm();
   const projects = useMyProjects();
   const assignee = assigneeOf(task);
   const creator = creatorOf(task);
@@ -195,8 +207,82 @@ function TaskCardBody({ task, onClose }: { task: TaskFull; onClose?: () => void 
       });
       return;
     }
+    if (action === "complete") {
+      void complete();
+      return;
+    }
     quiet(setTaskStatus(qc, task, action));
   };
+
+  const editResult = () =>
+    setAsk({
+      title: task.result ? "Изменить результат" : "Результат задачи",
+      description: "Что сделано: итог, ссылки, цифры. Постановщик увидит его в карточке.",
+      label: "Результат",
+      required: false,
+      confirm: "Сохранить",
+      initial: task.result?.text ?? "",
+      rows: 6,
+      run: (text) => run(setTaskResult(qc, task, text)),
+    });
+
+  // «Завершить»: открытые подзадачи — спросить; «Нужен результат» — сначала результат.
+  const complete = async () => {
+    const open = task.subtasks.filter((s) => s.status !== "done" && s.status !== "cancelled");
+    if (
+      open.length > 0 &&
+      !(await confirm({
+        title: "Завершить задачу?",
+        description: `Не завершены ${open.length} ${plural(open.length, "подзадача", "подзадачи", "подзадач")}: ${open
+          .slice(0, 3)
+          .map((s) => `#${s.number}`)
+          .join(", ")}${open.length > 3 ? "…" : ""}. Они останутся в работе.`,
+        confirmLabel: "Завершить",
+        destructive: false,
+      }))
+    )
+      return;
+    if (task.result_required && !task.result) {
+      setAsk({
+        title: "Результат задачи",
+        description: "Постановщик просит результат: без него задачу не завершить.",
+        label: "Что сделано",
+        required: true,
+        confirm: task.requires_review && !perms.boss ? "На проверку" : "Завершить",
+        rows: 6,
+        run: async (text) => {
+          await run(setTaskResult(qc, task, text));
+          await run(setTaskStatus(qc, task, "complete"));
+        },
+      });
+      return;
+    }
+    quiet(setTaskStatus(qc, task, "complete"));
+  };
+
+  const attachParent = () =>
+    setAsk({
+      title: "Сделать подзадачей",
+      description: "Номер задачи, к которой относится эта, — например 1234.",
+      label: "Номер родительской задачи",
+      required: true,
+      confirm: "Привязать",
+      rows: 1,
+      run: async (text) => {
+        const n = Number(text.replace(/\D/g, ""));
+        if (!n) {
+          toast.error("Нужен номер задачи");
+          throw new Error("bad number");
+        }
+        await run(
+          (async () => {
+            const parent = await taskRpc<{ id: string }>("task_get", { p_number: n });
+            await updateTask(qc, task, { parent_id: parent.id });
+          })(),
+          `Теперь это подзадача #${n}`,
+        );
+      },
+    });
 
   const changeDeadline = (iso: string | null) => {
     if (perms.deadline === "reason") {
@@ -277,6 +363,7 @@ function TaskCardBody({ task, onClose }: { task: TaskFull; onClose?: () => void 
               )}
             </h2>
           )}
+          <TaskOrigin task={task} canEdit={perms.edit} />
           {perms.actions.length > 0 && (
             <div className="flex flex-wrap gap-2 pt-1 lg:hidden">
               <StatusButtons perms={perms} onAction={status} />
@@ -334,8 +421,15 @@ function TaskCardBody({ task, onClose }: { task: TaskFull; onClose?: () => void 
           )}
         </section>
 
+        <TaskResult
+          task={task}
+          canWrite={perms.worker}
+          doer={task.my_roles.includes("assignee") || task.my_roles.includes("coassignee")}
+          onEdit={editResult}
+        />
         <TaskChecklists task={task} canWork={perms.work} me={me} />
         <TaskFiles task={task} canWork={perms.work} canRemoveAll={perms.boss} me={me} />
+        <TaskSubtasks task={task} tz={tz} />
 
         <Tabs defaultValue="discussion">
           <TabsList>
@@ -470,6 +564,12 @@ function TaskCardBody({ task, onClose }: { task: TaskFull; onClose?: () => void 
               onCheckedChange={(v) => quiet(updateTask(qc, task, { requires_review: v }))}
             />
             <SwitchRow
+              title="Нужен результат"
+              tip={TIPS.result}
+              checked={task.result_required}
+              onCheckedChange={(v) => quiet(updateTask(qc, task, { result_required: v }))}
+            />
+            <SwitchRow
               title="Срочно"
               checked={task.urgent}
               onCheckedChange={(v) => quiet(updateTask(qc, task, { urgent: v }))}
@@ -500,9 +600,16 @@ function TaskCardBody({ task, onClose }: { task: TaskFull; onClose?: () => void 
           </FormField>
         )}
         {perms.edit && (
-          <Button variant="outline" size="sm" onClick={() => setAsTemplate(true)}>
-            <CopyCheck className="size-4" /> Сохранить как шаблон
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" onClick={() => setAsTemplate(true)}>
+              <CopyCheck className="size-4" /> Сохранить как шаблон
+            </Button>
+            {!task.parent_id && (
+              <Button variant="outline" size="sm" onClick={attachParent}>
+                <CornerLeftUp className="size-4" /> Сделать подзадачей
+              </Button>
+            )}
+          </div>
         )}
         <p className="text-xs text-muted-foreground">
           {task.recurrence_id ? "Регулярная задача · " : ""}Поставлена{" "}
@@ -517,6 +624,7 @@ function TaskCardBody({ task, onClose }: { task: TaskFull; onClose?: () => void 
       </aside>
 
       <AskTextDialog ask={ask} onClose={() => setAsk(null)} />
+      {confirmDialog}
       <TemplateDialog
         template={
           asTemplate
@@ -733,7 +841,7 @@ function AskTextDialog({ ask, onClose }: { ask: Ask | null; onClose: () => void 
 }
 
 function AskTextForm({ ask, onClose }: { ask: Ask; onClose: () => void }) {
-  const [text, setText] = useState("");
+  const [text, setText] = useState(ask.initial ?? "");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   return (
@@ -762,7 +870,7 @@ function AskTextForm({ ask, onClose }: { ask: Ask; onClose: () => void }) {
         <FormField label={ask.label} required={ask.required} optional={!ask.required} error={error}>
           <Textarea
             autoFocus
-            rows={3}
+            rows={ask.rows ?? 3}
             value={text}
             onChange={(e) => {
               setText(e.target.value);

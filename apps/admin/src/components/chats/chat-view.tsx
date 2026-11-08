@@ -69,6 +69,7 @@ import {
   toggleReaction,
   type LocalMessage,
 } from "@/lib/chats/data";
+import { CHAT_BUCKET } from "@/lib/chats/files";
 import { usePeople } from "@/lib/chats/people";
 import { joinTypingChannel } from "@/lib/chats/realtime";
 import { onChatEvent, useRealtimeConnected } from "@/lib/chats/realtime-state";
@@ -77,6 +78,9 @@ import { lastSeenLabel } from "@/lib/company";
 import { cn } from "@/lib/utils";
 
 const Composer = lazy(() => import("@/components/chats/composer"));
+const NewTaskDialog = lazy(() =>
+  import("@/components/tasks/task-form").then((m) => ({ default: m.NewTaskDialog })),
+);
 
 const GROUP_GAP_MS = 5 * 60_000;
 
@@ -135,6 +139,7 @@ export function ChatView({
   const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
   const [editing, setEditing] = useState<ChatMessage | null>(null);
   const [forwarding, setForwarding] = useState<ChatMessage[] | null>(null);
+  const [taskFrom, setTaskFrom] = useState<ChatMessage | null>(null);
   const [receipts, setReceipts] = useState<ChatMessage | null>(null);
   const [highlight, setHighlight] = useState<number | null>(null);
   const [atBottom, setAtBottom] = useState(true);
@@ -377,6 +382,7 @@ export function ChatView({
           .writeText(`${window.location.origin}/chats/${m.chat_id}?m=${m.seq}`)
           .then(() => toast.success("Ссылка скопирована")),
       forward: (m) => setForwarding([m]),
+      task: (m) => setTaskFrom(m),
       pin: (m, on) => void pinMessage(qc, m, on).catch((e) => toast.error(chatErrorText(e))),
       receipts: (m) => setReceipts(m),
       edit: (m) => {
@@ -748,6 +754,23 @@ export function ChatView({
       </Suspense>
 
       <ForwardDialog messages={forwarding} onClose={() => setForwarding(null)} />
+      {taskFrom && (
+        <Suspense fallback={null}>
+          <NewTaskDialog
+            open
+            onClose={() => setTaskFrom(null)}
+            fromMessage={{
+              chatId: taskFrom.chat_id,
+              seq: taskFrom.seq,
+              text: taskFrom.text,
+              authorName: name(taskFrom.author_id),
+              attachments: taskFrom.attachments,
+              bucket: CHAT_BUCKET,
+            }}
+            onCreated={() => void loadNewer(qc, chat.id)}
+          />
+        </Suspense>
+      )}
       <ReceiptsDialog message={receipts} onClose={() => setReceipts(null)} />
       {confirmDialog}
     </div>

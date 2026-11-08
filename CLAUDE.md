@@ -1553,6 +1553,24 @@ DEPLOY.md.
   раньше (`kb_file_purge`). Новая сущность с файлами — сразу триггер в эту
   очередь и ветка в `storage_file_referenced`. Тесты —
   `db/deletion-cleanup.test.ts`.
+  **Задачи, этап 2: подзадачи, задача из сообщения, результат**
+  (TASKS_CHATS_PLAN.md, этап 2, 2026-11-08):
+  `db/migrations/2026-11-08_zzzz_task_subtasks_results.sql` — подзадачи
+  `tasks.parent_id` (к задаче, которую человек видит; без кругов —
+  `task_parent_invalid`; постановщик, исполнитель и соисполнители
+  родительской видят её подзадачи — роль `parent` в `task_roles`, только
+  чтение; в истории родительской — «добавлена подзадача», «подзадача
+  завершена»); задача из сообщения — `task_create` с `source: {chat_id,
+  seq}` (сообщение чата, где человек участник; `tasks.source_chat_id` /
+  `source_seq`, в чате — системная строка `task_created` со ссылкой на
+  задачу и сообщение; ссылку «Из сообщения» карточка отдаёт только
+  участнику чата); результат `tasks.result_text` / `result_by` /
+  `result_at` — RPC `task_set_result` (постановщик, руководитель,
+  исполнитель, соисполнитель), «Нужен результат» `result_required` —
+  «Завершить» без результата не пускает (`task_result_required`);
+  `task_list` — `sort` (`deadline` / `urgent` / `created`). Актуальные
+  определения `task_roles`, `task_json`, `task_list`, `task_create_as`,
+  `task_update`, `task_set_status` — здесь. Тесты — `db/task-subtasks.test.ts`.
   Рейтинг тренеров и чаевые: `db/migrations/2026-10-11_zzzzzzzzzzzzz_trainer_ratings.sql`
   — `trainer_reviews` (оценка 1–5, одна от учётной записи на тренера; клиент
   читает и правит свою, ставит — тренеру, которого видит в приложении,

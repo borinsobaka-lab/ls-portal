@@ -5,6 +5,8 @@
  * исполнителей — «Одна общая задача» (первый — исполнитель, остальные —
  * соисполнители с пунктом чек-листа на каждого) или «Отдельная задача
  * каждому». «Всегда открывать полностью» — память браузера.
+ * Подзадача (`parent`) и задача из сообщения чата (`fromMessage`: название,
+ * описание со ссылкой на сообщение, файлы сообщения) — этап 2.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
@@ -42,6 +44,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useStaffProfile } from "@/hooks/use-staff-profile";
 import {
   formatFileSize,
+  signedFileUrl,
   startResumableUpload,
   type ResumableUpload,
   type UploadedFile,
@@ -60,9 +63,11 @@ import {
   plural,
   REMINDER_OPTIONS,
   templateDeadline,
+  titleFromMessage,
   type DraftList,
 } from "@/lib/tasks/logic";
-import type { TaskTemplate } from "@/lib/tasks/types";
+import type { TaskBrief, TaskTemplate } from "@/lib/tasks/types";
+import type { ChatAttachment } from "@/lib/chats/types";
 import { documentLines } from "@/lib/kb/document";
 import { cn } from "@/lib/utils";
 
@@ -78,7 +83,42 @@ const TIPS = {
   coassignees: "Помогают исполнителю: видят задачу, ведут чек-листы и файлы, но не завершают.",
   watchers: "Только следят: видят задачу и обсуждение, уведомления — по своей настройке.",
   review: "Исполнитель не завершит задачу сам — отправит на проверку, вы примете или вернёте.",
+  result: "Исполнитель не завершит задачу, пока не напишет результат: что сделано, ссылка, цифры.",
 };
+
+/** Сообщение чата, из которого ставят задачу. */
+export type TaskFromMessage = {
+  chatId: string;
+  seq: number;
+  text: string;
+  authorName: string;
+  attachments: ChatAttachment[];
+  /** Бакет файлов сообщения. */
+  bucket: string;
+};
+
+/** Описание из сообщения: текст и ссылка «Сообщение от …». */
+function messageDoc(m: TaskFromMessage): unknown[] {
+  const url = `${window.location.origin}/chats/${m.chatId}?m=${m.seq}`;
+  const lines = m.text.replace(/\r/g, "").split("\n");
+  return [
+    ...lines.map((line) => ({
+      type: "paragraph",
+      content: line ? [{ type: "text", text: line, styles: {} }] : [],
+    })),
+    {
+      type: "paragraph",
+      content: [
+        { type: "text", text: `Из чата, автор — ${m.authorName}: `, styles: { italic: true } },
+        {
+          type: "link",
+          href: url,
+          content: [{ type: "text", text: "открыть сообщение", styles: {} }],
+        },
+      ],
+    },
+  ];
+}
 
 /** Текст описания → документ редактора базы знаний (абзацы). */
 function textToDoc(text: string): unknown[] | null {
@@ -106,6 +146,8 @@ export function NewTaskDialog({
   initialAssignee,
   initialProject,
   template,
+  parent,
+  fromMessage,
   onCreated,
 }: {
   open: boolean;
@@ -115,6 +157,10 @@ export function NewTaskDialog({
   initialProject?: string;
   /** Поля из шаблона («Поставить по шаблону»). */
   template?: TaskTemplate;
+  /** Подзадача к этой задаче. */
+  parent?: Pick<TaskBrief, "id" | "number" | "title">;
+  /** Задача из сообщения чата. */
+  fromMessage?: TaskFromMessage;
   /** Своё действие после постановки (иначе — карточка в «Задачах»). */
   onCreated?: (numbers: number[]) => void;
 }) {
@@ -127,6 +173,8 @@ export function NewTaskDialog({
             initialAssignee={initialAssignee}
             initialProject={initialProject}
             template={template}
+            parent={parent}
+            fromMessage={fromMessage}
             onCreated={onCreated}
           />
         )}
@@ -140,12 +188,16 @@ function TaskForm({
   initialAssignee,
   initialProject,
   template,
+  parent,
+  fromMessage,
   onCreated,
 }: {
   onClose: () => void;
   initialAssignee?: string;
   initialProject?: string;
   template?: TaskTemplate;
+  parent?: Pick<TaskBrief, "id" | "number" | "title">;
+  fromMessage?: TaskFromMessage;
   onCreated?: (numbers: number[]) => void;
 }) {
   const qc = useQueryClient();
@@ -161,22 +213,25 @@ function TaskForm({
       return false;
     }
   });
-  const [full, setFull] = useState(alwaysFull);
-  const [title, setTitle] = useState("");
+  const [full, setFull] = useState(alwaysFull || !!fromMessage);
+  const [title, setTitle] = useState(() => (fromMessage ? titleFromMessage(fromMessage.text) : ""));
   const [assignees, setAssignees] = useState<string[]>(initialAssignee ? [initialAssignee] : []);
   const [mode, setMode] = useState<"shared" | "separate">("shared");
   const [deadline, setDeadline] = useState<string | null>(null);
   const [coassignees, setCoassignees] = useState<string[]>([]);
   const [watchers, setWatchers] = useState<string[]>([]);
-  const [description, setDescription] = useState("");
+  const [description, setDescription] = useState(() => fromMessage?.text ?? "");
   const [lists, setLists] = useState<DraftList[]>([]);
   const [project, setProject] = useState(initialProject ?? NONE);
   // Описание из шаблона — документ; пока текст не трогали, уходит он (с оформлением).
-  const [descDoc, setDescDoc] = useState<unknown[] | null>(null);
+  const [descDoc, setDescDoc] = useState<unknown[] | null>(() =>
+    fromMessage ? messageDoc(fromMessage) : null,
+  );
   const projects = useMyProjects();
   const { data: templates = [] } = useQuery(templatesQuery);
   const [urgent, setUrgent] = useState(false);
   const [review, setReview] = useState(false);
+  const [resultRequired, setResultRequired] = useState(false);
   const [reminder, setReminder] = useState("none");
   const [uploads, setUploads] = useState<Upload[]>([]);
   const [saving, setSaving] = useState(false);
@@ -256,6 +311,26 @@ function TaskForm({
     [me],
   );
 
+  // Файлы сообщения — копией в задачу (скачать и загрузить заново).
+  const copied = useRef(false);
+  useEffect(() => {
+    if (!fromMessage || !me || copied.current || fromMessage.attachments.length === 0) return;
+    copied.current = true;
+    void (async () => {
+      const files: File[] = [];
+      for (const a of fromMessage.attachments) {
+        try {
+          const res = await fetch(await signedFileUrl(fromMessage.bucket, a.path));
+          if (!res.ok) throw new Error(String(res.status));
+          files.push(new File([await res.blob()], a.name, { type: a.mime }));
+        } catch {
+          toast.error(`Не удалось взять файл «${a.name}» из сообщения`);
+        }
+      }
+      addFiles(files);
+    })();
+  }, [fromMessage, me, addFiles]);
+
   const removeUpload = (key: string) => {
     handles.current.get(key)?.cancel();
     handles.current.delete(key);
@@ -288,6 +363,9 @@ function TaskForm({
         description: descDoc ?? textToDoc(description),
         checklists: cleanLists(lists),
         project_id: project === NONE ? null : project,
+        parent_id: parent?.id ?? null,
+        source: fromMessage ? { chat_id: fromMessage.chatId, seq: fromMessage.seq } : null,
+        result_required: resultRequired,
         files: uploads.flatMap((u) => (u.done ? [u.done] : [])),
         urgent,
         requires_review: review,
@@ -330,9 +408,13 @@ function TaskForm({
   return (
     <DialogForm onSubmit={() => void submit()}>
       <DialogHeader className="border-b px-4 py-4 sm:px-6">
-        <DialogTitle>Новая задача</DialogTitle>
+        <DialogTitle>{parent ? "Новая подзадача" : "Новая задача"}</DialogTitle>
         <DialogDescription>
-          Постановщик — вы: примете работу и увидите задачу в «Поручил».
+          {parent
+            ? `К задаче #${parent.number} «${parent.title}». Постановщик — вы.`
+            : fromMessage
+              ? "Из сообщения: текст и файлы уже подставлены, в чате появится ссылка на задачу."
+              : "Постановщик — вы: примете работу и увидите задачу в «Поручил»."}
         </DialogDescription>
       </DialogHeader>
       <DialogBody className="space-y-4">
@@ -535,6 +617,12 @@ function TaskForm({
               tip={TIPS.review}
               checked={review}
               onCheckedChange={setReview}
+            />
+            <SwitchRow
+              title="Нужен результат"
+              tip={TIPS.result}
+              checked={resultRequired}
+              onCheckedChange={setResultRequired}
             />
             <FormField label="Напомнить мне">
               <Select value={reminder} onValueChange={setReminder}>

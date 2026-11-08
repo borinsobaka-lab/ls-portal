@@ -5,9 +5,10 @@ export type MemberRole = "creator" | "assignee" | "coassignee" | "watcher";
 /**
  * manager — руководитель участника, владелец или модератор проекта задачи,
  * «Администратор задач»: правит как постановщик; project — участник проекта
- * задачи: видит её.
+ * задачи: видит её; parent — постановщик или исполнитель родительской задачи:
+ * видит подзадачу.
  */
-export type TaskRole = MemberRole | "manager" | "project";
+export type TaskRole = MemberRole | "manager" | "project" | "parent";
 export type TaskNotify = "all" | "mine" | "none";
 export type DeadlineRule = "free" | "reason" | "forbid";
 
@@ -39,6 +40,25 @@ export type TaskRow = {
   check_done: number;
   files_count: number;
   batch?: { total: number; done: number; cancelled: number; overdue: number };
+  /** Подзадача: родительская задача. */
+  parent_id: string | null;
+  parent_number: number | null;
+  subtasks_total: number;
+  subtasks_done: number;
+  /** «Нужен результат» — завершить только с результатом. */
+  result_required: boolean;
+  has_result: boolean;
+};
+
+/** Подзадача и родительская задача в карточке. */
+export type TaskBrief = {
+  id: string;
+  number: number;
+  title: string;
+  status: TaskStatus;
+  deadline: string | null;
+  urgent: boolean;
+  assignee_id: string | null;
 };
 
 export type ChecklistItem = {
@@ -76,6 +96,12 @@ export type TaskFull = TaskRow & {
   checklists: Checklist[];
   files: TaskFile[];
   reminders: TaskReminder[];
+  result: { text: string; by: string | null; at: string } | null;
+  /** Родительская; hidden — человек её не видит (только номер). */
+  parent: TaskBrief | { number: number; hidden: true } | null;
+  subtasks: TaskBrief[];
+  /** Задача из сообщения — участнику того чата. */
+  source: { chat_id: string; seq: number } | null;
 };
 
 export type TaskEvent = {
@@ -95,6 +121,8 @@ export type TaskCounters = {
   /** Руководитель или заместитель подразделения — пункт «Подчинённые». */
   leader?: boolean;
 };
+
+export type TaskSort = "deadline" | "urgent" | "created";
 
 /** Вкладки «Мои задачи» (роль в задаче). */
 export type RoleTab = "do" | "help" | "assigned" | "watch" | "all";
@@ -118,6 +146,8 @@ export type TaskFilters = {
   project?: string;
   /** Задачи людей моих подразделений («Подчинённые»). */
   team?: boolean;
+  /** Порядок: по сроку (по умолчанию), срочные первыми, новые первыми. */
+  sort?: TaskSort;
 };
 
 // ---- Проекты (веха 4) ----------------------------------------------------------

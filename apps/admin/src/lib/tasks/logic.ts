@@ -56,6 +56,7 @@ export const ROLE_LABEL: Record<TaskRole, string> = {
   watcher: "Наблюдатель",
   manager: "Руководитель",
   project: "Участник проекта",
+  parent: "Участник родительской задачи",
 };
 
 export const PROJECT_KIND_LABEL: Record<ProjectKind, string> = {
@@ -513,9 +514,27 @@ export function eventText(e: TaskEvent, name: (id: string) => string, tz: string
         return `добавил(а) ${plural(added.length, "файл", "файла", "файлов")}: ${added.join(", ")}`;
       return `убрал(а) файл: ${removed.join(", ")}`;
     }
+    case "subtask":
+      return `добавил(а) подзадачу #${d.number} «${s("title")}»`;
+    case "subtask_status":
+      return `подзадача #${d.number} «${s("title")}» — ${
+        s("to") === "cancelled" ? "отменена" : "завершена"
+      }`;
+    case "parent":
+      return d.to ? `сделал(а) подзадачей #${d.to}` : `отвязал(а) от задачи #${d.from}`;
+    case "result":
+      return d.cleared ? "убрал(а) результат" : "написал(а) результат";
+    case "result_required":
+      return d.to ? "включил(а) «Нужен результат»" : "выключил(а) «Нужен результат»";
     default:
       return e.kind;
   }
+}
+
+/** Название задачи из сообщения чата: первая непустая строка, до 300 знаков. */
+export function titleFromMessage(text: string): string {
+  const t = (text.split("\n").find((l) => l.trim()) ?? "").trim();
+  return t.length > 300 ? `${t.slice(0, 299).trimEnd()}…` : t;
 }
 
 // ---- Фильтры: адрес ↔ RPC -------------------------------------------------------------
@@ -555,6 +574,8 @@ export function parseTaskFilters(raw: Record<string, unknown>): TaskFilters {
   if (flag("mine")) f.mine = true;
   if (flag("all")) f.all = true;
   if (flag("team")) f.team = true;
+  const sort = str("sort");
+  if (sort === "urgent" || sort === "created") f.sort = sort;
   return f;
 }
 
@@ -575,14 +596,17 @@ export function filtersToParams(f: TaskFilters, offset = 0, limit = 100): Record
     checklist_mine: !!f.mine,
     scope: f.team ? "team" : f.all ? "all" : null,
     project: f.project ?? null,
+    sort: f.sort ?? "deadline",
     limit,
     offset,
   };
 }
 
-/** Есть ли фильтры, кроме вкладки роли. */
+/** Есть ли фильтры, кроме вкладки роли и порядка. */
 export function hasExtraFilters(f: TaskFilters): boolean {
-  return Object.entries(f).some(([k, v]) => k !== "role" && v !== undefined && v !== false);
+  return Object.entries(f).some(
+    ([k, v]) => k !== "role" && k !== "sort" && v !== undefined && v !== false,
+  );
 }
 
 /** Фильтры без пустых значений — для адреса и сохранения. */
