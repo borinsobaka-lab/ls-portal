@@ -7,15 +7,34 @@
  * последнее слово — у базы.
  */
 import { lazy, Suspense, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
-import { Bell, Copy, Eye, EyeOff, Loader2, Pencil, Trash2, ArrowLeftRight, X } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  ArrowLeftRight,
+  Bell,
+  Copy,
+  CopyCheck,
+  Eye,
+  EyeOff,
+  Loader2,
+  Pencil,
+  Trash2,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { DeadlinePicker } from "@/components/tasks/deadline-picker";
 import { TaskChecklists } from "@/components/tasks/task-checklists";
 import { TaskDiscussion, TaskHistory } from "@/components/tasks/task-discussion";
 import { TaskFiles } from "@/components/tasks/task-files";
-import { PeopleField, PersonLine, TaskStatusChip, UrgentMark } from "@/components/tasks/task-bits";
+import { TemplateDialog } from "@/components/tasks/templates-page";
+import {
+  PeopleField,
+  PersonLine,
+  ProjectTag,
+  TaskStatusChip,
+  UrgentMark,
+} from "@/components/tasks/task-bits";
 import { PeoplePicker } from "@/components/chats/dialogs";
 import { useAutosave, type AutosaveResult } from "@/components/kb/use-autosave";
 import { Button } from "@/components/ui/button";
@@ -44,10 +63,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { useStaffProfile } from "@/hooks/use-staff-profile";
 import { formatDateTime } from "@/lib/format";
 import {
+  projectQuery,
   setTaskStatus,
   taskAction,
   taskErrorText,
   updateTask,
+  useMyProjects,
   useTaskCard,
   useTaskClock,
   useWorkCalendar,
@@ -64,6 +85,8 @@ import {
 } from "@/lib/tasks/logic";
 import type { TaskFull } from "@/lib/tasks/types";
 import { cn } from "@/lib/utils";
+
+const NONE = "none";
 
 const KbDocument = lazy(() =>
   import("@/components/kb/kb-document").then((m) => ({ default: m.KbDocument })),
@@ -119,6 +142,8 @@ function TaskCardBody({ task, onClose }: { task: TaskFull; onClose?: () => void 
   const [ask, setAsk] = useState<Ask | null>(null);
   const [editTitle, setEditTitle] = useState<string | null>(null);
   const [editDesc, setEditDesc] = useState(false);
+  const [asTemplate, setAsTemplate] = useState(false);
+  const projects = useMyProjects();
   const assignee = assigneeOf(task);
   const creator = creatorOf(task);
   const co = memberIds(task, "coassignee");
@@ -346,6 +371,42 @@ function TaskCardBody({ task, onClose }: { task: TaskFull; onClose?: () => void 
             className={cn(late && "border-destructive text-destructive")}
           />
         </FormField>
+        <FormField label="Проект" htmlFor={null}>
+          {perms.edit ? (
+            <Select
+              value={task.project_id ?? NONE}
+              onValueChange={(v) =>
+                quiet(updateTask(qc, task, { project_id: v === NONE ? null : v }))
+              }
+            >
+              <SelectTrigger aria-label="Проект">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NONE}>Без проекта</SelectItem>
+                {task.project && !projects.some((p) => p.id === task.project_id) && (
+                  <SelectItem value={task.project.id}>{task.project.title}</SelectItem>
+                )}
+                {projects.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.title}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : task.project ? (
+            <Link
+              to="/tasks/projects/$projectId"
+              params={{ projectId: task.project.id }}
+              className="text-sm hover:underline"
+            >
+              <ProjectTag project={task.project} />
+            </Link>
+          ) : (
+            <span className="text-sm text-muted-foreground">—</span>
+          )}
+        </FormField>
+        {task.project_id && <StageField task={task} canMove={perms.worker} />}
         <FormField label="Постановщик" htmlFor={null}>
           <PersonLine id={creator} />
         </FormField>
@@ -438,8 +499,14 @@ function TaskCardBody({ task, onClose }: { task: TaskFull; onClose?: () => void 
             </Select>
           </FormField>
         )}
+        {perms.edit && (
+          <Button variant="outline" size="sm" onClick={() => setAsTemplate(true)}>
+            <CopyCheck className="size-4" /> Сохранить как шаблон
+          </Button>
+        )}
         <p className="text-xs text-muted-foreground">
-          Поставлена {formatDateTime(task.created_at)}
+          {task.recurrence_id ? "Регулярная задача · " : ""}Поставлена{" "}
+          {formatDateTime(task.created_at)}
           {task.completed_at ? ` · закрыта ${formatDateTime(task.completed_at)}` : ""}
         </p>
         {onClose && (
@@ -450,7 +517,67 @@ function TaskCardBody({ task, onClose }: { task: TaskFull; onClose?: () => void 
       </aside>
 
       <AskTextDialog ask={ask} onClose={() => setAsk(null)} />
+      <TemplateDialog
+        template={
+          asTemplate
+            ? {
+                name: task.title,
+                scope: "personal",
+                task: {
+                  title: task.title,
+                  description: task.description,
+                  assignees: assignee ? [assignee] : [],
+                  coassignees: co,
+                  watchers,
+                  checklists: task.checklists.map((l) => ({
+                    title: l.title,
+                    items: l.items.map((i) => ({ text: i.text, assignee_id: i.assignee_id })),
+                  })),
+                  urgent: task.urgent,
+                  requires_review: task.requires_review,
+                  deadline_days: null,
+                },
+              }
+            : null
+        }
+        onClose={() => setAsTemplate(false)}
+      />
     </div>
+  );
+}
+
+function StageField({ task, canMove }: { task: TaskFull; canMove: boolean }) {
+  const qc = useQueryClient();
+  const member = task.my_roles.includes("project") || task.my_roles.includes("manager");
+  const { data: project } = useQuery({ ...projectQuery(task.project_id ?? ""), enabled: member });
+  if (!project) return null;
+  const stage = project.stages.find((s) => s.id === task.stage_id) ?? project.stages[0];
+  return (
+    <FormField label="Стадия проекта" htmlFor={null}>
+      {canMove || project.can_manage ? (
+        <Select
+          value={stage?.id}
+          onValueChange={(v) =>
+            void taskAction(qc, "task_set_stage", { p_task: task.id, p_stage: v }).catch((e) =>
+              toast.error(taskErrorText(e)),
+            )
+          }
+        >
+          <SelectTrigger aria-label="Стадия проекта">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {project.stages.map((s) => (
+              <SelectItem key={s.id} value={s.id}>
+                {s.title}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      ) : (
+        <span className="text-sm">{stage?.title ?? "—"}</span>
+      )}
+    </FormField>
   );
 }
 

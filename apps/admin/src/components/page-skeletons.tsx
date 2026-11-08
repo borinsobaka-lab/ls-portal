@@ -4109,3 +4109,83 @@ export function TaskPageSkeleton() {
     </ShellSkeleton>
   );
 }
+
+/** «Задачи» → «Проекты»: карточки проектов. */
+export function ProjectsPageSkeleton() {
+  return (
+    <ShellSkeleton title="Проекты" actions={["w-36"]}>
+      <div className="space-y-2">
+        <Skeleton className="h-5 w-32" />
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {Array.from({ length: 6 }, (_, i) => (
+            <Skeleton key={i} className="h-32 w-full" />
+          ))}
+        </div>
+      </div>
+    </ShellSkeleton>
+  );
+}
+
+/** Проект: строка сведений, вкладки, таблица задач. */
+export function ProjectPageSkeleton() {
+  return (
+    <ShellSkeleton title="Проект" actions={["w-36"]}>
+      <div className="space-y-4">
+        <Skeleton className="h-6 w-80" />
+        <Skeleton className="h-9 w-72 rounded-full" />
+        <TableCardSkeleton
+          headers={["№", "Задача", "Срок", "Исполнитель", "Постановщик", "Статус"]}
+        />
+      </div>
+    </ShellSkeleton>
+  );
+}
+
+/** «Задачи» → «Подчинённые»: таблица по людям. */
+export function TasksTeamPageSkeleton() {
+  return (
+    <ShellSkeleton title="Подчинённые">
+      <TableCardSkeleton
+        headers={["Сотрудник", "В работе", "Просрочено", "На проверке", "Закрыто за неделю"]}
+      />
+    </ShellSkeleton>
+  );
+}
+
+/** «Задачи» → «Шаблоны»: список шаблонов. */
+export function TaskTemplatesPageSkeleton() {
+  return (
+    <ShellSkeleton title="Шаблоны задач" actions={["w-36"]}>
+      <div className="divide-y rounded-lg border bg-background">
+        {Array.from({ length: 4 }, (_, i) => (
+          <div key={i} className="flex items-center gap-3 px-4 py-3">
+            <div className="flex-1 space-y-1.5">
+              <Skeleton className="h-4 w-48" />
+              <Skeleton className="h-3.5 w-72" />
+            </div>
+            <Skeleton className="h-8 w-24 rounded-full" />
+          </div>
+        ))}
+      </div>
+    </ShellSkeleton>
+  );
+}
+
+/** «Задачи» → «Регулярные»: список расписаний. */
+export function TaskRecurringPageSkeleton() {
+  return (
+    <ShellSkeleton title="Регулярные задачи" actions={["w-40"]}>
+      <div className="divide-y rounded-lg border bg-background">
+        {Array.from({ length: 4 }, (_, i) => (
+          <div key={i} className="flex items-center gap-3 px-4 py-3">
+            <Skeleton className="h-5 w-9 rounded-full" />
+            <div className="flex-1 space-y-1.5">
+              <Skeleton className="h-4 w-48" />
+              <Skeleton className="h-3.5 w-80" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </ShellSkeleton>
+  );
+}

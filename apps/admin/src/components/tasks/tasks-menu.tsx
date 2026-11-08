@@ -7,13 +7,17 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   CalendarClock,
+  Copy,
   Eye,
   Filter,
+  FolderOpen,
   ListChecks,
   ListTodo,
+  Repeat,
   Send,
   UserCheck,
   Users,
+  UserStar,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -25,7 +29,13 @@ import {
 } from "@/components/ui/context-menu";
 import { CountBadge } from "@/components/ui/status-chip";
 import { TASKS_DEADLINES_URL, TASKS_URL } from "@/lib/nav-sections";
-import { taskAction, taskErrorText, taskFiltersQuery, useTaskCounters } from "@/lib/tasks/data";
+import {
+  taskAction,
+  taskErrorText,
+  taskFiltersQuery,
+  useMyProjects,
+  useTaskCounters,
+} from "@/lib/tasks/data";
 import { cleanFilters, ROLE_TABS } from "@/lib/tasks/logic";
 import type { RoleTab, TaskFilters } from "@/lib/tasks/types";
 import { cn } from "@/lib/utils";
@@ -84,6 +94,7 @@ export function TasksMenu({ onNavigate }: { onNavigate?: () => void }) {
   const qc = useQueryClient();
   const counters = useTaskCounters();
   const { data: saved = [] } = useQuery(taskFiltersQuery);
+  const projects = useMyProjects();
   const location = useRouterState({ select: (s) => s.location });
   const onList = location.pathname === TASKS_URL || location.pathname === `${TASKS_URL}/`;
   const search = (location.search ?? {}) as TaskFilters & { task?: number };
@@ -128,6 +139,62 @@ export function TasksMenu({ onNavigate }: { onNavigate?: () => void }) {
         icon={ListChecks}
         title="Пункты на мне"
         active={onList && same(current, { mine: true })}
+        onNavigate={onNavigate}
+      />
+      {counters.leader && (
+        <MenuLink
+          to="/tasks/team"
+          icon={UserStar}
+          title="Подчинённые"
+          active={location.pathname.startsWith("/tasks/team") || (onList && !!current.team)}
+          onNavigate={onNavigate}
+        />
+      )}
+      <MenuLink
+        to="/tasks/templates"
+        icon={Copy}
+        title="Шаблоны"
+        active={location.pathname.startsWith("/tasks/templates")}
+        onNavigate={onNavigate}
+      />
+      <MenuLink
+        to="/tasks/recurring"
+        icon={Repeat}
+        title="Регулярные"
+        active={location.pathname.startsWith("/tasks/recurring")}
+        onNavigate={onNavigate}
+      />
+      <p className="mt-2 px-2 pt-1 pb-1 text-[13px] text-white/50">Проекты</p>
+      {projects.map((p) => {
+        const href = `/tasks/projects/${p.id}`;
+        const active = location.pathname === href;
+        return (
+          <Link
+            key={p.id}
+            to="/tasks/projects/$projectId"
+            params={{ projectId: p.id }}
+            onClick={onNavigate}
+            className={cn(
+              "flex h-9 items-center gap-2 rounded-md px-2 text-sm font-medium text-white hover:bg-white/10",
+              active && "bg-white/10 font-semibold",
+            )}
+          >
+            <span className="flex size-[18px] shrink-0 items-center justify-center">
+              <span
+                className="size-2.5 rounded-full"
+                style={{ background: p.color ?? "#94a3b8" }}
+              />
+            </span>
+            <span className="min-w-0 flex-1 truncate">{p.title}</span>
+            {p.overdue_count > 0 && <CountBadge count={p.overdue_count} tone="urgent" />}
+          </Link>
+        );
+      })}
+      <MenuLink
+        to="/tasks/projects"
+        icon={FolderOpen}
+        title={projects.length ? "Все проекты" : "Проекты"}
+        active={location.pathname === "/tasks/projects" || location.pathname === "/tasks/projects/"}
         onNavigate={onNavigate}
       />
       {saved.length > 0 && (

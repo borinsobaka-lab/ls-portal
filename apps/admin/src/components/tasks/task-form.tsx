@@ -8,10 +8,11 @@
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronDown, Loader2, Paperclip, Plus, RotateCw, WifiOff, X } from "lucide-react";
 import { toast } from "sonner";
 
+import { ChecklistsEditor } from "@/components/tasks/checklists-editor";
 import { DeadlinePicker } from "@/components/tasks/deadline-picker";
 import { PeopleField } from "@/components/tasks/task-bits";
 import { Button } from "@/components/ui/button";
@@ -46,18 +47,32 @@ import {
   type UploadedFile,
 } from "@/lib/resumable-upload";
 import {
-  createTask,
   TASK_BUCKET,
+  createTask,
   taskErrorText,
+  templatesQuery,
+  useMyProjects,
   useTaskClock,
   useWorkCalendar,
 } from "@/lib/tasks/data";
-import { plural, REMINDER_OPTIONS } from "@/lib/tasks/logic";
+import {
+  cleanLists,
+  plural,
+  REMINDER_OPTIONS,
+  templateDeadline,
+  type DraftList,
+} from "@/lib/tasks/logic";
+import type { TaskTemplate } from "@/lib/tasks/types";
+import { documentLines } from "@/lib/kb/document";
 import { cn } from "@/lib/utils";
 
 const FULL_KEY = "tasks_form_full";
 
+const NONE = "none";
+
 const TIPS = {
+  project:
+    "Задачу проекта видят все его участники; «Требует проверки» и правило срока — как в проекте.",
   assignees:
     "Исполнитель отвечает за результат. Несколько человек — выберите: одна общая задача или отдельная каждому.",
   coassignees: "Помогают исполнителю: видят задачу, ведут чек-листы и файлы, но не завершают.",
@@ -89,21 +104,50 @@ export function NewTaskDialog({
   open,
   onClose,
   initialAssignee,
+  initialProject,
+  template,
+  onCreated,
 }: {
   open: boolean;
   onClose: () => void;
   initialAssignee?: string;
+  /** Задача в проект (страница проекта). */
+  initialProject?: string;
+  /** Поля из шаблона («Поставить по шаблону»). */
+  template?: TaskTemplate;
+  /** Своё действие после постановки (иначе — карточка в «Задачах»). */
+  onCreated?: (numbers: number[]) => void;
 }) {
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="flex max-h-[92dvh] flex-col gap-0 p-0 sm:max-w-2xl">
-        {open && <TaskForm onClose={onClose} initialAssignee={initialAssignee} />}
+        {open && (
+          <TaskForm
+            onClose={onClose}
+            initialAssignee={initialAssignee}
+            initialProject={initialProject}
+            template={template}
+            onCreated={onCreated}
+          />
+        )}
       </DialogContent>
     </Dialog>
   );
 }
 
-function TaskForm({ onClose, initialAssignee }: { onClose: () => void; initialAssignee?: string }) {
+function TaskForm({
+  onClose,
+  initialAssignee,
+  initialProject,
+  template,
+  onCreated,
+}: {
+  onClose: () => void;
+  initialAssignee?: string;
+  initialProject?: string;
+  template?: TaskTemplate;
+  onCreated?: (numbers: number[]) => void;
+}) {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const { data: profile } = useStaffProfile();
@@ -125,7 +169,12 @@ function TaskForm({ onClose, initialAssignee }: { onClose: () => void; initialAs
   const [coassignees, setCoassignees] = useState<string[]>([]);
   const [watchers, setWatchers] = useState<string[]>([]);
   const [description, setDescription] = useState("");
-  const [items, setItems] = useState<string[]>([]);
+  const [lists, setLists] = useState<DraftList[]>([]);
+  const [project, setProject] = useState(initialProject ?? NONE);
+  // Описание из шаблона — документ; пока текст не трогали, уходит он (с оформлением).
+  const [descDoc, setDescDoc] = useState<unknown[] | null>(null);
+  const projects = useMyProjects();
+  const { data: templates = [] } = useQuery(templatesQuery);
   const [urgent, setUrgent] = useState(false);
   const [review, setReview] = useState(false);
   const [reminder, setReminder] = useState("none");
@@ -139,6 +188,53 @@ function TaskForm({ onClose, initialAssignee }: { onClose: () => void; initialAs
     const map = handles.current;
     return () => map.forEach((h) => h.cancel(false));
   }, []);
+
+  const applyTemplate = useCallback(
+    (tp: TaskTemplate) => {
+      const t = tp.task;
+      setTitle(t.title ?? "");
+      setAssignees(t.assignees ?? []);
+      setMode(t.mode ?? "shared");
+      setCoassignees(t.coassignees ?? []);
+      setWatchers(t.watchers ?? []);
+      const doc = Array.isArray(t.description) && t.description.length ? t.description : null;
+      setDescDoc(doc);
+      setDescription(
+        doc
+          ? documentLines(doc)
+              .map((l) => l.text)
+              .join("\n")
+          : "",
+      );
+      setLists(
+        (t.checklists ?? []).map((l) => ({
+          title: l.title,
+          items: l.items.map((i) => ({ ...i })),
+        })),
+      );
+      setUrgent(!!t.urgent);
+      setReview(!!t.requires_review);
+      const d = templateDeadline(
+        new Date(),
+        tz,
+        workdayEnd,
+        calendar,
+        t.deadline_days,
+        t.deadline_time,
+      );
+      setDeadline(d ? d.toISOString() : null);
+      if (tp.project_id) setProject(tp.project_id);
+      setFull(true);
+    },
+    [tz, workdayEnd, calendar],
+  );
+  const applied = useRef(false);
+  useEffect(() => {
+    if (template && !applied.current) {
+      applied.current = true;
+      applyTemplate(template);
+    }
+  }, [template, applyTemplate]);
 
   const addFiles = useCallback(
     (files: File[]) => {
@@ -189,10 +285,9 @@ function TaskForm({ onClose, initialAssignee }: { onClose: () => void; initialAs
         deadline,
         coassignees,
         watchers,
-        description: textToDoc(description),
-        checklists: items.some((i) => i.trim())
-          ? [{ title: "Чек-лист", items: items.filter((i) => i.trim()).map((text) => ({ text })) }]
-          : [],
+        description: descDoc ?? textToDoc(description),
+        checklists: cleanLists(lists),
+        project_id: project === NONE ? null : project,
         files: uploads.flatMap((u) => (u.done ? [u.done] : [])),
         urgent,
         requires_review: review,
@@ -206,7 +301,14 @@ function TaskForm({ onClose, initialAssignee }: { onClose: () => void; initialAs
       });
       handles.current.clear();
       onClose();
-      if (r.tasks.length === 1) {
+      if (onCreated) {
+        toast.success(
+          r.tasks.length === 1
+            ? `Задача #${r.tasks[0].number} поставлена`
+            : `Поставлено ${r.tasks.length} ${plural(r.tasks.length, "задача", "задачи", "задач")}`,
+        );
+        onCreated(r.tasks.map((t) => t.number));
+      } else if (r.tasks.length === 1) {
         toast.success(`Задача #${r.tasks[0].number} поставлена`);
         void navigate({
           to: "/tasks",
@@ -246,6 +348,49 @@ function TaskForm({ onClose, initialAssignee }: { onClose: () => void; initialAs
             }}
           />
         </FormField>
+        {(templates.length > 0 || projects.length > 0) && (
+          <div className="grid gap-3 sm:grid-cols-2">
+            {templates.length > 0 && (
+              <FormField label="Из шаблона">
+                <Select
+                  value=""
+                  onValueChange={(id) => {
+                    const tp = templates.find((x) => x.id === id);
+                    if (tp) applyTemplate(tp);
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Выбрать шаблон" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {templates.map((tp) => (
+                      <SelectItem key={tp.id} value={tp.id}>
+                        {tp.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormField>
+            )}
+            {projects.length > 0 && (
+              <FormField label="Проект" tip={TIPS.project}>
+                <Select value={project} onValueChange={setProject}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={NONE}>Без проекта</SelectItem>
+                    {projects.map((pr) => (
+                      <SelectItem key={pr.id} value={pr.id}>
+                        {pr.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormField>
+            )}
+          </div>
+        )}
         <FormField
           label="Исполнитель"
           tip={TIPS.assignees}
@@ -300,41 +445,15 @@ function TaskForm({ onClose, initialAssignee }: { onClose: () => void; initialAs
               <Textarea
                 rows={4}
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                onChange={(e) => {
+                  setDescription(e.target.value);
+                  setDescDoc(null);
+                }}
                 placeholder="Подробности, ссылки, что считать готовым"
               />
             </FormField>
-            <FormField label="Чек-лист" htmlFor={null}>
-              <div className="space-y-1.5">
-                {items.map((it, i) => (
-                  <div key={i} className="flex gap-1.5">
-                    <Input
-                      value={it}
-                      placeholder={`Пункт ${i + 1}`}
-                      onChange={(e) =>
-                        setItems((l) => l.map((x, j) => (j === i ? e.target.value : x)))
-                      }
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          setItems((l) => [...l.slice(0, i + 1), "", ...l.slice(i + 1)]);
-                        }
-                      }}
-                    />
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      aria-label="Убрать пункт"
-                      onClick={() => setItems((l) => l.filter((_, j) => j !== i))}
-                    >
-                      <X className="size-4" />
-                    </Button>
-                  </div>
-                ))}
-                <Button variant="outline" size="sm" onClick={() => setItems((l) => [...l, ""])}>
-                  <Plus className="size-4" /> Пункт
-                </Button>
-              </div>
+            <FormField label="Чек-листы" htmlFor={null}>
+              <ChecklistsEditor lists={lists} onChange={setLists} />
             </FormField>
             <FormField
               label="Файлы"

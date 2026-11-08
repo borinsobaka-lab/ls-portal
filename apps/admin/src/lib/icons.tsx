@@ -71,6 +71,7 @@ import {
   Columns2 as Columns2Art,
   Columns3 as Columns3Art,
   Copy as CopyArt,
+  CopyCheck as CopyCheckArt,
   CreditCard as CreditCardArt,
   Database as DatabaseArt,
   Download as DownloadArt,
@@ -87,6 +88,7 @@ import {
   FlaskConical as FlaskConicalArt,
   Folder as FolderArt,
   FolderTransferIcon as FolderInputArt,
+  FolderOpen as FolderOpenArt,
   FolderPlus as FolderPlusArt,
   Forward as ForwardArt,
   Frown as FrownArt,
@@ -179,6 +181,7 @@ import {
   UserMinus as UserMinusArt,
   UserPlus as UserPlusArt,
   UserRound as UserRoundArt,
+  UserStar as UserStarArt,
   Users as UsersArt,
   Video as VideoArt,
   VkIcon as VkArt,
@@ -256,6 +259,7 @@ export const Code = icon(CodeArt, "Code");
 export const Columns2 = icon(Columns2Art, "Columns2");
 export const Columns3 = icon(Columns3Art, "Columns3");
 export const Copy = icon(CopyArt, "Copy");
+export const CopyCheck = icon(CopyCheckArt, "CopyCheck");
 export const CreditCard = icon(CreditCardArt, "CreditCard");
 export const Database = icon(DatabaseArt, "Database");
 export const Download = icon(DownloadArt, "Download");
@@ -272,6 +276,7 @@ export const Filter = icon(FilterArt, "Filter");
 export const FlaskConical = icon(FlaskConicalArt, "FlaskConical");
 export const Folder = icon(FolderArt, "Folder");
 export const FolderInput = icon(FolderInputArt, "FolderInput");
+export const FolderOpen = icon(FolderOpenArt, "FolderOpen");
 export const FolderPlus = icon(FolderPlusArt, "FolderPlus");
 export const Forward = icon(ForwardArt, "Forward");
 export const Frown = icon(FrownArt, "Frown");
@@ -364,6 +369,7 @@ export const UserCheck = icon(UserCheckArt, "UserCheck");
 export const UserMinus = icon(UserMinusArt, "UserMinus");
 export const UserPlus = icon(UserPlusArt, "UserPlus");
 export const UserRound = icon(UserRoundArt, "UserRound");
+export const UserStar = icon(UserStarArt, "UserStar");
 export const Users = icon(UsersArt, "Users");
 export const Video = icon(VideoArt, "Video");
 export const Vk = icon(VkArt, "Vk");

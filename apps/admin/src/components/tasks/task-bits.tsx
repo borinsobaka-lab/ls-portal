@@ -45,6 +45,26 @@ export function DeadlineText({
   );
 }
 
+/** Проект задачи: цветная точка и название. */
+export function ProjectTag({
+  project,
+  className,
+}: {
+  project: { title: string; color: string | null };
+  className?: string;
+}) {
+  return (
+    <span className={cn("inline-flex min-w-0 items-center gap-1.5", className)}>
+      <span
+        aria-hidden
+        className="size-2 shrink-0 rounded-full"
+        style={{ background: project.color ?? "var(--muted-foreground)" }}
+      />
+      <span className="truncate">{project.title}</span>
+    </span>
+  );
+}
+
 export function UrgentMark({ className }: { className?: string }) {
   return (
     <span

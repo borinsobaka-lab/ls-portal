@@ -1,16 +1,18 @@
 /**
  * Папки чатов: системные «Все», «Личные» (и «Избранное»), «Группы»,
- * «Задачи» (обсуждения задач — только здесь, не в «Всех»: бриф, Д.2) и свои
+ * «Проекты» (чаты проектов, они и во «Всех»), «Задачи» (обсуждения задач —
+ * только здесь, не во «Всех»: бриф, Д.2) и свои
  * папки человека (chat_folders). Папка — в адресе `?f=`.
  */
 import type { ChatFolder, ChatRow } from "./types";
 
-export type FolderKey = "all" | "direct" | "group" | "task" | string;
+export type FolderKey = "all" | "direct" | "group" | "project" | "task" | string;
 
 export const SYSTEM_FOLDERS: { key: FolderKey; title: string }[] = [
   { key: "all", title: "Все чаты" },
   { key: "direct", title: "Личные" },
   { key: "group", title: "Группы" },
+  { key: "project", title: "Проекты" },
   { key: "task", title: "Задачи" },
 ];
 
@@ -19,6 +21,7 @@ export function folderFilter(folder: FolderKey, folders: Pick<ChatFolder, "id" |
   if (folder === "direct") return (c: ChatRow) => c.kind === "direct" || c.kind === "self";
   if (folder === "group") return (c: ChatRow) => c.kind === "group";
   if (folder === "task") return (c: ChatRow) => c.kind === "task";
+  if (folder === "project") return (c: ChatRow) => c.kind === "project";
   const ids = new Set(folders.find((f) => f.id === folder)?.chat_ids ?? []);
   return (c: ChatRow) => ids.has(c.id);
 }

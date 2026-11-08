@@ -4,12 +4,21 @@
 import type { CallEndReason } from "./call-logic";
 
 /** task — обсуждение задачи (db/migrations/2026-11-08_zz_tasks.sql): состав ведёт задача. */
-export type ChatKind = "direct" | "group" | "self" | "task";
+export type ChatKind = "direct" | "group" | "self" | "task" | "project";
 export type ChatRole = "owner" | "admin" | "member";
 export type ChatNotify = "all" | "mentions" | "none";
 
 export type ChatSystem = {
-  type: "created" | "added" | "removed" | "left" | "renamed" | "task_status" | "task_chat" | "call";
+  type:
+    | "created"
+    | "added"
+    | "removed"
+    | "left"
+    | "renamed"
+    | "task_status"
+    | "task_chat"
+    | "call"
+    | "project_created";
   title?: string;
   users?: string[];
   /** Видеозвонок (type = call, lib/chats/call-logic.ts). */
@@ -36,6 +45,8 @@ export type ChatSettings = {
   /** У чата задачи — её id и номер (ссылка «Открыть задачу»). */
   task_id?: string;
   task_number?: number;
+  /** У чата проекта — его id (ссылка «Проект»). */
+  project_id?: string;
 };
 
 export type ChatRow = {

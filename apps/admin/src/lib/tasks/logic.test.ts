@@ -219,3 +219,37 @@ describe("фильтры", () => {
     expect(filtersToParams({}).role).toBe("all");
   });
 });
+
+describe("веха 4: повтор и фильтры", () => {
+  test("подпись расписания", async () => {
+    const { recurrenceText } = await import("./logic");
+    expect(recurrenceText({ freq: "daily" }, "09:00:00")).toBe("Каждый день в 09:00");
+    expect(recurrenceText({ freq: "weekly", weekdays: [3, 1] }, "10:30")).toBe("По пн, ср в 10:30");
+    expect(recurrenceText({ freq: "monthly", monthday: 5 }, "09:00")).toBe(
+      "Каждый месяц 5-го в 09:00",
+    );
+    expect(recurrenceText({ freq: "after_close", after_days: 2 }, "09:00")).toBe(
+      "Через 2 дня после закрытия прежней, в 09:00",
+    );
+  });
+
+  test("проект и подчинённые — в адресе и в RPC", () => {
+    const f = parseTaskFilters({ project: "11111111-1111-4111-8111-111111111111", team: "1" });
+    expect(f).toEqual({ project: "11111111-1111-4111-8111-111111111111", team: true });
+    expect(filtersToParams(f)).toMatchObject({ scope: "team", project: f.project });
+  });
+});
+
+describe("срок из шаблона", () => {
+  test("через N рабочих дней к концу дня", async () => {
+    const { templateDeadline, localDay: day } = await import("./logic");
+    const fri = new Date("2026-11-13T09:00:00Z");
+    const cal = new Map<string, DayKind>();
+    expect(day(templateDeadline(fri, MSK, "18:00", cal, 0)!, MSK)).toBe("2026-11-13");
+    expect(day(templateDeadline(fri, MSK, "18:00", cal, 1)!, MSK)).toBe("2026-11-16");
+    expect(templateDeadline(fri, MSK, "18:00", cal, 2, "10:00")!.toISOString()).toBe(
+      "2026-11-17T07:00:00.000Z",
+    );
+    expect(templateDeadline(fri, MSK, "18:00", cal, null)).toBeNull();
+  });
+});

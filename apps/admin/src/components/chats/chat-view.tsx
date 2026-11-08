@@ -26,6 +26,7 @@ import {
   ArrowDown,
   ArrowLeft,
   BellOff,
+  FolderOpen,
   Info,
   ListChecks,
   Loader2,
@@ -511,6 +512,14 @@ export function ChatView({
             </span>
           </span>
         </button>
+        {chat.kind === "project" && chat.settings?.project_id && (
+          <Button variant="ghost" size="sm" asChild className="text-chat-accent">
+            <Link to="/tasks/projects/$projectId" params={{ projectId: chat.settings.project_id }}>
+              <FolderOpen className="size-4" />
+              <span className="hidden sm:inline">Задачи проекта</span>
+            </Link>
+          </Button>
+        )}
         {chat.kind === "task" && chat.settings?.task_number && (
           <Button variant="ghost" size="sm" asChild className="text-chat-accent">
             <Link to="/tasks/$number" params={{ number: String(chat.settings.task_number) }}>
@@ -667,7 +676,7 @@ export function ChatView({
                         m={m}
                         me={me}
                         first={first}
-                        showAuthor={chat.kind === "group" || chat.kind === "task"}
+                        showAuthor={chat.kind !== "direct" && chat.kind !== "self"}
                         readByOthers={othersRead >= m.seq}
                         highlighted={highlight === m.seq}
                         canPin={canPin}

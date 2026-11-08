@@ -19,7 +19,19 @@ import { useRealtimeConnected } from "@/lib/chats/realtime-state";
 import { usePortalSettings } from "@/lib/notifications/data";
 import { unwrap } from "@/lib/query";
 import { addDays, localDay, filtersToParams, type WorkCalendar } from "./logic";
-import type { SavedFilter, TaskCounters, TaskEvent, TaskFilters, TaskFull, TaskRow } from "./types";
+import type {
+  Project,
+  ProjectFull,
+  Recurrence,
+  SavedFilter,
+  Subordinate,
+  TaskCounters,
+  TaskEvent,
+  TaskFilters,
+  TaskFull,
+  TaskRow,
+  TaskTemplate,
+} from "./types";
 import type { DayKind } from "./work-calendar";
 
 export const TASK_BUCKET = "task-files";
@@ -123,6 +135,52 @@ export function useWorkCalendar(tz: string): WorkCalendar {
   return useMemo(() => new Map((data ?? []).map((d) => [d.day, d.kind])), [data]);
 }
 
+// ---- Проекты, «Подчинённые», шаблоны, регулярные (веха 4) ---------------------------
+
+export const projectsQuery = queryOptions({
+  queryKey: ["tasks", "projects"],
+  queryFn: async () =>
+    ((await taskRpc<Project[] | null>("task_projects_list")) ?? []).map((p) => ({
+      ...p,
+      member_count: Number(p.member_count),
+      open_count: Number(p.open_count),
+      overdue_count: Number(p.overdue_count),
+    })),
+  staleTime: 60_000,
+  meta: { errorMessage: "Не удалось загрузить проекты" },
+});
+
+/** Проекты, где я участник и которые не в архиве, — для выбора в формах. */
+export function useMyProjects() {
+  const { data = [] } = useQuery(projectsQuery);
+  return useMemo(() => data.filter((p) => p.my_role && !p.archived_at), [data]);
+}
+
+export const projectQuery = (id: string) =>
+  queryOptions({
+    queryKey: ["tasks", "project", id],
+    queryFn: () => taskRpc<ProjectFull>("task_project_get", { p_project: id }),
+    retry: false,
+  });
+
+export const subordinatesQuery = queryOptions({
+  queryKey: ["tasks", "subordinates"],
+  queryFn: async () => (await taskRpc<Subordinate[] | null>("task_subordinates")) ?? [],
+  meta: { errorMessage: "Не удалось загрузить подчинённых" },
+});
+
+export const templatesQuery = queryOptions({
+  queryKey: ["tasks", "templates"],
+  queryFn: async () => (await taskRpc<TaskTemplate[] | null>("task_templates_list")) ?? [],
+  meta: { errorMessage: "Не удалось загрузить шаблоны" },
+});
+
+export const recurrencesQuery = queryOptions({
+  queryKey: ["tasks", "recurrences"],
+  queryFn: async () => (await taskRpc<Recurrence[] | null>("task_recurrences_list")) ?? [],
+  meta: { errorMessage: "Не удалось загрузить регулярные задачи" },
+});
+
 // ---- Ошибки -----------------------------------------------------------------------
 
 export function taskErrorText(e: unknown): string {
@@ -146,6 +204,21 @@ export function taskErrorText(e: unknown): string {
     task_bad_file: "Файл не подходит",
     task_filter_invalid: "Название фильтра — до 60 символов",
     task_too_many_filters: "Не больше 30 фильтров",
+    project_forbidden: "Это может только владелец или модератор проекта",
+    project_not_found: "Проект не найден или закрыт",
+    project_title_invalid: "Название проекта — от 1 до 120 символов",
+    project_last_owner: "У проекта должен остаться владелец",
+    project_unit_member:
+      "Этот человек — из подразделения проекта: уберите его в оргструктуре или отвяжите подразделение",
+    project_bad_role: "Такой роли нет",
+    stage_title_invalid: "Название стадии — до 60 символов",
+    too_many_stages: "Не больше 20 стадий",
+    last_stage: "Последнюю стадию не удалить",
+    template_forbidden: "Этот шаблон вам не изменить",
+    template_name_invalid: "Название шаблона — до 120 символов",
+    recurrence_invalid: "Проверьте расписание",
+    recurrence_forbidden: "Это не ваша регулярная задача",
+    too_many_recurrences: "Не больше 100 регулярных задач",
   };
   for (const [k, v] of Object.entries(map)) if (msg.includes(k)) return v;
   return msg;
@@ -173,6 +246,7 @@ export type NewTask = {
     height?: number;
   }[];
   reminder?: { remind_at?: string; before_minutes?: number } | null;
+  project_id?: string | null;
 };
 
 export async function createTask(qc: QueryClient, t: NewTask) {

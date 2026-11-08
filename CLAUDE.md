@@ -1501,6 +1501,34 @@ DEPLOY.md.
   оконченных — удалить), `chat_call_room_deleted`. Событие `{type: 'call',
   call_id}` — в личные темы участников (`chat_broadcast`). Таблицы закрыты
   браузеру. Тесты — `db/chat-calls.test.ts`.
+  **Проекты, «Подчинённые», шаблоны, регулярные задачи** (TASKS_CHATS_PLAN.md,
+  веха 4, 2026-11-08): `db/migrations/2026-11-08_zzz_task_projects.sql` —
+  проекты `task_projects` (вид отдел / город / проект, цвет, закрытый или
+  открытый, своё правило срока и «Требует проверки» для новых задач,
+  состав из подразделения `unit_id` + `unit_scope` все / руководители +
+  `with_subunits`, архив, чат `chat_chats.kind = 'project'` — создаётся с
+  проектом, состав = участники), участники `task_project_members` (владелец /
+  модератор / участник; `source = 'unit'` — из подразделения, их ведёт
+  оргструктура: триггер на `org_unit_members` → `task_project_sync_unit`),
+  стадии канбана `task_stages` (новый проект — «Новые», «В работе», «Готово»;
+  стадия не меняет статус), у задачи `project_id` / `stage_id` /
+  `recurrence_id`. Создаёт проект любой человек портала (решение по
+  умолчанию — без отдельного права). Задачи проекта видят его участники (роль
+  `project` в `task_roles`), владелец и модераторы правят их как
+  постановщик (`task_is_manager`); правило срока — `task_deadline_rule_of`.
+  «Подчинённые» — `task_subordinates` и `task_list` с `scope = 'team'`
+  (`task_counters.leader`). Шаблоны `task_templates` (личные; проекта — ведут
+  владелец и модераторы; общие — `tasks.admin`; срок «через N рабочих
+  дней» — `work_add_days` по производственному календарю). Регулярные
+  `task_recurrences` (шаблон + правило daily / workdays / weekly / monthly /
+  after_close, время и пояс владельца, `mode` wait / skip — задачи не
+  копятся), создаёт `task_recurrence_tick` из `task_tick` (задача — от имени
+  владельца, `task_create_as`; не получилось — регулярная выключается,
+  причина в `last_error`). Актуальные определения `task_is_manager`,
+  `task_roles`, `task_json`, `task_list`, `task_counters`, `task_create`
+  (обёртка над `task_create_as`), `task_update` (+ перенос в проект),
+  `task_tick`, `chat_notify_message` — здесь. Тесты —
+  `db/task-projects.test.ts`.
   Рейтинг тренеров и чаевые: `db/migrations/2026-10-11_zzzzzzzzzzzzz_trainer_ratings.sql`
   — `trainer_reviews` (оценка 1–5, одна от учётной записи на тренера; клиент
   читает и правит свою, ставит — тренеру, которого видит в приложении,

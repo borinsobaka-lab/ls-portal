@@ -1684,6 +1684,27 @@ TASKS_CHATS_PLAN.md, веха 3. Схема — корневой CLAUDE.md
   isdayoff.ru (`WORK_CALENDAR_ORIGIN` — только стенд); `PUSH_WORKER=off`
   выключает.
 - Виды уведомлений задач — `lib/notifications/kinds.ts` (группа «Задачи»).
+- **Веха 4 (2026-11-08)** — схема: `2026-11-08_zzz_task_projects.sql`.
+  - **Проекты** — `/tasks/projects` (`projects-page.tsx`: мои, открытые с
+    «Вступить», архив; «Новый проект» — `project-form.tsx`) и
+    `/tasks/projects/$projectId` (`project-page.tsx`, `?tab=&view=&task=`):
+    задачи списком (`TaskTable`) или канбаном по стадиям (перетаскивание и
+    выбор стадии у карточки — `task_set_stage`), участники (роли, «из
+    подразделения», добавить, выйти), настройки (проект, стадии, архив,
+    удаление). В меню раздела — мои проекты цветными точками. Чат проекта —
+    папка «Проекты» в «Чатах» (и во «Всех»), в шапке чата — «Задачи проекта».
+  - **«Подчинённые»** — `/tasks/team` (`team-page.tsx`; пункт меню — у
+    руководителей, `counters.leader`), строка — `/tasks?team=1&assignee=…`.
+  - **Шаблоны** — `/tasks/templates` (`templates-page.tsx`, `TemplateDialog`;
+    «Сохранить как шаблон» — в карточке задачи), «Поставить» — форма с
+    полями шаблона (`NewTaskDialog template`; срок — `templateDeadline` в
+    `lib/tasks/logic.ts`), «Из шаблона» и «Проект» — и в самой форме.
+  - **Регулярные** — `/tasks/recurring` (`recurring-page.tsx`,
+    `RecurrenceDialog`; подпись расписания — `recurrenceText`).
+  - Таблица задач и карточка панелью — `task-table.tsx` (`TaskTable`,
+    `TaskSheet`), чек-листы в формах — `checklists-editor.tsx`. Данные —
+    `projectsQuery`, `projectQuery`, `subordinatesQuery`, `templatesQuery`,
+    `recurrencesQuery`, `useMyProjects` в `lib/tasks/data.ts`.
 
 ## Известные недоработки (найдены при рефакторинге 2026-10-09, не исправлены)
 

@@ -7,7 +7,18 @@
 import type { StatusTone } from "@/components/ui/status-chip-styles";
 
 import { dayKind, type DayKind } from "./work-calendar";
-import type { RoleTab, TaskEvent, TaskFilters, TaskRole, TaskRow, TaskStatus } from "./types";
+import type {
+  DeadlineRule,
+  ProjectKind,
+  ProjectRole,
+  RecurrenceRule,
+  RoleTab,
+  TaskEvent,
+  TaskFilters,
+  TaskRole,
+  TaskRow,
+  TaskStatus,
+} from "./types";
 
 // ---- Подписи ------------------------------------------------------------------
 
@@ -44,7 +55,63 @@ export const ROLE_LABEL: Record<TaskRole, string> = {
   coassignee: "Соисполнитель",
   watcher: "Наблюдатель",
   manager: "Руководитель",
+  project: "Участник проекта",
 };
+
+export const PROJECT_KIND_LABEL: Record<ProjectKind, string> = {
+  department: "Отдел",
+  city: "Город",
+  project: "Проект",
+};
+
+export const PROJECT_ROLE_LABEL: Record<ProjectRole, string> = {
+  owner: "Владелец",
+  moderator: "Модератор",
+  member: "Участник",
+};
+
+export const DEADLINE_RULE_LABEL: Record<DeadlineRule, string> = {
+  free: "Исполнитель меняет срок свободно",
+  reason: "Исполнитель меняет срок с причиной",
+  forbid: "Срок меняет только постановщик",
+};
+
+/** Цвета проектов — спокойные, читаются белым текстом и точкой в меню. */
+export const PROJECT_COLORS = [
+  "#3e63dd",
+  "#0d9488",
+  "#16a34a",
+  "#ca8a04",
+  "#ea580c",
+  "#dc2626",
+  "#db2777",
+  "#7c3aed",
+  "#475569",
+];
+
+const WEEKDAY_SHORT = ["пн", "вт", "ср", "чт", "пт", "сб", "вс"];
+
+/** «Каждый день в 09:00», «По пн, ср в 10:00», «Через 2 дня после закрытия». */
+export function recurrenceText(rule: RecurrenceRule, time: string): string {
+  const at = `в ${hhmm(time)}`;
+  switch (rule.freq) {
+    case "daily":
+      return `Каждый день ${at}`;
+    case "workdays":
+      return `По рабочим дням ${at}`;
+    case "weekly":
+      return `По ${[...rule.weekdays]
+        .sort()
+        .map((d) => WEEKDAY_SHORT[d - 1])
+        .join(", ")} ${at}`;
+    case "monthly":
+      return `Каждый месяц ${rule.monthday}-го ${at}`;
+    case "after_close":
+      return rule.after_days === 0
+        ? `Сразу после закрытия прежней, ${at}`
+        : `Через ${rule.after_days} ${plural(rule.after_days, "день", "дня", "дней")} после закрытия прежней, ${at}`;
+  }
+}
 
 export const ROLE_TABS: { key: RoleTab; title: string; hint: string }[] = [
   { key: "do", title: "Делаю", hint: "Я исполнитель" },
@@ -431,6 +498,12 @@ export function eventText(e: TaskEvent, name: (id: string) => string, tz: string
         .filter(Boolean)
         .join("; ");
     }
+    case "project": {
+      const title = (k: string) => (d[k] as { title?: string } | null)?.title ?? "без проекта";
+      return `проект: ${title("from")} → ${title("to")}`;
+    }
+    case "stage":
+      return `стадия: ${s("from") || "—"} → ${s("to")}`;
     case "check":
       return `${d.done ? "отметил(а)" : "снял(а) отметку"}: «${s("text")}»`;
     case "files": {
@@ -471,7 +544,7 @@ export function parseTaskFilters(raw: Record<string, unknown>): TaskFilters {
     const v = str(k);
     if (v && DAY_RE.test(v)) f[k] = v;
   }
-  for (const k of ["creator", "assignee"] as const) {
+  for (const k of ["creator", "assignee", "project"] as const) {
     const v = str(k);
     if (v && UUID_RE.test(v)) f[k] = v;
   }
@@ -481,6 +554,7 @@ export function parseTaskFilters(raw: Record<string, unknown>): TaskFilters {
   if (flag("done")) f.done = true;
   if (flag("mine")) f.mine = true;
   if (flag("all")) f.all = true;
+  if (flag("team")) f.team = true;
   return f;
 }
 
@@ -499,7 +573,8 @@ export function filtersToParams(f: TaskFilters, offset = 0, limit = 100): Record
     created_to: f.cto ?? null,
     q: f.q ?? "",
     checklist_mine: !!f.mine,
-    scope: f.all ? "all" : null,
+    scope: f.team ? "team" : f.all ? "all" : null,
+    project: f.project ?? null,
     limit,
     offset,
   };
@@ -517,4 +592,38 @@ export function cleanFilters(f: TaskFilters): TaskFilters {
       ([, v]) => v !== undefined && v !== false && v !== "" && !(Array.isArray(v) && !v.length),
     ),
   ) as TaskFilters;
+}
+
+// ---- Шаблоны ------------------------------------------------------------------------
+
+/**
+ * Срок задачи из шаблона: через N рабочих дней от сегодня (0 — сегодня или
+ * ближайший рабочий) к времени шаблона, иначе к концу рабочего дня — как
+ * считает база для регулярных (work_add_days).
+ */
+export function templateDeadline(
+  now: Date,
+  tz: string,
+  workdayEnd: string,
+  cal: WorkCalendar,
+  days: number | null | undefined,
+  time?: string | null,
+): Date | null {
+  if (days === null || days === undefined || Number.isNaN(days)) return null;
+  let day = nextWorkingDay(localDay(now, tz), cal);
+  for (let i = 0; i < days; i++) day = nextWorkingDay(addDays(day, 1), cal);
+  return zoned(day, hhmm(time || workdayEnd), tz);
+}
+
+/** Чек-лист в форме постановки и шаблона. */
+export type DraftList = { title: string; items: { text: string; assignee_id?: string | null }[] };
+
+/** Только заполненное — для записи. */
+export function cleanLists(lists: DraftList[]): DraftList[] {
+  return lists
+    .map((l) => ({
+      title: l.title.trim() || "Чек-лист",
+      items: l.items.filter((i) => i.text.trim()).map((i) => ({ ...i, text: i.text.trim() })),
+    }))
+    .filter((l) => l.items.length > 0);
 }

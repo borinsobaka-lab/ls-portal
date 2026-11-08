@@ -62,6 +62,9 @@ import { Route as AuthenticatedAnalyticsIndexRouteImport } from './routes/_authe
 import { Route as AuthenticatedAccessIndexRouteImport } from './routes/_authenticated/access/index'
 import { Route as AuthenticatedAcademyIndexRouteImport } from './routes/_authenticated/academy/index'
 import { Route as ApiAnalyticsOpenapiDotjsonRouteImport } from './routes/api/analytics/openapi[.]json'
+import { Route as AuthenticatedTasksTemplatesRouteImport } from './routes/_authenticated/tasks/templates'
+import { Route as AuthenticatedTasksTeamRouteImport } from './routes/_authenticated/tasks/team'
+import { Route as AuthenticatedTasksRecurringRouteImport } from './routes/_authenticated/tasks/recurring'
 import { Route as AuthenticatedTasksDeadlinesRouteImport } from './routes/_authenticated/tasks/deadlines'
 import { Route as AuthenticatedTasksNumberRouteImport } from './routes/_authenticated/tasks/$number'
 import { Route as AuthenticatedScriptsSettingsRouteImport } from './routes/_authenticated/scripts/settings'
@@ -77,6 +80,7 @@ import { Route as AuthenticatedAccessStructureRouteImport } from './routes/_auth
 import { Route as AuthenticatedAccessLogRouteImport } from './routes/_authenticated/access/log'
 import { Route as AuthenticatedAcademySettingsRouteImport } from './routes/_authenticated/academy/settings'
 import { Route as AuthenticatedAcademyReportRouteImport } from './routes/_authenticated/academy/report'
+import { Route as AuthenticatedTasksProjectsIndexRouteImport } from './routes/_authenticated/tasks/projects/index'
 import { Route as AuthenticatedKbBaseIdIndexRouteImport } from './routes/_authenticated/kb/$baseId/index'
 import { Route as AuthenticatedAnalyticsReviewsIndexRouteImport } from './routes/_authenticated/analytics/reviews/index'
 import { Route as AuthenticatedAnalyticsQuizIndexRouteImport } from './routes/_authenticated/analytics/quiz/index'
@@ -89,6 +93,7 @@ import { Route as ApiAnalyticsVkCallbackIdRouteImport } from './routes/api/analy
 import { Route as ApiAnalyticsV1SplatRouteImport } from './routes/api/analytics/v1/$'
 import { Route as ApiAnalyticsQuizLeadsRouteImport } from './routes/api/analytics/quiz/leads'
 import { Route as ApiAnalyticsFitbaseSessionRouteImport } from './routes/api/analytics/fitbase/session'
+import { Route as AuthenticatedTasksProjectsProjectIdRouteImport } from './routes/_authenticated/tasks/projects/$projectId'
 import { Route as AuthenticatedKbBaseIdTrashRouteImport } from './routes/_authenticated/kb/$baseId/trash'
 import { Route as AuthenticatedKbBaseIdTemplatesRouteImport } from './routes/_authenticated/kb/$baseId/templates'
 import { Route as AuthenticatedKbBaseIdAnalyticsRouteImport } from './routes/_authenticated/kb/$baseId/analytics'
@@ -434,6 +439,23 @@ const ApiAnalyticsOpenapiDotjsonRoute =
     path: '/api/analytics/openapi.json',
     getParentRoute: () => rootRouteImport,
   } as any)
+const AuthenticatedTasksTemplatesRoute =
+  AuthenticatedTasksTemplatesRouteImport.update({
+    id: '/tasks/templates',
+    path: '/tasks/templates',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedTasksTeamRoute = AuthenticatedTasksTeamRouteImport.update({
+  id: '/tasks/team',
+  path: '/tasks/team',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedTasksRecurringRoute =
+  AuthenticatedTasksRecurringRouteImport.update({
+    id: '/tasks/recurring',
+    path: '/tasks/recurring',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedTasksDeadlinesRoute =
   AuthenticatedTasksDeadlinesRouteImport.update({
     id: '/tasks/deadlines',
@@ -523,6 +545,12 @@ const AuthenticatedAcademyReportRoute =
     path: '/academy/report',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedTasksProjectsIndexRoute =
+  AuthenticatedTasksProjectsIndexRouteImport.update({
+    id: '/tasks/projects/',
+    path: '/tasks/projects/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedKbBaseIdIndexRoute =
   AuthenticatedKbBaseIdIndexRouteImport.update({
     id: '/kb/$baseId/',
@@ -592,6 +620,12 @@ const ApiAnalyticsFitbaseSessionRoute =
     id: '/api/analytics/fitbase/session',
     path: '/api/analytics/fitbase/session',
     getParentRoute: () => rootRouteImport,
+  } as any)
+const AuthenticatedTasksProjectsProjectIdRoute =
+  AuthenticatedTasksProjectsProjectIdRouteImport.update({
+    id: '/tasks/projects/$projectId',
+    path: '/tasks/projects/$projectId',
+    getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedKbBaseIdTrashRoute =
   AuthenticatedKbBaseIdTrashRouteImport.update({
@@ -1035,6 +1069,9 @@ export interface FileRoutesByFullPath {
   '/scripts/settings': typeof AuthenticatedScriptsSettingsRoute
   '/tasks/$number': typeof AuthenticatedTasksNumberRoute
   '/tasks/deadlines': typeof AuthenticatedTasksDeadlinesRoute
+  '/tasks/recurring': typeof AuthenticatedTasksRecurringRoute
+  '/tasks/team': typeof AuthenticatedTasksTeamRoute
+  '/tasks/templates': typeof AuthenticatedTasksTemplatesRoute
   '/api/analytics/openapi.json': typeof ApiAnalyticsOpenapiDotjsonRoute
   '/academy/': typeof AuthenticatedAcademyIndexRoute
   '/access/': typeof AuthenticatedAccessIndexRoute
@@ -1092,6 +1129,7 @@ export interface FileRoutesByFullPath {
   '/kb/$baseId/analytics': typeof AuthenticatedKbBaseIdAnalyticsRoute
   '/kb/$baseId/templates': typeof AuthenticatedKbBaseIdTemplatesRoute
   '/kb/$baseId/trash': typeof AuthenticatedKbBaseIdTrashRoute
+  '/tasks/projects/$projectId': typeof AuthenticatedTasksProjectsProjectIdRoute
   '/api/analytics/fitbase/session': typeof ApiAnalyticsFitbaseSessionRoute
   '/api/analytics/quiz/leads': typeof ApiAnalyticsQuizLeadsRoute
   '/api/analytics/v1/$': typeof ApiAnalyticsV1SplatRoute
@@ -1104,6 +1142,7 @@ export interface FileRoutesByFullPath {
   '/analytics/quiz/': typeof AuthenticatedAnalyticsQuizIndexRoute
   '/analytics/reviews/': typeof AuthenticatedAnalyticsReviewsIndexRoute
   '/kb/$baseId/': typeof AuthenticatedKbBaseIdIndexRoute
+  '/tasks/projects/': typeof AuthenticatedTasksProjectsIndexRoute
   '/academy/courses/$courseId/$stepId': typeof AuthenticatedAcademyCoursesCourseIdStepIdRoute
   '/academy/courses/$courseId/preview': typeof AuthenticatedAcademyCoursesCourseIdPreviewRoute
   '/analytics/admin/partners/$userId': typeof AuthenticatedAnalyticsAdminPartnersUserIdRoute
@@ -1180,6 +1219,9 @@ export interface FileRoutesByTo {
   '/scripts/settings': typeof AuthenticatedScriptsSettingsRoute
   '/tasks/$number': typeof AuthenticatedTasksNumberRoute
   '/tasks/deadlines': typeof AuthenticatedTasksDeadlinesRoute
+  '/tasks/recurring': typeof AuthenticatedTasksRecurringRoute
+  '/tasks/team': typeof AuthenticatedTasksTeamRoute
+  '/tasks/templates': typeof AuthenticatedTasksTemplatesRoute
   '/api/analytics/openapi.json': typeof ApiAnalyticsOpenapiDotjsonRoute
   '/academy': typeof AuthenticatedAcademyIndexRoute
   '/access': typeof AuthenticatedAccessIndexRoute
@@ -1237,6 +1279,7 @@ export interface FileRoutesByTo {
   '/kb/$baseId/analytics': typeof AuthenticatedKbBaseIdAnalyticsRoute
   '/kb/$baseId/templates': typeof AuthenticatedKbBaseIdTemplatesRoute
   '/kb/$baseId/trash': typeof AuthenticatedKbBaseIdTrashRoute
+  '/tasks/projects/$projectId': typeof AuthenticatedTasksProjectsProjectIdRoute
   '/api/analytics/fitbase/session': typeof ApiAnalyticsFitbaseSessionRoute
   '/api/analytics/quiz/leads': typeof ApiAnalyticsQuizLeadsRoute
   '/api/analytics/v1/$': typeof ApiAnalyticsV1SplatRoute
@@ -1249,6 +1292,7 @@ export interface FileRoutesByTo {
   '/analytics/quiz': typeof AuthenticatedAnalyticsQuizIndexRoute
   '/analytics/reviews': typeof AuthenticatedAnalyticsReviewsIndexRoute
   '/kb/$baseId': typeof AuthenticatedKbBaseIdIndexRoute
+  '/tasks/projects': typeof AuthenticatedTasksProjectsIndexRoute
   '/academy/courses/$courseId/$stepId': typeof AuthenticatedAcademyCoursesCourseIdStepIdRoute
   '/academy/courses/$courseId/preview': typeof AuthenticatedAcademyCoursesCourseIdPreviewRoute
   '/analytics/admin/partners/$userId': typeof AuthenticatedAnalyticsAdminPartnersUserIdRoute
@@ -1327,6 +1371,9 @@ export interface FileRoutesById {
   '/_authenticated/scripts/settings': typeof AuthenticatedScriptsSettingsRoute
   '/_authenticated/tasks/$number': typeof AuthenticatedTasksNumberRoute
   '/_authenticated/tasks/deadlines': typeof AuthenticatedTasksDeadlinesRoute
+  '/_authenticated/tasks/recurring': typeof AuthenticatedTasksRecurringRoute
+  '/_authenticated/tasks/team': typeof AuthenticatedTasksTeamRoute
+  '/_authenticated/tasks/templates': typeof AuthenticatedTasksTemplatesRoute
   '/api/analytics/openapi.json': typeof ApiAnalyticsOpenapiDotjsonRoute
   '/_authenticated/academy/': typeof AuthenticatedAcademyIndexRoute
   '/_authenticated/access/': typeof AuthenticatedAccessIndexRoute
@@ -1384,6 +1431,7 @@ export interface FileRoutesById {
   '/_authenticated/kb/$baseId/analytics': typeof AuthenticatedKbBaseIdAnalyticsRoute
   '/_authenticated/kb/$baseId/templates': typeof AuthenticatedKbBaseIdTemplatesRoute
   '/_authenticated/kb/$baseId/trash': typeof AuthenticatedKbBaseIdTrashRoute
+  '/_authenticated/tasks/projects/$projectId': typeof AuthenticatedTasksProjectsProjectIdRoute
   '/api/analytics/fitbase/session': typeof ApiAnalyticsFitbaseSessionRoute
   '/api/analytics/quiz/leads': typeof ApiAnalyticsQuizLeadsRoute
   '/api/analytics/v1/$': typeof ApiAnalyticsV1SplatRoute
@@ -1396,6 +1444,7 @@ export interface FileRoutesById {
   '/_authenticated/analytics/quiz/': typeof AuthenticatedAnalyticsQuizIndexRoute
   '/_authenticated/analytics/reviews/': typeof AuthenticatedAnalyticsReviewsIndexRoute
   '/_authenticated/kb/$baseId/': typeof AuthenticatedKbBaseIdIndexRoute
+  '/_authenticated/tasks/projects/': typeof AuthenticatedTasksProjectsIndexRoute
   '/_authenticated/academy/courses/$courseId/$stepId': typeof AuthenticatedAcademyCoursesCourseIdStepIdRoute
   '/_authenticated/academy/courses/$courseId/preview': typeof AuthenticatedAcademyCoursesCourseIdPreviewRoute
   '/_authenticated/analytics/admin/partners/$userId': typeof AuthenticatedAnalyticsAdminPartnersUserIdRoute
@@ -1474,6 +1523,9 @@ export interface FileRouteTypes {
     | '/scripts/settings'
     | '/tasks/$number'
     | '/tasks/deadlines'
+    | '/tasks/recurring'
+    | '/tasks/team'
+    | '/tasks/templates'
     | '/api/analytics/openapi.json'
     | '/academy/'
     | '/access/'
@@ -1531,6 +1583,7 @@ export interface FileRouteTypes {
     | '/kb/$baseId/analytics'
     | '/kb/$baseId/templates'
     | '/kb/$baseId/trash'
+    | '/tasks/projects/$projectId'
     | '/api/analytics/fitbase/session'
     | '/api/analytics/quiz/leads'
     | '/api/analytics/v1/$'
@@ -1543,6 +1596,7 @@ export interface FileRouteTypes {
     | '/analytics/quiz/'
     | '/analytics/reviews/'
     | '/kb/$baseId/'
+    | '/tasks/projects/'
     | '/academy/courses/$courseId/$stepId'
     | '/academy/courses/$courseId/preview'
     | '/analytics/admin/partners/$userId'
@@ -1619,6 +1673,9 @@ export interface FileRouteTypes {
     | '/scripts/settings'
     | '/tasks/$number'
     | '/tasks/deadlines'
+    | '/tasks/recurring'
+    | '/tasks/team'
+    | '/tasks/templates'
     | '/api/analytics/openapi.json'
     | '/academy'
     | '/access'
@@ -1676,6 +1733,7 @@ export interface FileRouteTypes {
     | '/kb/$baseId/analytics'
     | '/kb/$baseId/templates'
     | '/kb/$baseId/trash'
+    | '/tasks/projects/$projectId'
     | '/api/analytics/fitbase/session'
     | '/api/analytics/quiz/leads'
     | '/api/analytics/v1/$'
@@ -1688,6 +1746,7 @@ export interface FileRouteTypes {
     | '/analytics/quiz'
     | '/analytics/reviews'
     | '/kb/$baseId'
+    | '/tasks/projects'
     | '/academy/courses/$courseId/$stepId'
     | '/academy/courses/$courseId/preview'
     | '/analytics/admin/partners/$userId'
@@ -1765,6 +1824,9 @@ export interface FileRouteTypes {
     | '/_authenticated/scripts/settings'
     | '/_authenticated/tasks/$number'
     | '/_authenticated/tasks/deadlines'
+    | '/_authenticated/tasks/recurring'
+    | '/_authenticated/tasks/team'
+    | '/_authenticated/tasks/templates'
     | '/api/analytics/openapi.json'
     | '/_authenticated/academy/'
     | '/_authenticated/access/'
@@ -1822,6 +1884,7 @@ export interface FileRouteTypes {
     | '/_authenticated/kb/$baseId/analytics'
     | '/_authenticated/kb/$baseId/templates'
     | '/_authenticated/kb/$baseId/trash'
+    | '/_authenticated/tasks/projects/$projectId'
     | '/api/analytics/fitbase/session'
     | '/api/analytics/quiz/leads'
     | '/api/analytics/v1/$'
@@ -1834,6 +1897,7 @@ export interface FileRouteTypes {
     | '/_authenticated/analytics/quiz/'
     | '/_authenticated/analytics/reviews/'
     | '/_authenticated/kb/$baseId/'
+    | '/_authenticated/tasks/projects/'
     | '/_authenticated/academy/courses/$courseId/$stepId'
     | '/_authenticated/academy/courses/$courseId/preview'
     | '/_authenticated/analytics/admin/partners/$userId'
@@ -2244,6 +2308,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAnalyticsOpenapiDotjsonRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/tasks/templates': {
+      id: '/_authenticated/tasks/templates'
+      path: '/tasks/templates'
+      fullPath: '/tasks/templates'
+      preLoaderRoute: typeof AuthenticatedTasksTemplatesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/tasks/team': {
+      id: '/_authenticated/tasks/team'
+      path: '/tasks/team'
+      fullPath: '/tasks/team'
+      preLoaderRoute: typeof AuthenticatedTasksTeamRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/tasks/recurring': {
+      id: '/_authenticated/tasks/recurring'
+      path: '/tasks/recurring'
+      fullPath: '/tasks/recurring'
+      preLoaderRoute: typeof AuthenticatedTasksRecurringRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/tasks/deadlines': {
       id: '/_authenticated/tasks/deadlines'
       path: '/tasks/deadlines'
@@ -2349,6 +2434,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAcademyReportRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/tasks/projects/': {
+      id: '/_authenticated/tasks/projects/'
+      path: '/tasks/projects'
+      fullPath: '/tasks/projects/'
+      preLoaderRoute: typeof AuthenticatedTasksProjectsIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/kb/$baseId/': {
       id: '/_authenticated/kb/$baseId/'
       path: '/kb/$baseId'
@@ -2432,6 +2524,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/analytics/fitbase/session'
       preLoaderRoute: typeof ApiAnalyticsFitbaseSessionRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/tasks/projects/$projectId': {
+      id: '/_authenticated/tasks/projects/$projectId'
+      path: '/tasks/projects/$projectId'
+      fullPath: '/tasks/projects/$projectId'
+      preLoaderRoute: typeof AuthenticatedTasksProjectsProjectIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/kb/$baseId/trash': {
       id: '/_authenticated/kb/$baseId/trash'
@@ -2933,6 +3032,9 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedScriptsSettingsRoute: typeof AuthenticatedScriptsSettingsRoute
   AuthenticatedTasksNumberRoute: typeof AuthenticatedTasksNumberRoute
   AuthenticatedTasksDeadlinesRoute: typeof AuthenticatedTasksDeadlinesRoute
+  AuthenticatedTasksRecurringRoute: typeof AuthenticatedTasksRecurringRoute
+  AuthenticatedTasksTeamRoute: typeof AuthenticatedTasksTeamRoute
+  AuthenticatedTasksTemplatesRoute: typeof AuthenticatedTasksTemplatesRoute
   AuthenticatedAcademyIndexRoute: typeof AuthenticatedAcademyIndexRoute
   AuthenticatedAccessIndexRoute: typeof AuthenticatedAccessIndexRoute
   AuthenticatedAnalyticsIndexRoute: typeof AuthenticatedAnalyticsIndexRoute
@@ -2989,6 +3091,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedKbBaseIdAnalyticsRoute: typeof AuthenticatedKbBaseIdAnalyticsRoute
   AuthenticatedKbBaseIdTemplatesRoute: typeof AuthenticatedKbBaseIdTemplatesRoute
   AuthenticatedKbBaseIdTrashRoute: typeof AuthenticatedKbBaseIdTrashRoute
+  AuthenticatedTasksProjectsProjectIdRoute: typeof AuthenticatedTasksProjectsProjectIdRoute
   AuthenticatedAcademyCoursesIndexRoute: typeof AuthenticatedAcademyCoursesIndexRoute
   AuthenticatedAcademyReviewIndexRoute: typeof AuthenticatedAcademyReviewIndexRoute
   AuthenticatedAccessRolesIndexRoute: typeof AuthenticatedAccessRolesIndexRoute
@@ -2997,6 +3100,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAnalyticsQuizIndexRoute: typeof AuthenticatedAnalyticsQuizIndexRoute
   AuthenticatedAnalyticsReviewsIndexRoute: typeof AuthenticatedAnalyticsReviewsIndexRoute
   AuthenticatedKbBaseIdIndexRoute: typeof AuthenticatedKbBaseIdIndexRoute
+  AuthenticatedTasksProjectsIndexRoute: typeof AuthenticatedTasksProjectsIndexRoute
   AuthenticatedAcademyCoursesCourseIdStepIdRoute: typeof AuthenticatedAcademyCoursesCourseIdStepIdRoute
   AuthenticatedAcademyCoursesCourseIdPreviewRoute: typeof AuthenticatedAcademyCoursesCourseIdPreviewRoute
   AuthenticatedAnalyticsAdminPartnersUserIdRoute: typeof AuthenticatedAnalyticsAdminPartnersUserIdRoute
@@ -3068,6 +3172,9 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedScriptsSettingsRoute: AuthenticatedScriptsSettingsRoute,
   AuthenticatedTasksNumberRoute: AuthenticatedTasksNumberRoute,
   AuthenticatedTasksDeadlinesRoute: AuthenticatedTasksDeadlinesRoute,
+  AuthenticatedTasksRecurringRoute: AuthenticatedTasksRecurringRoute,
+  AuthenticatedTasksTeamRoute: AuthenticatedTasksTeamRoute,
+  AuthenticatedTasksTemplatesRoute: AuthenticatedTasksTemplatesRoute,
   AuthenticatedAcademyIndexRoute: AuthenticatedAcademyIndexRoute,
   AuthenticatedAccessIndexRoute: AuthenticatedAccessIndexRoute,
   AuthenticatedAnalyticsIndexRoute: AuthenticatedAnalyticsIndexRoute,
@@ -3146,6 +3253,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedKbBaseIdAnalyticsRoute: AuthenticatedKbBaseIdAnalyticsRoute,
   AuthenticatedKbBaseIdTemplatesRoute: AuthenticatedKbBaseIdTemplatesRoute,
   AuthenticatedKbBaseIdTrashRoute: AuthenticatedKbBaseIdTrashRoute,
+  AuthenticatedTasksProjectsProjectIdRoute:
+    AuthenticatedTasksProjectsProjectIdRoute,
   AuthenticatedAcademyCoursesIndexRoute: AuthenticatedAcademyCoursesIndexRoute,
   AuthenticatedAcademyReviewIndexRoute: AuthenticatedAcademyReviewIndexRoute,
   AuthenticatedAccessRolesIndexRoute: AuthenticatedAccessRolesIndexRoute,
@@ -3156,6 +3265,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAnalyticsReviewsIndexRoute:
     AuthenticatedAnalyticsReviewsIndexRoute,
   AuthenticatedKbBaseIdIndexRoute: AuthenticatedKbBaseIdIndexRoute,
+  AuthenticatedTasksProjectsIndexRoute: AuthenticatedTasksProjectsIndexRoute,
   AuthenticatedAcademyCoursesCourseIdStepIdRoute:
     AuthenticatedAcademyCoursesCourseIdStepIdRoute,
   AuthenticatedAcademyCoursesCourseIdPreviewRoute:

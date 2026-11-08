@@ -7,7 +7,15 @@
 import { useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Folder, FolderPlus, ListChecks, MessagesSquare, User, Users } from "lucide-react";
+import {
+  Folder,
+  FolderOpen,
+  FolderPlus,
+  ListChecks,
+  MessagesSquare,
+  User,
+  Users,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { FolderDialog } from "@/components/chats/dialogs";
@@ -31,7 +39,13 @@ import { folderFilter, folderUnread, SYSTEM_FOLDERS, type FolderKey } from "@/li
 import type { ChatFolder } from "@/lib/chats/types";
 import { cn } from "@/lib/utils";
 
-const ICONS = { all: MessagesSquare, direct: User, group: Users, task: ListChecks } as const;
+const ICONS = {
+  all: MessagesSquare,
+  direct: User,
+  group: Users,
+  project: FolderOpen,
+  task: ListChecks,
+} as const;
 
 export function ChatFoldersMenu({ onNavigate }: { onNavigate?: () => void }) {
   const qc = useQueryClient();
@@ -45,8 +59,13 @@ export function ChatFoldersMenu({ onNavigate }: { onNavigate?: () => void }) {
 
   // «Задачи» — когда есть хоть одно обсуждение задачи.
   const hasTaskChats = chats.some((c) => c.kind === "task");
+  const hasProjectChats = chats.some((c) => c.kind === "project");
   const items: { key: FolderKey; title: string; folder?: ChatFolder }[] = [
-    ...SYSTEM_FOLDERS.filter((f) => f.key !== "task" || hasTaskChats || current === "task"),
+    ...SYSTEM_FOLDERS.filter(
+      (f) =>
+        (f.key !== "task" || hasTaskChats || current === "task") &&
+        (f.key !== "project" || hasProjectChats || current === "project"),
+    ),
     ...folders.map((f) => ({ key: f.id, title: f.title, folder: f })),
   ];
 

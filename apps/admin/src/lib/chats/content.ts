@@ -106,6 +106,7 @@ export function chatTitle(
   if (chat.kind === "self") return "Избранное";
   if (chat.kind === "group") return chat.title ?? "Группа";
   if (chat.kind === "task") return chat.title ?? "Задача";
+  if (chat.kind === "project") return chat.title ?? "Проект";
   return chat.peer_id ? name(chat.peer_id) : "Удалённый собеседник";
 }
 
@@ -129,6 +130,8 @@ export function systemText(
       return `${users || who} вышел(а) из группы`;
     case "renamed":
       return `${who} переименовал(а) группу в «${system.title ?? ""}»`;
+    case "project_created":
+      return `${who} создал(а) проект «${system.title ?? ""}»`;
     case "task_chat":
       return `${who} начал(а) обсуждение задачи`;
     case "task_status":

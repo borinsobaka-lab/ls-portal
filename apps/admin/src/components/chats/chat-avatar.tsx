@@ -1,8 +1,9 @@
 /**
  * Аватарка чата: личный — фото собеседника с точкой «в сети», группа —
- * инициалы названия на цвете по id, «Избранное» — закладка.
+ * инициалы названия на цвете по id, проект — папка на цвете по id, задача —
+ * значок списка, «Избранное» — закладка.
  */
-import { Bookmark, ListChecks, Users } from "lucide-react";
+import { Bookmark, FolderOpen, ListChecks, Users } from "lucide-react";
 
 import { StaffAvatar } from "@/components/employee-photo";
 import { isOnline } from "@/lib/company";
@@ -31,6 +32,16 @@ export function ChatAvatar({
         )}
       >
         <Bookmark className={size === "sm" ? "size-4" : "size-5"} />
+      </span>
+    );
+  }
+  if (chat.kind === "project") {
+    return (
+      <span
+        className={cn("flex shrink-0 items-center justify-center rounded-full font-semibold", box)}
+        style={avatarStyle(chat.id)}
+      >
+        <FolderOpen className={size === "sm" ? "size-4" : "size-5"} />
       </span>
     );
   }
