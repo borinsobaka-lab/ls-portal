@@ -1741,6 +1741,15 @@ DEPLOY.md.
   тем). Актуальные определения `chat_list`, `chat_unread_summary`,
   `portal_badge_count`, `chat_notify_message` — здесь. Тесты —
   `db/chat-topics.test.ts`.
+  **Голосовые сообщения** (решение владельца 2026-11-08):
+  `db/migrations/2026-11-08_zzzzzzzzzzzzzz_chat_voice.sql` — голосовое —
+  вложение `chat-files` с `voice: true`, `duration` (секунды, до 2 часов)
+  и `waveform` (до 100 чисел 0–100); `chat_check_attachments` (актуальное
+  определение — здесь) пропускает их только у `mime` audio/\*, неверные —
+  отбрасывает (файл принимается), волну проверяет внутренняя
+  `chat_voice_waveform`; превью — «Голосовое сообщение (м:сс)»
+  (`chat_preview_text` — актуальное определение здесь). Тесты —
+  `db/chat-voice.test.ts`.
   Рейтинг тренеров и чаевые: `db/migrations/2026-10-11_zzzzzzzzzzzzz_trainer_ratings.sql`
   — `trainer_reviews` (оценка 1–5, одна от учётной записи на тренера; клиент
   читает и правит свою, ставит — тренеру, которого видит в приложении,
