@@ -3,7 +3,7 @@
  * строкой, поле выбора людей (исполнитель, соисполнители, наблюдатели).
  */
 import { useState } from "react";
-import { AlertTriangle, Plus, X } from "lucide-react";
+import { AlertTriangle, CalendarOff, Plus, X } from "lucide-react";
 
 import { PeoplePicker } from "@/components/chats/dialogs";
 import { StaffAvatar } from "@/components/employee-photo";
@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { StatusChip } from "@/components/ui/status-chip";
 import { usePeople } from "@/lib/chats/people";
+import { absenceOn, absenceText, localISO } from "@/lib/people-calendar";
+import { useAbsences, useTodayISO } from "@/lib/people-calendar-data";
 import { formatDeadline, isOverdue, STATUS_LABEL, STATUS_TONE } from "@/lib/tasks/logic";
 import type { TaskRow, TaskStatus } from "@/lib/tasks/types";
 import { cn } from "@/lib/utils";
@@ -166,6 +168,48 @@ export function PeopleField({
           </PopoverContent>
         </Popover>
       )}
+    </div>
+  );
+}
+
+/**
+ * Кто из выбранных людей не на месте с сегодня до срока (бриф 8.8: «при
+ * постановке задачи видеть, кто в отпуске»).
+ */
+export function AbsentNote({
+  ids,
+  until,
+  className,
+}: {
+  ids: string[];
+  /** Срок задачи (ISO) — до какого дня смотреть; нет — только сегодня. */
+  until?: string | null;
+  className?: string;
+}) {
+  const { name } = usePeople();
+  const today = useTodayISO();
+  const list = useAbsences();
+  const to = until ? localISO(new Date(until)) : today;
+  const away = ids
+    .map((id) => ({ id, a: absenceOn(list, id, today, to < today ? today : to) }))
+    .filter((x) => x.a);
+  if (away.length === 0) return null;
+  return (
+    <div
+      className={cn(
+        "flex items-start gap-2 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:bg-amber-950/30 dark:text-amber-200",
+        className,
+      )}
+    >
+      <CalendarOff className="mt-0.5 size-4 shrink-0" />
+      <span>
+        {away.map((x, i) => (
+          <span key={x.id}>
+            {i > 0 && "; "}
+            {name(x.id)} — {absenceText(x.a!, today)}
+          </span>
+        ))}
+      </span>
     </div>
   );
 }

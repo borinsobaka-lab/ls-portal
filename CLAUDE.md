@@ -1621,6 +1621,20 @@ DEPLOY.md.
   `task_plan_add` / `_remove`, `task_plan_column_save` / `_delete`,
   `task_plan_columns_reorder`. Таблицы закрыты браузеру. Тесты —
   `db/task-plan.test.ts`.
+  **Дни рождения и отсутствия** (TASKS_CHATS_PLAN.md, этап 2, 3.7, 8.8,
+  2026-11-08): `db/migrations/2026-11-08_zzzzzzzz_people_birthdays_absences.sql`
+  — `people_birthdays` (дата, год другим — только с `show_year`),
+  `people_absences` (отпуск / больничный / командировка / отгул / нет на
+  месте, с–по до года, заметка — только тем, кто правит); править —
+  `people_can_edit`: сам, руководитель или заместитель
+  (`task_led_user_ids`), `users.manage`, суперадминистратор; видят все люди
+  портала. RPC `people_birthday_get` / `_save`, `people_birthdays_upcoming`,
+  `people_absences_list`, `people_absence_save` / `_delete`. Поздравление —
+  `people_birthday_tick` (только service_role, раз в минуту с `task_tick`):
+  в день рождения с 9:00 их пояса коллегам по подразделениям уведомление
+  `company.birthday` (без пуша по умолчанию, раз в год — журнал
+  `people_birthday_log`); актуальное определение `notif_default_push` —
+  здесь. Таблицы закрыты браузеру. Тесты — `db/people.test.ts`.
   Рейтинг тренеров и чаевые: `db/migrations/2026-10-11_zzzzzzzzzzzzz_trainer_ratings.sql`
   — `trainer_reviews` (оценка 1–5, одна от учётной записи на тренера; клиент
   читает и правит свою, ставит — тренеру, которого видит в приложении,

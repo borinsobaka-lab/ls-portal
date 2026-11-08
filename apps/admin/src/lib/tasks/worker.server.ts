@@ -33,6 +33,9 @@ export async function runTaskTick(): Promise<void> {
   try {
     const { error } = await getSupabaseAdmin().rpc("task_tick");
     if (error) console.error("task_tick:", error.message);
+    // Поздравления с днём рождения коллегам по подразделению (с 9:00 их пояса).
+    const { error: bdError } = await getSupabaseAdmin().rpc("people_birthday_tick");
+    if (bdError) console.error("people_birthday_tick:", bdError.message);
   } catch (e) {
     console.error("task_tick:", e);
   } finally {

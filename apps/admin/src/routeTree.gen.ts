@@ -76,6 +76,8 @@ import { Route as AuthenticatedDashboardMarketingRouteImport } from './routes/_a
 import { Route as AuthenticatedDashboardClientsRouteImport } from './routes/_authenticated/dashboard/clients'
 import { Route as AuthenticatedDashboardClassesRouteImport } from './routes/_authenticated/dashboard/classes'
 import { Route as AuthenticatedCompanyStructureRouteImport } from './routes/_authenticated/company/structure'
+import { Route as AuthenticatedCompanyBirthdaysRouteImport } from './routes/_authenticated/company/birthdays'
+import { Route as AuthenticatedCompanyAbsencesRouteImport } from './routes/_authenticated/company/absences'
 import { Route as AuthenticatedChatsChatIdRouteImport } from './routes/_authenticated/chats/$chatId'
 import { Route as AuthenticatedAccessStructureRouteImport } from './routes/_authenticated/access/structure'
 import { Route as AuthenticatedAccessLogRouteImport } from './routes/_authenticated/access/log'
@@ -520,6 +522,18 @@ const AuthenticatedCompanyStructureRoute =
   AuthenticatedCompanyStructureRouteImport.update({
     id: '/company/structure',
     path: '/company/structure',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedCompanyBirthdaysRoute =
+  AuthenticatedCompanyBirthdaysRouteImport.update({
+    id: '/company/birthdays',
+    path: '/company/birthdays',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedCompanyAbsencesRoute =
+  AuthenticatedCompanyAbsencesRouteImport.update({
+    id: '/company/absences',
+    path: '/company/absences',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedChatsChatIdRoute =
@@ -1065,6 +1079,8 @@ export interface FileRoutesByFullPath {
   '/access/log': typeof AuthenticatedAccessLogRoute
   '/access/structure': typeof AuthenticatedAccessStructureRoute
   '/chats/$chatId': typeof AuthenticatedChatsChatIdRoute
+  '/company/absences': typeof AuthenticatedCompanyAbsencesRoute
+  '/company/birthdays': typeof AuthenticatedCompanyBirthdaysRoute
   '/company/structure': typeof AuthenticatedCompanyStructureRoute
   '/dashboard/classes': typeof AuthenticatedDashboardClassesRoute
   '/dashboard/clients': typeof AuthenticatedDashboardClientsRoute
@@ -1216,6 +1232,8 @@ export interface FileRoutesByTo {
   '/access/log': typeof AuthenticatedAccessLogRoute
   '/access/structure': typeof AuthenticatedAccessStructureRoute
   '/chats/$chatId': typeof AuthenticatedChatsChatIdRoute
+  '/company/absences': typeof AuthenticatedCompanyAbsencesRoute
+  '/company/birthdays': typeof AuthenticatedCompanyBirthdaysRoute
   '/company/structure': typeof AuthenticatedCompanyStructureRoute
   '/dashboard/classes': typeof AuthenticatedDashboardClassesRoute
   '/dashboard/clients': typeof AuthenticatedDashboardClientsRoute
@@ -1369,6 +1387,8 @@ export interface FileRoutesById {
   '/_authenticated/access/log': typeof AuthenticatedAccessLogRoute
   '/_authenticated/access/structure': typeof AuthenticatedAccessStructureRoute
   '/_authenticated/chats/$chatId': typeof AuthenticatedChatsChatIdRoute
+  '/_authenticated/company/absences': typeof AuthenticatedCompanyAbsencesRoute
+  '/_authenticated/company/birthdays': typeof AuthenticatedCompanyBirthdaysRoute
   '/_authenticated/company/structure': typeof AuthenticatedCompanyStructureRoute
   '/_authenticated/dashboard/classes': typeof AuthenticatedDashboardClassesRoute
   '/_authenticated/dashboard/clients': typeof AuthenticatedDashboardClientsRoute
@@ -1522,6 +1542,8 @@ export interface FileRouteTypes {
     | '/access/log'
     | '/access/structure'
     | '/chats/$chatId'
+    | '/company/absences'
+    | '/company/birthdays'
     | '/company/structure'
     | '/dashboard/classes'
     | '/dashboard/clients'
@@ -1673,6 +1695,8 @@ export interface FileRouteTypes {
     | '/access/log'
     | '/access/structure'
     | '/chats/$chatId'
+    | '/company/absences'
+    | '/company/birthdays'
     | '/company/structure'
     | '/dashboard/classes'
     | '/dashboard/clients'
@@ -1825,6 +1849,8 @@ export interface FileRouteTypes {
     | '/_authenticated/access/log'
     | '/_authenticated/access/structure'
     | '/_authenticated/chats/$chatId'
+    | '/_authenticated/company/absences'
+    | '/_authenticated/company/birthdays'
     | '/_authenticated/company/structure'
     | '/_authenticated/dashboard/classes'
     | '/_authenticated/dashboard/clients'
@@ -2416,6 +2442,20 @@ declare module '@tanstack/react-router' {
       path: '/company/structure'
       fullPath: '/company/structure'
       preLoaderRoute: typeof AuthenticatedCompanyStructureRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/company/birthdays': {
+      id: '/_authenticated/company/birthdays'
+      path: '/company/birthdays'
+      fullPath: '/company/birthdays'
+      preLoaderRoute: typeof AuthenticatedCompanyBirthdaysRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/company/absences': {
+      id: '/_authenticated/company/absences'
+      path: '/company/absences'
+      fullPath: '/company/absences'
+      preLoaderRoute: typeof AuthenticatedCompanyAbsencesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/chats/$chatId': {
@@ -3041,6 +3081,8 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAccessLogRoute: typeof AuthenticatedAccessLogRoute
   AuthenticatedAccessStructureRoute: typeof AuthenticatedAccessStructureRoute
   AuthenticatedChatsChatIdRoute: typeof AuthenticatedChatsChatIdRoute
+  AuthenticatedCompanyAbsencesRoute: typeof AuthenticatedCompanyAbsencesRoute
+  AuthenticatedCompanyBirthdaysRoute: typeof AuthenticatedCompanyBirthdaysRoute
   AuthenticatedCompanyStructureRoute: typeof AuthenticatedCompanyStructureRoute
   AuthenticatedDashboardClassesRoute: typeof AuthenticatedDashboardClassesRoute
   AuthenticatedDashboardClientsRoute: typeof AuthenticatedDashboardClientsRoute
@@ -3181,6 +3223,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAccessLogRoute: AuthenticatedAccessLogRoute,
   AuthenticatedAccessStructureRoute: AuthenticatedAccessStructureRoute,
   AuthenticatedChatsChatIdRoute: AuthenticatedChatsChatIdRoute,
+  AuthenticatedCompanyAbsencesRoute: AuthenticatedCompanyAbsencesRoute,
+  AuthenticatedCompanyBirthdaysRoute: AuthenticatedCompanyBirthdaysRoute,
   AuthenticatedCompanyStructureRoute: AuthenticatedCompanyStructureRoute,
   AuthenticatedDashboardClassesRoute: AuthenticatedDashboardClassesRoute,
   AuthenticatedDashboardClientsRoute: AuthenticatedDashboardClientsRoute,

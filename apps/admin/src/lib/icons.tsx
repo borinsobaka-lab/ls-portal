@@ -41,9 +41,11 @@ import {
   Briefcase as BriefcaseArt,
   Bug as BugArt,
   Building2 as Building2Art,
+  Cake as CakeArt,
   CalendarClock as CalendarClockArt,
   CalendarDays as CalendarDaysArt,
   CalendarIcon as CalendarIconArt,
+  CalendarOff as CalendarOffArt,
   CalendarSearch as CalendarSearchArt,
   CatIcon as CatArt,
   ChartAreaIcon as ChartAreaArt,
@@ -231,9 +233,11 @@ export const Bookmark = icon(BookmarkArt, "Bookmark");
 export const Briefcase = icon(BriefcaseArt, "Briefcase");
 export const Bug = icon(BugArt, "Bug");
 export const Building2 = icon(Building2Art, "Building2");
+export const Cake = icon(CakeArt, "Cake");
 export const CalendarClock = icon(CalendarClockArt, "CalendarClock");
 export const CalendarDays = icon(CalendarDaysArt, "CalendarDays");
 export const CalendarIcon = icon(CalendarIconArt, "CalendarIcon");
+export const CalendarOff = icon(CalendarOffArt, "CalendarOff");
 export const CalendarSearch = icon(CalendarSearchArt, "CalendarSearch");
 export const Cat = icon(CatArt, "Cat");
 export const ChartArea = icon(ChartAreaArt, "ChartArea");

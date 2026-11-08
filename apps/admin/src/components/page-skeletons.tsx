@@ -3967,6 +3967,60 @@ export function CompanyPeoplePageSkeleton() {
   );
 }
 
+/** Список людей «Компании» карточкой: шапка и строки с аватаркой. */
+function PeopleListCardSkeleton({ rows = 4 }: { rows?: number }) {
+  return (
+    <div className="rounded-lg border bg-background">
+      <div className="border-b px-4 py-3">
+        <Skeleton className="h-5 w-48" />
+      </div>
+      <div className="divide-y">
+        {Array.from({ length: rows }, (_, i) => (
+          <div key={i} className="flex items-center gap-3 px-4 py-2.5">
+            <Skeleton className="size-9 rounded-full" />
+            <div className="flex-1 space-y-1.5">
+              <Skeleton className="h-4 w-40" />
+              <Skeleton className="h-3 w-28" />
+            </div>
+            <Skeleton className="h-4 w-24" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** «Компания» → «Дни рождения» (/company/birthdays): свой день рождения и ближайшие. */
+export function CompanyBirthdaysPageSkeleton() {
+  return (
+    <ShellSkeleton title="Дни рождения">
+      <div className="max-w-3xl space-y-4">
+        <div className="flex items-center gap-3 rounded-lg border bg-background px-4 py-3">
+          <Skeleton className="size-5 rounded-full" />
+          <div className="flex-1 space-y-1.5">
+            <Skeleton className="h-4 w-40" />
+            <Skeleton className="h-3 w-56" />
+          </div>
+          <Skeleton className="h-8 w-24 rounded-full" />
+        </div>
+        <PeopleListCardSkeleton rows={5} />
+      </div>
+    </ShellSkeleton>
+  );
+}
+
+/** «Компания» → «Отсутствия» (/company/absences): сейчас и скоро. */
+export function CompanyAbsencesPageSkeleton() {
+  return (
+    <ShellSkeleton title="Отсутствия" actions={["w-48"]}>
+      <div className="max-w-3xl space-y-4">
+        <PeopleListCardSkeleton rows={2} />
+        <PeopleListCardSkeleton rows={3} />
+      </div>
+    </ShellSkeleton>
+  );
+}
+
 /** «Компания» → «Структура» (/company/structure): подразделения карточками. */
 export function CompanyStructurePageSkeleton() {
   return (

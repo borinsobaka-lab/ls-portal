@@ -134,6 +134,13 @@ export const NOTIF_KINDS: NotifKind[] = [
     defaultPush: true,
     hidden: true,
   },
+  {
+    key: "company.birthday",
+    group: "Компания",
+    label: "Дни рождения коллег по подразделению",
+    hint: "Утром в день рождения — в ленте; пуш — если включите",
+    defaultPush: false,
+  },
 ];
 
 export const NOTIF_KIND_BY_KEY = new Map(NOTIF_KINDS.map((k) => [k.key, k]));

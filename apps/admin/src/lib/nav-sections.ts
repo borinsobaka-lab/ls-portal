@@ -16,6 +16,7 @@ import {
   Broom,
   Buildings2,
   CalendarMinimalistic,
+  Gift,
   Card,
   Chart2,
   ChartSquare,
@@ -740,6 +741,8 @@ export const COMPANY_URL = "/company";
 export const COMPANY_ITEMS: NavItem[] = [
   { title: "Сотрудники", url: COMPANY_URL, icon: UsersGroupRounded, exact: true },
   { title: "Структура", url: "/company/structure", icon: Structure },
+  { title: "Дни рождения", url: "/company/birthdays", icon: Gift },
+  { title: "Отсутствия", url: "/company/absences", icon: CalendarMinimalistic },
 ];
 
 /**

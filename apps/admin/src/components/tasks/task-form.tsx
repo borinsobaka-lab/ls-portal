@@ -16,7 +16,7 @@ import { toast } from "sonner";
 
 import { ChecklistsEditor } from "@/components/tasks/checklists-editor";
 import { DeadlinePicker } from "@/components/tasks/deadline-picker";
-import { PeopleField } from "@/components/tasks/task-bits";
+import { AbsentNote, PeopleField } from "@/components/tasks/task-bits";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -481,6 +481,7 @@ function TaskForm({
         >
           <PeopleField value={assignees} onChange={setAssignees} addLabel="Выбрать" />
         </FormField>
+        <AbsentNote ids={[...assignees, ...coassignees]} until={deadline} />
         {assignees.length > 1 && (
           <SegmentedControl
             aria-label="Как поставить нескольким"

@@ -1572,6 +1572,19 @@ CLAUDE.md (`2026-11-07_zz_portal_notifications.sql`).
   должность, подразделение с подразделениями ниже, тип, «в сети»; строка —
   карточка сотрудника) и оргструктура деревом (`company_structure`, только
   просмотр). Логика — `lib/company.ts` (+ тест).
+- **Дни рождения и отсутствия** (этап 2, 2026-11-08; схема —
+  `2026-11-08_zzzzzzzz_people_birthdays_absences.sql`): «Компания» →
+  «Дни рождения» (`/company/birthdays`, `components/company/birthdays-page.tsx`:
+  свой день рождения и «Показывать год», ближайшие 30 дней, «Поздравить» —
+  личный чат, «Указать дату коллеге») и «Отсутствия» (`/company/absences`,
+  `absences-page.tsx`: сейчас и на 90 дней, добавить себе или своим людям).
+  Отсутствие — и в карточке сотрудника (`PersonStatusLine` в
+  `person-card.tsx`, там же день рождения), и при постановке задачи и в её
+  карточке (`AbsentNote` в `task-bits.tsx`: исполнитель и соисполнители,
+  не на месте с сегодня до срока). Подписи и даты — `lib/people-calendar.ts`
+  (+ тест), запросы — `lib/people-calendar-data.ts` (`useAbsences` — одним
+  запросом на портал). Поздравление шлёт сервер — `people_birthday_tick` в
+  `lib/tasks/worker.server.ts`.
 
 ### Чаты (2026-11-08)
 

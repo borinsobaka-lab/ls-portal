@@ -33,6 +33,7 @@ import { TaskOrigin, TaskResult, TaskSubtasks } from "@/components/tasks/task-su
 import { useConfirm } from "@/components/confirm-dialog";
 import { TemplateDialog } from "@/components/tasks/templates-page";
 import {
+  AbsentNote,
   PeopleField,
   PersonLine,
   ProjectTag,
@@ -520,6 +521,9 @@ function TaskCardBody({ task, onClose }: { task: TaskFull; onClose?: () => void 
             )}
           </div>
         </FormField>
+        {task.status !== "done" && task.status !== "cancelled" && (
+          <AbsentNote ids={[...(assignee ? [assignee] : []), ...co]} until={task.deadline} />
+        )}
         <FormField label="Соисполнители" htmlFor={null}>
           {perms.boss ? (
             <PeopleField

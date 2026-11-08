@@ -4,9 +4,19 @@
  * статьи и в списках людей. Данные — lib/people.ts.
  */
 import { useState } from "react";
-import { Building2, Copy, Loader2, Mail, MessageCircle, Phone, Users } from "lucide-react";
+import {
+  Building2,
+  Cake,
+  CalendarOff,
+  Copy,
+  Loader2,
+  Mail,
+  MessageCircle,
+  Phone,
+  Users,
+} from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import { StaffAvatar } from "@/components/employee-photo";
@@ -17,6 +27,8 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { StatusChip } from "@/components/ui/status-chip";
 import { MEMBER_ROLE_LABEL, USER_TYPE_LABEL } from "@/lib/access/logic";
 import { CLUB_ROLE_LABEL, usePersonCard, usePersonShort } from "@/lib/people";
+import { absenceOn, absenceText, dayMonth } from "@/lib/people-calendar";
+import { birthdayQuery, useAbsences, useTodayISO } from "@/lib/people-calendar-data";
 import { cn } from "@/lib/utils";
 
 /** Нажимаемая обёртка: по нажатию — карточка сотрудника. */
@@ -141,6 +153,7 @@ function PersonCardBody({ userId, onClose }: { userId: string; onClose: () => vo
           <DialogTitle className="text-lg font-semibold">{name}</DialogTitle>
           {sub && <p className="mt-0.5 text-sm text-muted-foreground">{sub}</p>}
         </div>
+        <PersonStatusLine userId={userId} />
         {(card.blocked || !card.active) && (
           <StatusChip tone="neutral">
             {card.blocked ? "Заблокирован" : "Нет доступа к порталу"}
@@ -188,6 +201,28 @@ function PersonCardBody({ userId, onClose }: { userId: string; onClose: () => vo
             <p className="text-muted-foreground">Других сведений о сотруднике пока нет.</p>
           )}
       </div>
+    </div>
+  );
+}
+
+/** «В отпуске до 15 ноября», «День рождения — 12 ноября». */
+function PersonStatusLine({ userId }: { userId: string }) {
+  const today = useTodayISO();
+  const absence = absenceOn(useAbsences(), userId, today);
+  const { data: bd } = useQuery(birthdayQuery(userId));
+  if (!absence && !bd?.day) return null;
+  return (
+    <div className="flex flex-wrap justify-center gap-2 text-xs">
+      {absence && (
+        <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-1 font-medium text-amber-800">
+          <CalendarOff className="size-3.5" /> {absenceText(absence, today)}
+        </span>
+      )}
+      {bd?.day && (
+        <span className="inline-flex items-center gap-1 rounded-full bg-background px-2.5 py-1 text-muted-foreground">
+          <Cake className="size-3.5" /> {dayMonth(bd.day)}
+        </span>
+      )}
     </div>
   );
 }
