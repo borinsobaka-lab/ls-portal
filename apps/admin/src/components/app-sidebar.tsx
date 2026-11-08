@@ -1,7 +1,6 @@
-import { lazy, Suspense, useCallback, useState } from "react";
+import { lazy, Suspense } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { ChevronUp } from "lucide-react";
 import { Notebook, Settings } from "@/components/nav-icons";
 import { AppRail } from "@/components/app-rail";
 import {
@@ -45,21 +44,15 @@ import { useActiveStudio, useStudios } from "@/hooks/use-studios";
 import { MenuSkeleton } from "@/components/skeletons";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CountBadge } from "@/components/ui/status-chip";
 import { useStorageUrl } from "@/lib/storage";
 import type { StudioFormat } from "@/lib/studio-formats";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { SidebarNavGroup, SidebarNavLink } from "@/components/sidebar-nav";
 import { cn } from "@/lib/utils";
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
@@ -216,19 +209,6 @@ function useUnreadNps(studioIds: string, enabled: boolean): number {
   return enabled ? data : 0;
 }
 
-const STORAGE_KEY = "sidebar_groups";
-
-/** Свёрнутые блоки переживают перезагрузку — иначе меню каждый раз раскрывается заново. */
-function readCollapsedGroups(): Record<string, boolean> {
-  if (typeof window === "undefined") return {};
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as Record<string, boolean>) : {};
-  } catch {
-    return {};
-  }
-}
-
 /**
  * Логотип активной студии (studios.logo_url). Меню тёмное — логотип нужен
  * светлый на прозрачном фоне. Без логотипа — название студии.
@@ -360,20 +340,6 @@ export function AppSidebar() {
       : railKey === "manage" || railKey === "academy" || railKey === "analytics"
         ? !access
         : !sectionMenu && !access;
-  const [closedGroups, setClosedGroups] = useState(readCollapsedGroups);
-
-  const setGroupOpen = useCallback((key: string, open: boolean) => {
-    setClosedGroups((prev) => {
-      const next = { ...prev, [key]: !open };
-      try {
-        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-      } catch {
-        // приватный режим / переполненное хранилище — не повод ломать меню
-      }
-      return next;
-    });
-  }, []);
-
   // Шторка на телефоне сама не закрывается по переходу: страница менялась
   // под ней, и после каждого пункта меню шторку приходилось смахивать руками.
   // Закрывает её только пункт меню второго уровня (и логотип); раздел рейки
@@ -461,71 +427,21 @@ export function AppSidebar() {
           >
             {menuLoading && <MenuSkeleton />}
             {groups.map((group) => (
-              <Collapsible
-                key={group.key}
-                open={!closedGroups[group.key]}
-                onOpenChange={(open) => setGroupOpen(group.key, open)}
-              >
-                <SidebarGroup className="py-1">
-                  <SidebarGroupLabel asChild>
-                    <CollapsibleTrigger className="group/label h-7 w-full cursor-pointer gap-2 text-[13px] text-white/50 hover:text-white/70">
-                      <span className="shrink-0">{group.label}</span>
-                      <span className="h-px flex-1 bg-white/15" />
-                      <ChevronUp className="h-3.5 w-3.5 shrink-0 transition-transform duration-200 group-data-[state=closed]/label:rotate-180" />
-                    </CollapsibleTrigger>
-                  </SidebarGroupLabel>
-                  <CollapsibleContent>
-                    <SidebarGroupContent>
-                      <SidebarMenu>
-                        {group.items.map((item) => (
-                          <SidebarMenuItem key={item.url}>
-                            <SidebarMenuButton
-                              asChild
-                              isActive={itemActive(item)}
-                              /*
-                            active: перекрывать обязательно — в базовых стилях shadcn нажатая
-                            кнопка красится в `sidebar-accent`, а это почти белый: на тёмной
-                            панели получалась вспышка под курсором на каждый клик.
-                          */
-                              className="group/nav font-medium text-white hover:bg-white/10 hover:text-white active:bg-white/10 active:text-white data-[active=true]:bg-white/10 data-[active=true]:font-semibold data-[active=true]:text-white"
-                            >
-                              <Link
-                                to={item.url}
-                                className="flex items-center gap-2"
-                                onClick={closeMobile}
-                              >
-                                {/*
-                              Свечение за иконкой — размытый круг цвета
-                              currentColor. У обычного пункта белое и только
-                              при наведении; у активного розовое, как и сама
-                              иконка, горит всегда и ярче под курсором.
-                            */}
-                                <span
-                                  className={cn(
-                                    "relative isolate inline-flex shrink-0 before:absolute before:-inset-1 before:-z-10 before:rounded-full before:bg-current before:opacity-0 before:blur-[6px] before:transition-opacity before:duration-200",
-                                    itemActive(item)
-                                      ? "text-brand-on-dark before:opacity-45 group-hover/nav:before:opacity-70"
-                                      : "text-white group-hover/nav:before:opacity-45",
-                                  )}
-                                >
-                                  <item.icon active={itemActive(item)} className="size-[18px]" />
-                                </span>
-                                <span className="min-w-0 flex-1 truncate">{item.title}</span>
-                                {!!item.badge && (
-                                  <CountBadge
-                                    count={item.badge}
-                                    tone={QUIET_BADGES.has(item.url) ? "quiet" : "urgent"}
-                                  />
-                                )}
-                              </Link>
-                            </SidebarMenuButton>
-                          </SidebarMenuItem>
-                        ))}
-                      </SidebarMenu>
-                    </SidebarGroupContent>
-                  </CollapsibleContent>
-                </SidebarGroup>
-              </Collapsible>
+              <SidebarNavGroup key={group.key} id={group.key} label={group.label}>
+                {group.items.map((item) => (
+                  <SidebarMenuItem key={item.url}>
+                    <SidebarNavLink
+                      to={item.url}
+                      active={itemActive(item)}
+                      icon={item.icon}
+                      title={item.title}
+                      badge={item.badge}
+                      badgeTone={QUIET_BADGES.has(item.url) ? "quiet" : "urgent"}
+                      onClick={closeMobile}
+                    />
+                  </SidebarMenuItem>
+                ))}
+              </SidebarNavGroup>
             ))}
           </SidebarContent>
 

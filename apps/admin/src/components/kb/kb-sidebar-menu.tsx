@@ -20,6 +20,7 @@ import {
 import { toast } from "sonner";
 
 import { ChartSquare } from "@/components/nav-icons";
+import { NavIconGlow } from "@/components/sidebar-nav";
 import { kbSectionIcon } from "@/lib/kb/icons";
 import { DropIndicator } from "@/components/kb/drop-indicator";
 import { KbAccessForm } from "@/components/kb/access-dialog";
@@ -524,7 +525,7 @@ function TreeRow({
       <div
         ref={drag.ref}
         className={cn(
-          "group/kbrow relative flex h-8 items-center rounded-md text-sm text-white/75 hover:bg-white/10 hover:text-white [[data-mobile=true]_&]:h-10",
+          "group/kbrow group/nav relative flex h-8 items-center rounded-md text-sm text-white/75 hover:bg-white/10 hover:text-white [[data-mobile=true]_&]:h-10",
           active && "bg-white/10 text-white",
           drag.dragging && "opacity-40",
         )}
@@ -550,14 +551,13 @@ function TreeRow({
           style={{ paddingLeft: depth === 0 ? 8 : 32 + (depth - 1) * 14 }}
         >
           {section && (
-            <SectionIcon
-              active={active}
-              className={cn(
-                "mr-1 size-4 shrink-0",
-                active ? "text-brand-on-dark" : "text-white/80",
-                muted && "opacity-50",
-              )}
-            />
+            // Иконка раздела — как у пунктов всех меню (`sidebar-nav.tsx`):
+            // свечение при наведении, у открытого — залитая цвета базы.
+            <span className={cn("mr-1 inline-flex", muted && "opacity-50")}>
+              <NavIconGlow active={active}>
+                <SectionIcon active={active} className="size-[18px]" />
+              </NavIconGlow>
+            </span>
           )}
           <span
             className={cn(
