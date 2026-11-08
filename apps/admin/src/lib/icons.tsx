@@ -21,6 +21,7 @@ import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
 import {
   AlertCircle as AlertCircleArt,
   Alert02Icon as AlertTriangleArt,
+  Apple as AppleArt,
   Archive as ArchiveArt,
   ArchiveRestore as ArchiveRestoreArt,
   ArrowDown as ArrowDownArt,
@@ -80,6 +81,7 @@ import {
   CreditCard as CreditCardArt,
   Database as DatabaseArt,
   Download as DownloadArt,
+  Dumbbell as DumbbellArt,
   Ellipsis as EllipsisArt,
   Eraser as EraserArt,
   ExternalLink as ExternalLinkArt,
@@ -89,6 +91,7 @@ import {
   FileSpreadsheetIcon as FileSpreadsheetArt,
   FileText as FileTextArt,
   FileUp as FileUpArt,
+  Flag as FlagArt,
   FlaskConical as FlaskConicalArt,
   FolderTransferIcon as FolderInputArt,
   FolderOpen as FolderOpenArt,
@@ -98,8 +101,10 @@ import {
   Globe as GlobeArt,
   GraduationCap as GraduationCapArt,
   DragDropVerticalIcon as GripVerticalArt,
+  Hand as HandArt,
   Hash as HashArt,
   Heading2 as Heading2Art,
+  FavouriteIcon as HeartArt,
   HelpCircleIcon as HelpCircleArt,
   History as HistoryArt,
   Hourglass as HourglassArt,
@@ -110,6 +115,7 @@ import {
   Italic as ItalicArt,
   KeyRound as KeyRoundArt,
   LayoutTemplate as LayoutTemplateArt,
+  Lightbulb as LightbulbArt,
   Link as LinkArt,
   Link2 as Link2Art,
   List as ListArt,
@@ -142,11 +148,13 @@ import {
   Network as NetworkArt,
   PanelLeft as PanelLeftArt,
   Paperclip as PaperclipArt,
+  Pause as PauseArt,
   PencilEdit02Icon as PencilArt,
   Phone as PhoneArt,
   PhoneOff as PhoneOffArt,
   Pin as PinArt,
   PinOff as PinOffArt,
+  Plane as PlaneArt,
   Play as PlayArt,
   Plus as PlusArt,
   QrCode as QrCodeArt,
@@ -218,6 +226,7 @@ function icon(art: IconSvgElement, displayName: string) {
 
 export const AlertCircle = icon(AlertCircleArt, "AlertCircle");
 export const AlertTriangle = icon(AlertTriangleArt, "AlertTriangle");
+export const Apple = icon(AppleArt, "Apple");
 export const Archive = icon(ArchiveArt, "Archive");
 export const ArchiveRestore = icon(ArchiveRestoreArt, "ArchiveRestore");
 export const ArrowDown = icon(ArrowDownArt, "ArrowDown");
@@ -277,6 +286,7 @@ export const CornerLeftUp = icon(CornerLeftUpArt, "CornerLeftUp");
 export const CreditCard = icon(CreditCardArt, "CreditCard");
 export const Database = icon(DatabaseArt, "Database");
 export const Download = icon(DownloadArt, "Download");
+export const Dumbbell = icon(DumbbellArt, "Dumbbell");
 export const Ellipsis = icon(EllipsisArt, "Ellipsis");
 export const Eraser = icon(EraserArt, "Eraser");
 export const ExternalLink = icon(ExternalLinkArt, "ExternalLink");
@@ -286,6 +296,7 @@ export const FilePlus = icon(FilePlusArt, "FilePlus");
 export const FileSpreadsheet = icon(FileSpreadsheetArt, "FileSpreadsheet");
 export const FileText = icon(FileTextArt, "FileText");
 export const FileUp = icon(FileUpArt, "FileUp");
+export const Flag = icon(FlagArt, "Flag");
 export const FlaskConical = icon(FlaskConicalArt, "FlaskConical");
 export const FolderInput = icon(FolderInputArt, "FolderInput");
 export const FolderOpen = icon(FolderOpenArt, "FolderOpen");
@@ -295,8 +306,10 @@ export const Frown = icon(FrownArt, "Frown");
 export const Globe = icon(GlobeArt, "Globe");
 export const GraduationCap = icon(GraduationCapArt, "GraduationCap");
 export const GripVertical = icon(GripVerticalArt, "GripVertical");
+export const Hand = icon(HandArt, "Hand");
 export const Hash = icon(HashArt, "Hash");
 export const Heading2 = icon(Heading2Art, "Heading2");
+export const Heart = icon(HeartArt, "Heart");
 export const HelpCircle = icon(HelpCircleArt, "HelpCircle");
 export const History = icon(HistoryArt, "History");
 export const Hourglass = icon(HourglassArt, "Hourglass");
@@ -307,6 +320,7 @@ export const Info = icon(InfoArt, "Info");
 export const Italic = icon(ItalicArt, "Italic");
 export const KeyRound = icon(KeyRoundArt, "KeyRound");
 export const LayoutTemplate = icon(LayoutTemplateArt, "LayoutTemplate");
+export const Lightbulb = icon(LightbulbArt, "Lightbulb");
 export const Link = icon(LinkArt, "Link");
 export const Link2 = icon(Link2Art, "Link2");
 export const List = icon(ListArt, "List");
@@ -339,11 +353,13 @@ export const Music = icon(MusicArt, "Music");
 export const Network = icon(NetworkArt, "Network");
 export const PanelLeft = icon(PanelLeftArt, "PanelLeft");
 export const Paperclip = icon(PaperclipArt, "Paperclip");
+export const Pause = icon(PauseArt, "Pause");
 export const Pencil = icon(PencilArt, "Pencil");
 export const Phone = icon(PhoneArt, "Phone");
 export const PhoneOff = icon(PhoneOffArt, "PhoneOff");
 export const Pin = icon(PinArt, "Pin");
 export const PinOff = icon(PinOffArt, "PinOff");
+export const Plane = icon(PlaneArt, "Plane");
 export const Play = icon(PlayArt, "Play");
 export const Plus = icon(PlusArt, "Plus");
 export const QrCode = icon(QrCodeArt, "QrCode");

@@ -81,6 +81,7 @@ import { usePeople } from "@/lib/chats/people";
 import { joinTypingChannel } from "@/lib/chats/realtime";
 import { onChatEvent, useRealtimeConnected } from "@/lib/chats/realtime-state";
 import type { ChatDoc, ChatMessage, ChatRow } from "@/lib/chats/types";
+import { attachmentsLabel } from "@/lib/chats/voice";
 import { lastSeenLabel } from "@/lib/company";
 import { cn } from "@/lib/utils";
 
@@ -768,7 +769,7 @@ export function ChatView({
               {pins.length > 1 ? ` ${(pinIndex % pins.length) + 1} из ${pins.length}` : ""}
             </span>
             <span className="block truncate text-sm">
-              {pin.text || (pin.attachments.length ? "Файл" : "")}
+              {pin.text || attachmentsLabel(pin.attachments)}
             </span>
           </span>
         </button>

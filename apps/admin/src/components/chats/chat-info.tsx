@@ -23,6 +23,7 @@ import { FileCard } from "@/components/chats/attachments";
 import { ChatAvatar } from "@/components/chats/chat-avatar";
 import { ChatSourcesBlock } from "@/components/chats/chat-sources";
 import { AddMembersDialog } from "@/components/chats/dialogs";
+import { VoicePlayer } from "@/components/chats/voice-player";
 import { useConfirm } from "@/components/confirm-dialog";
 import { StaffAvatar } from "@/components/employee-photo";
 import { PersonButton } from "@/components/people/person-card";
@@ -51,6 +52,7 @@ import { chatErrorText, chatMembersQuery, chatRpc, setTopicsEnabled } from "@/li
 import { useChatFileUrl } from "@/lib/chats/files";
 import { usePeople } from "@/lib/chats/people";
 import type { ChatAttachment, ChatNotify, ChatRow } from "@/lib/chats/types";
+import { isVoice } from "@/lib/chats/voice";
 import { lastSeenLabel } from "@/lib/company";
 
 type Tab = "members" | "media" | "files" | "links";
@@ -536,7 +538,7 @@ function FilesTab({
           >
             {dayLabel(r.created_at)}
           </button>
-          <FileCard file={r.file} />
+          {isVoice(r.file) ? <VoicePlayer file={r.file} /> : <FileCard file={r.file} />}
         </div>
       ))}
     </div>

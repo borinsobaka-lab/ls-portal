@@ -7,6 +7,13 @@
  * отправить, Shift+Enter — новая строка (на телефоне Enter — новая строка,
  * отправка — кнопкой). Отдельный чанк: TipTap грузится только в чатах.
  *
+ * Голосовые (решение владельца 2026-11-08): пока в поле нет ни одного
+ * символа и файлов, вместо «Отправить» — микрофон. Нажать и держать —
+ * запись, отпустить — отправить, увести палец влево — отмена, вверх —
+ * «без рук» (запись идёт, кнопка становится «Отправить»). Файл грузится
+ * фоном (плашка над полем, при обрыве — докачка) и уходит сам. Эмодзи —
+ * весь набор с поиском (emoji-picker.tsx, отдельный чанк) — в поле справа.
+ *
  * Телефон (жалоба владельца 2026-11-08: «сворачивается клавиатура, не могу
  * выделить текст»): кнопки у поля не забирают фокус (`noBlur` — касание не
  * снимает выделение и не прячет клавиатуру), панель форматирования — под
@@ -14,7 +21,16 @@
  * закрывало её), шрифт поля — 16 px (иначе iPhone увеличивает страницу при
  * касании поля), «Кого упомянуть» — плашкой над полем во всю ширину.
  */
-import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from "react";
+import {
+  forwardRef,
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from "react";
 import { EditorContent, useEditor, useEditorState, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Mention from "@tiptap/extension-mention";
@@ -22,6 +38,7 @@ import { Placeholder } from "@tiptap/extensions";
 import {
   BarChart3,
   Bold,
+  ChevronUp,
   Clock,
   Code,
   Italic,
@@ -29,6 +46,8 @@ import {
   List,
   ListOrdered,
   Loader2,
+  LockKeyhole,
+  Mic,
   Paperclip,
   Pencil,
   Quote,
@@ -37,6 +56,7 @@ import {
   Send,
   Smile,
   Strikethrough,
+  Trash2,
   Type,
   Underline,
   WifiOff,
@@ -51,7 +71,22 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { docText, scheduledLabel } from "@/lib/chats/content";
 import { formatFileSize, startChatUpload, type ChatUpload } from "@/lib/chats/files";
 import type { ChatAttachment, ChatDoc, ChatMessage } from "@/lib/chats/types";
+import {
+  attachmentsLabel,
+  formatVoiceTime,
+  holdGesture,
+  VOICE_MAX_SECONDS,
+  voiceFileName,
+} from "@/lib/chats/voice";
+import {
+  canRecordVoice,
+  MicUnavailable,
+  startVoiceRecording,
+  type VoiceRecorder,
+} from "@/lib/chats/voice-recorder";
 import { cn } from "@/lib/utils";
+
+const EmojiPicker = lazy(() => import("@/components/chats/emoji-picker"));
 
 export type MentionCandidate = { id: string; name: string; avatar: string | null; hint?: string };
 
@@ -72,7 +107,12 @@ type Upload = {
   error?: string;
   /** Связь пропала — докачаем, когда появится. */
   waiting?: boolean;
+  /** Голосовое: уходит само, как только загрузится. */
+  voice?: { duration: number; waveform: number[] };
 };
+
+/** Идёт запись голосового: держат кнопку или «без рук». */
+type Recording = { phase: "hold" | "locked"; dx: number };
 
 type SuggestState = {
   items: MentionCandidate[];
@@ -80,41 +120,6 @@ type SuggestState = {
   rect: DOMRect | null;
   command: (item: { id: string; label: string }) => void;
 } | null;
-
-const EMOJI = [
-  "👍",
-  "❤️",
-  "😂",
-  "🔥",
-  "🙏",
-  "👏",
-  "😊",
-  "🎉",
-  "✅",
-  "👌",
-  "🤝",
-  "💪",
-  "😍",
-  "🤔",
-  "😢",
-  "😮",
-  "🙌",
-  "⭐",
-  "🚀",
-  "📌",
-  "💡",
-  "📎",
-  "⏰",
-  "❗",
-  "😅",
-  "😉",
-  "🥰",
-  "😎",
-  "🤗",
-  "😴",
-  "👀",
-  "💯",
-];
 
 const isTouch = () =>
   typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches;
@@ -157,6 +162,24 @@ function writeDraft(chatId: string, editor: Editor) {
   } catch {
     // нет места или приватный режим — без черновика
   }
+}
+
+/** Живая волна записи: последние уровни громкости, свежие справа. */
+function LiveWave({ levels }: { levels: number[] }) {
+  const bars = 28;
+  const tail = levels.slice(-bars);
+  const pad = Array.from({ length: bars - tail.length }, () => 0);
+  return (
+    <span className="flex h-6 min-w-0 flex-1 items-center gap-[2px] overflow-hidden" aria-hidden>
+      {[...pad, ...tail].map((v, i) => (
+        <span
+          key={i}
+          className="w-[3px] shrink-0 rounded-full bg-red-500/70"
+          style={{ height: `${Math.max(10, Math.round(v * 100))}%` }}
+        />
+      ))}
+    </span>
+  );
 }
 
 export const Composer = forwardRef<
@@ -215,6 +238,22 @@ export const Composer = forwardRef<
   editingRef.current = editing;
   const onEditLastRef = useRef(onEditLast);
   onEditLastRef.current = onEditLast;
+  const onSendRef = useRef(onSend);
+  onSendRef.current = onSend;
+  const [emojiOpen, setEmojiOpen] = useState(false);
+  const [micOk, setMicOk] = useState(false);
+  useEffect(() => setMicOk(canRecordVoice()), []);
+  const [rec, setRec] = useState<Recording | null>(null);
+  const recRef = useRef<{
+    recorder: VoiceRecorder;
+    x: number;
+    y: number;
+    phase: Recording["phase"];
+    failed: boolean;
+    /** Клик после жеста «вверх» — не «Отправить». */
+    skipClick: boolean;
+  } | null>(null);
+  const [, setTick] = useState(0);
 
   const suggestion = useCallback(
     (char: string) => ({
@@ -363,6 +402,8 @@ export const Composer = forwardRef<
   });
   const editorRef = useRef<Editor | null>(null);
   editorRef.current = editor;
+  // Пусто ли поле: «Отправить» ↔ микрофон.
+  const empty = useEditorState({ editor, selector: ({ editor: ed }) => ed?.isEmpty ?? true });
   // TipTap 3 не перерисовывает компонент на каждое изменение — подсветку
   // кнопок форматирования берём подпиской на состояние редактора.
   const active = useEditorState({
@@ -397,26 +438,40 @@ export const Composer = forwardRef<
     return () => map.forEach((h) => h.cancel(false));
   }, []);
 
-  const addFiles = useCallback(
-    (files: File[]) => {
-      for (const file of files) {
-        const key = crypto.randomUUID();
-        const patch = (p: Partial<Upload>) =>
-          setUploads((u) => u.map((x) => (x.key === key ? { ...x, ...p } : x)));
-        setUploads((u) => [...u, { key, name: file.name, size: file.size, progress: 0 }]);
-        const handle = startChatUpload(chatId, file, (s) => {
-          if (s.status === "uploading")
-            patch({ progress: s.share, waiting: false, error: undefined });
-          else if (s.status === "waiting") patch({ progress: s.share, waiting: true });
-          else if (s.status === "done") {
-            handles.current.delete(key);
-            patch({ progress: 1, done: s.attachment, waiting: false, error: undefined });
-          } else patch({ error: s.message, waiting: false });
-        });
-        handles.current.set(key, handle);
-      }
+  const upload = useCallback(
+    (file: File, voice?: Upload["voice"]) => {
+      const key = crypto.randomUUID();
+      const patch = (p: Partial<Upload>) =>
+        setUploads((u) => u.map((x) => (x.key === key ? { ...x, ...p } : x)));
+      setUploads((u) => [...u, { key, name: file.name, size: file.size, progress: 0, voice }]);
+      const handle = startChatUpload(chatId, file, (s) => {
+        if (s.status === "uploading")
+          patch({ progress: s.share, waiting: false, error: undefined });
+        else if (s.status === "waiting") patch({ progress: s.share, waiting: true });
+        else if (s.status === "done") {
+          handles.current.delete(key);
+          if (voice) {
+            // Голосовое уходит само — отдельным сообщением.
+            setUploads((u) => u.filter((x) => x.key !== key));
+            void Promise.resolve(
+              onSendRef.current({
+                content: null,
+                text: "",
+                attachments: [{ ...s.attachment, voice: true, ...voice }],
+              }),
+            ).catch(() => {});
+          } else patch({ progress: 1, done: s.attachment, waiting: false, error: undefined });
+        } else patch({ error: s.message, waiting: false });
+      });
+      handles.current.set(key, handle);
     },
     [chatId],
+  );
+  const addFiles = useCallback(
+    (files: File[]) => {
+      for (const file of files) upload(file);
+    },
+    [upload],
   );
   const removeUpload = useCallback((key: string) => {
     handles.current.get(key)?.cancel();
@@ -436,8 +491,10 @@ export const Composer = forwardRef<
     [editor, addFiles],
   );
 
-  const uploading = uploads.some((u) => !u.done && !u.error);
-  const stalled = uploads.some((u) => u.error || u.waiting);
+  // Голосовые грузятся и уходят сами — отправку текста не держат.
+  const files = uploads.filter((u) => !u.voice);
+  const uploading = files.some((u) => !u.done && !u.error);
+  const stalled = files.some((u) => u.error || u.waiting);
 
   /** Что отправить: текст и загруженные файлы; null — нечего или файлы не готовы. */
   const collect = useCallback((): ComposerSend | null => {
@@ -452,14 +509,14 @@ export const Composer = forwardRef<
     }
     const json = editor.getJSON() as ChatDoc;
     const text = docText(json);
-    const attachments = uploads.flatMap((u) => (u.done ? [u.done] : []));
+    const attachments = files.flatMap((u) => (u.done ? [u.done] : []));
     if (!text && attachments.length === 0) return null;
     return { content: text ? json : null, text, attachments };
-  }, [editor, uploading, stalled, uploads]);
+  }, [editor, uploading, stalled, files]);
 
   const clearDraft = useCallback(() => {
     editor?.commands.clearContent();
-    setUploads([]);
+    setUploads((u) => u.filter((x) => x.voice));
     try {
       window.localStorage.removeItem(draftKey(chatId));
     } catch {
@@ -492,7 +549,7 @@ export const Composer = forwardRef<
       } else {
         // Поле очищаем сразу: отправка видна в переписке, при сбое — «Повторить».
         editor.commands.clearContent();
-        setUploads([]);
+        setUploads((u) => u.filter((x) => x.voice));
         try {
           window.localStorage.removeItem(draftKey(chatId));
         } catch {
@@ -506,6 +563,108 @@ export const Composer = forwardRef<
     }
   }, [editor, busy, disabledReason, collect, editing, onEdit, onSend, chatId]);
   sendRef.current = () => void send();
+
+  // ——— Голосовое ———
+  const finishVoice = useCallback(
+    async (send: boolean) => {
+      const r = recRef.current;
+      if (!r) return;
+      recRef.current = null;
+      setRec(null);
+      if (!send) {
+        r.recorder.cancel();
+        return;
+      }
+      const out = await r.recorder.stop();
+      if (!out) {
+        if (!r.failed)
+          toast.info("Удерживайте микрофон, пока говорите — отпустите, чтобы отправить");
+        return;
+      }
+      const file = new File([out.blob], voiceFileName(new Date(), out.mime), { type: out.mime });
+      upload(file, { duration: out.duration, waveform: out.waveform });
+    },
+    [upload],
+  );
+
+  // Время и живая волна, предел длины, Esc — отмена.
+  useEffect(() => {
+    if (!rec) return;
+    const t = window.setInterval(() => {
+      setTick((n) => n + 1);
+      if ((recRef.current?.recorder.elapsed() ?? 0) >= VOICE_MAX_SECONDS) void finishVoice(true);
+    }, 100);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") void finishVoice(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.clearInterval(t);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [rec, finishVoice]);
+  // Ушли из чата посреди записи — микрофон выключаем.
+  useEffect(() => () => recRef.current?.recorder.cancel(), []);
+
+  const micDown = (e: React.PointerEvent<HTMLButtonElement>) => {
+    if (e.button !== 0 || recRef.current) return;
+    e.preventDefault();
+    e.currentTarget.setPointerCapture(e.pointerId);
+    const recorder = startVoiceRecording();
+    const r = {
+      recorder,
+      x: e.clientX,
+      y: e.clientY,
+      phase: "hold" as const,
+      failed: false,
+      skipClick: false,
+    };
+    recRef.current = r;
+    setRec({ phase: "hold", dx: 0 });
+    recorder.ready.then(
+      () => navigator.vibrate?.(15),
+      (err: unknown) => {
+        r.failed = true;
+        if (recRef.current === r) {
+          recRef.current = null;
+          setRec(null);
+        }
+        toast.error(err instanceof MicUnavailable ? err.message : "Не удалось включить микрофон");
+      },
+    );
+  };
+  const micMove = (e: React.PointerEvent<HTMLButtonElement>) => {
+    const r = recRef.current;
+    if (!r || r.phase !== "hold") return;
+    const dx = e.clientX - r.x;
+    const g = holdGesture(dx, e.clientY - r.y);
+    if (g === "cancel") {
+      navigator.vibrate?.(30);
+      void finishVoice(false);
+    } else if (g === "lock") {
+      r.phase = "locked";
+      r.skipClick = true;
+      setRec({ phase: "locked", dx: 0 });
+    } else setRec((v) => (v && v.phase === "hold" ? { ...v, dx: Math.min(0, dx) } : v));
+  };
+  const micUp = () => {
+    if (recRef.current?.phase === "hold") void finishVoice(true);
+  };
+  const micClick = () => {
+    const r = recRef.current;
+    if (!r || r.phase !== "locked") return;
+    if (r.skipClick) {
+      r.skipClick = false;
+      return;
+    }
+    void finishVoice(true);
+  };
+
+  const pickEmoji = (em: string) => {
+    if (!editor) return;
+    // Без фокуса: на телефоне иначе выскакивает клавиатура поверх окна эмодзи.
+    editor.chain().insertContent(em).run();
+  };
 
   const setLink = () => {
     if (!editor) return;
@@ -592,8 +751,7 @@ export const Composer = forwardRef<
               {editing ? "Редактирование" : `Ответ: ${authorName(replyTo!.author_id)}`}
             </span>
             <span className="block truncate text-muted-foreground">
-              {(editing ?? replyTo)!.text ||
-                ((editing ?? replyTo)!.attachments.length ? "Файл" : "")}
+              {(editing ?? replyTo)!.text || attachmentsLabel((editing ?? replyTo)!.attachments)}
             </span>
           </span>
           <Button
@@ -627,17 +785,22 @@ export const Composer = forwardRef<
               ) : (
                 !u.done && !u.error && <Loader2 className="size-3.5 shrink-0 animate-spin" />
               )}
-              <span className="truncate">{u.name}</span>
+              {u.voice && <Mic className="size-3.5 shrink-0 text-chat-accent" />}
+              <span className="truncate">
+                {u.voice ? `Голосовое ${formatVoiceTime(u.voice.duration)}` : u.name}
+              </span>
               <span className="shrink-0 text-muted-foreground">
                 {u.error
                   ? "ошибка"
                   : u.waiting
                     ? `${Math.round(u.progress * 100)}% · нет связи`
-                    : !u.done && u.size > 6 * 1024 * 1024
-                      ? `${Math.round(u.progress * 100)}% из ${formatFileSize(u.size)}`
-                      : formatFileSize(u.size)}
+                    : u.voice
+                      ? "отправка…"
+                      : !u.done && u.size > 6 * 1024 * 1024
+                        ? `${Math.round(u.progress * 100)}% из ${formatFileSize(u.size)}`
+                        : formatFileSize(u.size)}
               </span>
-              {u.waiting && (
+              {(u.waiting || (u.voice && u.error)) && (
                 <button
                   type="button"
                   className="rounded p-0.5 hover:bg-muted"
@@ -706,7 +869,7 @@ export const Composer = forwardRef<
           </div>
         )}
 
-        <div className="flex items-end gap-1">
+        <div className="relative flex items-end gap-1">
           <input
             ref={fileInput}
             type="file"
@@ -717,7 +880,38 @@ export const Composer = forwardRef<
               e.target.value = "";
             }}
           />
-          {!editing && (
+          {rec && (
+            <div
+              className="mb-0.5 flex h-10 min-w-0 flex-1 items-center gap-3 overflow-hidden rounded-2xl bg-border/70 pr-1 pl-3.5"
+              role="status"
+              aria-live="polite"
+            >
+              <span className="size-2.5 shrink-0 animate-pulse rounded-full bg-red-500" />
+              <span className="shrink-0 text-sm tabular-nums">
+                {formatVoiceTime(recRef.current?.recorder.elapsed() ?? 0)}
+              </span>
+              <LiveWave levels={recRef.current?.recorder.levels() ?? []} />
+              {rec.phase === "hold" ? (
+                <span
+                  className="ml-auto shrink-0 truncate pr-2 text-sm text-muted-foreground transition-transform"
+                  style={{ transform: `translateX(${rec.dx / 2}px)`, opacity: 1 + rec.dx / 120 }}
+                >
+                  ‹ Влево — отмена
+                </span>
+              ) : (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="ml-auto shrink-0 text-destructive hover:text-destructive"
+                  {...noBlur}
+                  onClick={() => void finishVoice(false)}
+                >
+                  <Trash2 className="size-4" /> Отмена
+                </Button>
+              )}
+            </div>
+          )}
+          {!editing && !rec && (
             <Popover open={attachMenu} onOpenChange={setAttachMenu}>
               <PopoverTrigger asChild>
                 <Button
@@ -760,95 +954,150 @@ export const Composer = forwardRef<
             </Popover>
           )}
           {/* Поле — на ступень темнее muted (решение владельца 2026-11-08: на белом
-              плохо видно); в фокусе — ещё чуть темнее. */}
-          <div className="min-w-0 flex-1 rounded-2xl bg-border/70 focus-within:bg-border">
-            <EditorContent editor={editor} />
-          </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            className={cn("mb-0.5 size-9 shrink-0", toolbar && "bg-muted")}
-            aria-label="Форматирование"
-            title="Форматирование"
-            aria-pressed={toolbar}
-            {...noBlur}
-            onClick={() => setToolbar((v) => !v)}
+              плохо видно); в фокусе — ещё чуть темнее. Эмодзи — в поле справа.
+              Во время записи поле скрыто, но не размонтировано (TipTap). */}
+          <div
+            className={cn(
+              "flex min-w-0 flex-1 items-end rounded-2xl bg-border/70 focus-within:bg-border",
+              rec && "hidden",
+            )}
           >
-            <Type className="size-5" />
-          </Button>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="mb-0.5 size-9 shrink-0 max-sm:hidden"
-                aria-label="Эмодзи"
-                title="Эмодзи"
-                {...noBlur}
+            <div className="min-w-0 flex-1">
+              <EditorContent editor={editor} />
+            </div>
+            <Popover open={emojiOpen} onOpenChange={setEmojiOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="mr-0.5 mb-0.5 size-9 shrink-0 text-muted-foreground hover:bg-transparent hover:text-foreground"
+                  aria-label="Эмодзи"
+                  title="Эмодзи"
+                  {...noBlur}
+                >
+                  <Smile className="size-5" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent
+                align="end"
+                side="top"
+                className="w-[min(22rem,calc(100vw-1rem))] p-0"
+                onOpenAutoFocus={(e) => e.preventDefault()}
+                onCloseAutoFocus={(e) => {
+                  e.preventDefault();
+                  if (!touch) editor?.commands.focus();
+                }}
               >
-                <Smile className="size-5" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent
-              align="end"
-              side="top"
-              className="w-72 p-2"
-              onOpenAutoFocus={(e) => e.preventDefault()}
+                <Suspense
+                  fallback={
+                    <div className="flex h-[min(380px,60dvh)] items-center justify-center">
+                      <Loader2 className="size-5 animate-spin text-muted-foreground" />
+                    </div>
+                  }
+                >
+                  <EmojiPicker onPick={pickEmoji} autoFocus={!touch} />
+                </Suspense>
+              </PopoverContent>
+            </Popover>
+          </div>
+          {!rec && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className={cn("mb-0.5 size-9 shrink-0", toolbar && "bg-muted")}
+              aria-label="Форматирование"
+              title="Форматирование"
+              aria-pressed={toolbar}
+              {...noBlur}
+              onClick={() => setToolbar((v) => !v)}
             >
-              <div className="grid grid-cols-8 gap-0.5">
-                {EMOJI.map((em) => (
-                  <button
-                    key={em}
-                    type="button"
-                    className="rounded p-1 text-xl hover:bg-muted"
-                    onClick={() => editor?.chain().focus().insertContent(em).run()}
-                  >
-                    {em}
-                  </button>
-                ))}
-              </div>
-            </PopoverContent>
-          </Popover>
-          <Button
-            size="icon"
-            className="mb-0.5 size-9 shrink-0 rounded-full bg-selected text-selected-foreground hover:bg-selected/90"
-            aria-label={editing ? "Сохранить" : "Отправить"}
-            title={
-              editing
-                ? "Сохранить (Enter)"
-                : onSchedule
-                  ? "Отправить (Enter) · правой кнопкой — отправить позже"
-                  : "Отправить (Enter)"
-            }
-            disabled={busy}
-            {...noBlur}
-            onContextMenu={(e) => {
-              if (editing || !onSchedule) return;
-              e.preventDefault();
-              openSchedule();
-            }}
-            onTouchStart={() => {
-              if (editing || !onSchedule) return;
-              longPress.current.fired = false;
-              longPress.current.timer = window.setTimeout(() => {
-                longPress.current.fired = true;
-                openSchedule();
-              }, 550);
-            }}
-            onTouchEnd={() => {
-              if (longPress.current.timer) window.clearTimeout(longPress.current.timer);
-              longPress.current.timer = null;
-            }}
-            onClick={() => {
-              if (longPress.current.fired) {
-                longPress.current.fired = false;
-                return;
+              <Type className="size-5" />
+            </Button>
+          )}
+          {rec || (micOk && !editing && empty && files.length === 0 && !busy) ? (
+            <>
+              {rec?.phase === "hold" && (
+                <span
+                  aria-hidden
+                  className="pointer-events-none absolute right-0 bottom-full mb-3 flex w-9 flex-col items-center gap-0.5 rounded-full border bg-background py-2 text-muted-foreground shadow-sm"
+                >
+                  <LockKeyhole className="size-4" />
+                  <ChevronUp className="size-4 animate-bounce" />
+                </span>
+              )}
+              <Button
+                size="icon"
+                className={cn(
+                  "mb-0.5 size-9 shrink-0 touch-none rounded-full select-none [-webkit-touch-callout:none]",
+                  rec?.phase === "hold"
+                    ? "scale-125 bg-red-500 text-white hover:bg-red-500"
+                    : "bg-selected text-selected-foreground hover:bg-selected/90",
+                )}
+                aria-label={
+                  rec?.phase === "locked"
+                    ? "Отправить голосовое"
+                    : "Голосовое: удерживайте, чтобы записать"
+                }
+                title={
+                  rec?.phase === "locked"
+                    ? "Отправить голосовое"
+                    : "Удерживайте — запись; отпустите — отправить; влево — отмена; вверх — без рук"
+                }
+                {...noBlur}
+                onPointerDown={micDown}
+                onPointerMove={micMove}
+                onPointerUp={micUp}
+                onPointerCancel={() => {
+                  if (recRef.current?.phase === "hold") void finishVoice(false);
+                }}
+                onContextMenu={(e) => e.preventDefault()}
+                onClick={micClick}
+              >
+                {rec?.phase === "locked" ? <Send className="size-4" /> : <Mic className="size-5" />}
+              </Button>
+            </>
+          ) : (
+            <Button
+              size="icon"
+              className="mb-0.5 size-9 shrink-0 rounded-full bg-selected text-selected-foreground hover:bg-selected/90"
+              aria-label={editing ? "Сохранить" : "Отправить"}
+              title={
+                editing
+                  ? "Сохранить (Enter)"
+                  : onSchedule
+                    ? "Отправить (Enter) · правой кнопкой — отправить позже"
+                    : "Отправить (Enter)"
               }
-              void send();
-            }}
-          >
-            {busy ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
-          </Button>
+              disabled={busy}
+              {...noBlur}
+              onContextMenu={(e) => {
+                if (editing || !onSchedule) return;
+                e.preventDefault();
+                openSchedule();
+              }}
+              onTouchStart={() => {
+                if (editing || !onSchedule) return;
+                longPress.current.fired = false;
+                longPress.current.timer = window.setTimeout(() => {
+                  longPress.current.fired = true;
+                  openSchedule();
+                }, 550);
+              }}
+              onTouchEnd={() => {
+                if (longPress.current.timer) window.clearTimeout(longPress.current.timer);
+                longPress.current.timer = null;
+              }}
+              onClick={() => {
+                if (longPress.current.fired) {
+                  longPress.current.fired = false;
+                  return;
+                }
+                void send();
+              }}
+            >
+              {busy ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
+            </Button>
+          )}
         </div>
       </div>
 

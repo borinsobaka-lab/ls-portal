@@ -1,16 +1,18 @@
 /**
  * Вложения сообщения: картинки — плиткой (по нажатию — на весь экран с
- * листанием, окно базы знаний), видео — плеером, остальное — карточкой
- * файла со «Скачать». Ссылки на файлы — подписанные (lib/chats/files.ts).
+ * листанием, окно базы знаний), видео — плеером, голосовое — своим плеером
+ * с волной (voice-player.tsx), остальное — карточкой файла со «Скачать». Ссылки на файлы — подписанные (lib/chats/files.ts).
  */
 import { useState } from "react";
 import { Download, FileText, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
+import { VoicePlayer } from "@/components/chats/voice-player";
 import { KbImageLightbox, type LightboxImage } from "@/components/kb/image-lightbox";
 import { isImage } from "@/lib/chats/content";
 import { chatFileUrl, downloadChatFile, formatFileSize, useChatFileUrl } from "@/lib/chats/files";
 import type { ChatAttachment } from "@/lib/chats/types";
+import { isVoice } from "@/lib/chats/voice";
 import { cn } from "@/lib/utils";
 
 function ImageTile({
@@ -113,7 +115,10 @@ export function FileCard({ file, mine = false }: { file: ChatAttachment; mine?: 
 export function Attachments({ files, mine = false }: { files: ChatAttachment[]; mine?: boolean }) {
   const images = files.filter((f) => isImage(f.mime));
   const videos = files.filter((f) => /^video\//.test(f.mime));
-  const others = files.filter((f) => !images.includes(f) && !videos.includes(f));
+  const voices = files.filter(isVoice);
+  const others = files.filter(
+    (f) => !images.includes(f) && !videos.includes(f) && !voices.includes(f),
+  );
   const [lightbox, setLightbox] = useState<{ images: LightboxImage[]; index: number } | null>(null);
 
   const open = async (index: number) => {
@@ -142,6 +147,9 @@ export function Attachments({ files, mine = false }: { files: ChatAttachment[]; 
           ))}
         </div>
       )}
+      {voices.map((f) => (
+        <VoicePlayer key={f.path} file={f} mine={mine} />
+      ))}
       {videos.map((f) => (
         <VideoTile key={f.path} file={f} />
       ))}

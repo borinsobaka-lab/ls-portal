@@ -34,7 +34,9 @@ Tailwind 4 + shadcn/radix. Пакетный менеджер — bun.
   «Рабочий день» — время по Тбилиси, просрочка, порядок `lib/workday/logic.test.ts`;
   задачи — время в поясе, быстрые сроки, «Сроки», права, история, фильтры,
   календарь `lib/tasks/logic.test.ts`; темы в группах — свёртка в строку
-  группы, порядок, права `lib/chats/topics.test.ts`; «Календарь» — время в поясе для
+  группы, порядок, права `lib/chats/topics.test.ts`; голосовые и
+  эмодзи — формат записи, волна, жесты, подписи, поиск эмодзи
+  `lib/chats/voice.test.ts`; «Календарь» — время в поясе для
   сетки, подписи повторов и напоминаний, форма события, адрес
   `lib/calendar/logic.test.ts`;
   «Аналитика» — права `lib/analytics/access.test.ts`, ключи интеграций
@@ -1760,6 +1762,25 @@ TASKS_CHATS_PLAN.md, веха 2. Схема — корневой CLAUDE.md
   темы — сведения группы; в них у админов — «Темы» и «Кто заводит темы»
   (`TopicsSettings` в `chat-info.tsx`). Данные — `setTopicsEnabled`,
   `createTopic`, `updateTopic`, `deleteTopic` в `lib/chats/data.ts`.
+- **Голосовые и эмодзи** (решение владельца 2026-11-08; схема —
+  `2026-11-08_zzzzzzzzzzzzzz_chat_voice.sql`): пока поле пустое и файлов
+  нет, вместо «Отправить» — микрофон (`composer.tsx`): держать — запись,
+  отпустить — отправить, влево — отмена, вверх — «без рук» (жест —
+  `holdGesture`), Esc — отмена, короче 0,7 с — подсказка, 15 минут —
+  уходит сама. Запись — `lib/chats/voice-recorder.ts` (getUserMedia +
+  MediaRecorder, формат — `pickVoiceMime`: webm/opus, у Safari — mp4;
+  уровни громкости раз в 50 мс — живая волна и волна сообщения
+  `buildWaveform`), файл грузится той же докачкой, что файлы
+  (`upload(file, voice)`: плашка над полем, загрузилось — отдельное
+  сообщение, текст не держит). Плеер — `components/chats/voice-player.tsx`
+  (в `Attachments` и во вкладке «Файлы» сведений). Логика без браузера —
+  `lib/chats/voice.ts` (+ тест). Эмодзи — кнопка в поле справа, окно
+  `components/chats/emoji-picker.tsx` (отдельный чанк ~84 КБ gzip:
+  поиск по-русски и по-английски, разделы, «Недавние» — localStorage
+  `chat_recent_emoji`; логика — `lib/chats/emoji.ts`), набор —
+  `lib/chats/emoji-data.ts`, создаёт `bun run scripts/gen-emoji.ts` из
+  `emojibase-data` (devDependency; до Emoji 15 — новее не у всех в
+  системном шрифте; файл — в `.prettierignore`).
 
 ### Задачи (2026-11-08)
 

@@ -109,6 +109,10 @@ export type ChatAttachment = {
   size?: number;
   width?: number;
   height?: number;
+  /** Голосовое сообщение (lib/chats/voice.ts): длительность, с; волна 0–100. */
+  voice?: boolean;
+  duration?: number;
+  waveform?: number[];
 };
 
 export type ChatReaction = { emoji: string; count: number; mine: boolean; users: string[] };

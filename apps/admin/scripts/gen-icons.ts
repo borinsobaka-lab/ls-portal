@@ -41,6 +41,7 @@ const MANUAL: Record<string, string> = {
   FileSpreadsheet: "FileSpreadsheetIcon", // выгрузки 1С в «Аналитике»; псевдонима нет
   FolderInput: "FolderTransferIcon", // «Переместить…» в базе знаний; псевдонима нет
   GripVertical: "DragDropVerticalIcon", // псевдоним — рука, нужны точки-ручка
+  Heart: "FavouriteIcon", // раздел «Символы» в окне эмодзи; псевдонима нет
   HelpCircle: "HelpCircleIcon", // псевдонима под именем lucide нет
   Loader2: "LoaderCircle",
   // Полный экран расписания: псевдонимы Maximize/Minimize — не те фигуры,
