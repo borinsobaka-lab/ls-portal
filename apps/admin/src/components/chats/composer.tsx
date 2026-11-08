@@ -759,7 +759,9 @@ export const Composer = forwardRef<
               </PopoverContent>
             </Popover>
           )}
-          <div className="min-w-0 flex-1 rounded-2xl bg-muted/60 focus-within:bg-muted">
+          {/* Поле — на ступень темнее muted (решение владельца 2026-11-08: на белом
+              плохо видно); в фокусе — ещё чуть темнее. */}
+          <div className="min-w-0 flex-1 rounded-2xl bg-border/70 focus-within:bg-border">
             <EditorContent editor={editor} />
           </div>
           <Button
