@@ -529,16 +529,18 @@ export function ChatView({
           </Button>
         )}
         {callsEnabled && (
-          // Кнопка с подписью, не голая иконка (решение владельца 2026-11-08).
+          // С md — зелёная кнопка с подписью, на телефоне — круглая зелёная
+          // с иконкой: подпись занимала шапку (решения владельца 2026-11-08).
           <Button
             size="sm"
-            className="shrink-0 bg-emerald-600 text-white hover:bg-emerald-700"
+            className="shrink-0 bg-emerald-600 text-white hover:bg-emerald-700 max-md:size-10 max-md:px-0"
+            aria-label={inThisCall ? "Вы в звонке" : "Видеозвонок"}
             title={inThisCall ? "Вы уже в этом звонке" : "Начать видеозвонок"}
             disabled={calling || inThisCall}
             onClick={() => void callNow()}
           >
             {calling ? <Loader2 className="animate-spin" /> : <Video />}
-            {inThisCall ? "Вы в звонке" : "Видеозвонок"}
+            <span className="max-md:hidden">{inThisCall ? "Вы в звонке" : "Видеозвонок"}</span>
           </Button>
         )}
         <Button
