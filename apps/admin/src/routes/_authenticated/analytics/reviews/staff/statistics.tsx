@@ -22,6 +22,7 @@ import { rvStaffReportQuery, type RvStaffResponse } from "@/lib/analytics/review
 import { pyFixed, rvDefaultPeriod, rvInitials, rvPeriod } from "@/lib/analytics/reviews/view";
 import { formatNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { avatarStyle } from "@/lib/avatar-color";
 
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -195,7 +196,10 @@ function ResponseCard({ response: r }: { response: RvStaffResponse }) {
   return (
     <article className="flex min-w-0 flex-col rounded-lg border bg-background p-4">
       <header className="flex items-center gap-3 border-b pb-3">
-        <span className="grid size-9 shrink-0 place-items-center rounded-full bg-brand/15 text-xs font-semibold text-brand-on-light">
+        <span
+          className="grid size-9 shrink-0 place-items-center rounded-full text-xs font-semibold"
+          style={avatarStyle(r.full_name)}
+        >
           {rvInitials(r.full_name, "С")}
         </span>
         <div className="min-w-0 flex-1">

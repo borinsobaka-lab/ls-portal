@@ -9,23 +9,7 @@ import { isOnline } from "@/lib/company";
 import { usePeople } from "@/lib/chats/people";
 import type { ChatRow } from "@/lib/chats/types";
 import { cn } from "@/lib/utils";
-
-const GROUP_COLORS = [
-  "bg-rose-100 text-rose-700",
-  "bg-amber-100 text-amber-800",
-  "bg-emerald-100 text-emerald-700",
-  "bg-sky-100 text-sky-700",
-  "bg-violet-100 text-violet-700",
-  "bg-teal-100 text-teal-700",
-  "bg-orange-100 text-orange-700",
-  "bg-indigo-100 text-indigo-700",
-];
-
-function colorOf(id: string) {
-  let h = 0;
-  for (const ch of id) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
-  return GROUP_COLORS[h % GROUP_COLORS.length];
-}
+import { avatarStyle } from "@/lib/avatar-color";
 
 export function ChatAvatar({
   chat,
@@ -84,11 +68,8 @@ export function ChatAvatar({
     .join("");
   return (
     <span
-      className={cn(
-        "flex shrink-0 items-center justify-center rounded-full font-semibold",
-        colorOf(chat.id),
-        box,
-      )}
+      className={cn("flex shrink-0 items-center justify-center rounded-full font-semibold", box)}
+      style={avatarStyle(chat.id)}
     >
       {letters || <Users className="size-4" />}
     </span>
