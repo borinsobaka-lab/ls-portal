@@ -159,7 +159,7 @@ export function ChatList({
             onClick={() => onOpen(chat.id)}
             className={cn(
               "flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left transition-colors",
-              chat.id === activeId ? "bg-chat-accent-soft" : "hover:bg-muted",
+              chat.id === activeId ? "bg-selected/8" : "hover:bg-muted",
             )}
           >
             <ChatAvatar chat={chat} title={title} />
@@ -190,7 +190,7 @@ export function ChatList({
                   <Pin className="size-3.5 shrink-0 text-muted-foreground" />
                 )}
                 {chat.mentions > 0 && (
-                  <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-chat-accent text-chat-accent-foreground">
+                  <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-selected text-selected-foreground">
                     <AtSign className="size-3" />
                   </span>
                 )}
@@ -284,7 +284,7 @@ export function ChatList({
           <PopoverTrigger asChild>
             <Button
               size="icon"
-              className="rounded-full bg-chat-accent text-chat-accent-foreground hover:bg-chat-accent/90"
+              className="rounded-full bg-selected text-selected-foreground hover:bg-selected/90"
               aria-label="Новый чат"
               title="Новый чат"
             >
