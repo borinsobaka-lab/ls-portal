@@ -620,7 +620,7 @@ export const Composer = forwardRef<
         </Popover>
         <Button
           size="icon"
-          className="mb-0.5 size-9 shrink-0 rounded-full bg-chat-accent text-chat-accent-foreground hover:bg-chat-accent/90"
+          className="mb-0.5 size-9 shrink-0 rounded-full bg-selected text-selected-foreground hover:bg-selected/90"
           aria-label={editing ? "Сохранить" : "Отправить"}
           title={editing ? "Сохранить (Enter)" : "Отправить (Enter)"}
           disabled={busy}
