@@ -118,6 +118,8 @@ import {
   ListTodo as ListTodoArt,
   LoaderCircle as Loader2Art,
   Lock as LockArt,
+  LockKeyhole as LockKeyholeArt,
+  LockOpen as LockOpenArt,
   LogIn as LogInArt,
   LogOut as LogOutArt,
   Mail as MailArt,
@@ -191,6 +193,7 @@ import {
   Users as UsersArt,
   Video as VideoArt,
   VkIcon as VkArt,
+  Volume2 as Volume2Art,
   Wallet as WalletArt,
   WifiOff as WifiOffArt,
   X as XArt,
@@ -312,6 +315,8 @@ export const ListOrdered = icon(ListOrderedArt, "ListOrdered");
 export const ListTodo = icon(ListTodoArt, "ListTodo");
 export const Loader2 = icon(Loader2Art, "Loader2");
 export const Lock = icon(LockArt, "Lock");
+export const LockKeyhole = icon(LockKeyholeArt, "LockKeyhole");
+export const LockOpen = icon(LockOpenArt, "LockOpen");
 export const LogIn = icon(LogInArt, "LogIn");
 export const LogOut = icon(LogOutArt, "LogOut");
 export const Mail = icon(MailArt, "Mail");
@@ -385,6 +390,7 @@ export const UserRound = icon(UserRoundArt, "UserRound");
 export const Users = icon(UsersArt, "Users");
 export const Video = icon(VideoArt, "Video");
 export const Vk = icon(VkArt, "Vk");
+export const Volume2 = icon(Volume2Art, "Volume2");
 export const Wallet = icon(WalletArt, "Wallet");
 export const WifiOff = icon(WifiOffArt, "WifiOff");
 export const X = icon(XArt, "X");

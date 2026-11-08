@@ -101,6 +101,7 @@ export function ChatView({
   focusSeq,
   onBack,
   onInfo,
+  group = null,
 }: {
   chat: ChatRow;
   me: string;
@@ -108,6 +109,11 @@ export function ChatView({
   focusSeq: number | null;
   onBack: () => void;
   onInfo: () => void;
+  /**
+   * Группа с темами: тема или «Общая» открыты рядом с колонкой тем. «Назад»
+   * (к темам) тогда виден до lg — там колонка тем не помещается.
+   */
+  group?: ChatRow | null;
 }) {
   const qc = useQueryClient();
   const navigate = useNavigate();
@@ -123,7 +129,7 @@ export function ChatView({
   const pinned = useQuery(chatPinnedQuery(chat.id));
   // Видеозвонки (components/chats/call-layer.tsx): кнопка в шапке и плашка
   // «Идёт видеозвонок» у тех, кто не в нём.
-  const callsEnabled = useChatCallsEnabled() && chat.kind !== "self";
+  const callsEnabled = useChatCallsEnabled() && chat.kind !== "self" && chat.kind !== "topic";
   const myCall = useActiveCall();
   const liveCall = useQuery({
     ...activeChatCallQuery(chat.id),
@@ -177,7 +183,14 @@ export function ChatView({
   const myRole = chat.my_role;
   const isAdmin = myRole !== "member";
   const canPin = chat.kind !== "group" || isAdmin || chat.settings?.pin === "all";
-  const canPost = !(chat.kind === "group" && chat.settings?.post === "admins" && !isAdmin);
+  // Тема: пишут все, кроме закрытой темы и группы «пишут только админы».
+  const topicClosed = chat.kind === "topic" && !!chat.settings?.closed;
+  const canPost =
+    isAdmin ||
+    !(
+      (chat.kind === "group" && chat.settings?.post === "admins") ||
+      (chat.kind === "topic" && (topicClosed || group?.settings?.post === "admins"))
+    );
 
   // Сколько прочитали другие: личный — собеседник, группа — кто-нибудь.
   const othersRead = useMemo(
@@ -507,7 +520,9 @@ export function ChatView({
           ? peer
             ? [lastSeenLabel(peer.last_seen_at), peer.position_name].filter(Boolean).join(" · ")
             : ""
-          : `${chat.member_count} ${plural(chat.member_count, "участник", "участника", "участников")}`;
+          : chat.kind === "topic"
+            ? `Тема в «${group?.title ?? "группе"}»${topicClosed ? " · закрыта" : ""}`
+            : `${group ? "Общая тема · " : ""}${chat.member_count} ${plural(chat.member_count, "участник", "участника", "участников")}`;
   const muted =
     chat.notify !== "all" || (chat.muted_until && new Date(chat.muted_until) > new Date());
   const pins = pinned.data ?? [];
@@ -542,8 +557,8 @@ export function ChatView({
         <Button
           variant="ghost"
           size="icon"
-          className="md:hidden"
-          aria-label="К списку чатов"
+          className={group ? "lg:hidden" : "md:hidden"}
+          aria-label={group ? "К темам группы" : "К списку чатов"}
           onClick={onBack}
         >
           <ArrowLeft className="size-5" />
@@ -888,7 +903,9 @@ export function ChatView({
               ? null
               : chat.settings?.channel
                 ? "Это канал: пишут администраторы, вы отмечаете «Прочитал»"
-                : "В этой группе пишут только администраторы"
+                : topicClosed
+                  ? "Тема закрыта: пишут только администраторы"
+                  : "В этой группе пишут только администраторы"
           }
           onCancelReply={() => setReplyTo(null)}
           onCancelEdit={() => setEditing(null)}

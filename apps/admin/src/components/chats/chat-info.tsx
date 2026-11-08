@@ -27,7 +27,7 @@ import { useConfirm } from "@/components/confirm-dialog";
 import { StaffAvatar } from "@/components/employee-photo";
 import { PersonButton } from "@/components/people/person-card";
 import { Button } from "@/components/ui/button";
-import { FormField } from "@/components/ui/form-field";
+import { FormField, SwitchRow } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import {
@@ -47,7 +47,7 @@ import {
 import { StatusChip } from "@/components/ui/status-chip";
 import { Textarea } from "@/components/ui/textarea";
 import { chatTitle, dayLabel, isImage } from "@/lib/chats/content";
-import { chatErrorText, chatMembersQuery, chatRpc } from "@/lib/chats/data";
+import { chatErrorText, chatMembersQuery, chatRpc, setTopicsEnabled } from "@/lib/chats/data";
 import { useChatFileUrl } from "@/lib/chats/files";
 import { usePeople } from "@/lib/chats/people";
 import type { ChatAttachment, ChatNotify, ChatRow } from "@/lib/chats/types";
@@ -416,7 +416,58 @@ function GroupSettings({ chat, onSaved }: { chat: ChatRow; onSaved: () => Promis
             />
           </FormField>
         ))}
+      {!chat.settings?.channel && <TopicsSettings chat={chat} onSaved={onSaved} />}
     </div>
+  );
+}
+
+/** Темы в группе (Д.5): включить и кто заводит темы. Выключить — когда тем нет. */
+function TopicsSettings({
+  chat,
+  onSaved,
+}: {
+  chat: ChatRow;
+  onSaved: () => Promise<unknown> | void;
+}) {
+  const qc = useQueryClient();
+  const [busy, setBusy] = useState(false);
+  const on = !!chat.settings?.topics;
+  const run = async (enabled: boolean, create?: "admins" | "all") => {
+    setBusy(true);
+    try {
+      await setTopicsEnabled(qc, chat.id, enabled, create);
+      await onSaved();
+      if (enabled && !on) toast.success("Темы включены: прежняя переписка — тема «Общая»");
+    } catch (e) {
+      toast.error(chatErrorText(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <>
+      <SwitchRow
+        title="Темы"
+        hint="Переписка делится на темы, как в Telegram: «Отчёты», «Акции», «Вопросы по 1С»"
+        checked={on}
+        disabled={busy}
+        onCheckedChange={(v) => void run(v)}
+      />
+      {on && (
+        <FormField label="Кто заводит темы" htmlFor={null}>
+          <SegmentedControl
+            aria-label="Кто заводит темы"
+            fullWidth
+            value={chat.settings?.topic_create ?? "admins"}
+            onChange={(v) => void run(true, v)}
+            options={[
+              { value: "all", label: "Все участники" },
+              { value: "admins", label: "Только админы" },
+            ]}
+          />
+        </FormField>
+      )}
+    </>
   );
 }
 

@@ -5,7 +5,8 @@ import type { CallEndReason } from "./call-logic";
 
 /** task — обсуждение задачи (db/migrations/2026-11-08_zz_tasks.sql): состав ведёт задача. */
 /** event — чат встречи календаря (db/migrations/2026-11-08_zzzzzzzzzzz_calendar.sql): состав — участники. */
-export type ChatKind = "direct" | "group" | "self" | "task" | "project" | "event";
+/** topic — тема группы (db/migrations/2026-11-08_zzzzzzzzzzzzz_chat_topics.sql): `parent_id` — группа. */
+export type ChatKind = "direct" | "group" | "self" | "task" | "project" | "event" | "topic";
 export type ChatRole = "owner" | "admin" | "member";
 export type ChatNotify = "all" | "mentions" | "none";
 
@@ -19,6 +20,12 @@ export type ChatSystem = {
     | "task_status"
     | "task_chat"
     | "event_chat"
+    | "topics_on"
+    | "topics_off"
+    | "topic_created"
+    | "topic_renamed"
+    | "topic_closed"
+    | "topic_reopened"
     | "call"
     | "project_created"
     | "task_created"
@@ -61,6 +68,12 @@ export type ChatSettings = {
   channel?: boolean;
   /** Состав из оргструктуры (вся компания или подразделения). */
   auto?: boolean;
+  /** Группа: включены темы; кто заводит темы. */
+  topics?: boolean;
+  topic_create?: "admins" | "all";
+  /** Тема: цвет (ключ `TOPIC_COLORS`) и «закрыта» — пишут только админы. */
+  color?: string;
+  closed?: boolean;
 };
 
 export type ChatRow = {
@@ -82,6 +95,11 @@ export type ChatRow = {
   unread: number;
   mentions: number;
   created_at: string;
+  /** Тема — её группа. */
+  parent_id: string | null;
+  created_by: string | null;
+  /** Последнее сообщение — из темы (группа с темами, `mergeTopics`). */
+  last_topic?: string | null;
 };
 
 export type ChatAttachment = {

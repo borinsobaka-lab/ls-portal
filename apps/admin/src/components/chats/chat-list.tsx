@@ -60,6 +60,7 @@ import {
 } from "@/lib/chats/data";
 import { shortName, usePeople } from "@/lib/chats/people";
 import { folderFilter, type FolderKey } from "@/lib/chats/folders";
+import { mergeTopics, sortChats } from "@/lib/chats/topics";
 import type { ChatRow } from "@/lib/chats/types";
 import { isOnline, matchPerson } from "@/lib/company";
 import { cn } from "@/lib/utils";
@@ -89,8 +90,9 @@ export function ChatList({
   const query = useDebouncedValue(q.trim(), 300);
   const searching = q.trim().length > 0;
 
+  // Темы групп — свёрнуты в строку группы (их список — в открытой группе).
   const titled = useMemo(
-    () => chats.map((c) => ({ chat: c, title: chatTitle(c, name) })),
+    () => sortChats(mergeTopics(chats)).map((c) => ({ chat: c, title: chatTitle(c, name) })),
     [chats, name],
   );
   const visible = useMemo(() => {
@@ -196,6 +198,9 @@ export function ChatList({
               </span>
               <span className="mt-0.5 flex items-center gap-1.5">
                 <span className="min-w-0 flex-1 truncate text-sm text-muted-foreground">
+                  {chat.last_topic && (
+                    <span className="text-foreground"># {chat.last_topic} · </span>
+                  )}
                   {who}
                   {preview}
                 </span>
@@ -243,7 +248,14 @@ export function ChatList({
             </ContextMenuItem>
           )}
           {chat.unread > 0 && (
-            <ContextMenuItem onSelect={() => void markAllRead(qc, [chat.id])}>
+            <ContextMenuItem
+              onSelect={() =>
+                void markAllRead(qc, [
+                  chat.id,
+                  ...chats.filter((t) => t.parent_id === chat.id).map((t) => t.id),
+                ])
+              }
+            >
               Отметить прочитанным
             </ContextMenuItem>
           )}
@@ -416,7 +428,10 @@ export function ChatList({
                 (messages.data ?? []).map((h) => {
                   const chat = chats.find((c) => c.id === h.chat_id);
                   if (!chat) return null;
-                  const title = chatTitle(chat, name);
+                  const group = chat.parent_id ? chats.find((c) => c.id === chat.parent_id) : null;
+                  const title = group
+                    ? `${chatTitle(group, name)} › ${chatTitle(chat, name)}`
+                    : chatTitle(chat, name);
                   return (
                     <button
                       key={h.message_id}
@@ -435,7 +450,7 @@ export function ChatList({
                           </span>
                         </span>
                         <span className="line-clamp-2 text-sm text-muted-foreground">
-                          {chat.kind === "group" && (
+                          {(chat.kind === "group" || chat.kind === "topic") && (
                             <span className="text-foreground">
                               {shortName(name(h.author_id))}:{" "}
                             </span>

@@ -4,7 +4,7 @@
  * непрочитанным; правой кнопкой — «Прочитать всё» (Д.3), у своей —
  * «Изменить» и «Удалить»; внизу — «Новая папка». Папка — в адресе `?f=`.
  */
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -50,6 +50,7 @@ import {
   SYSTEM_FOLDERS,
   type FolderKey,
 } from "@/lib/chats/folders";
+import { mergeTopics } from "@/lib/chats/topics";
 import type { ChatFolder } from "@/lib/chats/types";
 
 // Иконки — Solar, как во всех меню второго уровня (`sidebar-nav.tsx`).
@@ -65,7 +66,9 @@ const ICONS = {
 
 export function ChatFoldersMenu({ onNavigate }: { onNavigate?: () => void }) {
   const qc = useQueryClient();
-  const { data: chats = [] } = useChatList();
+  const { data: all = [] } = useChatList();
+  // Темы — в строке своей группы: папки и счётчики считают группу один раз.
+  const chats = useMemo(() => mergeTopics(all), [all]);
   const { data: folders = [] } = useQuery(chatFoldersQuery);
   const { confirm, confirmDialog } = useConfirm();
   const [editing, setEditing] = useState<Partial<ChatFolder> | null>(null);
@@ -90,7 +93,10 @@ export function ChatFoldersMenu({ onNavigate }: { onNavigate?: () => void }) {
   ];
 
   const readAll = (key: FolderKey) => {
-    const ids = chats.filter(folderFilter(key, folders)).map((c) => c.id);
+    const groups = new Set(chats.filter(folderFilter(key, folders)).map((c) => c.id));
+    const ids = all
+      .filter((c) => groups.has(c.id) || (c.parent_id && groups.has(c.parent_id)))
+      .map((c) => c.id);
     void markAllRead(qc, ids).catch((e) => toast.error(chatErrorText(e)));
   };
 

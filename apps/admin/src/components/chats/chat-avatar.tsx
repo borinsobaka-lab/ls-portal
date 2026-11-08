@@ -3,7 +3,7 @@
  * инициалы названия на цвете по id, проект — папка на цвете по id, задача —
  * значок списка, «Избранное» — закладка.
  */
-import { Bookmark, CalendarDays, FolderOpen, ListChecks, Users } from "lucide-react";
+import { Bookmark, CalendarDays, FolderOpen, Hash, ListChecks, Users } from "lucide-react";
 
 import { StaffAvatar } from "@/components/employee-photo";
 import { isOnline } from "@/lib/company";
@@ -11,13 +11,14 @@ import { usePeople } from "@/lib/chats/people";
 import type { ChatRow } from "@/lib/chats/types";
 import { cn } from "@/lib/utils";
 import { avatarStyle } from "@/lib/avatar-color";
+import { topicColor } from "@/lib/chats/topics";
 
 export function ChatAvatar({
   chat,
   title,
   size = "md",
 }: {
-  chat: Pick<ChatRow, "id" | "kind" | "peer_id">;
+  chat: Pick<ChatRow, "id" | "kind" | "peer_id"> & { settings?: ChatRow["settings"] };
   title: string;
   size?: "sm" | "md";
 }) {
@@ -42,6 +43,17 @@ export function ChatAvatar({
         style={avatarStyle(chat.id)}
       >
         <FolderOpen className={size === "sm" ? "size-4" : "size-5"} />
+      </span>
+    );
+  }
+  if (chat.kind === "topic") {
+    const color = topicColor(chat.settings?.color);
+    return (
+      <span
+        className={cn("flex shrink-0 items-center justify-center rounded-full", box)}
+        style={{ backgroundColor: `${color}22`, color }}
+      >
+        <Hash className={size === "sm" ? "size-4" : "size-5"} />
       </span>
     );
   }

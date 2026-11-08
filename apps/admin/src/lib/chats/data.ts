@@ -577,6 +577,48 @@ export async function closePoll(qc: QueryClient, m: ChatMessage) {
   putMessage(qc, normalize(await rpc<ChatMessage>("chat_poll_close", { p_message: m.id })));
 }
 
+// ---- Темы в группах (2026-11-08_zzzzzzzzzzzzz_chat_topics.sql) ---------------
+
+const refreshChats = (qc: QueryClient) =>
+  Promise.all([
+    qc.invalidateQueries({ queryKey: ["chat_list"] }),
+    qc.invalidateQueries({ queryKey: ["chat_unread"] }),
+  ]);
+
+export async function setTopicsEnabled(
+  qc: QueryClient,
+  chatId: string,
+  on: boolean,
+  create?: "admins" | "all",
+) {
+  await rpc("chat_topics_enable", { p_chat: chatId, p_on: on, p_create: create ?? null });
+  await refreshChats(qc);
+}
+
+export async function createTopic(qc: QueryClient, chatId: string, title: string, color: string) {
+  const id = await rpc<string>("chat_topic_create", {
+    p_chat: chatId,
+    p_title: title,
+    p_color: color,
+  });
+  await refreshChats(qc);
+  return id as string;
+}
+
+export async function updateTopic(
+  qc: QueryClient,
+  topicId: string,
+  p: { title?: string; color?: string; closed?: boolean },
+) {
+  await rpc("chat_topic_update", { p_topic: topicId, p });
+  await refreshChats(qc);
+}
+
+export async function deleteTopic(qc: QueryClient, topicId: string) {
+  await rpc("chat_topic_delete", { p_topic: topicId });
+  await refreshChats(qc);
+}
+
 export async function searchMessages(query: string, chatId?: string) {
   return (
     (await rpc<ChatSearchHit[] | null>("chat_search", {
@@ -620,6 +662,11 @@ export function chatErrorText(e: unknown): string {
     chat_scheduled_not_found: "Отложенное сообщение уже отправлено или удалено",
     chat_poll_invalid: "Опрос: вопрос и от 2 до 10 разных вариантов, до 100 символов",
     chat_poll_closed: "Опрос закрыт",
+    chat_topic_closed: "Тема закрыта: пишут только администраторы",
+    chat_topics_off: "В этой группе темы выключены",
+    chat_topics_exist: "Сначала удалите темы — тогда их можно выключить",
+    chat_topics_group_only: "Темы бывают только в группах, не в каналах",
+    chat_topics_limit: "Не больше 100 тем в группе",
   };
   for (const [k, v] of Object.entries(map)) if (msg.includes(k)) return v;
   return msg;

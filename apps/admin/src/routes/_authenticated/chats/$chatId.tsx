@@ -15,6 +15,6 @@ export const Route = createFileRoute("/_authenticated/chats/$chatId")({
 
 function ChatRoute() {
   const { chatId } = Route.useParams();
-  const { f, m } = Route.useSearch();
-  return <ChatsPage chatId={chatId} folder={f ?? "all"} focusSeq={m ?? null} />;
+  const { f, m, g } = Route.useSearch();
+  return <ChatsPage chatId={chatId} folder={f ?? "all"} focusSeq={m ?? null} general={!!g} />;
 }
