@@ -21,6 +21,7 @@ import { EventCardDialog } from "@/components/calendar/event-card";
 import { EventFormDialog, type EventDraft } from "@/components/calendar/event-form";
 import { InvitesDialog } from "@/components/calendar/invites-dialog";
 import { PersonCardDialog } from "@/components/people/person-card";
+import { TableToolbar } from "@/components/table-toolbar";
 import { Button } from "@/components/ui/button";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -212,42 +213,43 @@ export function CalendarPage({
     >
       {/* Высота — до кнопок в правом нижнем углу: они не закрывают сетку. */}
       <div className="flex h-[calc(100dvh-15rem)] min-h-[28rem] flex-col gap-3 max-md:h-[calc(100dvh-14rem)]">
-        <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => api.current?.today()}>
-            Сегодня
-          </Button>
-          <div className="flex items-center">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-9"
-              aria-label="Назад"
-              onClick={() => api.current?.prev()}
-            >
-              <ChevronLeft className="size-5" />
+        {/* Период и вид — на белой плашке, как фильтры во всех разделах. */}
+        <TableToolbar>
+          <div className="toolbar-full flex min-w-0 flex-1 items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => api.current?.today()}>
+              Сегодня
             </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-9"
-              aria-label="Вперёд"
-              onClick={() => api.current?.next()}
-            >
-              <ChevronRight className="size-5" />
-            </Button>
+            <div className="flex shrink-0 items-center">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-9"
+                aria-label="Назад"
+                onClick={() => api.current?.prev()}
+              >
+                <ChevronLeft className="size-5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-9"
+                aria-label="Вперёд"
+                onClick={() => api.current?.next()}
+              >
+                <ChevronRight className="size-5" />
+              </Button>
+            </div>
+            <h2 className="min-w-0 flex-1 truncate text-base font-semibold first-letter:uppercase sm:text-lg">
+              {range?.title ?? ""}
+            </h2>
           </div>
-          <h2 className="min-w-0 flex-1 truncate text-base font-semibold first-letter:uppercase sm:text-lg">
-            {range?.title ?? ""}
-          </h2>
           <SegmentedControl
             aria-label="Вид"
             value={view}
             onChange={changeView}
             options={VIEWS.map((v) => ({ value: v.value, label: mobile ? v.short : v.label }))}
-            className="max-sm:w-full"
-            fullWidth={mobile}
           />
-        </div>
+        </TableToolbar>
         <div className="cal-grid min-h-0 flex-1 overflow-hidden rounded-lg border bg-background">
           {mounted && !calendarsPending ? (
             <Suspense fallback={<GridSkeleton />}>

@@ -4142,12 +4142,14 @@ export function CalendarPageSkeleton() {
   return (
     <ShellSkeleton title="Календарь" actions={["w-44"]}>
       <div className="flex h-[calc(100dvh-15rem)] min-h-[28rem] flex-col gap-3 max-md:h-[calc(100dvh-14rem)]">
-        <div className="flex flex-wrap items-center gap-2">
-          <Skeleton className="h-9 w-24 rounded-full" />
-          <Skeleton className="h-9 w-20 rounded-full" />
-          <Skeleton className="h-6 w-56 flex-1 sm:flex-none" />
-          <Skeleton className="ml-auto h-10 w-72 max-sm:w-full" />
-        </div>
+        <ToolbarSkeleton search={false}>
+          <div className="toolbar-full flex flex-1 items-center gap-2">
+            <Skeleton className="h-9 w-24 rounded-full" />
+            <Skeleton className="h-9 w-20 rounded-full" />
+            <Skeleton className="h-6 w-56" />
+          </div>
+          <Skeleton className="toolbar-full h-10 w-72" />
+        </ToolbarSkeleton>
         <div className="flex min-h-0 flex-1 flex-col gap-2 rounded-lg border bg-background p-3">
           <div className="grid grid-cols-7 gap-2">
             {Array.from({ length: 7 }, (_, i) => (
