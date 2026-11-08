@@ -166,8 +166,10 @@ export const MessageItem = memo(function MessageItem(p: Props) {
   const bubble = (
     <div
       className={cn(
-        "group/msg relative max-w-full rounded-2xl px-3 py-1.5 shadow-xs",
-        mine ? "rounded-br-md bg-chat-mine" : "rounded-bl-md bg-background",
+        // Входящие и исходящие — одинаковые отступы и радиус 16 px, без теней
+        // и «хвостиков»: их различает цвет (решение владельца 2026-11-08).
+        "group/msg relative max-w-full rounded-2xl px-3.5 py-2.5",
+        mine ? "bg-chat-mine" : "bg-background",
         highlighted && "ring-2 ring-chat-accent",
         local === "failed" && "ring-1 ring-destructive",
       )}
@@ -206,7 +208,7 @@ export const MessageItem = memo(function MessageItem(p: Props) {
           {m.text && <MessageContent doc={m.content as ChatDoc | null} text={m.text} mine={mine} />}
         </>
       )}
-      <div className="mt-0.5 flex items-center justify-end gap-1 text-[11px] leading-none text-muted-foreground">
+      <div className="mt-1 flex items-center justify-end gap-1 text-[11px] leading-none text-chat-meta">
         {m.pinned && <Pin className="size-3" aria-label="Закреплено" />}
         {m.edited_at && !m.deleted && <span>изменено</span>}
         <span>{timeOf(m.created_at)}</span>
