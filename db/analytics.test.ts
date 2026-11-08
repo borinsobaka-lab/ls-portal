@@ -2796,10 +2796,16 @@ describe.skipIf(!url)("аналитика: фундамент (база)", () =>
       await tx`update an_amo_history_state set started_at = '2026-08-15 00:00+03'`;
       await tx`update an_amo_versions set observed_at = '2026-09-20 00:00+03'`;
       await asService(tx);
-      expect((await tx`select an_amo_freeze_snapshots() as n`)[0].n).toBe(4);
+      // Сколько месяцев заморожено, зависит от сегодняшней даты: с августа по
+      // прошлый месяц, по срезу на каждый бренд. Содержимое проверяем у августа и сентября.
+      const frozen = (await tx`select an_amo_freeze_snapshots() as n`)[0].n as number;
+      expect(frozen).toBeGreaterThanOrEqual(4);
+      expect(frozen % 2).toBe(0);
       expect((await tx`select an_amo_freeze_snapshots() as n`)[0].n).toBe(0);
       await asServer(tx);
-      const snaps = await tx`select brand, month, rows from an_amo_snapshots order by brand, month`;
+      expect((await tx`select count(*)::int as n from an_amo_snapshots`)[0].n).toBe(frozen);
+      const snaps =
+        await tx`select brand, month, rows from an_amo_snapshots where month in ('2026-08', '2026-09') order by brand, month`;
       expect(snaps.map((s) => [s.brand, s.month, s.rows])).toEqual([
         ["Lady Jump", "2026-08", []],
         ["Lady Jump", "2026-09", []],
@@ -2833,7 +2839,9 @@ describe.skipIf(!url)("аналитика: фундамент (база)", () =>
       expect(
         (await tx`select reason from an_amo_snapshot_origins where month = '2026-09'`)[0].reason,
       ).toContain("September baseline");
-      expect((await tx`select 1 from an_amo_snapshots where brand = 'Lady Jump'`).length).toBe(0);
+      expect(
+        (await tx`select 1 from an_amo_snapshots where brand = 'Lady Jump' and month = '2026-09'`).length,
+      ).toBe(0);
 
       // Квалификация VK в реестре: источники VK, даты по UTC, только видимые города.
       for (const [vk, city] of [
@@ -4455,7 +4463,7 @@ describe.skipIf(!url)("аналитика: фундамент (база)", () =>
         ('an-content', 'p/0.png', '{"size": 100, "mimetype": "image/png"}'),
         ('an-content', 'p/1.gif', '{"size": 100, "mimetype": "image/png"}')`;
       await as(tx, admin);
-      const post = (body: string, targets: unknown[], media: unknown[] = [], date = "2026-11-02", time = "10:00", brand = "Lady Stretch") =>
+      const post = (body: string, targets: unknown[], media: unknown[] = [], date = "2099-11-02", time = "10:00", brand = "Lady Stretch") =>
         tx`select an_content_post_create(${brand}, ' Заголовок ', ${body}, ${date}, ${time}, ${targets}::bigint[], ${media}::jsonb) as id`;
       expect(await failure(tx, () => post("Текст", [tula], [{ path: "p/1.gif", name: "1.gif" }]))).toContain(
         "Можно прикрепить только изображения JPG, PNG, WEBP или GIF.",
@@ -4467,7 +4475,7 @@ describe.skipIf(!url)("аналитика: фундамент (база)", () =>
       expect(await failure(tx, () => post("x".repeat(12001), [tula]))).toContain("Текст поста слишком длинный.");
       expect(await failure(tx, () => post("Текст", [tula], [], "2026-11-2"))).toContain("Укажите дату и время публикации.");
       expect(await failure(tx, () => post("Текст", [tula], [], "2026-02-30"))).toContain("Дата или время публикации указаны неверно.");
-      expect(await failure(tx, () => post("Текст", [tula], [], "2026-11-02", "24:00"))).toContain("Дата или время публикации указаны неверно.");
+      expect(await failure(tx, () => post("Текст", [tula], [], "2099-11-02", "24:00"))).toContain("Дата или время публикации указаны неверно.");
       expect(await failure(tx, () => post("Текст", []))).toContain("Выберите хотя бы одну активную группу.");
       expect(await failure(tx, () => post("Текст", [tula, jump]))).toContain("Выберите только активные группы данного направления.");
       expect(await failure(tx, () => post("Ссылка {ссылка_на_пробное}", [tula, samara]))).toContain(
@@ -4480,9 +4488,9 @@ describe.skipIf(!url)("аналитика: фундамент (база)", () =>
       const targets = await tx`select post_id, community_id, rendered_body, scheduled_at, status from an_content_post_targets
                                 order by post_id, community_id`;
       expect(targets[0]).toMatchObject({ rendered_body: "Ссылка https://t2 и https://x/sched", status: "scheduled" });
-      expect(new Date(targets[0].scheduled_at).toISOString()).toBe("2026-11-02T07:00:00.000Z");
+      expect(new Date(targets[0].scheduled_at).toISOString()).toBe("2099-11-02T07:00:00.000Z");
       const sam = targets.find((t: { community_id: string }) => Number(t.community_id) === Number(samara));
-      expect(new Date(sam.scheduled_at).toISOString()).toBe("2026-11-02T06:00:00.000Z");
+      expect(new Date(sam.scheduled_at).toISOString()).toBe("2099-11-02T06:00:00.000Z");
       const [p] = await tx`select title, status, created_by from an_content_posts where id = ${p1}`;
       expect(p).toEqual({ title: "Заголовок", status: "scheduled", created_by: admin });
       expect((await tx`select original_name, mime_type, size_bytes from an_content_post_media`)[0]).toEqual({

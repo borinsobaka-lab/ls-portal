@@ -1571,6 +1571,28 @@ DEPLOY.md.
   `task_list` — `sort` (`deadline` / `urgent` / `created`). Актуальные
   определения `task_roles`, `task_json`, `task_list`, `task_create_as`,
   `task_update`, `task_set_status` — здесь. Тесты — `db/task-subtasks.test.ts`.
+  **Исправления безопасности по код-ревью 2026-11-08**:
+  `db/migrations/2026-11-08_zzzzzzzzzz_security_fixes.sql` — `access_can_manage`
+  (смена почты, пароля, логина, аватарки чужого человека): только
+  `access_can_manage_user`, права цели не шире своих, партнёру — без
+  сотрудников и клиентов чужих клубов («кого завёл» больше не обходит
+  проверку); проверки ролей в `chat_member_set_role`, `task_project_delete`,
+  `task_project_member_set_role` / `_remove` — без дыры с NULL (не участник
+  проходил `NULL <> 'owner'`; **в новых проверках ролей — `is distinct from`
+  или `coalesce(…, false)`**); перенос задачи в проект — постановщик,
+  `tasks.admin` или ведущий прежний проект (триггер
+  `tasks_project_move_guard_bu`: удаление проекта уносит задачи); ФИО и почту
+  `profiles` браузер не меняет (`profiles_lock_identity_bu`; ФИО — ключ
+  таргетолога); «Аналитика» (`an_me_for`, `an_fb_mycity_ids`) и чаты
+  (`chat_role` вызывающего, `chat_file_allowed`, `chat_topic_member`) — только
+  `is_portal_user`: заблокированный не читает по оставшимся строкам; правка
+  оргструктуры, от которой у людей прибавились права, — только тому, кто сам
+  мог бы их выдать, себе — нельзя (`access_structure_guard` из `access_guard`
+  и собственников клубов); `feedback`, `nps_responses`, `nps_survey_prompts` —
+  только клубы сотрудника (без клуба — суперадминистратору);
+  `can_manage_employee` — все клубы сотрудника ваши (или клубов ещё нет),
+  политики `trainers` / `trainer_studios` по нему. Актуальные определения
+  перечисленного — здесь. Тесты — `db/security-fixes.test.ts`.
   **Каналы и чаты с составом из оргструктуры** (TASKS_CHATS_PLAN.md, этап 2,
   2026-11-08): `db/migrations/2026-11-08_zzzzz_chat_channels.sql` — на
   группах (`kind = 'group'`). Канал — `settings.channel = true`: пишут

@@ -327,6 +327,10 @@ export const createPortalUser = createServerFn({ method: "POST" })
  * иначе можно было бы добавить себе чужого клиента, переписать ему почту и
  * войти под ним в приложение (как и раньше в «Доступах»).
  */
+/** access_can_manage отказал: нет прав, права человека шире ваших или он есть в чужих клубах. */
+const NO_MANAGE =
+  "Нет прав менять этого пользователя: у него есть права, которых нет у вас, или он сотрудник либо клиент другого клуба";
+
 export const updatePortalUserAccount = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data) =>
@@ -348,7 +352,7 @@ export const updatePortalUserAccount = createServerFn({ method: "POST" })
       const can = await rpcAs<boolean>(context.supabase, "access_can_manage", {
         p_user: data.user_id,
       });
-      if (!can) throw new Error("Нет прав менять этого пользователя");
+      if (!can) throw new Error(NO_MANAGE);
     }
     const me = await rpcAs<AccessMe>(context.supabase, "access_me");
     const admin = getSupabaseAdmin();
@@ -438,7 +442,7 @@ export const setPortalUserLogin = createServerFn({ method: "POST" })
       const can = await rpcAs<boolean>(context.supabase, "access_can_manage", {
         p_user: data.user_id,
       });
-      if (!can) throw new Error("Нет прав менять этого пользователя");
+      if (!can) throw new Error(NO_MANAGE);
     }
     const admin = getSupabaseAdmin();
     if (data.login === null) {
@@ -487,7 +491,7 @@ export const importPortalLogins = createServerFn({ method: "POST" })
           const can = await rpcAs<boolean>(context.supabase, "access_can_manage", {
             p_user: r.user_id,
           });
-          if (!can) throw new Error("Нет прав менять этого пользователя");
+          if (!can) throw new Error(NO_MANAGE);
         }
         await writeLogin(admin, r.user_id, r.login, r.password, context.userId);
         results.push({ user_id: r.user_id, error: null });

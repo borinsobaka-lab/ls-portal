@@ -278,6 +278,8 @@ export function taskErrorText(e: unknown): string {
     task_source_invalid: "Сообщение не найдено или вы не в этом чате",
     task_too_many_filters: "Не больше 30 фильтров",
     project_forbidden: "Это может только владелец или модератор проекта",
+    task_project_move_forbidden:
+      "Перенести задачу в проект может её постановщик или тот, кто ведёт её нынешний проект",
     project_not_found: "Проект не найден или закрыт",
     project_title_invalid: "Название проекта — от 1 до 120 символов",
     project_last_owner: "У проекта должен остаться владелец",
