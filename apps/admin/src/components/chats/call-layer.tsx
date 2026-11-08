@@ -6,7 +6,7 @@
  *   человека открыта вкладка портала (заголовок вкладки мигает);
  * - мой звонок — окно с конференцией Kinescope Speak (iframe по ссылке
  *   комнаты): во весь экран или свёрнуто в угол, «Открыть в новой вкладке»,
- *   «Завершить». Пока никто не ответил — гудки. Раз в 20 с — «я в звонке»
+ *   «Закрыть звонок». Пока никто не ответил — гудки. Раз в 20 с — «я в звонке»
  *   (иначе база через 75 с считает, что человек вышел).
  *
  * Логика и данные — lib/chats/calls.ts, схема — 2026-11-08_zzz_chat_calls.sql.
@@ -324,7 +324,7 @@ function CallFrame({ active, me }: { active: ActiveCall; me: string }) {
           : "inset-0",
       )}
     >
-      <div className="flex shrink-0 items-center gap-2 px-3 py-2">
+      <div className="flex shrink-0 items-center gap-2 px-3 py-2 max-sm:gap-1">
         <button
           type="button"
           className="flex min-w-0 flex-1 items-center gap-2 text-left"
@@ -332,7 +332,7 @@ function CallFrame({ active, me }: { active: ActiveCall; me: string }) {
           title="Открыть чат"
         >
           {!min && (
-            <span className="flex -space-x-2">
+            <span className="hidden -space-x-2 sm:flex">
               {inCall.slice(0, 4).map((m) => (
                 <StaffAvatar
                   key={m.user_id}
@@ -352,7 +352,7 @@ function CallFrame({ active, me }: { active: ActiveCall; me: string }) {
           <Button
             variant="ghost"
             size="icon"
-            className="text-white hover:bg-white/10 hover:text-white"
+            className="text-white hover:bg-white/10 hover:text-white max-sm:size-9"
             aria-label="Открыть в новой вкладке"
             title="Открыть в новой вкладке"
             onClick={openExternal}
@@ -363,22 +363,27 @@ function CallFrame({ active, me }: { active: ActiveCall; me: string }) {
         <Button
           variant="ghost"
           size="icon"
-          className="text-white hover:bg-white/10 hover:text-white"
+          className="text-white hover:bg-white/10 hover:text-white max-sm:size-9"
           aria-label={min ? "Развернуть" : "Свернуть"}
           title={min ? "Развернуть" : "Свернуть"}
           onClick={() => patchActiveCall({ minimized: !min })}
         >
           {min ? <Maximize className="size-4" /> : <Minimize className="size-4" />}
         </Button>
+        {/* Главная кнопка выхода — наша: красную кнопку Kinescope внутри окна
+            скрыть нельзя (чужой сайт), а портал о выходе узнаёт только отсюда
+            (решение владельца 2026-11-08). */}
         <Button
           variant="destructive"
           size={min ? "icon" : "default"}
-          aria-label="Завершить звонок"
+          className={cn("shrink-0", min ? "max-sm:size-9" : "max-sm:h-9 max-sm:px-3")}
+          aria-label="Закрыть звонок"
+          title="Закрыть звонок"
           disabled={leaving}
           onClick={() => void leave()}
         >
           {leaving ? <Loader2 className="animate-spin" /> : <PhoneOff />}
-          {!min && "Завершить"}
+          {!min && "Закрыть звонок"}
         </Button>
       </div>
       <div className="relative min-h-0 flex-1 bg-black">
