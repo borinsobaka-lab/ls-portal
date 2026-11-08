@@ -35,6 +35,7 @@ import {
   type RvStaffLink,
 } from "@/lib/analytics/reviews/data";
 import { feedbackUrl, rvInitials, staffMatches } from "@/lib/analytics/reviews/view";
+import { avatarStyle } from "@/lib/avatar-color";
 
 export const Route = createFileRoute("/_authenticated/analytics/reviews/staff/")({
   head: () => ({ meta: [{ title: "Отзывы · ссылки сотрудников — Аналитика — LadyFitPro" }] }),
@@ -54,8 +55,6 @@ const linkState = (l: RvStaffLink): LinkState =>
   l.link_id === null ? "missing" : l.is_active ? "active" : "paused";
 
 /** Их цвета аватарок по порядку строк. */
-const AVATAR_COLORS = ["#f8d9ed", "#e9d9ff", "#ffe4d5", "#d8eaff", "#f4d9ff", "#d7f4e7"];
-
 /**
  * «Аналитика» → «Отзывы» → «Ссылки на отзывы сотрудников» (администратору
  * аналитики) — их staff_feedback_links_page: у каждого сотрудника (люди
@@ -171,14 +170,13 @@ function AnalyticsStaffLinksPage() {
                   rows.map((e) => {
                     const s = linkState(e);
                     const url = e.token ? feedbackUrl(origin, e.token) : "";
-                    const color = AVATAR_COLORS[employees.indexOf(e) % AVATAR_COLORS.length];
                     return (
                       <TableRow key={e.user_id}>
                         <TableCell>
                           <div className="flex items-center gap-3">
                             <span
-                              className="grid size-8 shrink-0 place-items-center rounded-full text-xs font-bold text-[#5c2a75]"
-                              style={{ background: color }}
+                              className="grid size-8 shrink-0 place-items-center rounded-full text-xs font-bold"
+                              style={avatarStyle(e.full_name)}
                             >
                               {rvInitials(e.full_name, "С")}
                             </span>

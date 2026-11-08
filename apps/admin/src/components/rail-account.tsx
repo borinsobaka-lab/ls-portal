@@ -10,6 +10,7 @@ import { useStaffProfile } from "@/hooks/use-staff-profile";
 import { initials } from "@/lib/format";
 import { useStorageUrl } from "@/lib/storage";
 import { unregisterPushDevice } from "@/lib/notifications/push-client";
+import { avatarStyle } from "@/lib/avatar-color";
 
 /**
  * Последний пункт рейки, под «Клубами»: аватарка сотрудника и «Выход» под ней — по
@@ -59,7 +60,7 @@ export function RailAccount() {
       >
         <Avatar className="size-8 ring-2 ring-white/20 transition group-hover/rail:ring-white/50">
           {src && <AvatarImage src={src} alt={name} className="object-cover" />}
-          <AvatarFallback className="bg-white/15 text-[11px] font-semibold text-white">
+          <AvatarFallback className="text-[11px] font-semibold" style={avatarStyle(name)}>
             {initials(name, "?")}
           </AvatarFallback>
         </Avatar>

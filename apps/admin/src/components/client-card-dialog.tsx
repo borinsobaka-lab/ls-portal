@@ -58,6 +58,7 @@ import {
 import { saleSourceLabel, type SaleKind } from "@/lib/payments";
 import { unwrap } from "@/lib/query";
 import { cn } from "@/lib/utils";
+import { avatarStyle } from "@/lib/avatar-color";
 
 type MemberProfile = {
   user_id: string;
@@ -402,7 +403,9 @@ function ClientCard({ client: initial, onClose }: { client: ClientLike; onClose:
         <div className="flex items-center gap-4 text-left">
           <Avatar className="h-14 w-14 shrink-0">
             {photo && <AvatarImage src={photo} alt={name} />}
-            <AvatarFallback className="text-lg">{initials(name, "?")}</AvatarFallback>
+            <AvatarFallback className="text-lg font-semibold" style={avatarStyle(name)}>
+              {initials(name, "?")}
+            </AvatarFallback>
           </Avatar>
           <div className="min-w-0 flex-1 space-y-1.5">
             <div className="flex flex-wrap items-center gap-2">

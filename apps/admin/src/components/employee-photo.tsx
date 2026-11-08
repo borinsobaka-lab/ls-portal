@@ -6,6 +6,7 @@ import { initials } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { TRAINER_ROLES, type TrainerRole } from "@/lib/staff-directory";
 import { useStorageUrl } from "@/lib/storage";
+import { avatarStyle } from "@/lib/avatar-color";
 
 /** Фото сотрудника справочника (бакет trainer-photos), без фото — инициалы. */
 export function EmployeePhoto({
@@ -21,7 +22,9 @@ export function EmployeePhoto({
   return (
     <Avatar className={className}>
       {src && <AvatarImage src={src} alt={name} />}
-      <AvatarFallback>{initials(name)}</AvatarFallback>
+      <AvatarFallback className="font-semibold" style={avatarStyle(name)}>
+        {initials(name)}
+      </AvatarFallback>
     </Avatar>
   );
 }
@@ -40,7 +43,9 @@ export function StaffAvatar({
   return (
     <Avatar className={className}>
       {src && <AvatarImage src={src} alt={name} />}
-      <AvatarFallback>{initials(name)}</AvatarFallback>
+      <AvatarFallback className="font-semibold" style={avatarStyle(name)}>
+        {initials(name)}
+      </AvatarFallback>
     </Avatar>
   );
 }

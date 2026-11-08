@@ -33,6 +33,7 @@ import { kickInboxProfiles } from "@/lib/analytics/inbox.functions";
 import { inboxCustomerName, inboxPreview, inboxTime } from "@/lib/analytics/inbox/rules";
 import { AN_TITLES } from "@/lib/analytics/labels";
 import { cn } from "@/lib/utils";
+import { avatarStyle } from "@/lib/avatar-color";
 
 type InboxSearch = {
   community?: number;
@@ -456,7 +457,10 @@ function QueueItem({
       )}
     >
       <span className="relative shrink-0">
-        <span className="flex size-10 items-center justify-center overflow-hidden rounded-full bg-muted text-sm font-semibold">
+        <span
+          className="flex size-10 items-center justify-center overflow-hidden rounded-full bg-muted text-sm font-semibold"
+          style={avatar ? undefined : avatarStyle(name)}
+        >
           {avatar ? (
             <img
               src={avatar}

@@ -848,10 +848,8 @@ input[type="number"]::-webkit-outer-spin-button {
   height: 2.25em;
   font-size: 0.6em;
 }
-/* Инициалы без фото — на плотном кружке, иначе он теряется на подложке. */
+/* Инициалы без фото — цвет человека (lib/avatar-color.ts), как везде. */
 .kb-document .kb-mention-avatar > * {
-  background-color: color-mix(in oklab, var(--brand) 30%, var(--background));
-  color: var(--foreground);
   font-weight: 600;
 }
 /* Чек-лист у читателя (kb_checks): свой флажок вместо флажка документа —
