@@ -171,6 +171,7 @@ import {
   TrendingDown as TrendingDownArt,
   TrendingUp as TrendingUpArt,
   Type as TypeArt,
+  Underline as UnderlineArt,
   Undo2 as Undo2Art,
   Upload as UploadArt,
   User as UserArt,
@@ -356,6 +357,7 @@ export const Trash2 = icon(Trash2Art, "Trash2");
 export const TrendingDown = icon(TrendingDownArt, "TrendingDown");
 export const TrendingUp = icon(TrendingUpArt, "TrendingUp");
 export const Type = icon(TypeArt, "Type");
+export const Underline = icon(UnderlineArt, "Underline");
 export const Undo2 = icon(Undo2Art, "Undo2");
 export const Upload = icon(UploadArt, "Upload");
 export const User = icon(UserArt, "User");
