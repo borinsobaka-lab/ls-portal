@@ -1039,6 +1039,18 @@ body[data-sidebar-resizing] {
   }
 }
 
+/* Сообщение и строка списка чатов на сенсорном экране: долгое нажатие
+   открывает наше меню (ответить, скопировать текст…), а не системное
+   выделение с «Копировать / Поделиться» поверх него. */
+@media (pointer: coarse) {
+  .chat-touch-menu,
+  .chat-touch-menu * {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+}
+
 /* Поле ввода чата (components/chats/composer.tsx, TipTap): подсказка в
    пустом поле, упоминание, списки и цитата — как в сообщении. */
 .chat-composer p.is-editor-empty:first-child::before {

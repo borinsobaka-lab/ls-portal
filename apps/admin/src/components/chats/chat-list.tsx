@@ -159,7 +159,7 @@ export function ChatList({
             type="button"
             onClick={() => onOpen(chat.id)}
             className={cn(
-              "flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left transition-colors",
+              "chat-touch-menu flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left transition-colors",
               chat.id === activeId ? "bg-selected/8" : "hover:bg-muted",
             )}
           >

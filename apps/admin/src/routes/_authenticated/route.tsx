@@ -23,6 +23,7 @@ import { accessMeQuery } from "@/lib/access/data";
 import { useActiveStudioId } from "@/hooks/use-active-studio";
 import { canOpenPath, firstAllowedUrl } from "@/lib/nav-sections";
 import { usePreloadSections } from "@/hooks/use-preload-sections";
+import { useKeyboardViewport } from "@/hooks/use-keyboard-viewport";
 import { PortalBackground } from "@/components/notifications/portal-background";
 
 // Видеозвонки чатов — окно входящего и конференции (отдельный чанк).
@@ -105,6 +106,7 @@ export const Route = createFileRoute("/_authenticated")({
  */
 function AuthenticatedLayout() {
   usePreloadSections();
+  useKeyboardViewport();
   return (
     // Меню всегда развёрнуто: кнопку сворачивания убрали, а сохранённое в
     // cookie «свёрнуто» иначе оставило бы меню свёрнутым без пути назад.
@@ -116,14 +118,17 @@ function AuthenticatedLayout() {
         <CallLayer />
       </Suspense>
       {/* h-dvh, а не h-screen: в мобильном Safari 100vh выше видимой области
-          (под адресной строкой), и низ страницы с пагинацией уезжал за экран. */}
+          (под адресной строкой), и низ страницы с пагинацией уезжал за экран.
+          На сенсорном экране — высота видимой части без клавиатуры
+          (--app-height, useKeyboardViewport): иначе на iPhone клавиатура
+          накрывала поле ввода чата и сдвигала страницу. */}
       {/*
         С md фон каркаса — цвет меню, а рабочая область лежит поверх него
         скруглённой панелью с тонкой тёмной рамкой сверху, справа и снизу:
         рамка продолжает меню. Слева отступа нет — там само меню. До md меню
         в шторке, рамка только съела бы ширину телефона — панель во весь экран.
       */}
-      <div className="flex h-dvh w-full overflow-hidden bg-canvas md:bg-sidebar md:py-1.5 md:pr-1.5">
+      <div className="flex h-[var(--app-height,100dvh)] w-full overflow-hidden bg-canvas md:bg-sidebar md:py-1.5 md:pr-1.5">
         <AppSidebar />
         <div className="flex min-w-0 flex-1 flex-col overflow-hidden bg-canvas md:rounded-xl">
           <AccessGate />

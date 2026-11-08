@@ -249,6 +249,24 @@ export function ChatView({
     if (atBottom || lastMine) scrollToBottom(true);
   }, [messages, atBottom, me, scrollToBottom]);
 
+  // Открылась клавиатура, выросло поле ввода (ответ, файлы, панель) — лента
+  // стала ниже: кто был внизу, остаётся внизу, последнее сообщение не уходит
+  // под поле.
+  const atBottomRef = useRef(true);
+  atBottomRef.current = atBottom;
+  useEffect(() => {
+    const el = scroller.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    let height = el.clientHeight;
+    const ro = new ResizeObserver(() => {
+      const next = el.clientHeight;
+      if (next < height && atBottomRef.current) el.scrollTop = el.scrollHeight;
+      height = next;
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   const onScroll = useCallback(async () => {
     const el = scroller.current;
     if (!el) return;
@@ -369,9 +387,12 @@ export function ChatView({
 
   const actions: MessageActions = useMemo(
     () => ({
+      // Курсор в поле — сразу в касании пункта меню: iPhone показывает
+      // клавиатуру только на фокус из действия человека, не из эффекта.
       reply: (m) => {
         setEditing(null);
         setReplyTo(m);
+        composer.current?.focus();
       },
       react: (m, emoji) =>
         void toggleReaction(qc, m, emoji, me).catch((e) => toast.error(chatErrorText(e))),
@@ -388,6 +409,7 @@ export function ChatView({
       edit: (m) => {
         setReplyTo(null);
         setEditing(m);
+        composer.current?.focus();
       },
       remove: async (m) => {
         const ok = await confirm({

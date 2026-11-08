@@ -6,9 +6,16 @@
  * ответ и правка — плашкой над полем, черновик чата — в браузере. Enter —
  * отправить, Shift+Enter — новая строка (на телефоне Enter — новая строка,
  * отправка — кнопкой). Отдельный чанк: TipTap грузится только в чатах.
+ *
+ * Телефон (жалоба владельца 2026-11-08: «сворачивается клавиатура, не могу
+ * выделить текст»): кнопки у поля не забирают фокус (`noBlur` — касание не
+ * снимает выделение и не прячет клавиатуру), панель форматирования — под
+ * полем (системное меню «Вырезать / Копировать» встаёт над выделением и
+ * закрывало её), шрифт поля — 16 px (иначе iPhone увеличивает страницу при
+ * касании поля), «Кого упомянуть» — плашкой над полем во всю ширину.
  */
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from "react";
-import { EditorContent, useEditor, type Editor } from "@tiptap/react";
+import { EditorContent, useEditor, useEditorState, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Mention from "@tiptap/extension-mention";
 import { Placeholder } from "@tiptap/extensions";
@@ -109,6 +116,26 @@ const EMOJI = [
 const isTouch = () =>
   typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches;
 
+/**
+ * Кнопка у поля не забирает фокус: иначе касание на телефоне снимает
+ * выделение и прячет клавиатуру (фокус уходит с поля на кнопку, а вернуть его
+ * программно iPhone без нового касания не даёт — клавиатура не появится).
+ */
+const noBlur = { onMouseDown: (e: { preventDefault: () => void }) => e.preventDefault() };
+
+/** Что подсвечивать в панели форматирования. */
+const ACTIVE_MARKS = [
+  "bold",
+  "italic",
+  "underline",
+  "strike",
+  "code",
+  "link",
+  "bulletList",
+  "orderedList",
+  "blockquote",
+] as const;
+
 const draftKey = (chatId: string) => `chat-draft:${chatId}`;
 
 function readDraft(chatId: string): ChatDoc | null {
@@ -164,6 +191,7 @@ export const Composer = forwardRef<
   const [toolbar, setToolbar] = useState(false);
   const [suggest, setSuggest] = useState<SuggestState>(null);
   const [busy, setBusy] = useState(false);
+  const [touch] = useState(isTouch);
   const suggestRef = useRef<SuggestState>(null);
   suggestRef.current = suggest;
   const candidatesRef = useRef(candidates);
@@ -273,7 +301,9 @@ export const Composer = forwardRef<
     editorProps: {
       attributes: {
         class:
-          "chat-composer max-h-48 min-h-10 overflow-y-auto px-3 py-2.5 text-[15px] leading-snug outline-none",
+          // 16 px на сенсорных экранах: с меньшим шрифтом iPhone увеличивает
+          // страницу при касании поля, и она остаётся увеличенной.
+          "chat-composer max-h-48 min-h-10 overflow-y-auto px-3 py-2.5 text-base leading-snug outline-none pointer-fine:text-[15px]",
         "aria-label": "Сообщение",
       },
       handleKeyDown: (_view, event) => {
@@ -321,6 +351,16 @@ export const Composer = forwardRef<
   });
   const editorRef = useRef<Editor | null>(null);
   editorRef.current = editor;
+  // TipTap 3 не перерисовывает компонент на каждое изменение — подсветку
+  // кнопок форматирования берём подпиской на состояние редактора.
+  const active = useEditorState({
+    editor,
+    selector: ({ editor: ed }) =>
+      Object.fromEntries(ACTIVE_MARKS.map((k) => [k, ed?.isActive(k) ?? false])) as Record<
+        string,
+        boolean
+      >,
+  });
 
   // Правка: текст сообщения в поле; отмена — черновик назад.
   useEffect(() => {
@@ -402,6 +442,9 @@ export const Composer = forwardRef<
     const attachments = uploads.flatMap((u) => (u.done ? [u.done] : []));
     if (!text && attachments.length === 0) return;
     const content = text ? json : null;
+    // Фокус возвращаем, только если он был в поле: на телефоне иначе
+    // отправка кнопкой при спрятанной клавиатуре снова её открывала бы.
+    const keepFocus = editor.isFocused || !isTouch();
     setBusy(true);
     try {
       if (editing) {
@@ -419,7 +462,7 @@ export const Composer = forwardRef<
       }
     } finally {
       setBusy(false);
-      editor.commands.focus();
+      if (keepFocus) editor.commands.focus();
     }
   }, [editor, busy, disabledReason, uploading, stalled, uploads, editing, onEdit, onSend, chatId]);
   sendRef.current = () => void send();
@@ -518,6 +561,7 @@ export const Composer = forwardRef<
             size="icon"
             className="size-7"
             aria-label="Отменить"
+            {...noBlur}
             onClick={editing ? onCancelEdit : onCancelReply}
           >
             <X className="size-4" />
@@ -559,6 +603,7 @@ export const Composer = forwardRef<
                   className="rounded p-0.5 hover:bg-muted"
                   aria-label={`Повторить ${u.name}`}
                   title="Повторить"
+                  {...noBlur}
                   onClick={() => handles.current.get(u.key)?.resume()}
                 >
                   <RotateCw className="size-3.5" />
@@ -568,6 +613,7 @@ export const Composer = forwardRef<
                 type="button"
                 className="rounded p-0.5 hover:bg-muted"
                 aria-label={`Убрать ${u.name}`}
+                {...noBlur}
                 onClick={() => removeUpload(u.key)}
               >
                 <X className="size-3.5" />
@@ -586,116 +632,145 @@ export const Composer = forwardRef<
         </div>
       )}
 
-      {toolbar && editor && (
-        <div className="mb-1 flex flex-wrap gap-0.5">
-          {tools.map((t) => (
+      {/*
+        Панель форматирования: с мышью — над полем, на сенсорном экране — под
+        ним, одной строкой с прокруткой и кнопками крупнее: системное меню
+        выделения («Вырезать / Копировать») встаёт над выделенным текстом и
+        закрывало панель над полем.
+      */}
+      <div className="flex flex-col">
+        {toolbar && editor && (
+          <div
+            role="toolbar"
+            aria-label="Форматирование"
+            className="mb-1 flex flex-wrap gap-0.5 pointer-coarse:order-last pointer-coarse:mt-1 pointer-coarse:mb-0 pointer-coarse:flex-nowrap pointer-coarse:overflow-x-auto pointer-coarse:[scrollbar-width:none]"
+          >
+            {tools.map((t) => (
+              <Button
+                key={t.label}
+                variant="ghost"
+                size="icon"
+                className={cn(
+                  "size-8 shrink-0 pointer-coarse:size-10",
+                  active?.[t.active] && "bg-muted text-chat-accent",
+                )}
+                aria-label={t.label}
+                title={t.label}
+                aria-pressed={!!active?.[t.active]}
+                {...noBlur}
+                onClick={t.run}
+              >
+                <t.icon className="size-4 pointer-coarse:size-5" />
+              </Button>
+            ))}
+          </div>
+        )}
+
+        <div className="flex items-end gap-1">
+          <input
+            ref={fileInput}
+            type="file"
+            multiple
+            hidden
+            onChange={(e) => {
+              addFiles(Array.from(e.target.files ?? []));
+              e.target.value = "";
+            }}
+          />
+          {!editing && (
             <Button
-              key={t.label}
               variant="ghost"
               size="icon"
-              className={cn("size-8", editor.isActive(t.active) && "bg-muted")}
-              aria-label={t.label}
-              title={t.label}
-              aria-pressed={editor.isActive(t.active)}
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={t.run}
+              className="mb-0.5 size-9 shrink-0"
+              aria-label="Прикрепить файлы"
+              title="Прикрепить файлы"
+              onClick={() => fileInput.current?.click()}
             >
-              <t.icon className="size-4" />
+              <Paperclip className="size-5" />
             </Button>
-          ))}
-        </div>
-      )}
-
-      <div className="flex items-end gap-1">
-        <input
-          ref={fileInput}
-          type="file"
-          multiple
-          hidden
-          onChange={(e) => {
-            addFiles(Array.from(e.target.files ?? []));
-            e.target.value = "";
-          }}
-        />
-        {!editing && (
+          )}
+          <div className="min-w-0 flex-1 rounded-2xl bg-muted/60 focus-within:bg-muted">
+            <EditorContent editor={editor} />
+          </div>
           <Button
             variant="ghost"
             size="icon"
-            className="mb-0.5 size-9 shrink-0"
-            aria-label="Прикрепить файлы"
-            title="Прикрепить файлы"
-            onClick={() => fileInput.current?.click()}
+            className={cn("mb-0.5 size-9 shrink-0", toolbar && "bg-muted")}
+            aria-label="Форматирование"
+            title="Форматирование"
+            aria-pressed={toolbar}
+            {...noBlur}
+            onClick={() => setToolbar((v) => !v)}
           >
-            <Paperclip className="size-5" />
+            <Type className="size-5" />
           </Button>
-        )}
-        <div className="min-w-0 flex-1 rounded-2xl bg-muted/60 focus-within:bg-muted">
-          <EditorContent editor={editor} />
-        </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          className={cn("mb-0.5 size-9 shrink-0", toolbar && "bg-muted")}
-          aria-label="Форматирование"
-          title="Форматирование"
-          aria-pressed={toolbar}
-          onClick={() => setToolbar((v) => !v)}
-        >
-          <Type className="size-5" />
-        </Button>
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="mb-0.5 size-9 shrink-0 max-sm:hidden"
-              aria-label="Эмодзи"
-              title="Эмодзи"
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="mb-0.5 size-9 shrink-0 max-sm:hidden"
+                aria-label="Эмодзи"
+                title="Эмодзи"
+                {...noBlur}
+              >
+                <Smile className="size-5" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent
+              align="end"
+              side="top"
+              className="w-72 p-2"
+              onOpenAutoFocus={(e) => e.preventDefault()}
             >
-              <Smile className="size-5" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent
-            align="end"
-            side="top"
-            className="w-72 p-2"
-            onOpenAutoFocus={(e) => e.preventDefault()}
+              <div className="grid grid-cols-8 gap-0.5">
+                {EMOJI.map((em) => (
+                  <button
+                    key={em}
+                    type="button"
+                    className="rounded p-1 text-xl hover:bg-muted"
+                    onClick={() => editor?.chain().focus().insertContent(em).run()}
+                  >
+                    {em}
+                  </button>
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
+          <Button
+            size="icon"
+            className="mb-0.5 size-9 shrink-0 rounded-full bg-selected text-selected-foreground hover:bg-selected/90"
+            aria-label={editing ? "Сохранить" : "Отправить"}
+            title={editing ? "Сохранить (Enter)" : "Отправить (Enter)"}
+            disabled={busy}
+            {...noBlur}
+            onClick={() => void send()}
           >
-            <div className="grid grid-cols-8 gap-0.5">
-              {EMOJI.map((em) => (
-                <button
-                  key={em}
-                  type="button"
-                  className="rounded p-1 text-xl hover:bg-muted"
-                  onClick={() => editor?.chain().focus().insertContent(em).run()}
-                >
-                  {em}
-                </button>
-              ))}
-            </div>
-          </PopoverContent>
-        </Popover>
-        <Button
-          size="icon"
-          className="mb-0.5 size-9 shrink-0 rounded-full bg-selected text-selected-foreground hover:bg-selected/90"
-          aria-label={editing ? "Сохранить" : "Отправить"}
-          title={editing ? "Сохранить (Enter)" : "Отправить (Enter)"}
-          disabled={busy}
-          onClick={() => void send()}
-        >
-          {busy ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
-        </Button>
+            {busy ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
+          </Button>
+        </div>
       </div>
 
-      {suggest && suggest.items.length > 0 && suggest.rect && (
+      {suggest && suggest.items.length > 0 && (suggest.rect || touch) && (
+        // С мышью — у курсора; на телефоне — плашкой над полем во всю ширину:
+        // координаты курсора при открытой клавиатуре iPhone ненадёжны, а
+        // строки нужны крупнее пальца.
         <div
           role="listbox"
           aria-label="Кого упомянуть"
-          className="fixed z-50 w-72 overflow-hidden rounded-lg border bg-popover p-1 shadow-lg"
-          style={{
-            left: Math.min(suggest.rect.left, window.innerWidth - 296),
-            bottom: window.innerHeight - suggest.rect.top + 6,
-          }}
+          className={cn(
+            "z-50 overflow-y-auto rounded-lg border bg-popover p-1 shadow-lg",
+            touch ? "absolute inset-x-2 bottom-full mb-1 max-h-[40vh]" : "fixed w-72",
+          )}
+          style={
+            touch || !suggest.rect
+              ? undefined
+              : {
+                  left: Math.max(8, Math.min(suggest.rect.left, window.innerWidth - 296)),
+                  top: suggest.rect.top - 6,
+                  transform: "translateY(-100%)",
+                }
+          }
         >
           {suggest.items.map((c, i) => (
             <button
@@ -708,7 +783,7 @@ export const Composer = forwardRef<
                 suggest.command({ id: c.id, label: c.name });
               }}
               className={cn(
-                "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm",
+                "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm pointer-coarse:py-2",
                 i === suggest.index ? "bg-muted" : "hover:bg-muted/60",
               )}
             >

@@ -3,7 +3,9 @@
  * аватарка автора у первого в серии (в группе), ответ и пересланное,
  * вложения, реакции, время, «изменено», отметки прочтения. Действия — по
  * правой кнопке, долгому нажатию и кнопке «⋯» при наведении (бриф 2.8,
- * 2.10, 2.12, 2.13).
+ * 2.10, 2.12, 2.13). На сенсорном экране пузырь не выделяется и без
+ * системного меню (`.chat-touch-menu`): долгое нажатие открывает только наше
+ * меню, текст — «Скопировать текст».
  */
 import { memo, useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
@@ -238,7 +240,7 @@ export const MessageItem = memo(function MessageItem(p: Props) {
       className={cn(
         // Входящие и исходящие — одинаковые отступы и радиус 16 px, без теней
         // и «хвостиков»: их различает цвет (решение владельца 2026-11-08).
-        "group/msg relative max-w-full rounded-2xl px-3.5 py-2.5",
+        "chat-touch-menu group/msg relative max-w-full rounded-2xl px-3.5 py-2.5",
         mine ? "bg-chat-mine" : "bg-background",
         highlighted && "ring-2 ring-chat-accent",
         local === "failed" && "ring-1 ring-destructive",
@@ -392,9 +394,13 @@ export const MessageItem = memo(function MessageItem(p: Props) {
         )}
       >
         {items.length > 0 ? (
-          <ContextMenu>
+          // Не модальное: «Ответить» и «Изменить» ставят курсор в поле прямо
+          // в касании пункта — иначе iPhone не покажет клавиатуру (модальное
+          // меню держало фокус у себя). После закрытия фокус никуда не
+          // переводим — его ставит само действие.
+          <ContextMenu modal={false}>
             <ContextMenuTrigger asChild>{bubble}</ContextMenuTrigger>
-            <ContextMenuContent className="w-56">
+            <ContextMenuContent className="w-56" onCloseAutoFocus={(e) => e.preventDefault()}>
               <div className="mb-1 flex justify-between gap-0.5 border-b px-1 pb-1">
                 {QUICK_REACTIONS.map((e) => (
                   <ContextMenuItem
