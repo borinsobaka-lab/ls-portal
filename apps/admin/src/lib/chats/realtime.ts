@@ -12,6 +12,7 @@ import { useQueryClient, type QueryClient } from "@tanstack/react-query";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
 import { supabase } from "@/integrations/supabase/client";
+import { invalidateCalls } from "./calls";
 import { loadNewer, messagesKey, refreshMessage, type ChatWindow } from "./data";
 import { emitChatEvent, setRealtimeConnected, type ChatEvent } from "./realtime-state";
 
@@ -67,6 +68,9 @@ export function handleChatEvent(qc: QueryClient, e: ChatEvent) {
       invalidateList(qc);
       if (open && e.type !== "removed") void loadNewer(qc, e.chat_id);
       break;
+    case "call":
+      invalidateCalls(qc, e.chat_id, e.call_id);
+      break;
   }
   emitChatEvent(e);
 }
@@ -96,6 +100,7 @@ export function useChatRealtime(userId: string | null) {
           setRealtimeConnected(ok);
           // Переподключились — дозапросить всё, что могли пропустить.
           if (ok && wasConnected) {
+            invalidateCalls(qc);
             void qc.invalidateQueries({ queryKey: ["chat_list"] });
             void qc.invalidateQueries({ queryKey: ["chat_unread"] });
             void qc.invalidateQueries({ queryKey: ["tasks"] });

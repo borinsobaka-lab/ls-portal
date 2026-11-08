@@ -5,6 +5,7 @@
  */
 import { STATUS_LABEL } from "@/lib/tasks/logic";
 import type { TaskStatus } from "@/lib/tasks/types";
+import { callSystemText } from "./call-logic";
 import type { ChatDoc, ChatNode, ChatRow, ChatSystem } from "./types";
 
 /** Узлы и отметки, которые показывает чат (остальное из вставки — как текст). */
@@ -132,6 +133,8 @@ export function systemText(
       return `${who} начал(а) обсуждение задачи`;
     case "task_status":
       return `${who}: статус задачи — ${(STATUS_LABEL[system.title as TaskStatus] ?? system.title ?? "").toLowerCase()}`;
+    case "call":
+      return callSystemText({ ...system, type: "call" }, who);
     default:
       return "";
   }

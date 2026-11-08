@@ -1482,6 +1482,25 @@ DEPLOY.md.
   минуту). Живое обновление — `task_broadcast` (событие `task` в личной
   теме Realtime). Актуальное определение `kb_file_gc_candidates` (ссылки и
   из описаний задач) — здесь. Тесты — `db/tasks.test.ts`.
+  **Видеозвонки в чатах** (решение владельца 2026-11-08, Kinescope Speak):
+  `db/migrations/2026-11-08_zzz_chat_calls.sql` — звонки `chat_calls`
+  (один живой на чат; комната Kinescope `room_id` / `room_link`, `rang_at`,
+  `answered_at`, `ended_at` + `end_reason` finished / missed / declined /
+  cancelled / failed, `message_seq` — системное сообщение звонка
+  `{system: {type: 'call', …}}`, его правят по ходу звонка) и участники
+  `chat_call_members` (ringing → joined / declined / missed → left,
+  `seen_at`). Сроки — `chat_call_settle` (лениво и раз в 15 с
+  `chat_call_sweep`): звонит 45 с, окно звонка отмечается раз в 20 с —
+  молчит 75 с, вышел; комнаты нет 60 с — не состоялся; окончен, когда
+  никого в звонке и никому не звонит, в личном — и когда остался один.
+  Браузеру — `chat_call_start` (начать или присоединиться; комнату
+  создаёт сервер портала ключом Kinescope и пишет `chat_call_set_room`,
+  только service_role — тогда звонит и уходит пуш `chat.call`),
+  `chat_call_join` / `_decline` / `_leave` / `_ping` / `_get` / `_active` /
+  `_incoming`; серверу — `chat_call_fail`, `chat_call_sweep` (комнаты
+  оконченных — удалить), `chat_call_room_deleted`. Событие `{type: 'call',
+  call_id}` — в личные темы участников (`chat_broadcast`). Таблицы закрыты
+  браузеру. Тесты — `db/chat-calls.test.ts`.
   Рейтинг тренеров и чаевые: `db/migrations/2026-10-11_zzzzzzzzzzzzz_trainer_ratings.sql`
   — `trainer_reviews` (оценка 1–5, одна от учётной записи на тренера; клиент
   читает и правит свою, ставит — тренеру, которого видит в приложении,
