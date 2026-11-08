@@ -29,6 +29,7 @@ import type {
   TaskEvent,
   TaskFilters,
   TaskFull,
+  TaskPlan,
   TaskRow,
   TaskTemplate,
 } from "./types";
@@ -181,6 +182,48 @@ export const recurrencesQuery = queryOptions({
   meta: { errorMessage: "Не удалось загрузить регулярные задачи" },
 });
 
+// ---- «Мой план» (2026-11-08_zzzzzzz_task_plan.sql) -----------------------------------
+
+export const PLAN_KEY = ["tasks", "plan"] as const;
+
+export function useTaskPlan() {
+  const live = useRealtimeConnected();
+  return useQuery({
+    queryKey: PLAN_KEY,
+    queryFn: async () => {
+      const p = await taskRpc<TaskPlan>("task_plan_get");
+      return { ...p, cards: p.cards.map((c) => ({ ...c, task: normalize(c.task) })) };
+    },
+    refetchInterval: live ? 120_000 : 30_000,
+    meta: { errorMessage: "Не удалось загрузить план" },
+  });
+}
+
+/** Колонка и порядок карточек после перетаскивания — сразу на экране. */
+export async function placePlanCards(qc: QueryClient, column: string | null, taskIds: string[]) {
+  qc.setQueryData<TaskPlan>(PLAN_KEY, (p) => {
+    if (!p) return p;
+    const order = new Map(taskIds.map((id, i) => [id, i]));
+    return {
+      ...p,
+      cards: p.cards.map((c) =>
+        order.has(c.task.id) ? { ...c, column_id: column, sort_order: order.get(c.task.id)! } : c,
+      ),
+    };
+  });
+  try {
+    await taskRpc("task_plan_place", { p_column: column, p_tasks: taskIds });
+  } finally {
+    void qc.invalidateQueries({ queryKey: PLAN_KEY });
+  }
+}
+
+export const planAction = async (qc: QueryClient, fn: string, args: Record<string, unknown>) => {
+  const r = await taskRpc(fn, args);
+  await qc.invalidateQueries({ queryKey: PLAN_KEY });
+  return r;
+};
+
 // ---- Ошибки -----------------------------------------------------------------------
 
 export function taskErrorText(e: unknown): string {
@@ -203,6 +246,9 @@ export function taskErrorText(e: unknown): string {
     task_too_many_files: "Не больше 200 файлов у задачи",
     task_bad_file: "Файл не подходит",
     task_filter_invalid: "Название фильтра — до 60 символов",
+    task_plan_column_invalid: "Название колонки — от 1 до 40 символов",
+    task_plan_too_many_columns: "Не больше 10 колонок",
+    task_plan_column_not_found: "Колонка не найдена",
     task_result_required: "Сначала напишите результат — постановщик просил его",
     task_result_invalid: "Результат — до 5000 символов",
     task_parent_invalid: "Задача не может быть подзадачей самой себя или своей подзадачи",

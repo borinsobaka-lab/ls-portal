@@ -65,6 +65,7 @@ import { Route as ApiAnalyticsOpenapiDotjsonRouteImport } from './routes/api/ana
 import { Route as AuthenticatedTasksTemplatesRouteImport } from './routes/_authenticated/tasks/templates'
 import { Route as AuthenticatedTasksTeamRouteImport } from './routes/_authenticated/tasks/team'
 import { Route as AuthenticatedTasksRecurringRouteImport } from './routes/_authenticated/tasks/recurring'
+import { Route as AuthenticatedTasksPlanRouteImport } from './routes/_authenticated/tasks/plan'
 import { Route as AuthenticatedTasksDeadlinesRouteImport } from './routes/_authenticated/tasks/deadlines'
 import { Route as AuthenticatedTasksNumberRouteImport } from './routes/_authenticated/tasks/$number'
 import { Route as AuthenticatedScriptsSettingsRouteImport } from './routes/_authenticated/scripts/settings'
@@ -456,6 +457,11 @@ const AuthenticatedTasksRecurringRoute =
     path: '/tasks/recurring',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedTasksPlanRoute = AuthenticatedTasksPlanRouteImport.update({
+  id: '/tasks/plan',
+  path: '/tasks/plan',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedTasksDeadlinesRoute =
   AuthenticatedTasksDeadlinesRouteImport.update({
     id: '/tasks/deadlines',
@@ -1069,6 +1075,7 @@ export interface FileRoutesByFullPath {
   '/scripts/settings': typeof AuthenticatedScriptsSettingsRoute
   '/tasks/$number': typeof AuthenticatedTasksNumberRoute
   '/tasks/deadlines': typeof AuthenticatedTasksDeadlinesRoute
+  '/tasks/plan': typeof AuthenticatedTasksPlanRoute
   '/tasks/recurring': typeof AuthenticatedTasksRecurringRoute
   '/tasks/team': typeof AuthenticatedTasksTeamRoute
   '/tasks/templates': typeof AuthenticatedTasksTemplatesRoute
@@ -1219,6 +1226,7 @@ export interface FileRoutesByTo {
   '/scripts/settings': typeof AuthenticatedScriptsSettingsRoute
   '/tasks/$number': typeof AuthenticatedTasksNumberRoute
   '/tasks/deadlines': typeof AuthenticatedTasksDeadlinesRoute
+  '/tasks/plan': typeof AuthenticatedTasksPlanRoute
   '/tasks/recurring': typeof AuthenticatedTasksRecurringRoute
   '/tasks/team': typeof AuthenticatedTasksTeamRoute
   '/tasks/templates': typeof AuthenticatedTasksTemplatesRoute
@@ -1371,6 +1379,7 @@ export interface FileRoutesById {
   '/_authenticated/scripts/settings': typeof AuthenticatedScriptsSettingsRoute
   '/_authenticated/tasks/$number': typeof AuthenticatedTasksNumberRoute
   '/_authenticated/tasks/deadlines': typeof AuthenticatedTasksDeadlinesRoute
+  '/_authenticated/tasks/plan': typeof AuthenticatedTasksPlanRoute
   '/_authenticated/tasks/recurring': typeof AuthenticatedTasksRecurringRoute
   '/_authenticated/tasks/team': typeof AuthenticatedTasksTeamRoute
   '/_authenticated/tasks/templates': typeof AuthenticatedTasksTemplatesRoute
@@ -1523,6 +1532,7 @@ export interface FileRouteTypes {
     | '/scripts/settings'
     | '/tasks/$number'
     | '/tasks/deadlines'
+    | '/tasks/plan'
     | '/tasks/recurring'
     | '/tasks/team'
     | '/tasks/templates'
@@ -1673,6 +1683,7 @@ export interface FileRouteTypes {
     | '/scripts/settings'
     | '/tasks/$number'
     | '/tasks/deadlines'
+    | '/tasks/plan'
     | '/tasks/recurring'
     | '/tasks/team'
     | '/tasks/templates'
@@ -1824,6 +1835,7 @@ export interface FileRouteTypes {
     | '/_authenticated/scripts/settings'
     | '/_authenticated/tasks/$number'
     | '/_authenticated/tasks/deadlines'
+    | '/_authenticated/tasks/plan'
     | '/_authenticated/tasks/recurring'
     | '/_authenticated/tasks/team'
     | '/_authenticated/tasks/templates'
@@ -2327,6 +2339,13 @@ declare module '@tanstack/react-router' {
       path: '/tasks/recurring'
       fullPath: '/tasks/recurring'
       preLoaderRoute: typeof AuthenticatedTasksRecurringRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/tasks/plan': {
+      id: '/_authenticated/tasks/plan'
+      path: '/tasks/plan'
+      fullPath: '/tasks/plan'
+      preLoaderRoute: typeof AuthenticatedTasksPlanRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/tasks/deadlines': {
@@ -3032,6 +3051,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedScriptsSettingsRoute: typeof AuthenticatedScriptsSettingsRoute
   AuthenticatedTasksNumberRoute: typeof AuthenticatedTasksNumberRoute
   AuthenticatedTasksDeadlinesRoute: typeof AuthenticatedTasksDeadlinesRoute
+  AuthenticatedTasksPlanRoute: typeof AuthenticatedTasksPlanRoute
   AuthenticatedTasksRecurringRoute: typeof AuthenticatedTasksRecurringRoute
   AuthenticatedTasksTeamRoute: typeof AuthenticatedTasksTeamRoute
   AuthenticatedTasksTemplatesRoute: typeof AuthenticatedTasksTemplatesRoute
@@ -3172,6 +3192,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedScriptsSettingsRoute: AuthenticatedScriptsSettingsRoute,
   AuthenticatedTasksNumberRoute: AuthenticatedTasksNumberRoute,
   AuthenticatedTasksDeadlinesRoute: AuthenticatedTasksDeadlinesRoute,
+  AuthenticatedTasksPlanRoute: AuthenticatedTasksPlanRoute,
   AuthenticatedTasksRecurringRoute: AuthenticatedTasksRecurringRoute,
   AuthenticatedTasksTeamRoute: AuthenticatedTasksTeamRoute,
   AuthenticatedTasksTemplatesRoute: AuthenticatedTasksTemplatesRoute,

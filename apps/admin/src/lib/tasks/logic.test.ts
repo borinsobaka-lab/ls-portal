@@ -288,3 +288,24 @@ describe("этап 2: сообщение, порядок, история", () =>
     expect(ev("result", { cleared: false })).toBe("написал(а) результат");
   });
 });
+
+describe("мой план", () => {
+  test("порядок колонки после переноса", async () => {
+    const { planColumnCards, planMoveOrder } = await import("./logic");
+    const card = (id: string, column_id: string | null, sort_order: number) => ({
+      column_id,
+      sort_order,
+      task: { id },
+    });
+    const cards = [card("a", "x", 1), card("b", "x", 0), card("c", null, 0), card("d", "x", 2)];
+    expect(planColumnCards(cards, "x").map((c) => c.task.id)).toEqual(["b", "a", "d"]);
+    // Из «Не разобрано» — перед «a».
+    expect(planMoveOrder(cards, "c", "x", "a")).toEqual(["b", "c", "a", "d"]);
+    // Внутри колонки — в конец.
+    expect(planMoveOrder(cards, "b", "x", null)).toEqual(["a", "d", "b"]);
+    // В пустую колонку.
+    expect(planMoveOrder(cards, "a", "y", null)).toEqual(["a"]);
+    // Перед собой — место не меняется.
+    expect(planMoveOrder(cards, "a", "x", "a")).toEqual(["b", "a", "d"]);
+  });
+});

@@ -240,3 +240,15 @@ export type Recurrence = {
 };
 
 export type SavedFilter = { id: string; name: string; params: TaskFilters; sort_order: number };
+
+/** «Мой план» — личная доска (task_plan_get). */
+export type PlanColumn = { id: string; title: string };
+export type PlanCard = {
+  /** null — «Не разобрано». */
+  column_id: string | null;
+  sort_order: number;
+  /** Добавлена в план вручную (не по роли исполнителя / соисполнителя). */
+  added: boolean;
+  task: TaskRow;
+};
+export type TaskPlan = { columns: PlanColumn[]; cards: PlanCard[] };

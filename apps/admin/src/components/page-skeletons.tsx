@@ -4065,6 +4065,31 @@ export function TasksPageSkeleton() {
   );
 }
 
+/** «Задачи» → «Мой план» (/tasks/plan): свои колонки. */
+export function TasksPlanPageSkeleton() {
+  return (
+    <ShellSkeleton title="Мой план" actions={["w-36"]}>
+      <div className="space-y-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <Skeleton className="mr-auto h-4 w-96 max-w-full" />
+          <Skeleton className="h-10 w-40 rounded-full" />
+          <Skeleton className="h-10 w-28 rounded-full" />
+        </div>
+        <div className="flex gap-3 overflow-hidden">
+          {Array.from({ length: 4 }, (_, i) => (
+            <div key={i} className="w-72 shrink-0 space-y-2 rounded-lg border bg-background p-2">
+              <Skeleton className="h-5 w-28" />
+              {Array.from({ length: 3 - (i % 2) }, (_, j) => (
+                <Skeleton key={j} className="h-20 w-full" />
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+    </ShellSkeleton>
+  );
+}
+
 /** «Задачи» → «Сроки» (/tasks/deadlines): колонки по срокам. */
 export function TasksDeadlinesPageSkeleton() {
   return (

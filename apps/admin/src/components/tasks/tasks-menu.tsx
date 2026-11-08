@@ -1,6 +1,6 @@
 /**
  * Меню раздела «Задачи» в боковой панели: мои задачи по ролям (у «Делаю» —
- * просроченные, у «Поручил» — ждут моей проверки), «Сроки», «Пункты на
+ * просроченные, у «Поручил» — ждут моей проверки), «Мой план», «Сроки», «Пункты на
  * мне» и сохранённые фильтры (правой кнопкой — удалить).
  */
 import { Link, useRouterState } from "@tanstack/react-router";
@@ -27,6 +27,7 @@ import {
   Structure,
   UserCheckRounded,
   UsersGroupTwoRounded,
+  Widget3,
   type NavIcon,
 } from "@/components/nav-icons";
 import {
@@ -135,6 +136,13 @@ export function TasksMenu({ onNavigate }: { onNavigate?: () => void }) {
         })}
       </SidebarNavGroup>
       <SidebarNavGroup id="tasks-views" label="Вид">
+        <MenuLink
+          to="/tasks/plan"
+          icon={Widget3}
+          title="Мой план"
+          active={location.pathname.startsWith("/tasks/plan")}
+          onNavigate={onNavigate}
+        />
         <MenuLink
           to={TASKS_DEADLINES_URL}
           icon={CalendarMark}

@@ -537,6 +537,38 @@ export function titleFromMessage(text: string): string {
   return t.length > 300 ? `${t.slice(0, 299).trimEnd()}…` : t;
 }
 
+// ---- «Мой план» -------------------------------------------------------------------------
+
+type PlanItem = { column_id: string | null; sort_order: number; task: { id: string } };
+
+/** Карточки колонки сверху вниз (null — «Не разобрано»). */
+export function planColumnCards<T extends PlanItem>(cards: T[], column: string | null): T[] {
+  return cards
+    .map((c, i) => ({ c, i }))
+    .filter((x) => x.c.column_id === column)
+    .sort((a, b) => a.c.sort_order - b.c.sort_order || a.i - b.i)
+    .map((x) => x.c);
+}
+
+/**
+ * Порядок колонки после переноса карточки `taskId` в `column` перед
+ * `beforeId` (null — в конец): id карточек колонки сверху вниз.
+ */
+export function planMoveOrder(
+  cards: PlanItem[],
+  taskId: string,
+  column: string | null,
+  beforeId: string | null,
+): string[] {
+  const current = planColumnCards(cards, column).map((c) => c.task.id);
+  if (beforeId === taskId && current.includes(taskId)) return current;
+  const ids = current.filter((id) => id !== taskId);
+  const at = beforeId ? ids.indexOf(beforeId) : -1;
+  if (at < 0) ids.push(taskId);
+  else ids.splice(at, 0, taskId);
+  return ids;
+}
+
 // ---- Фильтры: адрес ↔ RPC -------------------------------------------------------------
 
 const ROLE_KEYS = new Set<RoleTab>(["do", "help", "assigned", "watch", "all"]);
