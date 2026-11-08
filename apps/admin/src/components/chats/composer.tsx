@@ -1,8 +1,8 @@
 /**
  * Поле ввода сообщения (TASKS_CHATS_PLAN.md, 3.3; бриф 2.9, 2.11, боль № 29):
  * редактор TipTap — форматирование видно сразу (жирный, курсив,
- * зачёркнутый, код, ссылка, списки, цитата), упоминания через «@» и «+»
- * (без смены раскладки), файлы — кнопкой, вставкой и перетаскиванием,
+ * подчёркнутый, зачёркнутый, код, ссылка, списки, цитата), упоминания
+ * через «@» и «+» (без смены раскладки), файлы — кнопкой, вставкой и перетаскиванием,
  * ответ и правка — плашкой над полем, черновик чата — в браузере. Enter —
  * отправить, Shift+Enter — новая строка (на телефоне Enter — новая строка,
  * отправка — кнопкой). Отдельный чанк: TipTap грузится только в чатах.
@@ -29,6 +29,7 @@ import {
   Smile,
   Strikethrough,
   Type,
+  Underline,
   WifiOff,
   X,
 } from "lucide-react";
@@ -252,7 +253,6 @@ export const Composer = forwardRef<
         heading: false,
         codeBlock: false,
         horizontalRule: false,
-        underline: false,
         dropcursor: false,
         trailingNode: false,
         link: { openOnClick: false, autolink: true, defaultProtocol: "https" },
@@ -446,6 +446,12 @@ export const Composer = forwardRef<
           label: "Курсив (Ctrl+I)",
           active: "italic",
           run: () => editor.chain().focus().toggleItalic().run(),
+        },
+        {
+          icon: Underline,
+          label: "Подчёркнутый (Ctrl+U)",
+          active: "underline",
+          run: () => editor.chain().focus().toggleUnderline().run(),
         },
         {
           icon: Strikethrough,

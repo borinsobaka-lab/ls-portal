@@ -20,7 +20,7 @@ export const BLOCK_NODES = new Set([
   "text",
   "mention",
 ]);
-export const MARKS = new Set(["bold", "italic", "strike", "code", "link"]);
+export const MARKS = new Set(["bold", "italic", "underline", "strike", "code", "link"]);
 
 /** Чистый текст документа: абзацы и пункты — с новой строки, упоминания — «@Имя». */
 export function docText(doc: ChatNode | null | undefined): string {

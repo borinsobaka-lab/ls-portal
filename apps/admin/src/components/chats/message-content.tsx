@@ -46,6 +46,9 @@ function renderText(node: ChatNode, key: string, mine: boolean): ReactNode {
       case "italic":
         el = <em key={key}>{el}</em>;
         break;
+      case "underline":
+        el = <u key={key}>{el}</u>;
+        break;
       case "strike":
         el = <s key={key}>{el}</s>;
         break;
