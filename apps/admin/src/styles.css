@@ -122,6 +122,7 @@
   --color-chat-accent-foreground: var(--chat-accent-foreground);
   --color-chat-accent-soft: var(--chat-accent-soft);
   --color-chat-mine: var(--chat-mine);
+  --color-chat-meta: var(--chat-meta);
   --color-field: var(--field);
   --color-note: var(--note);
   --color-note-soft: var(--note-soft);
@@ -209,11 +210,12 @@
      белые (2026-11-08).
      Кнопки, «Избранное», выбранный чат и счётчики списка — тёмный
      --selected, как у вкладок; индиго — только внутри переписки. */
-  --chat-bg: #f5f1eb;
+  --chat-bg: #f5f6f8;
   --chat-accent: #3e63dd;
   --chat-accent-foreground: #ffffff;
   --chat-accent-soft: #e8edfd;
-  --chat-mine: #ddd2fd;
+  --chat-mine: #e5e7eb;
+  --chat-meta: #667085;
 
   /* Заливка полей ввода — одна везде (решение владельца 2026-10-11): в
      шапке, в плашке фильтров, в формах диалогов. Тон — muted на 40% поверх
