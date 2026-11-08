@@ -69,6 +69,8 @@ export function callEndedNotice(
 
 export function callErrorText(e: unknown): string {
   const msg = e instanceof Error ? e.message : String(e);
+  const failed = /chat_call_room_failed:\s*(.+)$/s.exec(msg);
+  if (failed) return `Не удалось создать видеоконференцию: ${failed[1].trim()}`;
   const map: Record<string, string> = {
     chat_call_disabled: "Видеозвонки не настроены на сервере",
     chat_call_room_failed: "Не удалось создать видеоконференцию. Попробуйте ещё раз",

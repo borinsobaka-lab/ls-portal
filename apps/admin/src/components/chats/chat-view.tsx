@@ -122,7 +122,8 @@ export function ChatView({
     try {
       await startCall(qc, chat.id);
     } catch (e) {
-      toast.error(callErrorText(e));
+      // Причина отказа Kinescope бывает длинной — даём её прочитать.
+      toast.error(callErrorText(e), { duration: 20_000 });
     } finally {
       setCalling(false);
     }

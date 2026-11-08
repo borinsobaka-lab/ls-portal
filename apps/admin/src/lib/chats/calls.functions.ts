@@ -49,6 +49,9 @@ export const startChatCall = createServerFn({ method: "POST" })
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
       await admin.rpc("chat_call_fail", { p_call: result.call.id, p_error: message });
-      throw new Error(message.startsWith("chat_call_") ? message : "chat_call_room_failed");
+      // Причина — в окне портала: без неё не понять, что поправить.
+      throw new Error(
+        message.startsWith("chat_call_") ? message : `chat_call_room_failed: ${message}`,
+      );
     }
   });

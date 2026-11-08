@@ -1,7 +1,12 @@
 import { describe, expect, test } from "bun:test";
 
 import { callEndedNotice, callErrorText, callSystemText, formatCallDuration } from "./call-logic";
-import { parseSpeakRoom } from "./kinescope";
+import {
+  kinescopeErrorDetail,
+  kinescopeErrorText,
+  ownerFromRooms,
+  parseSpeakRoom,
+} from "./kinescope";
 
 describe("видеозвонки: подписи", () => {
   test("длительность", () => {
@@ -62,5 +67,32 @@ describe("Kinescope Speak: ответ создания комнаты", () => {
     expect(parseSpeakRoom({ data: { id: "r-1", link: "javascript:alert(1)" } })).toBeNull();
     expect(parseSpeakRoom({ data: { id: "r-1", link: "http://speak.kinescope.io/x" } })).toBeNull();
     expect(parseSpeakRoom(null)).toBeNull();
+  });
+});
+
+describe("Kinescope: ошибки и владелец комнат", () => {
+  test("причина отказа — в тексте окна", () => {
+    expect(callErrorText(new Error("chat_call_room_failed: Kinescope отклонил запрос (400)"))).toBe(
+      "Не удалось создать видеоконференцию: Kinescope отклонил запрос (400)",
+    );
+  });
+
+  test("текст ошибки из ответа", () => {
+    expect(
+      kinescopeErrorDetail(
+        '{"error":{"code":400100,"message":"bad request","details":{"owner_id":"required"}}}',
+      ),
+    ).toBe('bad request — {"owner_id":"required"}');
+    expect(kinescopeErrorDetail("Bad Gateway")).toBe("Bad Gateway");
+    expect(kinescopeErrorText(401, "Unauthorized")).toContain("KINESCOPE_API_TOKEN");
+    expect(kinescopeErrorText(403, "")).toContain("нет прав");
+    expect(kinescopeErrorText(422, "x")).toBe("Kinescope отклонил запрос (422) (x)");
+  });
+
+  test("владелец — из списка комнат", () => {
+    const id = "0e2b9b5a-1c2d-4e5f-8a9b-0c1d2e3f4a5b";
+    expect(ownerFromRooms({ data: [{ owner_id: null }, { owner_id: id }] })).toBe(id);
+    expect(ownerFromRooms({ data: [] })).toBeNull();
+    expect(ownerFromRooms(null)).toBeNull();
   });
 });
