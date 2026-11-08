@@ -119,7 +119,9 @@ function ReactionsRow({
           title={r.users.map((u) => (u === me ? "Вы" : name(u))).join(", ")}
           className={cn(
             "inline-flex h-6 items-center gap-1 rounded-full border px-2 text-xs transition-colors",
-            r.mine ? "border-brand/50 bg-brand/15 font-semibold" : "bg-background hover:bg-muted",
+            r.mine
+              ? "border-chat-accent/40 bg-chat-accent-soft text-chat-accent font-semibold"
+              : "bg-background hover:bg-muted",
           )}
         >
           <span className="text-sm leading-none">{r.emoji}</span>
@@ -146,7 +148,7 @@ function Quote({ children, onClick }: { children: ReactNode; onClick?: () => voi
     <button
       type="button"
       onClick={onClick}
-      className="mb-1 block w-full rounded-md border-l-2 border-brand bg-black/5 px-2 py-1 text-left text-sm hover:bg-black/10"
+      className="mb-1 block w-full rounded-md border-l-2 border-chat-accent bg-black/5 px-2 py-1 text-left text-sm hover:bg-black/10"
     >
       {children}
     </button>
@@ -165,17 +167,15 @@ export const MessageItem = memo(function MessageItem(p: Props) {
     <div
       className={cn(
         "group/msg relative max-w-[min(36rem,85%)] rounded-2xl px-3 py-1.5 shadow-xs",
-        mine
-          ? "rounded-br-md bg-[color-mix(in_oklab,var(--brand)_14%,white)]"
-          : "rounded-bl-md border bg-background",
-        highlighted && "ring-2 ring-brand",
+        mine ? "rounded-br-md bg-chat-mine" : "rounded-bl-md bg-background",
+        highlighted && "ring-2 ring-chat-accent",
         local === "failed" && "ring-1 ring-destructive",
       )}
     >
       {showAuthor && first && !mine && (
         <PersonButton
           userId={m.author_id}
-          className="mb-0.5 block text-sm font-semibold text-brand-on-light hover:underline"
+          className="mb-0.5 block text-sm font-semibold text-chat-accent hover:underline"
         >
           {name(m.author_id)}
         </PersonButton>
@@ -188,7 +188,7 @@ export const MessageItem = memo(function MessageItem(p: Props) {
       )}
       {m.reply && (
         <Quote onClick={() => actions.jump(m.reply!.seq)}>
-          <span className="block font-medium text-brand-on-light">{name(m.reply.author_id)}</span>
+          <span className="block font-medium text-chat-accent">{name(m.reply.author_id)}</span>
           <span className="block truncate text-muted-foreground">
             {m.reply.deleted ? "Сообщение удалено" : m.reply.text || (m.reply.files ? "Файл" : "")}
           </span>
@@ -227,7 +227,7 @@ export const MessageItem = memo(function MessageItem(p: Props) {
             ) : local === "failed" ? (
               <AlertCircle className="size-3.5 text-destructive" />
             ) : readByOthers ? (
-              <CheckCheck className="size-3.5 text-brand-on-light" />
+              <CheckCheck className="size-3.5 text-chat-accent" />
             ) : (
               <Check className="size-3.5" />
             )}

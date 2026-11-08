@@ -89,7 +89,7 @@ export function FileCard({ file, mine = false }: { file: ChatAttachment; mine?: 
       )}
       title="Скачать"
     >
-      <span className="relative flex size-10 shrink-0 items-center justify-center rounded-md bg-brand/15 text-brand-on-light">
+      <span className="relative flex size-10 shrink-0 items-center justify-center rounded-md bg-chat-accent-soft text-chat-accent">
         <FileText className="size-5" />
         <span className="absolute -bottom-1 rounded bg-background px-1 text-[9px] font-bold leading-3 ring-1 ring-border">
           {ext.slice(0, 4)}

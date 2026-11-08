@@ -42,7 +42,7 @@ export function ChatAvatar({
     return (
       <span
         className={cn(
-          "flex shrink-0 items-center justify-center rounded-full bg-sky-500 text-white",
+          "flex shrink-0 items-center justify-center rounded-full bg-chat-accent text-white",
           box,
         )}
       >

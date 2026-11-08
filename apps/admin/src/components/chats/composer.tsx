@@ -469,12 +469,12 @@ export const Composer = forwardRef<
       {(replyTo || editing) && (
         <div className="mb-2 flex items-center gap-2 rounded-lg bg-muted/60 px-3 py-1.5">
           {editing ? (
-            <Pencil className="size-4 shrink-0 text-brand-on-light" />
+            <Pencil className="size-4 shrink-0 text-chat-accent" />
           ) : (
-            <Reply className="size-4 shrink-0 text-brand-on-light" />
+            <Reply className="size-4 shrink-0 text-chat-accent" />
           )}
           <span className="min-w-0 flex-1 text-sm">
-            <span className="block font-medium text-brand-on-light">
+            <span className="block font-medium text-chat-accent">
               {editing ? "Редактирование" : `Ответ: ${authorName(replyTo!.author_id)}`}
             </span>
             <span className="block truncate text-muted-foreground">
@@ -520,7 +520,7 @@ export const Composer = forwardRef<
               </button>
               {!u.done && !u.error && (
                 <span
-                  className="absolute bottom-0 left-0 h-0.5 bg-brand transition-[width]"
+                  className="absolute bottom-0 left-0 h-0.5 bg-chat-accent transition-[width]"
                   style={{ width: `${Math.round(u.progress * 100)}%` }}
                 />
               )}
@@ -620,7 +620,7 @@ export const Composer = forwardRef<
         </Popover>
         <Button
           size="icon"
-          className="mb-0.5 size-9 shrink-0"
+          className="mb-0.5 size-9 shrink-0 rounded-full bg-chat-accent text-chat-accent-foreground hover:bg-chat-accent/90"
           aria-label={editing ? "Сохранить" : "Отправить"}
           title={editing ? "Сохранить (Enter)" : "Отправить (Enter)"}
           disabled={busy}

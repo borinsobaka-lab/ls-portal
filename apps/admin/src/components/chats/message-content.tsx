@@ -123,7 +123,7 @@ function render(node: ChatNode, key: string, mine: boolean): ReactNode {
       const label = `@${String(node.attrs?.label ?? "")}`;
       if (id === "all")
         return (
-          <span key={key} className="font-semibold text-brand-on-light">
+          <span key={key} className="font-semibold text-chat-accent">
             {label}
           </span>
         );
@@ -131,7 +131,7 @@ function render(node: ChatNode, key: string, mine: boolean): ReactNode {
         <PersonButton
           key={key}
           userId={id}
-          className="inline font-semibold text-brand-on-light hover:underline"
+          className="inline font-semibold text-chat-accent hover:underline"
         >
           {label}
         </PersonButton>

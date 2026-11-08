@@ -68,7 +68,7 @@ export function PeoplePicker({
                 onClick={() => onToggle(p.user_id)}
                 className={cn(
                   "flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-muted",
-                  on && "bg-brand/5",
+                  on && "bg-chat-accent-soft/60",
                 )}
               >
                 <StaffAvatar
@@ -86,7 +86,7 @@ export function PeoplePicker({
                   <span
                     className={cn(
                       "flex size-5 shrink-0 items-center justify-center rounded-full border",
-                      on && "border-brand bg-brand text-brand-foreground",
+                      on && "border-chat-accent bg-chat-accent text-chat-accent-foreground",
                     )}
                   >
                     {on && <Check className="size-3.5" />}
@@ -388,7 +388,7 @@ export function ForwardDialog({
                   }
                   className={cn(
                     "flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-muted",
-                    on && "bg-brand/5",
+                    on && "bg-chat-accent-soft/60",
                   )}
                 >
                   <ChatAvatar chat={c} title={t} size="sm" />
@@ -396,7 +396,7 @@ export function ForwardDialog({
                   <span
                     className={cn(
                       "flex size-5 shrink-0 items-center justify-center rounded-full border",
-                      on && "border-brand bg-brand text-brand-foreground",
+                      on && "border-chat-accent bg-chat-accent text-chat-accent-foreground",
                     )}
                   >
                     {on && <Check className="size-3.5" />}
@@ -511,7 +511,7 @@ function FolderForm({
                       }
                       className={cn(
                         "flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-muted",
-                        on && "bg-brand/5",
+                        on && "bg-chat-accent-soft/60",
                       )}
                     >
                       <ChatAvatar chat={c} title={t} size="sm" />
@@ -519,7 +519,7 @@ function FolderForm({
                       <span
                         className={cn(
                           "flex size-5 shrink-0 items-center justify-center rounded-full border",
-                          on && "border-brand bg-brand text-brand-foreground",
+                          on && "border-chat-accent bg-chat-accent text-chat-accent-foreground",
                         )}
                       >
                         {on && <Check className="size-3.5" />}

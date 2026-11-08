@@ -390,7 +390,7 @@ export function ChatView({
 
   return (
     <div
-      className="relative flex h-full min-h-0 flex-col bg-[color-mix(in_oklab,var(--canvas)_70%,white)]"
+      className="relative flex h-full min-h-0 flex-col bg-chat-bg"
       onDragOver={(e) => {
         if (e.dataTransfer.types.includes("Files") && canPost) {
           e.preventDefault();
@@ -436,7 +436,7 @@ export function ChatView({
             <span
               className={cn(
                 "block truncate text-xs",
-                typingNames.length ? "text-brand-on-light" : "text-muted-foreground",
+                typingNames.length ? "text-chat-accent" : "text-muted-foreground",
               )}
             >
               {subtitle}
@@ -482,9 +482,9 @@ export function ChatView({
           }}
           className="flex shrink-0 items-center gap-3 border-b bg-background px-4 py-2 text-left hover:bg-muted/50"
         >
-          <Pin className="size-4 shrink-0 text-brand-on-light" />
+          <Pin className="size-4 shrink-0 text-chat-accent" />
           <span className="min-w-0 flex-1">
-            <span className="block text-xs font-medium text-brand-on-light">
+            <span className="block text-xs font-medium text-chat-accent">
               Закреплённое
               {pins.length > 1 ? ` ${(pinIndex % pins.length) + 1} из ${pins.length}` : ""}
             </span>
@@ -542,9 +542,9 @@ export function ChatView({
                     </div>
                   )}
                   {unreadStart && (
-                    <div className="my-2 flex items-center gap-3 px-4 text-xs font-medium text-brand-on-light">
-                      <span className="h-px flex-1 bg-brand/40" /> Новые сообщения{" "}
-                      <span className="h-px flex-1 bg-brand/40" />
+                    <div className="my-2 flex items-center gap-3 px-4 text-xs font-medium text-chat-accent">
+                      <span className="h-px flex-1 bg-chat-accent/40" /> Новые сообщения{" "}
+                      <span className="h-px flex-1 bg-chat-accent/40" />
                     </div>
                   )}
                   <MessageItem
@@ -577,7 +577,7 @@ export function ChatView({
         >
           <ArrowDown className="size-5" />
           {chat.unread > 0 && (
-            <span className="absolute -top-1.5 -right-1.5 rounded-full bg-brand px-1.5 text-[10px] font-semibold leading-4 text-brand-foreground">
+            <span className="absolute -top-1.5 -right-1.5 rounded-full bg-chat-accent px-1.5 text-[10px] font-semibold leading-4 text-chat-accent-foreground">
               {chat.unread > 99 ? "99+" : chat.unread}
             </span>
           )}
@@ -585,7 +585,7 @@ export function ChatView({
       )}
 
       {dragging && (
-        <div className="pointer-events-none absolute inset-0 z-30 m-2 flex items-center justify-center rounded-xl border-2 border-dashed border-brand bg-background/80 text-sm font-medium">
+        <div className="pointer-events-none absolute inset-0 z-30 m-2 flex items-center justify-center rounded-xl border-2 border-dashed border-chat-accent bg-background/80 text-sm font-medium">
           Отпустите, чтобы прикрепить файлы
         </div>
       )}

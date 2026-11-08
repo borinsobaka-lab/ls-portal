@@ -117,6 +117,11 @@
   --color-link-hover: var(--link-hover);
   --color-rail: var(--rail);
   --color-canvas: var(--canvas);
+  --color-chat-bg: var(--chat-bg);
+  --color-chat-accent: var(--chat-accent);
+  --color-chat-accent-foreground: var(--chat-accent-foreground);
+  --color-chat-accent-soft: var(--chat-accent-soft);
+  --color-chat-mine: var(--chat-mine);
   --color-field: var(--field);
   --color-note: var(--note);
   --color-note-soft: var(--note-soft);
@@ -197,6 +202,15 @@
      Тон — светлый серо-зелёный из гайда студии. Токен отдельный от --background: сменить тон подложки —
      одна строка здесь, разметку трогать не нужно. */
   --canvas: #eff1ee;
+  /* Чаты — своя палитра, одна для всех клубов (решение владельца 2026-11-08):
+     цвет клуба (--brand) в чатах не используется. Спокойный индиго:
+     акцент #3e63dd — 5,1:1 к белому (годится и для текста), фон ленты —
+     холодный светло-серый, свои сообщения — светлый индиго, чужие — белые. */
+  --chat-bg: #eef1f6;
+  --chat-accent: #3e63dd;
+  --chat-accent-foreground: #ffffff;
+  --chat-accent-soft: #e8edfd;
+  --chat-mine: #dde6ff;
 
   /* Заливка полей ввода — одна везде (решение владельца 2026-10-11): в
      шапке, в плашке фильтров, в формах диалогов. Тон — muted на 40% поверх
@@ -1033,8 +1047,8 @@ body[data-sidebar-resizing] {
   border-radius: 0.25rem;
   padding: 0 0.125rem;
   font-weight: 600;
-  color: var(--brand-on-light);
-  background: color-mix(in oklab, var(--brand) 12%, transparent);
+  color: var(--chat-accent);
+  background: var(--chat-accent-soft);
 }
 .chat-composer ul {
   list-style: disc;
