@@ -1667,6 +1667,40 @@ DEPLOY.md.
   `task_tag_delete`; `task_json.tags`, `task_list` с `tag` (актуальные
   определения — здесь). Таблицы закрыты браузеру. Тесты —
   `db/task-tags.test.ts`.
+  **Календарь** (TASKS_CHATS_PLAN.md, этап 2, блок 7, 2026-11-08; без
+  синхронизации с Google): `db/migrations/2026-11-08_zzzzzzzzzzz_calendar.sql`
+  — календари `cal_calendars` (личный `personal` — один у человека, заводит
+  `cal_personal_id` при первом открытии; общие `shared`), кому открыт общий —
+  `cal_calendar_access` (вся компания — право `calendar.company`, новое,
+  «Управление порталом»; подразделение — все или руководители, с
+  подразделениями ниже — `calendar.company` или руководитель / заместитель
+  этого подразделения или выше; участники проекта — участник проекта;
+  сотрудник), уровни `view` / `edit` / `manage` (владелец общего —
+  `manage`) — `cal_level` (только `is_portal_user`). События `cal_events`
+  (время, весь день — от полуночи в поясе события `tz` до полуночи после
+  последнего дня; место, описание, `video`, напоминания `reminders` —
+  минут до начала, у события на весь день — до полуночи дня, отрицательное —
+  после: −540 = 9:00; повтор `rrule` daily / workdays / weekly / monthly /
+  yearly с `interval`, `weekdays`, `until` — считает `cal_occurrences` в
+  поясе события; отменённые повторения — `exdates`, изменённое одно —
+  строка с `series_id` и `original_start`; смена времени или повтора серии
+  сбрасывает их). Видят событие те, кто видит календарь, и участники,
+  правят — `edit` и выше и организатор (`cal_event_access`). Участники
+  `cal_attendees` (ответ, свои напоминания); уведомления `cal.invite`,
+  `cal.change`, `cal.reply` (без пуша — актуальное определение
+  `notif_default_push` здесь), `cal.remind` — `cal_tick` (только
+  service_role, сервер портала раз в минуту с `task_tick`; журнал
+  `cal_reminder_log`). Чат встречи — `chat_chats.kind = 'event'`
+  (`cal_event_chat_open`, состав = участники — `cal_event_chat_sync`;
+  удалённое событие уносит чат), в нём видеозвонок; актуальное определение
+  `chat_notify_message` — здесь. Слои — `cal_overlays` (сроки моих задач,
+  дни рождения и отсутствия коллег по подразделениям и подчинённых). RPC
+  `cal_calendars_list`, `cal_calendar_get` / `_save` / `_delete`,
+  `cal_source_options`, `cal_events_range`, `cal_event_get` / `_save` /
+  `_occurrence_save` / `_delete` / `_respond` / `_my_reminders` /
+  `_chat_open`, `cal_counters`, `cal_invites`, `cal_overlays`. Живое
+  обновление — `cal_broadcast` (событие `calendar` в личной теме). Таблицы
+  закрыты браузеру. Тесты — `db/calendar.test.ts`.
   Рейтинг тренеров и чаевые: `db/migrations/2026-10-11_zzzzzzzzzzzzz_trainer_ratings.sql`
   — `trainer_reviews` (оценка 1–5, одна от учётной записи на тренера; клиент
   читает и правит свою, ставит — тренеру, которого видит в приложении,
