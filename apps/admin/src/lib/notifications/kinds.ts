@@ -33,6 +33,13 @@ export const NOTIF_KINDS: NotifKind[] = [
     defaultPush: true,
   },
   {
+    key: "chat.call",
+    group: "Чаты",
+    label: "Видеозвонки",
+    hint: "Когда вам звонят, а портал не открыт перед глазами",
+    defaultPush: true,
+  },
+  {
     key: "chat.group",
     group: "Чаты",
     label: "Сообщения в группах",

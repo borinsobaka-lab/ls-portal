@@ -129,6 +129,7 @@ import {
   Paperclip as PaperclipArt,
   PencilEdit02Icon as PencilArt,
   Phone as PhoneArt,
+  PhoneOff as PhoneOffArt,
   Pin as PinArt,
   PinOff as PinOffArt,
   Play as PlayArt,
@@ -307,6 +308,7 @@ export const PanelLeft = icon(PanelLeftArt, "PanelLeft");
 export const Paperclip = icon(PaperclipArt, "Paperclip");
 export const Pencil = icon(PencilArt, "Pencil");
 export const Phone = icon(PhoneArt, "Phone");
+export const PhoneOff = icon(PhoneOffArt, "PhoneOff");
 export const Pin = icon(PinArt, "Pin");
 export const PinOff = icon(PinOffArt, "PinOff");
 export const Play = icon(PlayArt, "Play");

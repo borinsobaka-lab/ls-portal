@@ -31,8 +31,20 @@ export function useRealtimeConnected(): boolean {
 // ---- События для открытого окна (печатает, прочитал) ----------------------
 
 export type ChatEvent = {
-  type: "message" | "edit" | "delete" | "react" | "pin" | "read" | "members" | "chat" | "removed";
+  type:
+    | "message"
+    | "edit"
+    | "delete"
+    | "react"
+    | "pin"
+    | "read"
+    | "members"
+    | "chat"
+    | "removed"
+    | "call";
   chat_id: string;
+  /** Видеозвонок (type = call). */
+  call_id?: string;
   seq?: number;
   user_id?: string;
 };

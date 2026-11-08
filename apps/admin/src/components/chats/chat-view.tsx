@@ -22,7 +22,7 @@ import {
 import { useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Virtualizer, type VirtualizerHandle } from "virtua";
-import { ArrowDown, ArrowLeft, BellOff, Info, Loader2, Pin, Search, X } from "lucide-react";
+import { ArrowDown, ArrowLeft, BellOff, Info, Loader2, Pin, Search, Video, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { ChatAvatar } from "@/components/chats/chat-avatar";
@@ -33,6 +33,9 @@ import { useConfirm } from "@/components/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/search-input";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
+import { callErrorText } from "@/lib/chats/call-logic";
+import { activeChatCallQuery, startCall, useActiveCall } from "@/lib/chats/calls";
+import { useChatCallsEnabled } from "@/lib/chats/calls-config";
 import { chatTitle, dayLabel, sameDay, snippetParts, timeOf } from "@/lib/chats/content";
 import {
   chatErrorText,
@@ -91,6 +94,28 @@ export function ChatView({
     refetchInterval: live ? false : 15_000,
   });
   const pinned = useQuery(chatPinnedQuery(chat.id));
+  // Видеозвонки (components/chats/call-layer.tsx): кнопка в шапке и плашка
+  // «Идёт видеозвонок» у тех, кто не в нём.
+  const callsEnabled = useChatCallsEnabled() && chat.kind !== "self";
+  const myCall = useActiveCall();
+  const liveCall = useQuery({
+    ...activeChatCallQuery(chat.id),
+    enabled: callsEnabled,
+    refetchInterval: live ? 60_000 : 10_000,
+  });
+  const [calling, setCalling] = useState(false);
+  const inThisCall = !!myCall && myCall.chatId === chat.id;
+  const callNow = async () => {
+    if (calling) return;
+    setCalling(true);
+    try {
+      await startCall(qc, chat.id);
+    } catch (e) {
+      toast.error(callErrorText(e));
+    } finally {
+      setCalling(false);
+    }
+  };
   const scroller = useRef<HTMLDivElement>(null);
   const list = useRef<VirtualizerHandle>(null);
   const composer = useRef<ComposerHandle>(null);
@@ -474,6 +499,18 @@ export function ChatView({
             </span>
           </span>
         </button>
+        {callsEnabled && (
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Видеозвонок"
+            title={inThisCall ? "Вы в звонке" : "Видеозвонок"}
+            disabled={calling || inThisCall}
+            onClick={() => void callNow()}
+          >
+            {calling ? <Loader2 className="size-5 animate-spin" /> : <Video className="size-5" />}
+          </Button>
+        )}
         <Button
           variant="ghost"
           size="icon"
@@ -494,6 +531,28 @@ export function ChatView({
           <Info className="size-5" />
         </Button>
       </header>
+
+      {callsEnabled && liveCall.data && !inThisCall && (
+        <div className="flex shrink-0 items-center gap-3 border-b bg-emerald-50 px-4 py-2 text-sm text-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-100">
+          <Video className="size-4 shrink-0" />
+          <span className="min-w-0 flex-1 truncate">
+            Идёт видеозвонок
+            {(() => {
+              const n = liveCall.data.members.filter((m) => m.state === "joined").length;
+              return n ? ` · в звонке ${n}` : "";
+            })()}
+          </span>
+          <Button
+            size="sm"
+            className="bg-emerald-600 text-white hover:bg-emerald-700"
+            disabled={calling || !liveCall.data.ready}
+            onClick={() => void callNow()}
+          >
+            {calling && <Loader2 className="animate-spin" />}
+            Присоединиться
+          </Button>
+        </div>
+      )}
 
       {searchOpen && (
         <InChatSearch

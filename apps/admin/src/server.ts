@@ -1,6 +1,7 @@
 import { startAccessSync } from "./lib/access/sync.server";
 import { startAnalyticsJobs } from "./lib/analytics/server/jobs.server";
 import { startOnecWorker } from "./lib/analytics/server/onec.server";
+import { startChatCallSweep } from "./lib/chats/calls-sweep.server";
 import { errorResponse } from "./lib/error-page";
 import { startKbTrashPurge } from "./lib/kb/trash-purge.server";
 import { startPortalPushWorker } from "./lib/notifications/portal-push-worker.server";
@@ -14,6 +15,8 @@ import { startPushWorker } from "./lib/push/push-worker.server";
 startPushWorker();
 // Пуши сотрудникам (чаты, задачи, упоминания) — своя очередь, проход раз в 2 с.
 startPortalPushWorker();
+// Видеозвонки чатов: сроки звонков и удаление комнат Kinescope.
+startChatCallSweep();
 // Корзина базы знаний: истёкшее — навсегда, файлы удалённого — из бакета.
 startKbTrashPurge();
 // Сроки ролей и «Доступ до»: доступ включается и выключается сам.

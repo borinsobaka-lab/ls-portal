@@ -3,6 +3,7 @@
  * текст для поиска и превью, проверка ссылок, системные сообщения, подписи.
  * Без React и без запросов — тесты в content.test.ts.
  */
+import { callSystemText } from "./call-logic";
 import type { ChatDoc, ChatNode, ChatRow, ChatSystem } from "./types";
 
 /** Узлы и отметки, которые показывает чат (остальное из вставки — как текст). */
@@ -125,6 +126,8 @@ export function systemText(
       return `${users || who} вышел(а) из группы`;
     case "renamed":
       return `${who} переименовал(а) группу в «${system.title ?? ""}»`;
+    case "call":
+      return callSystemText({ ...system, type: "call" }, who);
     default:
       return "";
   }

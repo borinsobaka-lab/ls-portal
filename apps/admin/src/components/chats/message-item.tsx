@@ -22,6 +22,7 @@ import {
   RefreshCw,
   Reply,
   Trash2,
+  Video,
 } from "lucide-react";
 
 import { Attachments } from "@/components/chats/attachments";
@@ -134,6 +135,23 @@ function ReactionsRow({
 
 function SystemLine({ m, name }: { m: ChatMessage; name: Props["name"] }) {
   const system = (m.content as { system?: ChatSystem } | null)?.system;
+  if (system?.type === "call") {
+    const missed = system.state === "ended" && system.reason !== "finished";
+    return (
+      <div className="my-2 flex justify-center px-4">
+        <span
+          className={cn(
+            "inline-flex items-center gap-1.5 rounded-full bg-muted px-3 py-1 text-center text-xs",
+            missed ? "text-destructive" : "text-muted-foreground",
+          )}
+        >
+          <Video className="size-3.5 shrink-0" />
+          {systemText(system, m.author_id, (id) => name(id))}
+          <span className="opacity-70">· {timeOf(m.created_at)}</span>
+        </span>
+      </div>
+    );
+  }
   return (
     <div className="my-2 flex justify-center px-4">
       <span className="rounded-full bg-muted px-3 py-1 text-center text-xs text-muted-foreground">
