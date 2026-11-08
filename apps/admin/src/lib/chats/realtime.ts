@@ -39,6 +39,17 @@ function invalidateTasksSoon(qc: QueryClient) {
   }, 500);
 }
 
+let calendarTimer: ReturnType<typeof setTimeout> | null = null;
+
+/** Календарь — не чаще раза в 500 мс. */
+function invalidateCalendarSoon(qc: QueryClient) {
+  if (calendarTimer) return;
+  calendarTimer = setTimeout(() => {
+    calendarTimer = null;
+    void qc.invalidateQueries({ queryKey: ["cal"] });
+  }, 500);
+}
+
 export function handleChatEvent(qc: QueryClient, e: ChatEvent) {
   if (!e?.chat_id) return;
   const open = !!qc.getQueryData<ChatWindow>(messagesKey(e.chat_id));
@@ -95,6 +106,9 @@ export function useChatRealtime(userId: string | null) {
         // Задачи (db/migrations/2026-11-08_zz_tasks.sql, task_broadcast): событие
         // без подробностей — дозапрос списков, карточки и счётчиков задач.
         .on("broadcast", { event: "task" }, () => invalidateTasksSoon(qc))
+        // Календарь (db/migrations/2026-11-08_zzzzzzzzzzz_calendar.sql,
+        // cal_broadcast): приглашение, перенос, ответ — дозапрос календаря.
+        .on("broadcast", { event: "calendar" }, () => invalidateCalendarSoon(qc))
         .subscribe((status) => {
           const ok = status === "SUBSCRIBED";
           setRealtimeConnected(ok);
@@ -104,6 +118,7 @@ export function useChatRealtime(userId: string | null) {
             void qc.invalidateQueries({ queryKey: ["chat_list"] });
             void qc.invalidateQueries({ queryKey: ["chat_unread"] });
             void qc.invalidateQueries({ queryKey: ["tasks"] });
+            void qc.invalidateQueries({ queryKey: ["cal"] });
             for (const q of qc.getQueryCache().findAll({ queryKey: ["chat_messages"] })) {
               const chatId = q.queryKey[1];
               if (typeof chatId === "string") void loadNewer(qc, chatId);

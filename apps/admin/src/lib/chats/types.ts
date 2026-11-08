@@ -4,7 +4,8 @@
 import type { CallEndReason } from "./call-logic";
 
 /** task — обсуждение задачи (db/migrations/2026-11-08_zz_tasks.sql): состав ведёт задача. */
-export type ChatKind = "direct" | "group" | "self" | "task" | "project";
+/** event — чат встречи календаря (db/migrations/2026-11-08_zzzzzzzzzzz_calendar.sql): состав — участники. */
+export type ChatKind = "direct" | "group" | "self" | "task" | "project" | "event";
 export type ChatRole = "owner" | "admin" | "member";
 export type ChatNotify = "all" | "mentions" | "none";
 
@@ -17,6 +18,7 @@ export type ChatSystem = {
     | "renamed"
     | "task_status"
     | "task_chat"
+    | "event_chat"
     | "call"
     | "project_created"
     | "task_created"
@@ -51,6 +53,8 @@ export type ChatSettings = {
   /** У чата задачи — её id и номер (ссылка «Открыть задачу»). */
   task_id?: string;
   task_number?: number;
+  /** Чат встречи календаря. */
+  event_id?: string;
   /** У чата проекта — его id (ссылка «Проект»). */
   project_id?: string;
   /** Канал: пишут только админы, у постов — «Прочитал». */

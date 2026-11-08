@@ -6,6 +6,7 @@ import { useOpenBugReports } from "@/hooks/use-bug-reports";
 import { useNotifUnread } from "@/lib/notifications/data";
 import { useChatUnread } from "@/lib/chats/data";
 import { useTaskCounters } from "@/lib/tasks/data";
+import { useCalCounters } from "@/lib/calendar/data";
 import {
   ADMIN_SECTIONS,
   MANAGE_GROUPS,
@@ -128,6 +129,7 @@ export function AppRail({ onNavigate }: { onNavigate?: () => void }) {
   const unreadNotifs = useNotifUnread();
   const unreadChats = useChatUnread(!!access).chats;
   const taskBadge = useTaskCounters(!!access).badge;
+  const calendarBadge = useCalCounters(!!access).invites;
 
   // Разделы, закрытые сотруднику в «Доступах», не показываем; заготовки без
   // url — как есть. «Клуб» виден, если открыт раздел рейки, — даже когда
@@ -179,7 +181,9 @@ export function AppRail({ onNavigate }: { onNavigate?: () => void }) {
                         ? unreadChats
                         : section.key === "tasks"
                           ? taskBadge
-                          : undefined
+                          : section.key === "calendar"
+                            ? calendarBadge
+                            : undefined
             }
             onNavigate={onNavigate}
           />

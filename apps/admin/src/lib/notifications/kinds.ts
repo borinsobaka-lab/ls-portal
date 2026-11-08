@@ -128,6 +128,31 @@ export const NOTIF_KINDS: NotifKind[] = [
     defaultPush: false,
   },
   {
+    key: "cal.invite",
+    group: "Календарь",
+    label: "Приглашение на встречу",
+    defaultPush: true,
+  },
+  {
+    key: "cal.change",
+    group: "Календарь",
+    label: "Встречу перенесли или отменили",
+    defaultPush: true,
+  },
+  {
+    key: "cal.remind",
+    group: "Календарь",
+    label: "Напоминания о встречах и событиях",
+    hint: "Когда — выбирается у события; у каждого участника свои",
+    defaultPush: true,
+  },
+  {
+    key: "cal.reply",
+    group: "Календарь",
+    label: "Ответы участников на моё приглашение",
+    defaultPush: false,
+  },
+  {
     key: "test",
     group: "Служебные",
     label: "Проверка уведомлений",

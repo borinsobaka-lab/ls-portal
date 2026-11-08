@@ -25,6 +25,7 @@ import { Virtualizer, type VirtualizerHandle } from "virtua";
 import {
   ArrowDown,
   ArrowLeft,
+  CalendarDays,
   BellOff,
   FolderOpen,
   Info,
@@ -581,6 +582,14 @@ export function ChatView({
             </Link>
           </Button>
         )}
+        {chat.kind === "event" && chat.settings?.event_id && (
+          <Button variant="ghost" size="sm" asChild className="text-chat-accent max-md:hidden">
+            <Link to="/calendar" search={{ event: chat.settings.event_id }}>
+              <CalendarDays className="size-4" />
+              Встреча
+            </Link>
+          </Button>
+        )}
         {chat.kind === "task" && chat.settings?.task_number && (
           <Button variant="ghost" size="sm" asChild className="text-chat-accent max-md:hidden">
             <Link to="/tasks/$number" params={{ number: String(chat.settings.task_number) }}>
@@ -669,6 +678,17 @@ export function ChatView({
               >
                 <FolderOpen className="size-4" />
                 Задачи проекта
+              </Link>
+            )}
+            {chat.kind === "event" && chat.settings?.event_id && (
+              <Link
+                to="/calendar"
+                search={{ event: chat.settings.event_id }}
+                className={HEADER_MENU_ITEM}
+                onClick={() => setHeaderMenu(false)}
+              >
+                <CalendarDays className="size-4" />
+                Встреча в календаре
               </Link>
             )}
             {chat.kind === "task" && chat.settings?.task_number && (

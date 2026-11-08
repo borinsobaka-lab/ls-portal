@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/context-menu";
 import {
   AddFolder,
+  Calendar,
   ChatRoundDots,
   ClipboardCheck,
   Folder,
@@ -58,6 +59,7 @@ const ICONS = {
   channel: UserSpeakRounded,
   group: UsersGroupRounded,
   project: FolderOpen,
+  event: Calendar,
   task: ClipboardCheck,
 } as const;
 
@@ -74,12 +76,14 @@ export function ChatFoldersMenu({ onNavigate }: { onNavigate?: () => void }) {
   // «Задачи» — когда есть хоть одно обсуждение задачи.
   const hasTaskChats = chats.some((c) => c.kind === "task");
   const hasProjectChats = chats.some((c) => c.kind === "project");
+  const hasEventChats = chats.some((c) => c.kind === "event");
   const hasChannels = chats.some(isChannel);
   const items: { key: FolderKey; title: string; folder?: ChatFolder }[] = [
     ...SYSTEM_FOLDERS.filter(
       (f) =>
         (f.key !== "task" || hasTaskChats || current === "task") &&
         (f.key !== "project" || hasProjectChats || current === "project") &&
+        (f.key !== "event" || hasEventChats || current === "event") &&
         (f.key !== "channel" || hasChannels || current === "channel"),
     ),
     ...folders.map((f) => ({ key: f.id, title: f.title, folder: f })),

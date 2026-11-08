@@ -107,6 +107,7 @@ export function chatTitle(
   if (chat.kind === "group") return chat.title ?? "Группа";
   if (chat.kind === "task") return chat.title ?? "Задача";
   if (chat.kind === "project") return chat.title ?? "Проект";
+  if (chat.kind === "event") return chat.title ?? "Встреча";
   return chat.peer_id ? name(chat.peer_id) : "Удалённый собеседник";
 }
 
@@ -136,6 +137,8 @@ export function systemText(
       return `${who} создал(а) проект «${system.title ?? ""}»`;
     case "task_chat":
       return `${who} начал(а) обсуждение задачи`;
+    case "event_chat":
+      return `${who} начал(а) обсуждение встречи`;
     case "task_status":
       return `${who}: статус задачи — ${(STATUS_LABEL[system.title as TaskStatus] ?? system.title ?? "").toLowerCase()}`;
     case "call":

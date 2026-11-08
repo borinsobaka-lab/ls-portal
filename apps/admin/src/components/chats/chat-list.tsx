@@ -151,7 +151,10 @@ export function ChatList({
       last && last.kind !== "system" && !last.deleted
         ? lastMine
           ? "Вы: "
-          : chat.kind === "group" || chat.kind === "task" || chat.kind === "project"
+          : chat.kind === "group" ||
+              chat.kind === "task" ||
+              chat.kind === "project" ||
+              chat.kind === "event"
             ? `${shortName(name(last.author_id))}: `
             : ""
         : "";

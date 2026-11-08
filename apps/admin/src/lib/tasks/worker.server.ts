@@ -3,7 +3,8 @@
  * веха 3): раз в минуту `task_tick` — «срок через час», «просрочена» (один
  * раз), свои напоминания, сводка постановщику раз в день; раз в 6 часов —
  * производственный календарь из isdayoff.ru (текущий год, с октября — и
- * следующий), если его ещё нет в базе. `PUSH_WORKER=off` выключает цикл
+ * следующий), если его ещё нет в базе. Там же раз в минуту — поздравления с
+ * днём рождения (`people_birthday_tick`) и напоминания календаря (`cal_tick`). `PUSH_WORKER=off` выключает цикл
  * (как рассылку пушей).
  */
 import { getSupabaseAdmin, hasSupabaseAdmin } from "@/integrations/supabase/client.server";
@@ -36,6 +37,9 @@ export async function runTaskTick(): Promise<void> {
     // Поздравления с днём рождения коллегам по подразделению (с 9:00 их пояса).
     const { error: bdError } = await getSupabaseAdmin().rpc("people_birthday_tick");
     if (bdError) console.error("people_birthday_tick:", bdError.message);
+    // Напоминания о событиях календаря (db/migrations/2026-11-08_zzzzzzzzzzz_calendar.sql).
+    const { error: calError } = await getSupabaseAdmin().rpc("cal_tick");
+    if (calError) console.error("cal_tick:", calError.message);
   } catch (e) {
     console.error("task_tick:", e);
   } finally {

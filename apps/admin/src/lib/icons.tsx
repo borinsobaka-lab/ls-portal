@@ -95,6 +95,7 @@ import {
   FolderPlus as FolderPlusArt,
   Forward as ForwardArt,
   Frown as FrownArt,
+  Globe as GlobeArt,
   GraduationCap as GraduationCapArt,
   DragDropVerticalIcon as GripVerticalArt,
   Hash as HashArt,
@@ -182,6 +183,7 @@ import {
   Undo2 as Undo2Art,
   Unlink as UnlinkArt,
   Upload as UploadArt,
+  User as UserArt,
   UserArrowLeftRightIcon as UserArrowLeftRightArt,
   UserMinus as UserMinusArt,
   UserPlus as UserPlusArt,
@@ -287,6 +289,7 @@ export const FolderOpen = icon(FolderOpenArt, "FolderOpen");
 export const FolderPlus = icon(FolderPlusArt, "FolderPlus");
 export const Forward = icon(ForwardArt, "Forward");
 export const Frown = icon(FrownArt, "Frown");
+export const Globe = icon(GlobeArt, "Globe");
 export const GraduationCap = icon(GraduationCapArt, "GraduationCap");
 export const GripVertical = icon(GripVerticalArt, "GripVertical");
 export const Hash = icon(HashArt, "Hash");
@@ -374,6 +377,7 @@ export const Underline = icon(UnderlineArt, "Underline");
 export const Undo2 = icon(Undo2Art, "Undo2");
 export const Unlink = icon(UnlinkArt, "Unlink");
 export const Upload = icon(UploadArt, "Upload");
+export const User = icon(UserArt, "User");
 export const UserArrowLeftRight = icon(UserArrowLeftRightArt, "UserArrowLeftRight");
 export const UserMinus = icon(UserMinusArt, "UserMinus");
 export const UserPlus = icon(UserPlusArt, "UserPlus");

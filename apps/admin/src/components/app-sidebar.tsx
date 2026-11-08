@@ -30,6 +30,7 @@ import { usePlaybook, useScriptAccess, useUnreadSuggestions } from "@/lib/script
 import { kbBasesQuery } from "@/lib/kb/data";
 import { KbSidebarResize } from "@/components/kb/kb-sidebar-resize";
 import { ChatFoldersMenu } from "@/components/chats/chat-folders-menu";
+import { CalendarMenu } from "@/components/calendar/calendar-menu";
 import { TasksMenu } from "@/components/tasks/tasks-menu";
 import { useKbSidebarWidth } from "@/components/kb/use-kb-sidebar-width";
 import { sectionIcon } from "@/lib/scripts/icons";
@@ -81,6 +82,7 @@ const SECTION_MENUS: Partial<Record<RailSectionKey, { title: string; groups: Nav
   },
   chats: { title: "Чаты", groups: [] },
   tasks: { title: "Задачи", groups: [] },
+  calendar: { title: "Календарь", groups: [] },
   notifications: {
     title: "Уведомления",
     groups: [{ key: "notifications", label: "Разделы", items: NOTIFICATIONS_ITEMS }],
@@ -419,10 +421,12 @@ export function AppSidebar() {
           )}
           {railKey === "chats" && <ChatFoldersMenu onNavigate={closeMobile} />}
           {railKey === "tasks" && <TasksMenu onNavigate={closeMobile} />}
+          {railKey === "calendar" && <CalendarMenu onNavigate={closeMobile} />}
           <SidebarContent
             className={cn(
               "sidebar-scroll gap-1",
-              (kbBaseId || railKey === "chats" || railKey === "tasks") && "hidden",
+              (kbBaseId || railKey === "chats" || railKey === "tasks" || railKey === "calendar") &&
+                "hidden",
             )}
           >
             {menuLoading && <MenuSkeleton />}

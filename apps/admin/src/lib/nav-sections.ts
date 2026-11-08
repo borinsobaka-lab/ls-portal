@@ -13,6 +13,7 @@ import {
   BellBing,
   BillList,
   Bolt,
+  Calendar,
   Broom,
   Buildings2,
   CalendarMinimalistic,
@@ -79,6 +80,7 @@ import type { StudioFormat } from "@/lib/studio-formats";
 export type RailSectionKey =
   | "chats"
   | "tasks"
+  | "calendar"
   | "dashboard"
   | "analytics"
   | "club"
@@ -732,6 +734,14 @@ export const TASKS_URL = "/tasks";
 export const TASKS_DEADLINES_URL = "/tasks/deadlines";
 
 /**
+ * «Календарь» (TASKS_CHATS_PLAN.md, этап 2, раздел 4 брифа) — личный и
+ * общие календари, встречи с приглашениями, сразу после «Задач». Меню
+ * раздела — календари и слои (components/calendar/calendar-menu.tsx). Любому
+ * человеку портала.
+ */
+export const CALENDAR_URL = "/calendar";
+
+/**
  * «Компания» (TASKS_CHATS_PLAN.md, веха 1) — справочник людей портала и
  * оргструктура для просмотра, всем людям портала (партнёры видят друг друга —
  * решение владельца 2026-11-07). Правят людей и структуру по-прежнему в
@@ -764,6 +774,13 @@ export const NOTIFICATIONS_ITEMS: NavItem[] = [
 const ALL_SECTIONS: RailSection[] = [
   { key: "chats", title: "Чаты", fullTitle: "Чаты", url: CHATS_URL, icon: ChatRoundLine },
   { key: "tasks", title: "Задачи", fullTitle: "Задачи", url: TASKS_URL, icon: ClipboardCheck },
+  {
+    key: "calendar",
+    title: "Кален\u00ADдарь",
+    fullTitle: "Календарь",
+    url: CALENDAR_URL,
+    icon: Calendar,
+  },
   // Над студиями: своё меню — подразделы дашборда.
   {
     key: "dashboard",
@@ -951,7 +968,8 @@ export function canOpenPath(
     section === "company" ||
     section === "notifications" ||
     section === "chats" ||
-    section === "tasks"
+    section === "tasks" ||
+    section === "calendar"
   )
     return true;
   if (section === "club") {
@@ -991,7 +1009,7 @@ export function firstAllowedUrl(access: AdminAccess, studioId: string | null): s
   // закрытой должен попасть на другую страницу клуба, а не на дашборд.
   // «Чаты», «Задачи» и «Компания» открыты всем — запасные, последними: иначе
   // закрытая страница вела бы в чаты, а не в рабочий раздел человека.
-  const everyone = new Set<RailSectionKey>(["chats", "tasks", "company"]);
+  const everyone = new Set<RailSectionKey>(["chats", "tasks", "calendar", "company"]);
   const urls = [
     ...CLUB_GROUPS.flatMap((g) => g.items.map((i) => i.url)),
     STAFF_NAV_ITEM.url,
@@ -999,6 +1017,7 @@ export function firstAllowedUrl(access: AdminAccess, studioId: string | null): s
     ...MANAGE_URLS,
     CHATS_URL,
     TASKS_URL,
+    CALENDAR_URL,
     COMPANY_URL,
   ];
   return urls.find((url) => canOpenPath(access, studioId, url)) ?? null;

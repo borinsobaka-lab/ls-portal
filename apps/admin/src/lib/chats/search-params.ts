@@ -4,7 +4,7 @@
  */
 export type ChatsSearch = { f?: string; m?: number; scheduled?: boolean };
 
-const FOLDER_RE = /^(all|direct|channel|group|project|task|[0-9a-f-]{36})$/;
+const FOLDER_RE = /^(all|direct|channel|group|project|event|task|[0-9a-f-]{36})$/;
 
 export function chatsSearch(search: Record<string, unknown>): ChatsSearch {
   const f = typeof search.f === "string" && FOLDER_RE.test(search.f) ? search.f : undefined;

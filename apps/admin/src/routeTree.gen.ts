@@ -58,6 +58,7 @@ import { Route as AuthenticatedKbIndexRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated/dashboard/index'
 import { Route as AuthenticatedCompanyIndexRouteImport } from './routes/_authenticated/company/index'
 import { Route as AuthenticatedChatsIndexRouteImport } from './routes/_authenticated/chats/index'
+import { Route as AuthenticatedCalendarIndexRouteImport } from './routes/_authenticated/calendar/index'
 import { Route as AuthenticatedAnalyticsIndexRouteImport } from './routes/_authenticated/analytics/index'
 import { Route as AuthenticatedAccessIndexRouteImport } from './routes/_authenticated/access/index'
 import { Route as AuthenticatedAcademyIndexRouteImport } from './routes/_authenticated/academy/index'
@@ -418,6 +419,12 @@ const AuthenticatedChatsIndexRoute = AuthenticatedChatsIndexRouteImport.update({
   path: '/chats/',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedCalendarIndexRoute =
+  AuthenticatedCalendarIndexRouteImport.update({
+    id: '/calendar/',
+    path: '/calendar/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAnalyticsIndexRoute =
   AuthenticatedAnalyticsIndexRouteImport.update({
     id: '/analytics/',
@@ -1099,6 +1106,7 @@ export interface FileRoutesByFullPath {
   '/academy/': typeof AuthenticatedAcademyIndexRoute
   '/access/': typeof AuthenticatedAccessIndexRoute
   '/analytics/': typeof AuthenticatedAnalyticsIndexRoute
+  '/calendar/': typeof AuthenticatedCalendarIndexRoute
   '/chats/': typeof AuthenticatedChatsIndexRoute
   '/company/': typeof AuthenticatedCompanyIndexRoute
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
@@ -1252,6 +1260,7 @@ export interface FileRoutesByTo {
   '/academy': typeof AuthenticatedAcademyIndexRoute
   '/access': typeof AuthenticatedAccessIndexRoute
   '/analytics': typeof AuthenticatedAnalyticsIndexRoute
+  '/calendar': typeof AuthenticatedCalendarIndexRoute
   '/chats': typeof AuthenticatedChatsIndexRoute
   '/company': typeof AuthenticatedCompanyIndexRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
@@ -1407,6 +1416,7 @@ export interface FileRoutesById {
   '/_authenticated/academy/': typeof AuthenticatedAcademyIndexRoute
   '/_authenticated/access/': typeof AuthenticatedAccessIndexRoute
   '/_authenticated/analytics/': typeof AuthenticatedAnalyticsIndexRoute
+  '/_authenticated/calendar/': typeof AuthenticatedCalendarIndexRoute
   '/_authenticated/chats/': typeof AuthenticatedChatsIndexRoute
   '/_authenticated/company/': typeof AuthenticatedCompanyIndexRoute
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
@@ -1562,6 +1572,7 @@ export interface FileRouteTypes {
     | '/academy/'
     | '/access/'
     | '/analytics/'
+    | '/calendar/'
     | '/chats/'
     | '/company/'
     | '/dashboard/'
@@ -1715,6 +1726,7 @@ export interface FileRouteTypes {
     | '/academy'
     | '/access'
     | '/analytics'
+    | '/calendar'
     | '/chats'
     | '/company'
     | '/dashboard'
@@ -1869,6 +1881,7 @@ export interface FileRouteTypes {
     | '/_authenticated/academy/'
     | '/_authenticated/access/'
     | '/_authenticated/analytics/'
+    | '/_authenticated/calendar/'
     | '/_authenticated/chats/'
     | '/_authenticated/company/'
     | '/_authenticated/dashboard/'
@@ -2316,6 +2329,13 @@ declare module '@tanstack/react-router' {
       path: '/chats'
       fullPath: '/chats/'
       preLoaderRoute: typeof AuthenticatedChatsIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/calendar/': {
+      id: '/_authenticated/calendar/'
+      path: '/calendar'
+      fullPath: '/calendar/'
+      preLoaderRoute: typeof AuthenticatedCalendarIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/analytics/': {
@@ -3100,6 +3120,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAcademyIndexRoute: typeof AuthenticatedAcademyIndexRoute
   AuthenticatedAccessIndexRoute: typeof AuthenticatedAccessIndexRoute
   AuthenticatedAnalyticsIndexRoute: typeof AuthenticatedAnalyticsIndexRoute
+  AuthenticatedCalendarIndexRoute: typeof AuthenticatedCalendarIndexRoute
   AuthenticatedChatsIndexRoute: typeof AuthenticatedChatsIndexRoute
   AuthenticatedCompanyIndexRoute: typeof AuthenticatedCompanyIndexRoute
   AuthenticatedDashboardIndexRoute: typeof AuthenticatedDashboardIndexRoute
@@ -3243,6 +3264,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAcademyIndexRoute: AuthenticatedAcademyIndexRoute,
   AuthenticatedAccessIndexRoute: AuthenticatedAccessIndexRoute,
   AuthenticatedAnalyticsIndexRoute: AuthenticatedAnalyticsIndexRoute,
+  AuthenticatedCalendarIndexRoute: AuthenticatedCalendarIndexRoute,
   AuthenticatedChatsIndexRoute: AuthenticatedChatsIndexRoute,
   AuthenticatedCompanyIndexRoute: AuthenticatedCompanyIndexRoute,
   AuthenticatedDashboardIndexRoute: AuthenticatedDashboardIndexRoute,

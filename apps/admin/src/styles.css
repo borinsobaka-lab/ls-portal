@@ -1090,3 +1090,114 @@ body[data-sidebar-resizing] {
   color: rgb(3 105 161);
   text-decoration: underline;
 }
+
+/* Сетка «Календаря» (FullCalendar, components/calendar/calendar-grid.tsx):
+   цвета — токенами портала, обе темы. Приглашение без ответа — пунктирной
+   рамкой без заливки, «Возможно» — полупрозрачно; слои (сроки задач, дни
+   рождения, отсутствия) — светлыми плашками, не цветом календаря. */
+.cal-grid {
+  --fc-border-color: var(--border);
+  --fc-page-bg-color: var(--background);
+  --fc-neutral-bg-color: var(--muted);
+  --fc-neutral-text-color: var(--muted-foreground);
+  --fc-list-event-hover-bg-color: var(--muted);
+  --fc-today-bg-color: color-mix(in oklab, var(--brand) 7%, transparent);
+  --fc-now-indicator-color: var(--brand);
+  --fc-highlight-color: color-mix(in oklab, var(--brand) 14%, transparent);
+  --fc-non-business-color: transparent;
+  --fc-small-font-size: 0.75rem;
+  font-size: 0.8125rem;
+}
+.cal-grid .fc {
+  height: 100%;
+}
+.cal-grid .fc .fc-scrollgrid {
+  border-left: 0;
+  border-top: 0;
+}
+.cal-grid .fc .fc-col-header-cell-cushion,
+.cal-grid .fc .fc-daygrid-day-number,
+.cal-grid .fc .fc-list-day-text,
+.cal-grid .fc .fc-list-day-side-text {
+  color: var(--foreground);
+  font-weight: 500;
+  text-decoration: none;
+}
+.cal-grid .fc .fc-col-header-cell-cushion {
+  padding: 6px 4px;
+  text-transform: capitalize;
+}
+.cal-grid .fc .fc-timegrid-slot-label-cushion,
+.cal-grid .fc .fc-timegrid-axis-cushion {
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+}
+.cal-grid .fc .fc-timegrid-slot {
+  height: 2.25em;
+}
+.cal-grid .fc .fc-day-today .fc-daygrid-day-number {
+  background: var(--brand);
+  color: var(--brand-foreground);
+  border-radius: 9999px;
+  min-width: 1.75em;
+  text-align: center;
+  margin: 2px;
+  padding: 2px 6px;
+}
+.cal-grid .fc .fc-event {
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+}
+.cal-grid .fc .fc-timegrid-event .fc-event-main {
+  padding: 2px 4px;
+}
+.cal-grid .fc .fc-event.cal-ev-pending {
+  border-style: dashed;
+  border-width: 1.5px;
+  background: var(--background);
+}
+.cal-grid .fc .fc-event.cal-ev-maybe {
+  opacity: 0.7;
+}
+.cal-grid .fc .fc-event.cal-ev-task,
+.cal-grid .fc .fc-event.cal-ev-birthday,
+.cal-grid .fc .fc-event.cal-ev-absence {
+  border-color: transparent;
+  font-weight: 400;
+}
+.cal-grid .fc .fc-event.cal-ev-task {
+  background: var(--muted);
+  border-left: 3px solid var(--muted-foreground);
+}
+.cal-grid .fc .fc-event.cal-ev-task.cal-ev-urgent {
+  border-left-color: var(--destructive);
+}
+.cal-grid .fc .fc-event.cal-ev-birthday {
+  background: color-mix(in oklab, #ec4899 14%, var(--background));
+}
+.cal-grid .fc .fc-event.cal-ev-absence {
+  background: color-mix(in oklab, #f59e0b 16%, var(--background));
+}
+.cal-grid .fc .fc-event.cal-ev-task .fc-event-main,
+.cal-grid .fc .fc-event.cal-ev-task .fc-event-title,
+.cal-grid .fc .fc-event.cal-ev-birthday .fc-event-main,
+.cal-grid .fc .fc-event.cal-ev-absence .fc-event-main {
+  color: var(--foreground);
+}
+.cal-grid .fc .fc-list-event:hover td {
+  background: var(--muted);
+}
+.cal-grid .fc .fc-list-empty {
+  background: var(--background);
+  color: var(--muted-foreground);
+}
+.cal-grid .fc .fc-daygrid-more-link {
+  color: var(--muted-foreground);
+  font-weight: 500;
+}
+.cal-grid .fc .fc-popover {
+  background: var(--popover);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.12);
+}

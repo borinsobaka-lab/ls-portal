@@ -3,7 +3,7 @@
  * инициалы названия на цвете по id, проект — папка на цвете по id, задача —
  * значок списка, «Избранное» — закладка.
  */
-import { Bookmark, FolderOpen, ListChecks, Users } from "lucide-react";
+import { Bookmark, CalendarDays, FolderOpen, ListChecks, Users } from "lucide-react";
 
 import { StaffAvatar } from "@/components/employee-photo";
 import { isOnline } from "@/lib/company";
@@ -42,6 +42,16 @@ export function ChatAvatar({
         style={avatarStyle(chat.id)}
       >
         <FolderOpen className={size === "sm" ? "size-4" : "size-5"} />
+      </span>
+    );
+  }
+  if (chat.kind === "event") {
+    return (
+      <span
+        className={cn("flex shrink-0 items-center justify-center rounded-full font-semibold", box)}
+        style={avatarStyle(chat.id)}
+      >
+        <CalendarDays className={size === "sm" ? "size-4" : "size-5"} />
       </span>
     );
   }
