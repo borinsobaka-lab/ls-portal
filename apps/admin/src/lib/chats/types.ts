@@ -1,6 +1,7 @@
 /**
  * Чаты портала — типы ответов базы (db/migrations/2026-11-08_chats.sql).
  */
+import type { CallEndReason } from "./call-logic";
 
 /** task — обсуждение задачи (db/migrations/2026-11-08_zz_tasks.sql): состав ведёт задача. */
 export type ChatKind = "direct" | "group" | "self" | "task";
@@ -8,9 +9,14 @@ export type ChatRole = "owner" | "admin" | "member";
 export type ChatNotify = "all" | "mentions" | "none";
 
 export type ChatSystem = {
-  type: "created" | "added" | "removed" | "left" | "renamed" | "task_status" | "task_chat";
+  type: "created" | "added" | "removed" | "left" | "renamed" | "task_status" | "task_chat" | "call";
   title?: string;
   users?: string[];
+  /** Видеозвонок (type = call, lib/chats/call-logic.ts). */
+  call_id?: string;
+  state?: "live" | "ended";
+  reason?: CallEndReason | null;
+  duration?: number | null;
 };
 
 export type ChatPreview = {

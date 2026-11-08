@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import {
   createFileRoute,
   Navigate,
@@ -23,6 +24,11 @@ import { useActiveStudioId } from "@/hooks/use-active-studio";
 import { canOpenPath, firstAllowedUrl } from "@/lib/nav-sections";
 import { usePreloadSections } from "@/hooks/use-preload-sections";
 import { PortalBackground } from "@/components/notifications/portal-background";
+
+// Видеозвонки чатов — окно входящего и конференции (отдельный чанк).
+const CallLayer = lazy(() =>
+  import("@/components/chats/call-layer").then((m) => ({ default: m.CallLayer })),
+);
 
 /**
  * Кто уже прошёл полную проверку в этой вкладке. beforeLoad выполняется на
@@ -106,6 +112,9 @@ function AuthenticatedLayout() {
     <SidebarProvider open>
       <StudioBranding />
       <PortalBackground />
+      <Suspense fallback={null}>
+        <CallLayer />
+      </Suspense>
       {/* h-dvh, а не h-screen: в мобильном Safari 100vh выше видимой области
           (под адресной строкой), и низ страницы с пагинацией уезжал за экран. */}
       {/*
