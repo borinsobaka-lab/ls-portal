@@ -1717,6 +1717,30 @@ DEPLOY.md.
   `_chat_open`, `cal_counters`, `cal_invites`, `cal_overlays`. Живое
   обновление — `cal_broadcast` (событие `calendar` в личной теме). Таблицы
   закрыты браузеру. Тесты — `db/calendar.test.ts`.
+  **Темы в группах** (TASKS_CHATS_PLAN.md, этап 2, Д.5 — «как в Telegram»,
+  2026-11-08): `db/migrations/2026-11-08_zzzzzzzzzzzzz_chat_topics.sql` —
+  тема — отдельный чат `chat_chats.kind = 'topic'` с `parent_id` = группа
+  (сообщения, файлы, прочтение, реакции, закрепы, поиск — как в любом
+  чате); прежняя переписка группы — тема «Общая» (сама группа). Включают
+  владелец и админы группы (не канала): `settings.topics`,
+  `settings.topic_create` (`admins` / `all` — кто заводит темы); у темы —
+  `settings.color` и `settings.closed`. Участники тем = участники группы с
+  теми же ролями — их строки `chat_members` ведёт триггер
+  `chat_members_topics_sync` (добавили, убрали, сменили роль в группе — так
+  же во всех темах; новенький — без непрочитанной истории). Писать в
+  закрытую тему и в тему группы «пишут только админы» могут только
+  владелец и админы — триггер `chat_messages_topic_guard` на сообщения.
+  Править и удалять тему — её автор или админы группы
+  (`chat_topic_manager`); выключить темы — когда их нет
+  (`chat_topics_exist`); удалённая группа уносит темы. RPC
+  `chat_topics_enable`, `chat_topic_create` / `_update` / `_delete`;
+  `chat_list` — с `parent_id` и `created_by` (темы — строками, портал
+  сворачивает их в группу); `chat_unread_summary` и `portal_badge_count`
+  считают группу с темами одним чатом (`chat_has_new`); уведомления —
+  «Группа › Тема», уведомления группы строже темы (тишина группы — тишина
+  тем). Актуальные определения `chat_list`, `chat_unread_summary`,
+  `portal_badge_count`, `chat_notify_message` — здесь. Тесты —
+  `db/chat-topics.test.ts`.
   Рейтинг тренеров и чаевые: `db/migrations/2026-10-11_zzzzzzzzzzzzz_trainer_ratings.sql`
   — `trainer_reviews` (оценка 1–5, одна от учётной записи на тренера; клиент
   читает и правит свою, ставит — тренеру, которого видит в приложении,
