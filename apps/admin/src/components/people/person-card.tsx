@@ -4,10 +4,15 @@
  * статьи и в списках людей. Данные — lib/people.ts.
  */
 import { useState } from "react";
-import { Building2, Copy, Loader2, Mail, Phone, Users } from "lucide-react";
+import { Building2, Copy, Loader2, Mail, MessageCircle, Phone, Users } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import { StaffAvatar } from "@/components/employee-photo";
+import { Button } from "@/components/ui/button";
+import { useStaffProfile } from "@/hooks/use-staff-profile";
+import { chatErrorText, openDirect } from "@/lib/chats/data";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { StatusChip } from "@/components/ui/status-chip";
 import { MEMBER_ROLE_LABEL, USER_TYPE_LABEL } from "@/lib/access/logic";
@@ -100,13 +105,13 @@ export function PersonCardDialog({
   return (
     <Dialog open={!!userId} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="sm:max-w-md" aria-describedby={undefined}>
-        {userId && <PersonCardBody userId={userId} />}
+        {userId && <PersonCardBody userId={userId} onClose={onClose} />}
       </DialogContent>
     </Dialog>
   );
 }
 
-function PersonCardBody({ userId }: { userId: string }) {
+function PersonCardBody({ userId, onClose }: { userId: string; onClose: () => void }) {
   const { data: card, isLoading } = usePersonCard(userId);
   if (isLoading) {
     return (
@@ -141,6 +146,7 @@ function PersonCardBody({ userId }: { userId: string }) {
             {card.blocked ? "Заблокирован" : "Нет доступа к порталу"}
           </StatusChip>
         )}
+        {card.active && !card.blocked && <WriteButton userId={userId} onDone={onClose} />}
       </div>
       <div className="space-y-4 px-6 py-5 text-sm">
         {(card.email || card.phone) && (
@@ -183,6 +189,35 @@ function PersonCardBody({ userId }: { userId: string }) {
           )}
       </div>
     </div>
+  );
+}
+
+/** «Написать» — личный чат с человеком (чаты портала). */
+function WriteButton({ userId, onDone }: { userId: string; onDone: () => void }) {
+  const navigate = useNavigate();
+  const qc = useQueryClient();
+  const { data: me } = useStaffProfile();
+  const [busy, setBusy] = useState(false);
+  return (
+    <Button
+      disabled={busy}
+      onClick={async () => {
+        setBusy(true);
+        try {
+          const chatId = await openDirect(userId);
+          await qc.invalidateQueries({ queryKey: ["chat_list"] });
+          onDone();
+          void navigate({ to: "/chats/$chatId", params: { chatId } });
+        } catch (e) {
+          toast.error(chatErrorText(e));
+        } finally {
+          setBusy(false);
+        }
+      }}
+    >
+      {busy ? <Loader2 className="animate-spin" /> : <MessageCircle />}
+      {me?.id === userId ? "Избранное" : "Написать"}
+    </Button>
   );
 }
 

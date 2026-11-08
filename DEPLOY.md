@@ -465,6 +465,36 @@ https://github.com/borinsobaka-lab/ls-portal`):
 новая); выгрузки 1С — бакет `an-onec` (в архиве файлов Storage вместе с
 остальными бакетами).
 
+### 16. Realtime для чатов (TASKS_CHATS_PLAN.md, веха 2)
+
+Чаты портала обновляются мгновенно через Supabase Realtime (сервис
+`realtime` в том же Supabase Coolify): база шлёт событие в личный приватный
+канал сотрудника `user:<id>`. **Без Realtime чаты работают** — портал
+опрашивает базу (новые сообщения — раз в 4 с, список — раз в 10 с), но
+правки, реакции и «печатает…» доходят с задержкой. Проверить:
+
+1. Контейнер `realtime` — «healthy». Через Kong открыт путь
+   `wss://api.ladyfitpro.ru/realtime/v1/websocket` (в Coolify ничего
+   отдельно не включается: прокси Coolify пропускает WebSocket сам).
+   Проверка из браузера портала: DevTools → Network → WS — соединение
+   `realtime/v1/websocket` в статусе 101, сообщения `phx_reply` со
+   `status: ok` на `realtime:user:<id>`.
+2. Политики Realtime ставит миграция `2026-11-08_chats.sql` (на
+   `realtime.messages`: «portal user topic read», «portal chat topic
+   read» / «write»). Если в логе мигратора есть «Политики realtime.messages
+   не созданы: нет прав», выполнить блок `do $$ … realtime.messages …` из
+   этой миграции в Studio → SQL Editor (он работает от `supabase_admin`).
+3. Лимиты тенанта Realtime (одновременные подключения, события и
+   подключения в секунду) у self-hosted по умолчанию небольшие. Перед
+   выходом всех сотрудников в чаты: Studio → SQL Editor, схема
+   `_realtime`, таблица `tenants`, строка тенанта —
+   `max_concurrent_users` ≥ 1000, `max_events_per_second` ≥ 500,
+   `max_joins_per_second` ≥ 200, `max_channels_per_client` ≥ 20;
+   перезапустить сервис `realtime`.
+4. Файлы чатов — закрытый бакет `chat-files` (до 200 МБ на файл, как
+   `kb-media`; общий лимит Storage `FILE_SIZE_LIMIT` — шаг 6) — входит в
+   ежедневный архив файлов (шаг 10).
+
 ## Отчёт владельцу
 
 - Сервер: конфигурация, линейка, регион, IP, цена в месяц.
@@ -474,6 +504,7 @@ https://github.com/borinsobaka-lab/ls-portal`):
 - Почта: ящик создан, SPF/DKIM/DMARC, в какие ящики письмо дошло, где
   спам.
 - Смоук-тест — по пунктам шага 13.
+- Realtime для чатов (шаг 16): соединение 101, политики, лимиты тенанта.
 - Где сохранены пароли и ключи, 2FA по каждому сервису.
 - Подтверждение, что на Hetzner и в существующих записях reg.ru (сайт,
   MX, занятые поддомены) ничего не менялось.

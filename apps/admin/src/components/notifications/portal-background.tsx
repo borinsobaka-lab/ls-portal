@@ -11,7 +11,8 @@
  *   `portal-open` — переходим без перезагрузки;
  * - `?notif=<id>` в адресе (пуш открыл новое окно) — уведомление прочитано,
  *   параметр убираем;
- * - значок с числом на иконке установленного приложения.
+ * - значок с числом на иконке установленного приложения;
+ * - живое обновление чатов (Realtime, lib/chats/realtime.ts).
  */
 import { useEffect } from "react";
 import { useRouter, useRouterState } from "@tanstack/react-router";
@@ -19,6 +20,7 @@ import { useRouter, useRouterState } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useStaffProfile } from "@/hooks/use-staff-profile";
 import { useMarkNotifRead, useNotifUnread } from "@/lib/notifications/data";
+import { useChatRealtime } from "@/lib/chats/realtime";
 import { readPushPermission, setAppBadge, syncPushDevice } from "@/lib/notifications/push-client";
 // Ловит beforeinstallprompt с загрузки страницы — для «Установить приложение».
 import "@/lib/notifications/install";
@@ -36,6 +38,9 @@ export function PortalBackground() {
   const unread = useNotifUnread();
   const markRead = useMarkNotifRead();
   const search = useRouterState({ select: (s) => s.location.searchStr });
+
+  // Живое обновление чатов (личная тема Realtime).
+  useChatRealtime(userId);
 
   // «В сети».
   useEffect(() => {

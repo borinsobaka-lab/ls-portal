@@ -1415,6 +1415,35 @@ DEPLOY.md.
   `_finish`, `notif_housekeeping`. Справочник — `company_people`,
   `company_structure` (любому `is_portal_user`: партнёры видят друг друга).
   Тесты — `db/notifications.test.ts`.
+  **Чаты портала** (TASKS_CHATS_PLAN.md, веха 2, 2026-11-08; переписку из
+  Битрикс24 не переносим): `db/migrations/2026-11-08_chats.sql` — чаты
+  `chat_chats` (`direct` — пара людей по `direct_key`, `group`, `self` —
+  «Избранное»; настройки группы `settings`: кто закрепляет / пишет /
+  добавляет), участники `chat_members` (роль owner / admin / member,
+  `last_read_seq` — до какого прочитал, `notify` all / mentions / none,
+  `muted_until`, `pinned_at`), сообщения `chat_messages` (номер в чате
+  `seq`; документ редактора `content` + чистый текст `body_text`, поиск
+  `search` — русская морфология и имена файлов, ставит триггер;
+  `reply_to_seq`, `forward`, `mentions` — только участники, `mention_all` —
+  админам группы; `attachments` jsonb — пути бакета `chat-files`;
+  `client_id` — повтор отправки не задваивает; удаление мягкое), реакции
+  `chat_reactions`, закрепы `chat_pins`, свои папки `chat_folders`.
+  Непрочитанное и «кто прочитал» — по `seq` и `last_read_seq` (строк на
+  каждое сообщение нет). Все таблицы закрыты браузеру — только RPC
+  `chat_*` (security definer, участник — `chat_role`). Файлы — закрытый
+  бакет `chat-files` (папка = чат; читать — участнику чата папки или чата,
+  где есть сообщение с этим файлом: пересылка без копий,
+  `chat_file_allowed`). Уведомления — `notif_send_ex` (у `notif_items`
+  новый `feed`: личные и групповые сообщения — только пушем, строка ленты
+  скрыта и нужна для группировки; упоминание и ответ — `chat.mention` в
+  ленте); `notif_send`, `notif_list`, `notif_unread_count`,
+  `portal_push_claim` (значок — `portal_badge_count`: уведомления + чаты с
+  новым), `notif_housekeeping` — актуальные определения здесь. Живое
+  обновление — `chat_broadcast`: `realtime.send` в личную тему `user:<id>`
+  (политики на `realtime.messages` — своя тема и темы своих чатов
+  `chat:<id>` для «печатает…», `chat_topic_member`); нет схемы realtime —
+  событий нет, портал опрашивает базу. Тесты — `db/chats.test.ts` (схема
+  realtime для тестов — заглушка в `db/test/stubs.sql`).
   Рейтинг тренеров и чаевые: `db/migrations/2026-10-11_zzzzzzzzzzzzz_trainer_ratings.sql`
   — `trainer_reviews` (оценка 1–5, одна от учётной записи на тренера; клиент
   читает и правит свою, ставит — тренеру, которого видит в приложении,

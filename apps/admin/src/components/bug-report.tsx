@@ -16,7 +16,14 @@ const BugReportForm = lazy(() => import("@/components/bug-report-form"));
  * область оставляет под кнопкой запас (`.admin-main` в styles.css), поэтому
  * конец статьи или таблицы прокручивается из-под неё.
  */
-export function BugReportButton({ className }: { className?: string }) {
+export function BugReportButton({
+  className,
+  variant = "floating",
+}: {
+  className?: string;
+  /** header — значок в шапке (страницы во всю высоту: чаты). */
+  variant?: "floating" | "header";
+}) {
   const [open, setOpen] = useState(false);
   return (
     <>
@@ -25,10 +32,16 @@ export function BugReportButton({ className }: { className?: string }) {
         onClick={() => setOpen(true)}
         onPointerEnter={() => void import("@/components/bug-report-form")}
         aria-label="Сообщить об ошибке"
-        className={cn(BUG_BUTTON_CLASS, "pointer-events-auto", className)}
+        title="Сообщить об ошибке"
+        className={cn(
+          variant === "header"
+            ? "inline-flex size-10 shrink-0 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            : cn(BUG_BUTTON_CLASS, "pointer-events-auto"),
+          className,
+        )}
       >
-        <Bug className="size-5 sm:size-4" />
-        <span className="max-sm:sr-only">Сообщить об ошибке</span>
+        <Bug className={variant === "header" ? "size-5" : "size-5 sm:size-4"} />
+        {variant === "floating" && <span className="max-sm:sr-only">Сообщить об ошибке</span>}
       </button>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-lg">

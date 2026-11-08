@@ -23,3 +23,14 @@ create schema if not exists extensions;
 grant usage on schema public to anon, authenticated, service_role;
 -- Как в Supabase: auth.uid() вызывают и роли запросов (триггеры без security definer).
 grant usage on schema auth to anon, authenticated, service_role;
+-- Realtime (схема сервиса realtime Supabase): только то, что вызывают
+-- миграции — realtime.send пишет строку, realtime.topic() — тема из настройки.
+create schema if not exists realtime;
+create table if not exists realtime.messages (id bigserial primary key, topic text not null, extension text not null, payload jsonb, event text, private boolean default false, inserted_at timestamptz not null default now());
+alter table realtime.messages enable row level security;
+create or replace function realtime.topic() returns text language sql stable as $$ select nullif(current_setting('realtime.topic', true), '')::text $$;
+create or replace function realtime.send(payload jsonb, event text, topic text, private boolean default true) returns void language plpgsql as $$
+begin
+  insert into realtime.messages (topic, extension, payload, event, private) values (topic, 'broadcast', payload, event, private);
+end $$;
+grant usage on schema realtime to anon, authenticated, service_role;

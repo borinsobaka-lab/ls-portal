@@ -21,6 +21,7 @@ import {
   ChartSquare,
   City,
   ChatRoundDots,
+  ChatRoundLine,
   ClipboardCheck,
   ClipboardList,
   ClipboardRemove,
@@ -75,6 +76,7 @@ import { HIDDEN_MANAGE_URLS, HIDDEN_RAIL_SECTIONS } from "@/lib/launch";
 import type { StudioFormat } from "@/lib/studio-formats";
 
 export type RailSectionKey =
+  | "chats"
   | "dashboard"
   | "analytics"
   | "club"
@@ -712,6 +714,13 @@ export function hasAcademyRight(access: AdminAccess, need: AcademyNeed): boolean
 }
 
 /**
+ * «Чаты» (TASKS_CHATS_PLAN.md, веха 2) — мессенджер портала, первым в
+ * рейке (ежедневный раздел). Меню раздела — папки чатов
+ * (components/chats/chat-folders-menu.tsx). Любому человеку портала.
+ */
+export const CHATS_URL = "/chats";
+
+/**
  * «Компания» (TASKS_CHATS_PLAN.md, веха 1) — справочник людей портала и
  * оргструктура для просмотра, всем людям портала (партнёры видят друг друга —
  * решение владельца 2026-11-07). Правят людей и структуру по-прежнему в
@@ -740,6 +749,7 @@ export const NOTIFICATIONS_ITEMS: NavItem[] = [
  * в рейке, но не нажимается.
  */
 const ALL_SECTIONS: RailSection[] = [
+  { key: "chats", title: "Чаты", fullTitle: "Чаты", url: CHATS_URL, icon: ChatRoundLine },
   // Над студиями: своё меню — подразделы дашборда.
   {
     key: "dashboard",
@@ -923,7 +933,7 @@ export function canOpenPath(
     return anCan(access.analytics, analyticsNavItemOf(pathname)?.need ?? "home");
   if (section === "app" || section === "scripts") return canOpenRail(access, section);
   // Справочник и свои уведомления — любому человеку портала.
-  if (section === "company" || section === "notifications") return true;
+  if (section === "company" || section === "notifications" || section === "chats") return true;
   if (section === "club") {
     // «Сотрудники» общие для клубов: право — раздел рейки, не раздел клуба.
     if (isStaffPath(pathname)) return canOpenRail(access, "staff");
@@ -959,11 +969,16 @@ export function canOpenManagePath(access: AdminAccess, pathname: string): boolea
 export function firstAllowedUrl(access: AdminAccess, studioId: string | null): string | null {
   // Сначала страницы клуба: «Клуб» в рейке ведёт на первую из них, и при
   // закрытой должен попасть на другую страницу клуба, а не на дашборд.
+  // «Чаты» и «Компания» открыты всем — они запасные, последними: иначе
+  // закрытая страница вела бы в чаты, а не в рабочий раздел человека.
+  const everyone = new Set<RailSectionKey>(["chats", "company"]);
   const urls = [
     ...CLUB_GROUPS.flatMap((g) => g.items.map((i) => i.url)),
     STAFF_NAV_ITEM.url,
-    ...SECTIONS.flatMap((s) => (s.url && s.key !== "club" ? [s.url] : [])),
+    ...SECTIONS.flatMap((s) => (s.url && s.key !== "club" && !everyone.has(s.key) ? [s.url] : [])),
     ...MANAGE_URLS,
+    CHATS_URL,
+    COMPANY_URL,
   ];
   return urls.find((url) => canOpenPath(access, studioId, url)) ?? null;
 }

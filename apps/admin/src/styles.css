@@ -1019,3 +1019,43 @@ body[data-sidebar-resizing] {
     z-index: -1;
   }
 }
+
+/* Поле ввода чата (components/chats/composer.tsx, TipTap): подсказка в
+   пустом поле, упоминание, списки и цитата — как в сообщении. */
+.chat-composer p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  color: var(--muted-foreground);
+}
+.chat-composer .chat-mention {
+  border-radius: 0.25rem;
+  padding: 0 0.125rem;
+  font-weight: 600;
+  color: var(--brand-on-light);
+  background: color-mix(in oklab, var(--brand) 12%, transparent);
+}
+.chat-composer ul {
+  list-style: disc;
+  padding-left: 1.25rem;
+}
+.chat-composer ol {
+  list-style: decimal;
+  padding-left: 1.25rem;
+}
+.chat-composer blockquote {
+  border-left: 2px solid color-mix(in oklab, currentColor 30%, transparent);
+  padding-left: 0.5rem;
+}
+.chat-composer code {
+  border-radius: 0.25rem;
+  background: color-mix(in oklab, currentColor 10%, transparent);
+  padding: 0.05rem 0.25rem;
+  font-family: ui-monospace, monospace;
+  font-size: 0.85em;
+}
+.chat-composer a {
+  color: rgb(3 105 161);
+  text-decoration: underline;
+}

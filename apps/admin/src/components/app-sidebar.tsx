@@ -30,6 +30,7 @@ import {
 import { usePlaybook, useScriptAccess, useUnreadSuggestions } from "@/lib/scripts/data";
 import { kbBasesQuery } from "@/lib/kb/data";
 import { KbSidebarResize } from "@/components/kb/kb-sidebar-resize";
+import { ChatFoldersMenu } from "@/components/chats/chat-folders-menu";
 import { useKbSidebarWidth } from "@/components/kb/use-kb-sidebar-width";
 import { sectionIcon } from "@/lib/scripts/icons";
 import { useAdminAccess } from "@/hooks/use-admin-access";
@@ -84,6 +85,7 @@ const SECTION_MENUS: Partial<Record<RailSectionKey, { title: string; groups: Nav
     title: "Компания",
     groups: [{ key: "company", label: "Разделы", items: COMPANY_ITEMS }],
   },
+  chats: { title: "Чаты", groups: [] },
   notifications: {
     title: "Уведомления",
     groups: [{ key: "notifications", label: "Разделы", items: NOTIFICATIONS_ITEMS }],
@@ -447,7 +449,10 @@ export function AppSidebar() {
               <KbSidebarMenu key={kbBaseId} baseId={kbBaseId} onNavigate={closeMobile} />
             </Suspense>
           )}
-          <SidebarContent className={cn("sidebar-scroll gap-1", kbBaseId && "hidden")}>
+          {railKey === "chats" && <ChatFoldersMenu onNavigate={closeMobile} />}
+          <SidebarContent
+            className={cn("sidebar-scroll gap-1", (kbBaseId || railKey === "chats") && "hidden")}
+          >
             {menuLoading && <MenuSkeleton />}
             {groups.map((group) => (
               <Collapsible

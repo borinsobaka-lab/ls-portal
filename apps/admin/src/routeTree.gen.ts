@@ -56,6 +56,7 @@ import { Route as AuthenticatedNotificationsIndexRouteImport } from './routes/_a
 import { Route as AuthenticatedKbIndexRouteImport } from './routes/_authenticated/kb/index'
 import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated/dashboard/index'
 import { Route as AuthenticatedCompanyIndexRouteImport } from './routes/_authenticated/company/index'
+import { Route as AuthenticatedChatsIndexRouteImport } from './routes/_authenticated/chats/index'
 import { Route as AuthenticatedAnalyticsIndexRouteImport } from './routes/_authenticated/analytics/index'
 import { Route as AuthenticatedAccessIndexRouteImport } from './routes/_authenticated/access/index'
 import { Route as AuthenticatedAcademyIndexRouteImport } from './routes/_authenticated/academy/index'
@@ -68,6 +69,7 @@ import { Route as AuthenticatedDashboardMarketingRouteImport } from './routes/_a
 import { Route as AuthenticatedDashboardClientsRouteImport } from './routes/_authenticated/dashboard/clients'
 import { Route as AuthenticatedDashboardClassesRouteImport } from './routes/_authenticated/dashboard/classes'
 import { Route as AuthenticatedCompanyStructureRouteImport } from './routes/_authenticated/company/structure'
+import { Route as AuthenticatedChatsChatIdRouteImport } from './routes/_authenticated/chats/$chatId'
 import { Route as AuthenticatedAccessStructureRouteImport } from './routes/_authenticated/access/structure'
 import { Route as AuthenticatedAccessLogRouteImport } from './routes/_authenticated/access/log'
 import { Route as AuthenticatedAcademySettingsRouteImport } from './routes/_authenticated/academy/settings'
@@ -395,6 +397,11 @@ const AuthenticatedCompanyIndexRoute =
     path: '/company/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedChatsIndexRoute = AuthenticatedChatsIndexRouteImport.update({
+  id: '/chats/',
+  path: '/chats/',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedAnalyticsIndexRoute =
   AuthenticatedAnalyticsIndexRouteImport.update({
     id: '/analytics/',
@@ -465,6 +472,12 @@ const AuthenticatedCompanyStructureRoute =
   AuthenticatedCompanyStructureRouteImport.update({
     id: '/company/structure',
     path: '/company/structure',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedChatsChatIdRoute =
+  AuthenticatedChatsChatIdRouteImport.update({
+    id: '/chats/$chatId',
+    path: '/chats/$chatId',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedAccessStructureRoute =
@@ -991,6 +1004,7 @@ export interface FileRoutesByFullPath {
   '/academy/settings': typeof AuthenticatedAcademySettingsRoute
   '/access/log': typeof AuthenticatedAccessLogRoute
   '/access/structure': typeof AuthenticatedAccessStructureRoute
+  '/chats/$chatId': typeof AuthenticatedChatsChatIdRoute
   '/company/structure': typeof AuthenticatedCompanyStructureRoute
   '/dashboard/classes': typeof AuthenticatedDashboardClassesRoute
   '/dashboard/clients': typeof AuthenticatedDashboardClientsRoute
@@ -1003,6 +1017,7 @@ export interface FileRoutesByFullPath {
   '/academy/': typeof AuthenticatedAcademyIndexRoute
   '/access/': typeof AuthenticatedAccessIndexRoute
   '/analytics/': typeof AuthenticatedAnalyticsIndexRoute
+  '/chats/': typeof AuthenticatedChatsIndexRoute
   '/company/': typeof AuthenticatedCompanyIndexRoute
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/kb/': typeof AuthenticatedKbIndexRoute
@@ -1131,6 +1146,7 @@ export interface FileRoutesByTo {
   '/academy/settings': typeof AuthenticatedAcademySettingsRoute
   '/access/log': typeof AuthenticatedAccessLogRoute
   '/access/structure': typeof AuthenticatedAccessStructureRoute
+  '/chats/$chatId': typeof AuthenticatedChatsChatIdRoute
   '/company/structure': typeof AuthenticatedCompanyStructureRoute
   '/dashboard/classes': typeof AuthenticatedDashboardClassesRoute
   '/dashboard/clients': typeof AuthenticatedDashboardClientsRoute
@@ -1143,6 +1159,7 @@ export interface FileRoutesByTo {
   '/academy': typeof AuthenticatedAcademyIndexRoute
   '/access': typeof AuthenticatedAccessIndexRoute
   '/analytics': typeof AuthenticatedAnalyticsIndexRoute
+  '/chats': typeof AuthenticatedChatsIndexRoute
   '/company': typeof AuthenticatedCompanyIndexRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
   '/kb': typeof AuthenticatedKbIndexRoute
@@ -1273,6 +1290,7 @@ export interface FileRoutesById {
   '/_authenticated/academy/settings': typeof AuthenticatedAcademySettingsRoute
   '/_authenticated/access/log': typeof AuthenticatedAccessLogRoute
   '/_authenticated/access/structure': typeof AuthenticatedAccessStructureRoute
+  '/_authenticated/chats/$chatId': typeof AuthenticatedChatsChatIdRoute
   '/_authenticated/company/structure': typeof AuthenticatedCompanyStructureRoute
   '/_authenticated/dashboard/classes': typeof AuthenticatedDashboardClassesRoute
   '/_authenticated/dashboard/clients': typeof AuthenticatedDashboardClientsRoute
@@ -1285,6 +1303,7 @@ export interface FileRoutesById {
   '/_authenticated/academy/': typeof AuthenticatedAcademyIndexRoute
   '/_authenticated/access/': typeof AuthenticatedAccessIndexRoute
   '/_authenticated/analytics/': typeof AuthenticatedAnalyticsIndexRoute
+  '/_authenticated/chats/': typeof AuthenticatedChatsIndexRoute
   '/_authenticated/company/': typeof AuthenticatedCompanyIndexRoute
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/_authenticated/kb/': typeof AuthenticatedKbIndexRoute
@@ -1415,6 +1434,7 @@ export interface FileRouteTypes {
     | '/academy/settings'
     | '/access/log'
     | '/access/structure'
+    | '/chats/$chatId'
     | '/company/structure'
     | '/dashboard/classes'
     | '/dashboard/clients'
@@ -1427,6 +1447,7 @@ export interface FileRouteTypes {
     | '/academy/'
     | '/access/'
     | '/analytics/'
+    | '/chats/'
     | '/company/'
     | '/dashboard/'
     | '/kb/'
@@ -1555,6 +1576,7 @@ export interface FileRouteTypes {
     | '/academy/settings'
     | '/access/log'
     | '/access/structure'
+    | '/chats/$chatId'
     | '/company/structure'
     | '/dashboard/classes'
     | '/dashboard/clients'
@@ -1567,6 +1589,7 @@ export interface FileRouteTypes {
     | '/academy'
     | '/access'
     | '/analytics'
+    | '/chats'
     | '/company'
     | '/dashboard'
     | '/kb'
@@ -1696,6 +1719,7 @@ export interface FileRouteTypes {
     | '/_authenticated/academy/settings'
     | '/_authenticated/access/log'
     | '/_authenticated/access/structure'
+    | '/_authenticated/chats/$chatId'
     | '/_authenticated/company/structure'
     | '/_authenticated/dashboard/classes'
     | '/_authenticated/dashboard/clients'
@@ -1708,6 +1732,7 @@ export interface FileRouteTypes {
     | '/_authenticated/academy/'
     | '/_authenticated/access/'
     | '/_authenticated/analytics/'
+    | '/_authenticated/chats/'
     | '/_authenticated/company/'
     | '/_authenticated/dashboard/'
     | '/_authenticated/kb/'
@@ -2139,6 +2164,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCompanyIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/chats/': {
+      id: '/_authenticated/chats/'
+      path: '/chats'
+      fullPath: '/chats/'
+      preLoaderRoute: typeof AuthenticatedChatsIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/analytics/': {
       id: '/_authenticated/analytics/'
       path: '/analytics'
@@ -2221,6 +2253,13 @@ declare module '@tanstack/react-router' {
       path: '/company/structure'
       fullPath: '/company/structure'
       preLoaderRoute: typeof AuthenticatedCompanyStructureRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/chats/$chatId': {
+      id: '/_authenticated/chats/$chatId'
+      path: '/chats/$chatId'
+      fullPath: '/chats/$chatId'
+      preLoaderRoute: typeof AuthenticatedChatsChatIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/access/structure': {
@@ -2824,6 +2863,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAcademySettingsRoute: typeof AuthenticatedAcademySettingsRoute
   AuthenticatedAccessLogRoute: typeof AuthenticatedAccessLogRoute
   AuthenticatedAccessStructureRoute: typeof AuthenticatedAccessStructureRoute
+  AuthenticatedChatsChatIdRoute: typeof AuthenticatedChatsChatIdRoute
   AuthenticatedCompanyStructureRoute: typeof AuthenticatedCompanyStructureRoute
   AuthenticatedDashboardClassesRoute: typeof AuthenticatedDashboardClassesRoute
   AuthenticatedDashboardClientsRoute: typeof AuthenticatedDashboardClientsRoute
@@ -2835,6 +2875,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAcademyIndexRoute: typeof AuthenticatedAcademyIndexRoute
   AuthenticatedAccessIndexRoute: typeof AuthenticatedAccessIndexRoute
   AuthenticatedAnalyticsIndexRoute: typeof AuthenticatedAnalyticsIndexRoute
+  AuthenticatedChatsIndexRoute: typeof AuthenticatedChatsIndexRoute
   AuthenticatedCompanyIndexRoute: typeof AuthenticatedCompanyIndexRoute
   AuthenticatedDashboardIndexRoute: typeof AuthenticatedDashboardIndexRoute
   AuthenticatedKbIndexRoute: typeof AuthenticatedKbIndexRoute
@@ -2953,6 +2994,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAcademySettingsRoute: AuthenticatedAcademySettingsRoute,
   AuthenticatedAccessLogRoute: AuthenticatedAccessLogRoute,
   AuthenticatedAccessStructureRoute: AuthenticatedAccessStructureRoute,
+  AuthenticatedChatsChatIdRoute: AuthenticatedChatsChatIdRoute,
   AuthenticatedCompanyStructureRoute: AuthenticatedCompanyStructureRoute,
   AuthenticatedDashboardClassesRoute: AuthenticatedDashboardClassesRoute,
   AuthenticatedDashboardClientsRoute: AuthenticatedDashboardClientsRoute,
@@ -2965,6 +3007,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAcademyIndexRoute: AuthenticatedAcademyIndexRoute,
   AuthenticatedAccessIndexRoute: AuthenticatedAccessIndexRoute,
   AuthenticatedAnalyticsIndexRoute: AuthenticatedAnalyticsIndexRoute,
+  AuthenticatedChatsIndexRoute: AuthenticatedChatsIndexRoute,
   AuthenticatedCompanyIndexRoute: AuthenticatedCompanyIndexRoute,
   AuthenticatedDashboardIndexRoute: AuthenticatedDashboardIndexRoute,
   AuthenticatedKbIndexRoute: AuthenticatedKbIndexRoute,

@@ -87,10 +87,20 @@ export function AdminShell({
   title,
   actions,
   children,
+  fill = false,
+  hideHeaderOnMobile = false,
 }: {
   title: string;
   actions?: ReactNode;
   children: ReactNode;
+  /**
+   * Рабочая область во всю высоту без полей и прокрутки — у страницы своя
+   * (чаты: список и переписка). «Сообщить об ошибке» — кнопкой в шапке, а
+   * не в углу: там поле ввода.
+   */
+  fill?: boolean;
+  /** На телефоне без шапки портала (у открытого чата — своя с «Назад»). */
+  hideHeaderOnMobile?: boolean;
 }) {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -210,6 +220,7 @@ export function AdminShell({
             className={cn(
               "flex shrink-0 flex-wrap items-center gap-2 border-b bg-background px-3 py-2 lg:h-16 lg:flex-nowrap lg:gap-3 lg:px-4 lg:py-0",
               !network && MAIN_HEADER_GRID,
+              hideHeaderOnMobile && "max-md:hidden",
             )}
           >
             {/* До xl заголовок берёт ширину по тексту и сжимается вместе с
@@ -239,6 +250,7 @@ export function AdminShell({
                 {title}
               </h1>
               {refreshButton()}
+              {fill && <BugReportButton variant="header" className="ml-auto" />}
             </div>
 
             {!network && (
@@ -281,20 +293,24 @@ export function AdminShell({
         запас (styles.css) — последняя строка таблицы и пагинация
         прокручиваются из-под кнопок.
       */}
-      <main
-        className={cn(
-          "admin-main flex-1 overflow-auto p-3 sm:p-4 lg:p-6",
-          kb && !isKbToolPath(pathname) && "bg-background text-foreground",
-        )}
-      >
-        {children}
-        {/* Правый нижний угол: действия страницы, под ними — «Сообщить об
-            ошибке» (во всех разделах, решение владельца 2026-11-01). */}
-        <div className={FLOATING_STACK_CLASS}>
-          {actions && <FloatingActions>{actions}</FloatingActions>}
-          <BugReportButton />
-        </div>
-      </main>
+      {fill ? (
+        <main className="min-h-0 flex-1 overflow-hidden">{children}</main>
+      ) : (
+        <main
+          className={cn(
+            "admin-main flex-1 overflow-auto p-3 sm:p-4 lg:p-6",
+            kb && !isKbToolPath(pathname) && "bg-background text-foreground",
+          )}
+        >
+          {children}
+          {/* Правый нижний угол: действия страницы, под ними — «Сообщить об
+              ошибке» (во всех разделах, решение владельца 2026-11-01). */}
+          <div className={FLOATING_STACK_CLASS}>
+            {actions && <FloatingActions>{actions}</FloatingActions>}
+            <BugReportButton />
+          </div>
+        </main>
+      )}
 
       <DialogPrimitive.Root open={kateOpen} onOpenChange={setKateOpen}>
         <DialogPrimitive.Portal>
