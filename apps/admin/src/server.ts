@@ -6,6 +6,7 @@ import { errorResponse } from "./lib/error-page";
 import { startKbTrashPurge } from "./lib/kb/trash-purge.server";
 import { startPortalPushWorker } from "./lib/notifications/portal-push-worker.server";
 import { startPushWorker } from "./lib/push/push-worker.server";
+import { startStorageCleanup } from "./lib/storage-cleanup.server";
 import { startTaskWorker } from "./lib/tasks/worker.server";
 
 // Серверная точка входа (vite.config: tanstackStart({ server: { entry: "server" } })).
@@ -22,6 +23,9 @@ startTaskWorker();
 startChatCallSweep();
 // Корзина базы знаний: истёкшее — навсегда, файлы удалённого — из бакета.
 startKbTrashPurge();
+// Файлы удалённого (чаты, задачи, проекты, аватарки, клубы, «Аналитика»)
+// — из хранилища, если на них больше ничто не ссылается.
+startStorageCleanup();
 // Сроки ролей и «Доступ до»: доступ включается и выключается сам.
 startAccessSync();
 // «Аналитика»: сборщики модулей и служебные задачи (ANALYTICS_PLAN.md).
