@@ -523,10 +523,12 @@ Kinescope Speak (https://docs.kinescope.ru/api/speak/), у собеседник�
    `read`, `write`, `delete` (один токен на портал; показывается один раз).
 2. Coolify → портал → Environment Variables (runtime):
    - `KINESCOPE_API_TOKEN` — токен из п. 1;
-   - `KINESCOPE_SPEAK_OWNER_ID` — ID пользователя Kinescope, на кого
-     заводить комнаты (поле `owner_id` API; спросить в поддержке Kinescope
-     или взять `owner_id` у комнаты, созданной в кабинете Speak). Если API
-     принимает комнату без него — можно не задавать;
+   - `KINESCOPE_SPEAK_OWNER_ID` — обычно не нужен. Если Kinescope откажет
+     в комнате без владельца (`owner_id`), портал сам возьмёт его из уже
+     созданных комнат Speak — для этого достаточно один раз вручную создать
+     встречу в speak.kinescope.io. Задать вручную — `owner_id` любой комнаты
+     из `curl -H "Authorization: Bearer <токен>"
+     "https://api.kinescope.io/v1/speak/rooms?per_page=5"`;
    - `KINESCOPE_API_URL` — только если у Kinescope другой адрес API
      (по умолчанию `https://api.kinescope.io/v1`).
    Нужен и `APP_SUPABASE_SERVICE_KEY` (шаг 8): комнату в звонок пишет сервер.
@@ -534,7 +536,9 @@ Kinescope Speak (https://docs.kinescope.ru/api/speak/), у собеседник�
    «Видеозвонок» — у второго звонок со звуком (звук браузер даёт после
    любого нажатия на странице портала), «Принять» — оба в конференции;
    «Завершить» у обоих — в переписке «Видеозвонок · N мин», в лог сервера
-   ошибок `[kinescope]` / `[chat-calls]` нет.
+   ошибок `[kinescope]` / `[chat-calls]` нет. Не вышло — окно портала
+   пишет причину от Kinescope (токен, права, тариф, владелец комнаты);
+   полный ответ — в логе портала строкой `[kinescope] POST /speak/rooms`.
 4. Комнаты оконченных звонков сервер удаляет в Kinescope сам (раз в
    15 секунд, `PUSH_WORKER=off` — на другом сервере). Запись и расшифровка
    звонков выключены.
