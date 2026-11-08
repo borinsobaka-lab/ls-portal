@@ -5,6 +5,7 @@ import { useClubRequestsBadge } from "@/hooks/use-client-requests";
 import { useOpenBugReports } from "@/hooks/use-bug-reports";
 import { useNotifUnread } from "@/lib/notifications/data";
 import { useChatUnread } from "@/lib/chats/data";
+import { useTaskCounters } from "@/lib/tasks/data";
 import {
   ADMIN_SECTIONS,
   MANAGE_GROUPS,
@@ -25,6 +26,7 @@ const BADGE_LABELS: Record<string, string> = {
   manage: "новых сообщений об ошибках",
   notifications: "непрочитанных",
   chats: "чатов с новыми сообщениями",
+  tasks: "задач ждут внимания",
 };
 
 function RailItem({
@@ -125,6 +127,7 @@ export function AppRail({ onNavigate }: { onNavigate?: () => void }) {
   const openBugReports = useOpenBugReports(!!access && hasRight(access, "portal.admin"));
   const unreadNotifs = useNotifUnread();
   const unreadChats = useChatUnread(!!access).chats;
+  const taskBadge = useTaskCounters(!!access).badge;
 
   // Разделы, закрытые сотруднику в «Доступах», не показываем; заготовки без
   // url — как есть. «Клуб» виден, если открыт раздел рейки, — даже когда
@@ -174,7 +177,9 @@ export function AppRail({ onNavigate }: { onNavigate?: () => void }) {
                       ? unreadNotifs
                       : section.key === "chats"
                         ? unreadChats
-                        : undefined
+                        : section.key === "tasks"
+                          ? taskBadge
+                          : undefined
             }
             onNavigate={onNavigate}
           />

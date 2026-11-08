@@ -1,7 +1,7 @@
 /**
  * Виды уведомлений портала: подписи в настройках и пуш по умолчанию. Пуш по
- * умолчанию дублирует база (notif_default_push в
- * db/migrations/2026-11-07_zz_portal_notifications.sql) — тест сверяет.
+ * умолчанию дублирует база (notif_default_push — актуальное определение в
+ * последней миграции, где она есть) — тест сверяет.
  * Новый вид: строка здесь и, если пуш по умолчанию выключен, — в функции
  * базы новой миграцией.
  *
@@ -37,6 +37,68 @@ export const NOTIF_KINDS: NotifKind[] = [
     group: "Чаты",
     label: "Сообщения в группах",
     hint: "Без звука в отдельных чатах — в самом чате",
+    defaultPush: false,
+  },
+  {
+    key: "task.assigned",
+    group: "Задачи",
+    label: "Мне поставили задачу или пункт чек-листа",
+    defaultPush: true,
+  },
+  {
+    key: "task.review",
+    group: "Задачи",
+    label: "Моя задача ждёт проверки",
+    defaultPush: true,
+  },
+  {
+    key: "task.returned",
+    group: "Задачи",
+    label: "Задачу вернули на доработку",
+    defaultPush: true,
+  },
+  {
+    key: "task.soon",
+    group: "Задачи",
+    label: "Срок задачи через час",
+    defaultPush: true,
+  },
+  {
+    key: "task.overdue",
+    group: "Задачи",
+    label: "Задача просрочена",
+    hint: "Один раз — в момент просрочки",
+    defaultPush: true,
+  },
+  {
+    key: "task.reminder",
+    group: "Задачи",
+    label: "Мои напоминания",
+    defaultPush: true,
+  },
+  {
+    key: "task.digest",
+    group: "Задачи",
+    label: "Сводка просроченного у исполнителей",
+    hint: "Раз в день, утром — по задачам, которые я поставил",
+    defaultPush: true,
+  },
+  {
+    key: "task.done",
+    group: "Задачи",
+    label: "Поставленная мной задача завершена",
+    defaultPush: false,
+  },
+  {
+    key: "task.accepted",
+    group: "Задачи",
+    label: "Мою работу приняли",
+    defaultPush: false,
+  },
+  {
+    key: "task.deadline",
+    group: "Задачи",
+    label: "Срок задачи перенесли",
     defaultPush: false,
   },
   {

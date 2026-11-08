@@ -19,10 +19,20 @@ import {
   useRef,
   useState,
 } from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Virtualizer, type VirtualizerHandle } from "virtua";
-import { ArrowDown, ArrowLeft, BellOff, Info, Loader2, Pin, Search, X } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowLeft,
+  BellOff,
+  Info,
+  ListChecks,
+  Loader2,
+  Pin,
+  Search,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { ChatAvatar } from "@/components/chats/chat-avatar";
@@ -474,6 +484,14 @@ export function ChatView({
             </span>
           </span>
         </button>
+        {chat.kind === "task" && chat.settings?.task_number && (
+          <Button variant="ghost" size="sm" asChild className="text-chat-accent">
+            <Link to="/tasks/$number" params={{ number: String(chat.settings.task_number) }}>
+              <ListChecks className="size-4" />
+              <span className="hidden sm:inline">Задача #{chat.settings.task_number}</span>
+            </Link>
+          </Button>
+        )}
         <Button
           variant="ghost"
           size="icon"
@@ -587,7 +605,7 @@ export function ChatView({
                         m={m}
                         me={me}
                         first={first}
-                        showAuthor={chat.kind === "group"}
+                        showAuthor={chat.kind === "group" || chat.kind === "task"}
                         readByOthers={othersRead >= m.seq}
                         highlighted={highlight === m.seq}
                         canPin={canPin}

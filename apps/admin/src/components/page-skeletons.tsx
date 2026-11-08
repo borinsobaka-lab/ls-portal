@@ -4050,3 +4050,62 @@ export function ChatsPageSkeleton() {
     </ShellSkeleton>
   );
 }
+
+/** «Задачи» (/tasks): вкладки ролей, фильтры, таблица задач. */
+export function TasksPageSkeleton() {
+  return (
+    <ShellSkeleton title="Задачи" actions={["w-36"]}>
+      <div className="space-y-3">
+        <ToolbarSkeleton controls={["w-44", "w-40", "w-36", "w-28"]} />
+        <TableCardSkeleton
+          headers={["№", "Задача", "Срок", "Исполнитель", "Постановщик", "Статус"]}
+        />
+      </div>
+    </ShellSkeleton>
+  );
+}
+
+/** «Задачи» → «Сроки» (/tasks/deadlines): колонки по срокам. */
+export function TasksDeadlinesPageSkeleton() {
+  return (
+    <ShellSkeleton title="Сроки" actions={["w-36"]}>
+      <div className="space-y-3">
+        <ToolbarSkeleton search={false} controls={["w-60"]} />
+        <div className="flex gap-3 overflow-hidden">
+          {Array.from({ length: 5 }, (_, i) => (
+            <div key={i} className="w-64 shrink-0 space-y-2 rounded-lg border bg-background p-2">
+              <Skeleton className="h-5 w-28" />
+              {Array.from({ length: 3 - (i % 2) }, (_, j) => (
+                <Skeleton key={j} className="h-20 w-full" />
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+    </ShellSkeleton>
+  );
+}
+
+/** Задача своей страницей (/tasks/1234): основное и боковая панель. */
+export function TaskPageSkeleton() {
+  return (
+    <ShellSkeleton title="Задача">
+      <div className="grid gap-6 rounded-lg border bg-background p-4 sm:p-6 lg:grid-cols-[minmax(0,1fr)_300px]">
+        <div className="space-y-4">
+          <Skeleton className="h-4 w-40" />
+          <Skeleton className="h-7 w-2/3" />
+          <Skeleton className="h-28 w-full" />
+          <Skeleton className="h-24 w-full" />
+        </div>
+        <div className="space-y-4">
+          {Array.from({ length: 5 }, (_, i) => (
+            <div key={i} className="space-y-1.5">
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-9 w-full" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </ShellSkeleton>
+  );
+}

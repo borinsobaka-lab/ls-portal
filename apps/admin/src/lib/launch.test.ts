@@ -45,9 +45,10 @@ describe.skipIf(process.env.VITE_SHOW_CLUBS === "true")(
   () => {
     test("по умолчанию клубы скрыты", () => expect(CLUBS_HIDDEN).toBe(true));
 
-    test("в рейке — Чаты, база знаний, Академия, Компания, Аналитика, Уведомления и Управление", () => {
+    test("в рейке — Чаты, Задачи, база знаний, Академия, Компания, Аналитика, Уведомления и Управление", () => {
       expect(SECTIONS.map((s) => s.key)).toEqual([
         "chats",
+        "tasks",
         "kb",
         "academy",
         "company",

@@ -51,6 +51,7 @@ import { Route as AuthenticatedAssistantRouteImport } from './routes/_authentica
 import { Route as AuthenticatedAppSettingsRouteImport } from './routes/_authenticated/app-settings'
 import { Route as AuthenticatedAppAboutRouteImport } from './routes/_authenticated/app-about'
 import { Route as AuthenticatedAdminShiftsRouteImport } from './routes/_authenticated/admin-shifts'
+import { Route as AuthenticatedTasksIndexRouteImport } from './routes/_authenticated/tasks/index'
 import { Route as AuthenticatedScriptsIndexRouteImport } from './routes/_authenticated/scripts/index'
 import { Route as AuthenticatedNotificationsIndexRouteImport } from './routes/_authenticated/notifications/index'
 import { Route as AuthenticatedKbIndexRouteImport } from './routes/_authenticated/kb/index'
@@ -61,6 +62,8 @@ import { Route as AuthenticatedAnalyticsIndexRouteImport } from './routes/_authe
 import { Route as AuthenticatedAccessIndexRouteImport } from './routes/_authenticated/access/index'
 import { Route as AuthenticatedAcademyIndexRouteImport } from './routes/_authenticated/academy/index'
 import { Route as ApiAnalyticsOpenapiDotjsonRouteImport } from './routes/api/analytics/openapi[.]json'
+import { Route as AuthenticatedTasksDeadlinesRouteImport } from './routes/_authenticated/tasks/deadlines'
+import { Route as AuthenticatedTasksNumberRouteImport } from './routes/_authenticated/tasks/$number'
 import { Route as AuthenticatedScriptsSettingsRouteImport } from './routes/_authenticated/scripts/settings'
 import { Route as AuthenticatedScriptsSectionIdRouteImport } from './routes/_authenticated/scripts/$sectionId'
 import { Route as AuthenticatedNotificationsSettingsRouteImport } from './routes/_authenticated/notifications/settings'
@@ -368,6 +371,11 @@ const AuthenticatedAdminShiftsRoute =
     path: '/admin-shifts',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedTasksIndexRoute = AuthenticatedTasksIndexRouteImport.update({
+  id: '/tasks/',
+  path: '/tasks/',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedScriptsIndexRoute =
   AuthenticatedScriptsIndexRouteImport.update({
     id: '/scripts/',
@@ -425,6 +433,18 @@ const ApiAnalyticsOpenapiDotjsonRoute =
     id: '/api/analytics/openapi.json',
     path: '/api/analytics/openapi.json',
     getParentRoute: () => rootRouteImport,
+  } as any)
+const AuthenticatedTasksDeadlinesRoute =
+  AuthenticatedTasksDeadlinesRouteImport.update({
+    id: '/tasks/deadlines',
+    path: '/tasks/deadlines',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedTasksNumberRoute =
+  AuthenticatedTasksNumberRouteImport.update({
+    id: '/tasks/$number',
+    path: '/tasks/$number',
+    getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedScriptsSettingsRoute =
   AuthenticatedScriptsSettingsRouteImport.update({
@@ -1013,6 +1033,8 @@ export interface FileRoutesByFullPath {
   '/notifications/settings': typeof AuthenticatedNotificationsSettingsRoute
   '/scripts/$sectionId': typeof AuthenticatedScriptsSectionIdRoute
   '/scripts/settings': typeof AuthenticatedScriptsSettingsRoute
+  '/tasks/$number': typeof AuthenticatedTasksNumberRoute
+  '/tasks/deadlines': typeof AuthenticatedTasksDeadlinesRoute
   '/api/analytics/openapi.json': typeof ApiAnalyticsOpenapiDotjsonRoute
   '/academy/': typeof AuthenticatedAcademyIndexRoute
   '/access/': typeof AuthenticatedAccessIndexRoute
@@ -1023,6 +1045,7 @@ export interface FileRoutesByFullPath {
   '/kb/': typeof AuthenticatedKbIndexRoute
   '/notifications/': typeof AuthenticatedNotificationsIndexRoute
   '/scripts/': typeof AuthenticatedScriptsIndexRoute
+  '/tasks/': typeof AuthenticatedTasksIndexRoute
   '/academy/attempts/$attemptId': typeof AuthenticatedAcademyAttemptsAttemptIdRoute
   '/academy/my/$courseId': typeof AuthenticatedAcademyMyCourseIdRoute
   '/academy/review/$attemptId': typeof AuthenticatedAcademyReviewAttemptIdRoute
@@ -1155,6 +1178,8 @@ export interface FileRoutesByTo {
   '/notifications/settings': typeof AuthenticatedNotificationsSettingsRoute
   '/scripts/$sectionId': typeof AuthenticatedScriptsSectionIdRoute
   '/scripts/settings': typeof AuthenticatedScriptsSettingsRoute
+  '/tasks/$number': typeof AuthenticatedTasksNumberRoute
+  '/tasks/deadlines': typeof AuthenticatedTasksDeadlinesRoute
   '/api/analytics/openapi.json': typeof ApiAnalyticsOpenapiDotjsonRoute
   '/academy': typeof AuthenticatedAcademyIndexRoute
   '/access': typeof AuthenticatedAccessIndexRoute
@@ -1165,6 +1190,7 @@ export interface FileRoutesByTo {
   '/kb': typeof AuthenticatedKbIndexRoute
   '/notifications': typeof AuthenticatedNotificationsIndexRoute
   '/scripts': typeof AuthenticatedScriptsIndexRoute
+  '/tasks': typeof AuthenticatedTasksIndexRoute
   '/academy/attempts/$attemptId': typeof AuthenticatedAcademyAttemptsAttemptIdRoute
   '/academy/my/$courseId': typeof AuthenticatedAcademyMyCourseIdRoute
   '/academy/review/$attemptId': typeof AuthenticatedAcademyReviewAttemptIdRoute
@@ -1299,6 +1325,8 @@ export interface FileRoutesById {
   '/_authenticated/notifications/settings': typeof AuthenticatedNotificationsSettingsRoute
   '/_authenticated/scripts/$sectionId': typeof AuthenticatedScriptsSectionIdRoute
   '/_authenticated/scripts/settings': typeof AuthenticatedScriptsSettingsRoute
+  '/_authenticated/tasks/$number': typeof AuthenticatedTasksNumberRoute
+  '/_authenticated/tasks/deadlines': typeof AuthenticatedTasksDeadlinesRoute
   '/api/analytics/openapi.json': typeof ApiAnalyticsOpenapiDotjsonRoute
   '/_authenticated/academy/': typeof AuthenticatedAcademyIndexRoute
   '/_authenticated/access/': typeof AuthenticatedAccessIndexRoute
@@ -1309,6 +1337,7 @@ export interface FileRoutesById {
   '/_authenticated/kb/': typeof AuthenticatedKbIndexRoute
   '/_authenticated/notifications/': typeof AuthenticatedNotificationsIndexRoute
   '/_authenticated/scripts/': typeof AuthenticatedScriptsIndexRoute
+  '/_authenticated/tasks/': typeof AuthenticatedTasksIndexRoute
   '/_authenticated/academy/attempts/$attemptId': typeof AuthenticatedAcademyAttemptsAttemptIdRoute
   '/_authenticated/academy/my/$courseId': typeof AuthenticatedAcademyMyCourseIdRoute
   '/_authenticated/academy/review/$attemptId': typeof AuthenticatedAcademyReviewAttemptIdRoute
@@ -1443,6 +1472,8 @@ export interface FileRouteTypes {
     | '/notifications/settings'
     | '/scripts/$sectionId'
     | '/scripts/settings'
+    | '/tasks/$number'
+    | '/tasks/deadlines'
     | '/api/analytics/openapi.json'
     | '/academy/'
     | '/access/'
@@ -1453,6 +1484,7 @@ export interface FileRouteTypes {
     | '/kb/'
     | '/notifications/'
     | '/scripts/'
+    | '/tasks/'
     | '/academy/attempts/$attemptId'
     | '/academy/my/$courseId'
     | '/academy/review/$attemptId'
@@ -1585,6 +1617,8 @@ export interface FileRouteTypes {
     | '/notifications/settings'
     | '/scripts/$sectionId'
     | '/scripts/settings'
+    | '/tasks/$number'
+    | '/tasks/deadlines'
     | '/api/analytics/openapi.json'
     | '/academy'
     | '/access'
@@ -1595,6 +1629,7 @@ export interface FileRouteTypes {
     | '/kb'
     | '/notifications'
     | '/scripts'
+    | '/tasks'
     | '/academy/attempts/$attemptId'
     | '/academy/my/$courseId'
     | '/academy/review/$attemptId'
@@ -1728,6 +1763,8 @@ export interface FileRouteTypes {
     | '/_authenticated/notifications/settings'
     | '/_authenticated/scripts/$sectionId'
     | '/_authenticated/scripts/settings'
+    | '/_authenticated/tasks/$number'
+    | '/_authenticated/tasks/deadlines'
     | '/api/analytics/openapi.json'
     | '/_authenticated/academy/'
     | '/_authenticated/access/'
@@ -1738,6 +1775,7 @@ export interface FileRouteTypes {
     | '/_authenticated/kb/'
     | '/_authenticated/notifications/'
     | '/_authenticated/scripts/'
+    | '/_authenticated/tasks/'
     | '/_authenticated/academy/attempts/$attemptId'
     | '/_authenticated/academy/my/$courseId'
     | '/_authenticated/academy/review/$attemptId'
@@ -2129,6 +2167,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminShiftsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/tasks/': {
+      id: '/_authenticated/tasks/'
+      path: '/tasks'
+      fullPath: '/tasks/'
+      preLoaderRoute: typeof AuthenticatedTasksIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/scripts/': {
       id: '/_authenticated/scripts/'
       path: '/scripts'
@@ -2198,6 +2243,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/analytics/openapi.json'
       preLoaderRoute: typeof ApiAnalyticsOpenapiDotjsonRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/tasks/deadlines': {
+      id: '/_authenticated/tasks/deadlines'
+      path: '/tasks/deadlines'
+      fullPath: '/tasks/deadlines'
+      preLoaderRoute: typeof AuthenticatedTasksDeadlinesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/tasks/$number': {
+      id: '/_authenticated/tasks/$number'
+      path: '/tasks/$number'
+      fullPath: '/tasks/$number'
+      preLoaderRoute: typeof AuthenticatedTasksNumberRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/scripts/settings': {
       id: '/_authenticated/scripts/settings'
@@ -2872,6 +2931,8 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedNotificationsSettingsRoute: typeof AuthenticatedNotificationsSettingsRoute
   AuthenticatedScriptsSectionIdRoute: typeof AuthenticatedScriptsSectionIdRoute
   AuthenticatedScriptsSettingsRoute: typeof AuthenticatedScriptsSettingsRoute
+  AuthenticatedTasksNumberRoute: typeof AuthenticatedTasksNumberRoute
+  AuthenticatedTasksDeadlinesRoute: typeof AuthenticatedTasksDeadlinesRoute
   AuthenticatedAcademyIndexRoute: typeof AuthenticatedAcademyIndexRoute
   AuthenticatedAccessIndexRoute: typeof AuthenticatedAccessIndexRoute
   AuthenticatedAnalyticsIndexRoute: typeof AuthenticatedAnalyticsIndexRoute
@@ -2881,6 +2942,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedKbIndexRoute: typeof AuthenticatedKbIndexRoute
   AuthenticatedNotificationsIndexRoute: typeof AuthenticatedNotificationsIndexRoute
   AuthenticatedScriptsIndexRoute: typeof AuthenticatedScriptsIndexRoute
+  AuthenticatedTasksIndexRoute: typeof AuthenticatedTasksIndexRoute
   AuthenticatedAcademyAttemptsAttemptIdRoute: typeof AuthenticatedAcademyAttemptsAttemptIdRoute
   AuthenticatedAcademyMyCourseIdRoute: typeof AuthenticatedAcademyMyCourseIdRoute
   AuthenticatedAcademyReviewAttemptIdRoute: typeof AuthenticatedAcademyReviewAttemptIdRoute
@@ -3004,6 +3066,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedNotificationsSettingsRoute,
   AuthenticatedScriptsSectionIdRoute: AuthenticatedScriptsSectionIdRoute,
   AuthenticatedScriptsSettingsRoute: AuthenticatedScriptsSettingsRoute,
+  AuthenticatedTasksNumberRoute: AuthenticatedTasksNumberRoute,
+  AuthenticatedTasksDeadlinesRoute: AuthenticatedTasksDeadlinesRoute,
   AuthenticatedAcademyIndexRoute: AuthenticatedAcademyIndexRoute,
   AuthenticatedAccessIndexRoute: AuthenticatedAccessIndexRoute,
   AuthenticatedAnalyticsIndexRoute: AuthenticatedAnalyticsIndexRoute,
@@ -3013,6 +3077,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedKbIndexRoute: AuthenticatedKbIndexRoute,
   AuthenticatedNotificationsIndexRoute: AuthenticatedNotificationsIndexRoute,
   AuthenticatedScriptsIndexRoute: AuthenticatedScriptsIndexRoute,
+  AuthenticatedTasksIndexRoute: AuthenticatedTasksIndexRoute,
   AuthenticatedAcademyAttemptsAttemptIdRoute:
     AuthenticatedAcademyAttemptsAttemptIdRoute,
   AuthenticatedAcademyMyCourseIdRoute: AuthenticatedAcademyMyCourseIdRoute,

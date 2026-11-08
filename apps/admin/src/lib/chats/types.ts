@@ -2,12 +2,13 @@
  * Чаты портала — типы ответов базы (db/migrations/2026-11-08_chats.sql).
  */
 
-export type ChatKind = "direct" | "group" | "self";
+/** task — обсуждение задачи (db/migrations/2026-11-08_zz_tasks.sql): состав ведёт задача. */
+export type ChatKind = "direct" | "group" | "self" | "task";
 export type ChatRole = "owner" | "admin" | "member";
 export type ChatNotify = "all" | "mentions" | "none";
 
 export type ChatSystem = {
-  type: "created" | "added" | "removed" | "left" | "renamed";
+  type: "created" | "added" | "removed" | "left" | "renamed" | "task_status" | "task_chat";
   title?: string;
   users?: string[];
 };
@@ -26,6 +27,9 @@ export type ChatSettings = {
   pin?: "admins" | "all";
   post?: "admins" | "all";
   add?: "admins" | "all";
+  /** У чата задачи — её id и номер (ссылка «Открыть задачу»). */
+  task_id?: string;
+  task_number?: number;
 };
 
 export type ChatRow = {

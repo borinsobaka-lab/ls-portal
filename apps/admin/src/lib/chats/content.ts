@@ -3,6 +3,8 @@
  * текст для поиска и превью, проверка ссылок, системные сообщения, подписи.
  * Без React и без запросов — тесты в content.test.ts.
  */
+import { STATUS_LABEL } from "@/lib/tasks/logic";
+import type { TaskStatus } from "@/lib/tasks/types";
 import type { ChatDoc, ChatNode, ChatRow, ChatSystem } from "./types";
 
 /** Узлы и отметки, которые показывает чат (остальное из вставки — как текст). */
@@ -102,6 +104,7 @@ export function chatTitle(
 ) {
   if (chat.kind === "self") return "Избранное";
   if (chat.kind === "group") return chat.title ?? "Группа";
+  if (chat.kind === "task") return chat.title ?? "Задача";
   return chat.peer_id ? name(chat.peer_id) : "Удалённый собеседник";
 }
 
@@ -125,6 +128,10 @@ export function systemText(
       return `${users || who} вышел(а) из группы`;
     case "renamed":
       return `${who} переименовал(а) группу в «${system.title ?? ""}»`;
+    case "task_chat":
+      return `${who} начал(а) обсуждение задачи`;
+    case "task_status":
+      return `${who}: статус задачи — ${(STATUS_LABEL[system.title as TaskStatus] ?? system.title ?? "").toLowerCase()}`;
     default:
       return "";
   }

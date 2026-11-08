@@ -1,14 +1,19 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, test } from "bun:test";
 
 import { MAX_PAYLOAD_BYTES } from "@/lib/push/payload";
 import { NOTIF_KINDS, pushEnabled, withPush } from "./kinds";
 import { buildPortalPushPayload, portalPath } from "./push-payload";
 
-const MIGRATION = readFileSync(
-  new URL("../../../../../db/migrations/2026-11-07_zz_portal_notifications.sql", import.meta.url),
-  "utf8",
-);
+// Актуальное определение notif_default_push — в последней по имени миграции,
+// где она есть (мигратор выполняет файлы по порядку имён).
+const MIGRATIONS = new URL("../../../../../db/migrations/", import.meta.url);
+const MIGRATION = readdirSync(MIGRATIONS)
+  .filter((f) => f.endsWith(".sql"))
+  .sort()
+  .map((f) => readFileSync(new URL(f, MIGRATIONS), "utf8"))
+  .filter((sql) => sql.includes("function public.notif_default_push"))
+  .at(-1)!;
 
 describe("виды уведомлений", () => {
   test("пуш по умолчанию совпадает с notif_default_push в базе", () => {

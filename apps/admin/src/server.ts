@@ -5,6 +5,7 @@ import { errorResponse } from "./lib/error-page";
 import { startKbTrashPurge } from "./lib/kb/trash-purge.server";
 import { startPortalPushWorker } from "./lib/notifications/portal-push-worker.server";
 import { startPushWorker } from "./lib/push/push-worker.server";
+import { startTaskWorker } from "./lib/tasks/worker.server";
 
 // Серверная точка входа (vite.config: tanstackStart({ server: { entry: "server" } })).
 // Обёртка ловит то, что не дошло до errorMiddleware в start.ts.
@@ -14,6 +15,8 @@ import { startPushWorker } from "./lib/push/push-worker.server";
 startPushWorker();
 // Пуши сотрудникам (чаты, задачи, упоминания) — своя очередь, проход раз в 2 с.
 startPortalPushWorker();
+// Задачи: срок через час, просрочка, напоминания, сводка; календарь.
+startTaskWorker();
 // Корзина базы знаний: истёкшее — навсегда, файлы удалённого — из бакета.
 startKbTrashPurge();
 // Сроки ролей и «Доступ до»: доступ включается и выключается сам.

@@ -40,6 +40,7 @@ import {
   Briefcase as BriefcaseArt,
   Bug as BugArt,
   Building2 as Building2Art,
+  CalendarClock as CalendarClockArt,
   CalendarDays as CalendarDaysArt,
   CalendarIcon as CalendarIconArt,
   CalendarSearch as CalendarSearchArt,
@@ -77,10 +78,12 @@ import {
   Eraser as EraserArt,
   ExternalLink as ExternalLinkArt,
   Eye as EyeArt,
+  EyeOff as EyeOffArt,
   FilePlus as FilePlusArt,
   FileSpreadsheetIcon as FileSpreadsheetArt,
   FileText as FileTextArt,
   FileUp as FileUpArt,
+  Filter as FilterArt,
   FlaskConical as FlaskConicalArt,
   Folder as FolderArt,
   FolderTransferIcon as FolderInputArt,
@@ -104,7 +107,9 @@ import {
   Link as LinkArt,
   Link2 as Link2Art,
   List as ListArt,
+  ListChecks as ListChecksArt,
   ListOrdered as ListOrderedArt,
+  ListTodo as ListTodoArt,
   LoaderCircle as Loader2Art,
   Lock as LockArt,
   LogIn as LogInArt,
@@ -169,6 +174,7 @@ import {
   Upload as UploadArt,
   User as UserArt,
   UserArrowLeftRightIcon as UserArrowLeftRightArt,
+  UserCheck as UserCheckArt,
   UserMinus as UserMinusArt,
   UserPlus as UserPlusArt,
   UserRound as UserRoundArt,
@@ -218,6 +224,7 @@ export const Bookmark = icon(BookmarkArt, "Bookmark");
 export const Briefcase = icon(BriefcaseArt, "Briefcase");
 export const Bug = icon(BugArt, "Bug");
 export const Building2 = icon(Building2Art, "Building2");
+export const CalendarClock = icon(CalendarClockArt, "CalendarClock");
 export const CalendarDays = icon(CalendarDaysArt, "CalendarDays");
 export const CalendarIcon = icon(CalendarIconArt, "CalendarIcon");
 export const CalendarSearch = icon(CalendarSearchArt, "CalendarSearch");
@@ -255,10 +262,12 @@ export const Ellipsis = icon(EllipsisArt, "Ellipsis");
 export const Eraser = icon(EraserArt, "Eraser");
 export const ExternalLink = icon(ExternalLinkArt, "ExternalLink");
 export const Eye = icon(EyeArt, "Eye");
+export const EyeOff = icon(EyeOffArt, "EyeOff");
 export const FilePlus = icon(FilePlusArt, "FilePlus");
 export const FileSpreadsheet = icon(FileSpreadsheetArt, "FileSpreadsheet");
 export const FileText = icon(FileTextArt, "FileText");
 export const FileUp = icon(FileUpArt, "FileUp");
+export const Filter = icon(FilterArt, "Filter");
 export const FlaskConical = icon(FlaskConicalArt, "FlaskConical");
 export const Folder = icon(FolderArt, "Folder");
 export const FolderInput = icon(FolderInputArt, "FolderInput");
@@ -282,7 +291,9 @@ export const LayoutTemplate = icon(LayoutTemplateArt, "LayoutTemplate");
 export const Link = icon(LinkArt, "Link");
 export const Link2 = icon(Link2Art, "Link2");
 export const List = icon(ListArt, "List");
+export const ListChecks = icon(ListChecksArt, "ListChecks");
 export const ListOrdered = icon(ListOrderedArt, "ListOrdered");
+export const ListTodo = icon(ListTodoArt, "ListTodo");
 export const Loader2 = icon(Loader2Art, "Loader2");
 export const Lock = icon(LockArt, "Lock");
 export const LogIn = icon(LogInArt, "LogIn");
@@ -347,6 +358,7 @@ export const Undo2 = icon(Undo2Art, "Undo2");
 export const Upload = icon(UploadArt, "Upload");
 export const User = icon(UserArt, "User");
 export const UserArrowLeftRight = icon(UserArrowLeftRightArt, "UserArrowLeftRight");
+export const UserCheck = icon(UserCheckArt, "UserCheck");
 export const UserMinus = icon(UserMinusArt, "UserMinus");
 export const UserPlus = icon(UserPlusArt, "UserPlus");
 export const UserRound = icon(UserRoundArt, "UserRound");

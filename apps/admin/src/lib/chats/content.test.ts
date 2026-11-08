@@ -120,17 +120,27 @@ describe("подписи", () => {
 describe("папки", () => {
   test("системные и свои, счётчик без звука не считает", async () => {
     const { folderFilter, folderUnread } = await import("./folders");
-    const row = (id: string, kind: "direct" | "group" | "self", unread: number, notify = "all") =>
-      ({ id, kind, unread, notify, muted_until: null }) as never;
+    const row = (
+      id: string,
+      kind: "direct" | "group" | "self" | "task",
+      unread: number,
+      notify = "all",
+    ) => ({ id, kind, unread, notify, muted_until: null }) as never;
     const chats = [
       row("a", "direct", 2),
       row("b", "group", 1),
       row("c", "self", 0),
       row("d", "group", 5, "none"),
+      row("e", "task", 3),
     ];
     expect(chats.filter(folderFilter("direct", []))).toHaveLength(2);
     expect(chats.filter(folderFilter("group", []))).toHaveLength(2);
     expect(chats.filter(folderFilter("f1", [{ id: "f1", chat_ids: ["a", "d"] }]))).toHaveLength(2);
     expect(folderUnread(chats, folderFilter("all", []))).toBe(2);
+    // Обсуждения задач — только в «Задачах», не во «Всех» и не в «Личных».
+    expect(chats.filter(folderFilter("all", [])).map((c: { id: string }) => c.id)).not.toContain(
+      "e",
+    );
+    expect(chats.filter(folderFilter("task", [])).map((c: { id: string }) => c.id)).toEqual(["e"]);
   });
 });

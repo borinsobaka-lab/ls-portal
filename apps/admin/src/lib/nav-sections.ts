@@ -77,6 +77,7 @@ import type { StudioFormat } from "@/lib/studio-formats";
 
 export type RailSectionKey =
   | "chats"
+  | "tasks"
   | "dashboard"
   | "analytics"
   | "club"
@@ -721,6 +722,15 @@ export function hasAcademyRight(access: AdminAccess, need: AcademyNeed): boolean
 export const CHATS_URL = "/chats";
 
 /**
+ * «Задачи» (TASKS_CHATS_PLAN.md, веха 3) — задачи портала вместо Битрикс24,
+ * сразу после «Чатов». Меню раздела — вкладки ролей, «Сроки», «Пункты на
+ * мне» и сохранённые фильтры (components/tasks/tasks-menu.tsx). Любому
+ * человеку портала.
+ */
+export const TASKS_URL = "/tasks";
+export const TASKS_DEADLINES_URL = "/tasks/deadlines";
+
+/**
  * «Компания» (TASKS_CHATS_PLAN.md, веха 1) — справочник людей портала и
  * оргструктура для просмотра, всем людям портала (партнёры видят друг друга —
  * решение владельца 2026-11-07). Правят людей и структуру по-прежнему в
@@ -750,6 +760,7 @@ export const NOTIFICATIONS_ITEMS: NavItem[] = [
  */
 const ALL_SECTIONS: RailSection[] = [
   { key: "chats", title: "Чаты", fullTitle: "Чаты", url: CHATS_URL, icon: ChatRoundLine },
+  { key: "tasks", title: "Задачи", fullTitle: "Задачи", url: TASKS_URL, icon: ClipboardCheck },
   // Над студиями: своё меню — подразделы дашборда.
   {
     key: "dashboard",
@@ -933,7 +944,13 @@ export function canOpenPath(
     return anCan(access.analytics, analyticsNavItemOf(pathname)?.need ?? "home");
   if (section === "app" || section === "scripts") return canOpenRail(access, section);
   // Справочник и свои уведомления — любому человеку портала.
-  if (section === "company" || section === "notifications" || section === "chats") return true;
+  if (
+    section === "company" ||
+    section === "notifications" ||
+    section === "chats" ||
+    section === "tasks"
+  )
+    return true;
   if (section === "club") {
     // «Сотрудники» общие для клубов: право — раздел рейки, не раздел клуба.
     if (isStaffPath(pathname)) return canOpenRail(access, "staff");
@@ -969,15 +986,16 @@ export function canOpenManagePath(access: AdminAccess, pathname: string): boolea
 export function firstAllowedUrl(access: AdminAccess, studioId: string | null): string | null {
   // Сначала страницы клуба: «Клуб» в рейке ведёт на первую из них, и при
   // закрытой должен попасть на другую страницу клуба, а не на дашборд.
-  // «Чаты» и «Компания» открыты всем — они запасные, последними: иначе
+  // «Чаты», «Задачи» и «Компания» открыты всем — запасные, последними: иначе
   // закрытая страница вела бы в чаты, а не в рабочий раздел человека.
-  const everyone = new Set<RailSectionKey>(["chats", "company"]);
+  const everyone = new Set<RailSectionKey>(["chats", "tasks", "company"]);
   const urls = [
     ...CLUB_GROUPS.flatMap((g) => g.items.map((i) => i.url)),
     STAFF_NAV_ITEM.url,
     ...SECTIONS.flatMap((s) => (s.url && s.key !== "club" && !everyone.has(s.key) ? [s.url] : [])),
     ...MANAGE_URLS,
     CHATS_URL,
+    TASKS_URL,
     COMPANY_URL,
   ];
   return urls.find((url) => canOpenPath(access, studioId, url)) ?? null;

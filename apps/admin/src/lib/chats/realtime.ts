@@ -27,6 +27,17 @@ function invalidateList(qc: QueryClient) {
   }, 400);
 }
 
+let tasksTimer: ReturnType<typeof setTimeout> | null = null;
+
+/** Задачи — не чаще раза в 500 мс (массовая постановка — один дозапрос). */
+function invalidateTasksSoon(qc: QueryClient) {
+  if (tasksTimer) return;
+  tasksTimer = setTimeout(() => {
+    tasksTimer = null;
+    void qc.invalidateQueries({ queryKey: ["tasks"] });
+  }, 500);
+}
+
 export function handleChatEvent(qc: QueryClient, e: ChatEvent) {
   if (!e?.chat_id) return;
   const open = !!qc.getQueryData<ChatWindow>(messagesKey(e.chat_id));
@@ -77,6 +88,9 @@ export function useChatRealtime(userId: string | null) {
         .on("broadcast", { event: "chat" }, ({ payload }) =>
           handleChatEvent(qc, payload as ChatEvent),
         )
+        // Задачи (db/migrations/2026-11-08_zz_tasks.sql, task_broadcast): событие
+        // без подробностей — дозапрос списков, карточки и счётчиков задач.
+        .on("broadcast", { event: "task" }, () => invalidateTasksSoon(qc))
         .subscribe((status) => {
           const ok = status === "SUBSCRIBED";
           setRealtimeConnected(ok);
@@ -84,6 +98,7 @@ export function useChatRealtime(userId: string | null) {
           if (ok && wasConnected) {
             void qc.invalidateQueries({ queryKey: ["chat_list"] });
             void qc.invalidateQueries({ queryKey: ["chat_unread"] });
+            void qc.invalidateQueries({ queryKey: ["tasks"] });
             for (const q of qc.getQueryCache().findAll({ queryKey: ["chat_messages"] })) {
               const chatId = q.queryKey[1];
               if (typeof chatId === "string") void loadNewer(qc, chatId);

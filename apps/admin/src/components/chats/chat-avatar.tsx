@@ -2,7 +2,7 @@
  * Аватарка чата: личный — фото собеседника с точкой «в сети», группа —
  * инициалы названия на цвете по id, «Избранное» — закладка.
  */
-import { Bookmark, Users } from "lucide-react";
+import { Bookmark, ListChecks, Users } from "lucide-react";
 
 import { StaffAvatar } from "@/components/employee-photo";
 import { isOnline } from "@/lib/company";
@@ -47,6 +47,18 @@ export function ChatAvatar({
         )}
       >
         <Bookmark className={size === "sm" ? "size-4" : "size-5"} />
+      </span>
+    );
+  }
+  if (chat.kind === "task") {
+    return (
+      <span
+        className={cn(
+          "flex shrink-0 items-center justify-center rounded-full bg-chat-accent-soft text-chat-accent",
+          box,
+        )}
+      >
+        <ListChecks className={size === "sm" ? "size-4" : "size-5"} />
       </span>
     );
   }
