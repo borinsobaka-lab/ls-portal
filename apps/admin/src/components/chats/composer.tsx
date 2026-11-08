@@ -24,10 +24,12 @@ import {
   Pencil,
   Quote,
   Reply,
+  RotateCw,
   Send,
   Smile,
   Strikethrough,
   Type,
+  WifiOff,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -36,7 +38,7 @@ import { StaffAvatar } from "@/components/employee-photo";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { docText } from "@/lib/chats/content";
-import { formatFileSize, uploadChatFile } from "@/lib/chats/files";
+import { formatFileSize, startChatUpload, type ChatUpload } from "@/lib/chats/files";
 import type { ChatAttachment, ChatDoc, ChatMessage } from "@/lib/chats/types";
 import { cn } from "@/lib/utils";
 
@@ -57,6 +59,8 @@ type Upload = {
   progress: number;
   done?: ChatAttachment;
   error?: string;
+  /** Связь пропала — докачаем, когда появится. */
+  waiting?: boolean;
 };
 
 type SuggestState = {
@@ -333,24 +337,40 @@ export const Composer = forwardRef<
     if (replyTo) editor?.commands.focus("end");
   }, [replyTo, editor]);
 
+  // Загрузки по ключу: «Повторить», убрать файл, уход из чата.
+  const handles = useRef(new Map<string, ChatUpload>());
+  useEffect(() => {
+    const map = handles.current;
+    // Ушли из чата — останавливаем, но не стираем: тот же файл здесь докачается.
+    return () => map.forEach((h) => h.cancel(false));
+  }, []);
+
   const addFiles = useCallback(
     (files: File[]) => {
       for (const file of files) {
         const key = crypto.randomUUID();
+        const patch = (p: Partial<Upload>) =>
+          setUploads((u) => u.map((x) => (x.key === key ? { ...x, ...p } : x)));
         setUploads((u) => [...u, { key, name: file.name, size: file.size, progress: 0 }]);
-        uploadChatFile(chatId, file, (share) =>
-          setUploads((u) => u.map((x) => (x.key === key ? { ...x, progress: share } : x))),
-        )
-          .then((done) =>
-            setUploads((u) => u.map((x) => (x.key === key ? { ...x, progress: 1, done } : x))),
-          )
-          .catch((e: Error) =>
-            setUploads((u) => u.map((x) => (x.key === key ? { ...x, error: e.message } : x))),
-          );
+        const handle = startChatUpload(chatId, file, (s) => {
+          if (s.status === "uploading")
+            patch({ progress: s.share, waiting: false, error: undefined });
+          else if (s.status === "waiting") patch({ progress: s.share, waiting: true });
+          else if (s.status === "done") {
+            handles.current.delete(key);
+            patch({ progress: 1, done: s.attachment, waiting: false, error: undefined });
+          } else patch({ error: s.message, waiting: false });
+        });
+        handles.current.set(key, handle);
       }
     },
     [chatId],
   );
+  const removeUpload = useCallback((key: string) => {
+    handles.current.get(key)?.cancel();
+    handles.current.delete(key);
+    setUploads((list) => list.filter((x) => x.key !== key));
+  }, []);
   const addFilesRef = useRef(addFiles);
   addFilesRef.current = addFiles;
 
@@ -365,11 +385,16 @@ export const Composer = forwardRef<
   );
 
   const uploading = uploads.some((u) => !u.done && !u.error);
+  const stalled = uploads.some((u) => u.error || u.waiting);
 
   const send = useCallback(async () => {
     if (!editor || busy || disabledReason) return;
-    if (uploading) {
-      toast.info("Дождитесь загрузки файлов");
+    if (uploading || stalled) {
+      toast.info(
+        stalled
+          ? "Не все файлы загрузились — дождитесь связи, нажмите «Повторить» или уберите файл"
+          : "Дождитесь загрузки файлов",
+      );
       return;
     }
     const json = editor.getJSON() as ChatDoc;
@@ -396,7 +421,7 @@ export const Composer = forwardRef<
       setBusy(false);
       editor.commands.focus();
     }
-  }, [editor, busy, disabledReason, uploading, uploads, editing, onEdit, onSend, chatId]);
+  }, [editor, busy, disabledReason, uploading, stalled, uploads, editing, onEdit, onSend, chatId]);
   sendRef.current = () => void send();
 
   const setLink = () => {
@@ -500,27 +525,53 @@ export const Composer = forwardRef<
             <span
               key={u.key}
               className={cn(
-                "relative flex max-w-60 items-center gap-2 overflow-hidden rounded-md border bg-background py-1 pr-1 pl-2 text-xs",
+                "relative flex max-w-64 items-center gap-2 overflow-hidden rounded-md border bg-background py-1 pr-1 pl-2 text-xs",
                 u.error && "border-destructive text-destructive",
               )}
-              title={u.error ?? u.name}
+              title={
+                u.error ?? (u.waiting ? `${u.name}: нет связи — докачаем, когда появится` : u.name)
+              }
             >
-              {!u.done && !u.error && <Loader2 className="size-3.5 shrink-0 animate-spin" />}
+              {u.waiting ? (
+                <WifiOff className="size-3.5 shrink-0 text-amber-600" />
+              ) : (
+                !u.done && !u.error && <Loader2 className="size-3.5 shrink-0 animate-spin" />
+              )}
               <span className="truncate">{u.name}</span>
               <span className="shrink-0 text-muted-foreground">
-                {u.error ? "ошибка" : formatFileSize(u.size)}
+                {u.error
+                  ? "ошибка"
+                  : u.waiting
+                    ? `${Math.round(u.progress * 100)}% · нет связи`
+                    : !u.done && u.size > 6 * 1024 * 1024
+                      ? `${Math.round(u.progress * 100)}% из ${formatFileSize(u.size)}`
+                      : formatFileSize(u.size)}
               </span>
+              {u.waiting && (
+                <button
+                  type="button"
+                  className="rounded p-0.5 hover:bg-muted"
+                  aria-label={`Повторить ${u.name}`}
+                  title="Повторить"
+                  onClick={() => handles.current.get(u.key)?.resume()}
+                >
+                  <RotateCw className="size-3.5" />
+                </button>
+              )}
               <button
                 type="button"
                 className="rounded p-0.5 hover:bg-muted"
                 aria-label={`Убрать ${u.name}`}
-                onClick={() => setUploads((list) => list.filter((x) => x.key !== u.key))}
+                onClick={() => removeUpload(u.key)}
               >
                 <X className="size-3.5" />
               </button>
               {!u.done && !u.error && (
                 <span
-                  className="absolute bottom-0 left-0 h-0.5 bg-chat-accent transition-[width]"
+                  className={cn(
+                    "absolute bottom-0 left-0 h-0.5 transition-[width]",
+                    u.waiting ? "bg-amber-500" : "bg-chat-accent",
+                  )}
                   style={{ width: `${Math.round(u.progress * 100)}%` }}
                 />
               )}

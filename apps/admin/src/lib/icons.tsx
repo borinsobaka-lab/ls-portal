@@ -140,6 +140,7 @@ import {
   Repeat as RepeatArt,
   Reply as ReplyArt,
   RotateCcw as RotateCcwArt,
+  RotateCw as RotateCwArt,
   Ruler as RulerArt,
   Save as SaveArt,
   Search as SearchArt,
@@ -175,6 +176,7 @@ import {
   Video as VideoArt,
   VkIcon as VkArt,
   Wallet as WalletArt,
+  WifiOff as WifiOffArt,
   X as XArt,
   XCircle as XCircleArt,
 } from "@hugeicons/core-free-icons";
@@ -316,6 +318,7 @@ export const RefreshCw = icon(RefreshCwArt, "RefreshCw");
 export const Repeat = icon(RepeatArt, "Repeat");
 export const Reply = icon(ReplyArt, "Reply");
 export const RotateCcw = icon(RotateCcwArt, "RotateCcw");
+export const RotateCw = icon(RotateCwArt, "RotateCw");
 export const Ruler = icon(RulerArt, "Ruler");
 export const Save = icon(SaveArt, "Save");
 export const Search = icon(SearchArt, "Search");
@@ -351,5 +354,6 @@ export const Users = icon(UsersArt, "Users");
 export const Video = icon(VideoArt, "Video");
 export const Vk = icon(VkArt, "Vk");
 export const Wallet = icon(WalletArt, "Wallet");
+export const WifiOff = icon(WifiOffArt, "WifiOff");
 export const X = icon(XArt, "X");
 export const XCircle = icon(XCircleArt, "XCircle");

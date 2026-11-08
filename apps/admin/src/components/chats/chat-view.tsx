@@ -3,6 +3,11 @@
  * полоса закреплённых (несколько, по кругу), переписка (дни, серии,
  * «Новые сообщения», подгрузка старых вверх, «к последним»), поле ввода.
  * Прочитанным отмечается то, что долистали до низа при открытой вкладке.
+ *
+ * Переписка виртуальная (virtua): в DOM — только сообщения у экрана, поэтому
+ * длинная история не тормозит. Старые сверху — `shift` (место держит сама
+ * библиотека), переходы — по номеру в списке; дата при прокрутке — плашкой
+ * сверху (липкие заголовки дней в виртуальном списке не работают).
  */
 import {
   lazy,
@@ -16,6 +21,7 @@ import {
 } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Virtualizer, type VirtualizerHandle } from "virtua";
 import { ArrowDown, ArrowLeft, BellOff, Info, Loader2, Pin, Search, X } from "lucide-react";
 import { toast } from "sonner";
 
@@ -86,6 +92,7 @@ export function ChatView({
   });
   const pinned = useQuery(chatPinnedQuery(chat.id));
   const scroller = useRef<HTMLDivElement>(null);
+  const list = useRef<VirtualizerHandle>(null);
   const composer = useRef<ComposerHandle>(null);
   const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
   const [editing, setEditing] = useState<ChatMessage | null>(null);
@@ -101,6 +108,9 @@ export function ChatView({
   const [readMark] = useState(chat.last_read_seq);
   const typingSend = useRef<((uid: string) => void) | null>(null);
   const loadingOlder = useRef(false);
+  const [olderBusy, setOlderBusy] = useState(false);
+  const [floatDay, setFloatDay] = useState<string | null>(null);
+  const floatTimer = useRef(0);
   const pendingScroll = useRef<"bottom" | number | null>(focusSeq ?? "bottom");
 
   const messages = useMemo(() => win.data?.messages ?? [], [win.data]);
@@ -136,18 +146,36 @@ export function ChatView({
 
   // ---- Прокрутка ------------------------------------------------------------
 
-  const scrollToSeq = useCallback((seq: number) => {
-    const el = scroller.current?.querySelector<HTMLElement>(`[data-seq="${seq}"]`);
-    if (!el) return false;
-    el.scrollIntoView({ block: "center" });
-    setHighlight(seq);
-    window.setTimeout(() => setHighlight((h) => (h === seq ? null : h)), 2000);
-    return true;
-  }, []);
+  // Старые сообщения добавились сверху — virtua держит место от конца списка.
+  // Только в тот рендер, где прежнее первое сообщение уехало вниз.
+  const prevFirstId = useRef<string | undefined>(undefined);
+  const prevFirstAt = prevFirstId.current
+    ? messages.findIndex((m) => m.id === prevFirstId.current)
+    : -1;
+  const shift = prevFirstAt > 0;
+  useLayoutEffect(() => {
+    prevFirstId.current = messages[0]?.id;
+  }, [messages]);
+
+  const lastIndex = useRef(messages.length - 1);
+  lastIndex.current = messages.length - 1;
+
+  const scrollToSeq = useCallback(
+    (seq: number) => {
+      const i = messages.findIndex((m) => m.seq === seq && !isLocal(m));
+      if (i < 0 || !list.current) return false;
+      list.current.scrollToIndex(i, { align: "center" });
+      setHighlight(seq);
+      window.setTimeout(() => setHighlight((h) => (h === seq ? null : h)), 2000);
+      return true;
+    },
+    [messages],
+  );
 
   const scrollToBottom = useCallback((smooth = false) => {
-    const el = scroller.current;
-    if (el) el.scrollTo({ top: el.scrollHeight, behavior: smooth ? "smooth" : "auto" });
+    if (lastIndex.current < 0) return;
+    // offset — отступ под последним сообщением (pb у прокрутки).
+    list.current?.scrollToIndex(lastIndex.current, { align: "end", smooth, offset: 12 });
   }, []);
 
   // После загрузки окна — к нужному сообщению, к первому непрочитанному или вниз.
@@ -155,13 +183,12 @@ export function ChatView({
     if (!win.data || pendingScroll.current === null) return;
     const target = pendingScroll.current;
     if (target === "bottom") {
-      const firstUnread = messages.find(
+      const firstUnread = messages.findIndex(
         (m) => m.seq > readMark && m.author_id !== me && m.kind === "text",
       );
-      if (firstUnread && lastSeq - readMark > 3) {
-        const el = scroller.current?.querySelector<HTMLElement>(`[data-seq="${firstUnread.seq}"]`);
-        el?.scrollIntoView({ block: "start" });
-      } else scrollToBottom();
+      if (firstUnread >= 0 && lastSeq - readMark > 3)
+        list.current?.scrollToIndex(firstUnread, { align: "start", offset: -48 });
+      else scrollToBottom();
     } else scrollToSeq(target);
     pendingScroll.current = null;
   }, [win.data, messages, readMark, me, lastSeq, scrollToBottom, scrollToSeq]);
@@ -170,12 +197,11 @@ export function ChatView({
   const prevLen = useRef(messages.length);
   const prevFirst = useRef(messages[0]?.seq);
   useLayoutEffect(() => {
-    const el = scroller.current;
     const grew = messages.length > prevLen.current;
     const prepended = messages[0]?.seq !== prevFirst.current;
     prevLen.current = messages.length;
     prevFirst.current = messages[0]?.seq;
-    if (!el || !grew || prepended) return;
+    if (!grew || prepended) return;
     const lastMine = messages.at(-1)?.author_id === me;
     if (atBottom || lastMine) scrollToBottom(true);
   }, [messages, atBottom, me, scrollToBottom]);
@@ -185,22 +211,27 @@ export function ChatView({
     if (!el) return;
     const bottom = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
     setAtBottom(bottom);
+    // Дата сообщения у верхнего края — плашкой, пока листают.
+    const top = list.current && messages.length ? list.current.findItemIndex(el.scrollTop) : -1;
+    const at = top >= 0 ? messages[top] : undefined;
+    if (at && el.scrollTop > 0) {
+      setFloatDay(dayLabel(at.created_at));
+      window.clearTimeout(floatTimer.current);
+      floatTimer.current = window.setTimeout(() => setFloatDay(null), 1200);
+    }
     if (bottom && win.data?.hasNewer) void loadNewer(qc, chat.id);
-    if (el.scrollTop < 300 && win.data?.hasOlder && !loadingOlder.current) {
+    if (el.scrollTop < 400 && win.data?.hasOlder && !loadingOlder.current) {
       loadingOlder.current = true;
-      const before = el.scrollHeight;
+      setOlderBusy(true);
       try {
         await loadOlder(qc, chat.id);
-        // Держим место: подгруженное сверху не сдвигает переписку.
-        requestAnimationFrame(() => {
-          if (scroller.current)
-            scroller.current.scrollTop += scroller.current.scrollHeight - before;
-        });
       } finally {
         loadingOlder.current = false;
+        setOlderBusy(false);
       }
     }
-  }, [qc, chat.id, win.data?.hasOlder, win.data?.hasNewer]);
+  }, [qc, chat.id, messages, win.data?.hasOlder, win.data?.hasNewer]);
+  useEffect(() => () => window.clearTimeout(floatTimer.current), []);
 
   // ---- Прочтение ------------------------------------------------------------
 
@@ -495,75 +526,91 @@ export function ChatView({
         </button>
       )}
 
-      <div
-        ref={scroller}
-        onScroll={() => void onScroll()}
-        className="min-h-0 flex-1 overflow-y-auto pb-3"
-      >
-        {win.isPending ? (
-          <div className="flex h-full items-center justify-center">
-            <Loader2 className="size-5 animate-spin text-muted-foreground" />
-          </div>
-        ) : messages.length === 0 ? (
-          <div className="flex h-full items-center justify-center p-6 text-center text-sm text-muted-foreground">
-            {chat.kind === "self"
-              ? "Пишите сюда заметки и пересылайте важное — видите только вы."
-              : "Сообщений пока нет. Напишите первым!"}
-          </div>
-        ) : (
-          <>
-            {win.data?.hasOlder && (
-              <div className="flex justify-center py-3">
-                <Loader2 className="size-4 animate-spin text-muted-foreground" />
-              </div>
-            )}
-            {messages.map((m, i) => {
-              const prev = messages[i - 1];
-              const newDay = !prev || !sameDay(prev.created_at, m.created_at);
-              const first =
-                newDay ||
-                !prev ||
-                prev.author_id !== m.author_id ||
-                prev.kind === "system" ||
-                new Date(m.created_at).getTime() - new Date(prev.created_at).getTime() >
-                  GROUP_GAP_MS;
-              const unreadStart =
-                m.seq > readMark &&
-                (!prev || prev.seq <= readMark) &&
-                m.author_id !== me &&
-                readMark > 0;
-              return (
-                <div key={m.id}>
-                  {newDay && (
-                    <div className="sticky top-1 z-10 my-2 flex justify-center">
-                      <span className="rounded-full bg-background/90 px-3 py-0.5 text-xs font-medium text-muted-foreground shadow-xs ring-1 ring-border">
-                        {dayLabel(m.created_at)}
-                      </span>
+      <div className="relative flex min-h-0 flex-1 flex-col">
+        <div
+          ref={scroller}
+          onScroll={() => void onScroll()}
+          className="flex min-h-0 flex-1 flex-col overflow-y-auto"
+        >
+          {win.isPending ? (
+            <div className="flex h-full items-center justify-center">
+              <Loader2 className="size-5 animate-spin text-muted-foreground" />
+            </div>
+          ) : messages.length === 0 ? (
+            <div className="flex h-full items-center justify-center p-6 text-center text-sm text-muted-foreground">
+              {chat.kind === "self"
+                ? "Пишите сюда заметки и пересылайте важное — видите только вы."
+                : "Сообщений пока нет. Напишите первым!"}
+            </div>
+          ) : (
+            <>
+              {/* Короткая переписка прижата к низу, как в мессенджерах. */}
+              <div className="flex-1" />
+              <Virtualizer
+                ref={list}
+                scrollRef={scroller}
+                data={messages}
+                shift={shift}
+                bufferSize={600}
+              >
+                {(m, i) => {
+                  const prev = messages[i - 1];
+                  const newDay = !prev || !sameDay(prev.created_at, m.created_at);
+                  const first =
+                    newDay ||
+                    !prev ||
+                    prev.author_id !== m.author_id ||
+                    prev.kind === "system" ||
+                    new Date(m.created_at).getTime() - new Date(prev.created_at).getTime() >
+                      GROUP_GAP_MS;
+                  const unreadStart =
+                    m.seq > readMark &&
+                    (!prev || prev.seq <= readMark) &&
+                    m.author_id !== me &&
+                    readMark > 0;
+                  return (
+                    <div key={m.id}>
+                      {newDay && (
+                        <div className="my-2 flex justify-center">
+                          <span className="rounded-full bg-background/90 px-3 py-0.5 text-xs font-medium text-muted-foreground shadow-xs ring-1 ring-border">
+                            {dayLabel(m.created_at)}
+                          </span>
+                        </div>
+                      )}
+                      {unreadStart && (
+                        <div className="my-2 flex items-center gap-3 px-4 text-xs font-medium text-chat-accent">
+                          <span className="h-px flex-1 bg-chat-accent/40" /> Новые сообщения{" "}
+                          <span className="h-px flex-1 bg-chat-accent/40" />
+                        </div>
+                      )}
+                      <MessageItem
+                        m={m}
+                        me={me}
+                        first={first}
+                        showAuthor={chat.kind === "group"}
+                        readByOthers={othersRead >= m.seq}
+                        highlighted={highlight === m.seq}
+                        canPin={canPin}
+                        canDelete={m.author_id === me || (chat.kind === "group" && isAdmin)}
+                        name={name}
+                        avatar={(id) => person(id)?.avatar_url ?? null}
+                        actions={actions}
+                      />
                     </div>
-                  )}
-                  {unreadStart && (
-                    <div className="my-2 flex items-center gap-3 px-4 text-xs font-medium text-chat-accent">
-                      <span className="h-px flex-1 bg-chat-accent/40" /> Новые сообщения{" "}
-                      <span className="h-px flex-1 bg-chat-accent/40" />
-                    </div>
-                  )}
-                  <MessageItem
-                    m={m}
-                    me={me}
-                    first={first}
-                    showAuthor={chat.kind === "group"}
-                    readByOthers={othersRead >= m.seq}
-                    highlighted={highlight === m.seq}
-                    canPin={canPin}
-                    canDelete={m.author_id === me || (chat.kind === "group" && isAdmin)}
-                    name={name}
-                    avatar={(id) => person(id)?.avatar_url ?? null}
-                    actions={actions}
-                  />
-                </div>
-              );
-            })}
-          </>
+                  );
+                }}
+              </Virtualizer>
+              <div className="h-3 shrink-0" />
+            </>
+          )}
+        </div>
+        {(floatDay || olderBusy) && messages.length > 0 && (
+          <div className="pointer-events-none absolute inset-x-0 top-2 z-10 flex justify-center">
+            <span className="flex items-center gap-1.5 rounded-full bg-background/90 px-3 py-0.5 text-xs font-medium text-muted-foreground shadow-xs ring-1 ring-border">
+              {olderBusy && <Loader2 className="size-3 animate-spin" />}
+              {floatDay ?? "Загружаем…"}
+            </span>
+          </div>
         )}
       </div>
 

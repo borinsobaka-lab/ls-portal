@@ -166,7 +166,7 @@ export const MessageItem = memo(function MessageItem(p: Props) {
   const bubble = (
     <div
       className={cn(
-        "group/msg relative max-w-[min(36rem,85%)] rounded-2xl px-3 py-1.5 shadow-xs",
+        "group/msg relative max-w-full rounded-2xl px-3 py-1.5 shadow-xs",
         mine ? "rounded-br-md bg-chat-mine" : "rounded-bl-md bg-background",
         highlighted && "ring-2 ring-chat-accent",
         local === "failed" && "ring-1 ring-destructive",
@@ -311,7 +311,14 @@ export const MessageItem = memo(function MessageItem(p: Props) {
           )}
         </span>
       )}
-      <div className={cn("flex min-w-0 flex-col", mine ? "items-end" : "items-start")}>
+      <div
+        className={cn(
+          // Ширину ограничивает колонка: проценты у самого пузыря считались бы
+          // от ширины его же текста — короткие строки переносились.
+          "flex max-w-[min(36rem,85%)] min-w-0 flex-col",
+          mine ? "items-end" : "items-start",
+        )}
+      >
         {items.length > 0 ? (
           <ContextMenu>
             <ContextMenuTrigger asChild>{bubble}</ContextMenuTrigger>

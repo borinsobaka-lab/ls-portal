@@ -494,6 +494,14 @@ https://github.com/borinsobaka-lab/ls-portal`):
 4. Файлы чатов — закрытый бакет `chat-files` (до 200 МБ на файл, как
    `kb-media`; общий лимит Storage `FILE_SIZE_LIMIT` — шаг 6) — входит в
    ежедневный архив файлов (шаг 10).
+5. Докачка файлов чатов (портал 1.62) — протокол TUS у Storage,
+   `https://<API>/storage/v1/upload/resumable` (в self-hosted включён по
+   умолчанию). Проверка: `curl -si -X OPTIONS
+   https://<API>/storage/v1/upload/resumable` — в ответе заголовок
+   `Tus-Resumable: 1.0.0` и `Tus-Version`. Прокси перед API (Kong,
+   Coolify/Traefik) пропускает методы `PATCH`, `HEAD`, `DELETE` и тело
+   запроса до 6 МБ (кусок TUS). Нет TUS (404/405) — портал сам грузит
+   файл одним запросом, как раньше, но без докачки.
 
 ## Отчёт владельцу
 
