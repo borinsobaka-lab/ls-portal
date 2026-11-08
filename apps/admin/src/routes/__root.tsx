@@ -122,15 +122,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: appCss,
       },
-      // Фавикон — белая «A» на тёмном с градиентным свечением, один на весь портал
-      // (решение владельца 2026-10-26; раньше — гимнастка в шпагате, до неё —
-      // круг по формату клуба). png 32/180 — вкладка и HiDPI, ico — фолбэк (часть
+      // Фавикон — логотип LadyFitPro «LFP» со скруглёнными углами, один на весь
+      // портал (решение владельца 2026-11-08; раньше — белая «A» со свечением,
+      // гимнастка в шпагате, круг по формату клуба). png 32/180 — вкладка и HiDPI, ico — фолбэк (часть
       // браузеров дёргает /favicon.ico напрямую, минуя разметку). ?v= —
       // сбросить закэшированную браузерами прежнюю иконку.
-      { rel: "icon", type: "image/png", sizes: "32x32", href: "/favicon-32.png?v=6" },
-      { rel: "icon", type: "image/png", sizes: "180x180", href: "/apple-touch-icon.png?v=6" },
-      { rel: "icon", href: "/favicon.ico?v=6", sizes: "any" },
-      { rel: "apple-touch-icon", href: "/apple-touch-icon.png?v=6" },
+      { rel: "icon", type: "image/png", sizes: "32x32", href: "/favicon-32.png?v=7" },
+      { rel: "icon", type: "image/png", sizes: "180x180", href: "/apple-touch-icon.png?v=7" },
+      { rel: "icon", href: "/favicon.ico?v=7", sizes: "any" },
+      { rel: "apple-touch-icon", href: "/apple-touch-icon.png?v=7" },
       { rel: "manifest", href: "/manifest.webmanifest" },
     ],
   }),
