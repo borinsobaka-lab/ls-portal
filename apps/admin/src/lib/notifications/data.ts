@@ -34,6 +34,8 @@ export type PortalSettings = {
   quiet_from: string;
   quiet_to: string;
   quiet_weekends: boolean;
+  /** Куда уходят письма-уведомления (null — у человека нет почты). */
+  email: string | null;
 };
 
 export type PushDeviceRow = {

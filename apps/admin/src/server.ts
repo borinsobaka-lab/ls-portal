@@ -5,6 +5,7 @@ import { startChatCallSweep } from "./lib/chats/calls-sweep.server";
 import { startChatScheduledWorker } from "./lib/chats/scheduled.server";
 import { errorResponse } from "./lib/error-page";
 import { startKbTrashPurge } from "./lib/kb/trash-purge.server";
+import { startPortalEmailWorker } from "./lib/notifications/portal-email-worker.server";
 import { startPortalPushWorker } from "./lib/notifications/portal-push-worker.server";
 import { startPushWorker } from "./lib/push/push-worker.server";
 import { startStorageCleanup } from "./lib/storage-cleanup.server";
@@ -18,6 +19,8 @@ import { startTaskWorker } from "./lib/tasks/worker.server";
 startPushWorker();
 // Пуши сотрудникам (чаты, задачи, упоминания) — своя очередь, проход раз в 2 с.
 startPortalPushWorker();
+// Уведомления портала на почту (у вида включена «Почта») — раз в 10 с.
+startPortalEmailWorker();
 // Задачи: срок через час, просрочка, напоминания, сводка; календарь.
 startTaskWorker();
 // Видеозвонки чатов: сроки звонков и удаление комнат Kinescope.

@@ -21,7 +21,7 @@ Tailwind 4 + shadcn/radix. Пакетный менеджер — bun.
   содержимое пуша `lib/push/payload.test.ts`, каталог триггеров
   `lib/push-triggers.test.ts`; сортировка таблиц — `lib/table-sort.test.ts`;
   вкладка «Приложение» карточки клиента —
-  `lib/client-app.test.ts`; версия админки — `lib/app-version.test.ts`; возврат после входа —
+  `lib/client-app.test.ts`; версия админки — `lib/app-version.test.ts`; уведомления портала — виды, каналы, пуш и письмо `lib/notifications/notifications.test.ts`; возврат после входа —
   `lib/auth-redirect.test.ts`; пароли входа по логину Platrum —
   `lib/password.test.ts`;
   подробные отчёты плиток дашборда — `lib/dashboard-details.test.ts`;
@@ -1552,9 +1552,20 @@ CLAUDE.md (`2026-11-07_zz_portal_notifications.sql`).
   `admin-shell.tsx`: рейка там в шторке). Страницы — `/notifications`
   (лента, «Прочитать все») и `/notifications/settings` (пуши на этом
   устройстве и «Прислать проверочное», установка приложения, «Не
-  беспокоить», тихие часы, что присылать пушем, часовой пояс, свои
-  устройства). Виды уведомлений и пуш по умолчанию —
-  `lib/notifications/kinds.ts` (тест сверяет с `notif_default_push`).
+  беспокоить», тихие часы, «Что и куда присылать» — у каждого вида
+  переключатели «Пуш» и «Почта», часовой пояс, свои устройства). Виды
+  уведомлений и пуш по умолчанию — `lib/notifications/kinds.ts` (тест
+  сверяет с `notif_default_push`; почта по умолчанию выключена у всех —
+  `withChannel` / `emailEnabled`).
+- **Письма-уведомления** (решение владельца 2026-11-08) — фоновый цикл
+  `lib/notifications/portal-email-worker.server.ts` (раз в 10 с из
+  `server.ts`, очередь `portal_email_deliveries`, отправка — общий
+  `sendMail` по SMTP, по 2 письма сразу; почта не настроена — очередь
+  ждёт; `PUSH_WORKER=off` выключает), письмо — `lib/notifications/email.ts`
+  (+ тест: светлое письмо портала, «Открыть в портале» — `ADMIN_APP_URL` +
+  путь, «Настроить уведомления»). В настройках — адрес, куда уходят письма,
+  и «Прислать проверочное письмо» (`notif_test_email`). Лимит почтового
+  хостинга — 3000 писем в сутки на всё, включая коды входа.
 - **Пуши сотрудникам** — Web Push, как у клиентов: подписка браузера —
   `lib/notifications/push-client.ts` (разрешение только по нажатию; iPhone —
   только у установленного портала), рассылка — фоновый цикл

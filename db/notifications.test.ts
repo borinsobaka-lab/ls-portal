@@ -366,4 +366,124 @@ describe.skipIf(!url)("уведомления портала (база)", () => 
       expect((await tx`select * from notif_items where id = ${id}`).length).toBe(0);
     });
   });
+  // Уведомления на почту (2026-11-08_zzzzzzzzzzzz_notif_email.sql).
+  const mails = async (tx: Tx, to: string) =>
+    await tx`select * from portal_email_deliveries where user_id = ${to} order by created_at`;
+
+  test("почта: по умолчанию выключена, включается по виду, пуш и почта независимы", async () => {
+    await scenario(async (tx) => {
+      const a = await staff(tx);
+      await device(tx, a);
+      await send(tx, a);
+      expect((await mails(tx, a)).length).toBe(0);
+      expect(await queued(tx, a)).toBe(1);
+
+      // Только почта.
+      await as(tx, a);
+      const [{ portal_settings_save: saved }] =
+        await tx`select portal_settings_save(${{ prefs: { "chat.direct": { push: false, email: true }, "chat.mention": { email: false } } }}::jsonb)`;
+      // Отличие от умолчания хранится, совпадение — тоже без вреда.
+      expect(saved.prefs["chat.direct"]).toEqual({ push: false, email: true });
+      expect(saved.email).toMatch(/@example\.com$/);
+      await asServer(tx);
+      await send(tx, a, "chat.direct");
+      expect(await queued(tx, a)).toBe(1);
+      const list = await mails(tx, a);
+      expect(list.length).toBe(1);
+      expect(list[0]).toMatchObject({ kind: "chat.direct", title: "Анна", body: "Привет", url: "/chats/1" });
+
+      // И то и другое.
+      await as(tx, a);
+      await tx`select portal_settings_save(${{ prefs: { "chat.direct": { email: true } } }}::jsonb)`;
+      await asServer(tx);
+      await send(tx, a, "chat.direct");
+      expect(await queued(tx, a)).toBe(2);
+      expect((await mails(tx, a)).length).toBe(2);
+
+      // Ничего: в ленте — есть, пуша и письма нет.
+      await as(tx, a);
+      await tx`select portal_settings_save(${{ prefs: { "chat.direct": { push: false } } }}::jsonb)`;
+      await asServer(tx);
+      const [{ id }] = await send(tx, a, "chat.direct");
+      expect(id).toBeTruthy();
+      expect(await queued(tx, a)).toBe(2);
+      expect((await mails(tx, a)).length).toBe(2);
+    });
+  });
+
+  test("почта: одно письмо на непрочитанную пачку, не тому, кто на портале, не без почты", async () => {
+    await scenario(async (tx) => {
+      const a = await staff(tx);
+      await as(tx, a);
+      await tx`select portal_settings_save(${{ prefs: { "chat.direct": { email: true } } }}::jsonb)`;
+      await asServer(tx);
+      // Скрытая строка чата (как у личных сообщений) — письмо есть, продолжение пачки — нет.
+      const direct = () =>
+        tx`select notif_send_ex(${a}, 'chat.direct', 'Анна', 'Привет', '/chats/1', null, 'chat:1', false, false) as id`;
+      const [{ id: first }] = await direct();
+      await direct();
+      expect((await mails(tx, a)).length).toBe(1);
+      await tx`update notif_items set read_at = now() where id = ${first}`;
+      await direct();
+      expect((await mails(tx, a)).length).toBe(2);
+
+      // Смотрит на портал — письма нет.
+      await as(tx, a);
+      await tx`select portal_ping(true)`;
+      await asServer(tx);
+      await send(tx, a, "chat.direct");
+      expect((await mails(tx, a)).length).toBe(2);
+      await tx`update portal_presence set last_active_at = now() - interval '5 minutes' where user_id = ${a}`;
+
+      // «Не беспокоить» письма не держит.
+      await as(tx, a);
+      await tx`select portal_settings_save(${{ dnd_until: new Date(Date.now() + 3600_000).toISOString() }}::jsonb)`;
+      await asServer(tx);
+      await send(tx, a, "chat.direct");
+      expect((await mails(tx, a)).length).toBe(3);
+
+      // Без настоящей почты — нет.
+      await tx`update auth.users set email = ${`nomail-${a}@no-email.invalid`} where id = ${a}`;
+      await tx`update profiles set email = null where id = ${a}`;
+      await send(tx, a, "chat.direct");
+      expect((await mails(tx, a)).length).toBe(3);
+      await as(tx, a);
+      expect(await failure(tx, () => tx`select notif_test_email()`)).toContain("notif_no_email");
+    });
+  });
+
+  test("почта: очередь серверу, итог, повторы, проверочное письмо", async () => {
+    await scenario(async (tx) => {
+      const a = await staff(tx, "Иванова Анна");
+      await as(tx, a);
+      const [{ notif_test_email: addr }] = await tx`select notif_test_email()`;
+      expect(addr).toMatch(/@example\.com$/);
+      expect(await failure(tx, () => tx`select notif_test_email()`)).toContain("rate_limit");
+      // Браузеру очередь закрыта.
+      expect(await failure(tx, () => tx`select * from portal_email_claim(10)`)).toContain("permission");
+      expect(await failure(tx, () => tx`select * from portal_email_deliveries`)).toContain("permission");
+      await asServer(tx);
+
+      const batch = await tx`select * from portal_email_claim(10)`;
+      expect(batch.length).toBe(1);
+      expect(batch[0]).toMatchObject({ email: addr, kind: "test", user_name: "Иванова Анна" });
+      expect((await tx`select * from portal_email_claim(10)`).length).toBe(0);
+      await tx`select portal_email_finish(${[{ id: batch[0].delivery_id, result: "retry", error: "421" }]}::jsonb)`;
+      const again = await tx`select * from portal_email_claim(10)`;
+      expect(again.length).toBe(1);
+      await tx`select portal_email_finish(${[{ id: again[0].delivery_id, result: "sent" }]}::jsonb)`;
+      const [row] = await tx`select status, attempts, sent_at, error from portal_email_deliveries where id = ${again[0].delivery_id}`;
+      expect(row.status).toBe("sent");
+      expect(row.attempts).toBe(2);
+      expect(row.error).toBeNull();
+
+      // Письмо старше суток не уходит — уборка отмечает его неудачным.
+      await tx`insert into portal_email_deliveries (user_id, email, kind, title, created_at)
+               values (${a}, 'x@example.com', 'test', 'Старое', now() - interval '2 days')`;
+      expect((await tx`select * from portal_email_claim(10)`).length).toBe(0);
+      await tx`select notif_housekeeping()`;
+      const [old] = await tx`select status from portal_email_deliveries where title = 'Старое'`;
+      expect(old.status).toBe("failed");
+    });
+  });
 });

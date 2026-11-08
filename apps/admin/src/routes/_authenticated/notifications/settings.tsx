@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { BellOff, Download, Loader2, Share, Smartphone, Trash2 } from "lucide-react";
+import { BellOff, Download, Loader2, Mail, Share, Smartphone, Trash2 } from "lucide-react";
 import { addDays, format, set } from "date-fns";
 import { ru } from "date-fns/locale";
 import { toast } from "sonner";
@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { FormField, InfoNote, SwitchRow } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -32,7 +33,14 @@ import {
   type PortalSettings,
 } from "@/lib/notifications/data";
 import { promptInstall, useCanInstall } from "@/lib/notifications/install";
-import { NOTIF_KINDS, pushEnabled, withPush } from "@/lib/notifications/kinds";
+import {
+  emailEnabled,
+  emailKindsCount,
+  NOTIF_KINDS,
+  pushEnabled,
+  withChannel,
+  type NotifChannel,
+} from "@/lib/notifications/kinds";
 import {
   enablePush,
   hasPushSubscription,
@@ -46,7 +54,8 @@ import { deviceLabel, RU_TIMEZONES, timezoneLabel } from "@/lib/notifications/se
 /**
  * Настройки уведомлений (TASKS_CHATS_PLAN.md, «Уведомления», боли № 8, 15,
  * 38 брифа): пуши на этом устройстве и установка приложения, «Не
- * беспокоить» разово и по расписанию, какие события присылать пушем,
+ * беспокоить» разово и по расписанию, какие события присылать пушем и
+ * какие — письмом на почту (2026-11-08; почта по умолчанию выключена),
  * часовой пояс (по нему — тихие часы и сроки задач), свои устройства.
  * В ленту портала уведомления приходят всегда.
  */
@@ -355,33 +364,101 @@ function DndCard({ settings, update }: { settings: PortalSettings; update: Updat
   );
 }
 
-// ---- Какие пуши ---------------------------------------------------------------
+// ---- Что и куда присылать ----------------------------------------------------
 
 function KindsCard({ settings, update }: { settings: PortalSettings; update: Update }) {
   const kinds = NOTIF_KINDS.filter((k) => !k.hidden);
   const groups = [...new Set(kinds.map((k) => k.group))];
+  const set = (key: string, channel: NotifChannel, on: boolean) =>
+    void update({ prefs: withChannel(settings.prefs, key, channel, on) });
+  const noEmail = !settings.email;
   return (
     <Section
-      title="Что присылать пушем"
-      description="В «Уведомления» на портале приходит всё — здесь только пуши на телефон и компьютер."
+      title="Что и куда присылать"
+      description="В «Уведомления» на портале приходит всё. Здесь — что дублировать пушем на телефон и компьютер и что письмом на почту: можно одно, оба или ничего."
     >
+      <EmailNote settings={settings} />
       {groups.map((group) => (
         <div key={group} className="space-y-2">
-          <h3 className="text-sm font-semibold text-muted-foreground">{group}</h3>
+          <div className="flex items-end gap-3 px-3">
+            <h3 className="flex-1 text-sm font-semibold text-muted-foreground">{group}</h3>
+            <span className="w-14 text-center text-xs text-muted-foreground">Пуш</span>
+            <span className="w-14 text-center text-xs text-muted-foreground">Почта</span>
+          </div>
           {kinds
             .filter((k) => k.group === group)
             .map((k) => (
-              <SwitchRow
-                key={k.key}
-                title={k.label}
-                hint={k.hint}
-                checked={pushEnabled(settings.prefs, k.key)}
-                onCheckedChange={(v) => void update({ prefs: withPush(settings.prefs, k.key, v) })}
-              />
+              <div key={k.key} className="flex items-center gap-3 rounded-md border p-3">
+                <span className="flex-1 space-y-0.5">
+                  <span className="block text-sm font-medium">{k.label}</span>
+                  {k.hint && <span className="block text-xs text-muted-foreground">{k.hint}</span>}
+                </span>
+                <span className="flex w-14 justify-center">
+                  <Switch
+                    aria-label={`${k.label}: пуш`}
+                    checked={pushEnabled(settings.prefs, k.key)}
+                    onCheckedChange={(v) => set(k.key, "push", v)}
+                  />
+                </span>
+                <span className="flex w-14 justify-center">
+                  <Switch
+                    aria-label={`${k.label}: почта`}
+                    checked={emailEnabled(settings.prefs, k.key)}
+                    disabled={noEmail && !emailEnabled(settings.prefs, k.key)}
+                    onCheckedChange={(v) => set(k.key, "email", v)}
+                  />
+                </span>
+              </div>
             ))}
         </div>
       ))}
     </Section>
+  );
+}
+
+/** Куда уходят письма и проверочное письмо. */
+function EmailNote({ settings }: { settings: PortalSettings }) {
+  const [busy, setBusy] = useState(false);
+  if (!settings.email) {
+    return (
+      <InfoNote>
+        У вашей учётной записи нет почты — письма-уведомления отправлять некуда. Почту указывают в
+        «Пользователях и ролях».
+      </InfoNote>
+    );
+  }
+  const test = async () => {
+    setBusy(true);
+    try {
+      const to = await unwrap<string>(supabase.rpc("notif_test_email"));
+      toast.success(`Отправили на ${to}. Письмо придёт в течение минуты`);
+    } catch (e) {
+      const message = (e as Error).message;
+      toast.error(
+        message.includes("rate_limit")
+          ? "Проверочное письмо — не чаще раза в минуту"
+          : message.includes("notif_no_email")
+            ? "У вашей учётной записи нет почты"
+            : message,
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="flex flex-wrap items-center gap-3 rounded-md bg-muted/50 p-3 text-sm">
+      <Mail className="size-4 text-muted-foreground" />
+      <span className="flex-1">
+        Письма уходят на <span className="font-medium">{settings.email}</span>
+        {emailKindsCount(settings.prefs) === 0 && (
+          <span className="text-muted-foreground"> — сейчас ни одно уведомление не выбрано</span>
+        )}
+        . «Не беспокоить» и тихие часы письма не задерживают; пока вы на портале, писем нет.
+      </span>
+      <Button variant="outline" disabled={busy} onClick={() => void test()}>
+        {busy && <Loader2 className="animate-spin" />} Прислать проверочное письмо
+      </Button>
+    </div>
   );
 }
 

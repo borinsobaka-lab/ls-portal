@@ -170,20 +170,59 @@ export const NOTIF_KINDS: NotifKind[] = [
 
 export const NOTIF_KIND_BY_KEY = new Map(NOTIF_KINDS.map((k) => [k.key, k]));
 
-/** Пуш включён у вида: настройка человека, иначе умолчание. */
-export function pushEnabled(prefs: NotifPrefs, key: string): boolean {
-  const own = prefs[key]?.push;
-  if (typeof own === "boolean") return own;
+/** Канал доставки уведомления помимо ленты портала. */
+export type NotifChannel = "push" | "email";
+
+/**
+ * Настройки видов — только отличия от умолчаний (их хранит база,
+ * portal_user_settings.prefs): пуш по умолчанию — `defaultPush` вида, почта
+ * по умолчанию выключена у всех видов (решение владельца 2026-11-08: не
+ * засорять почту тем, кто её не читает; notif_email_allowed в базе).
+ */
+export type NotifPrefs = Record<string, { push?: boolean; email?: boolean }>;
+
+function channelDefault(key: string, channel: NotifChannel): boolean {
+  if (channel === "email") return false;
   return NOTIF_KIND_BY_KEY.get(key)?.defaultPush ?? true;
 }
 
-export type NotifPrefs = Record<string, { push: boolean }>;
+/** Канал включён у вида: настройка человека, иначе умолчание. */
+export function channelEnabled(prefs: NotifPrefs, key: string, channel: NotifChannel): boolean {
+  const own = prefs[key]?.[channel];
+  return typeof own === "boolean" ? own : channelDefault(key, channel);
+}
 
-/** Отличия от умолчаний — то, что хранит база. */
-export function withPush(prefs: NotifPrefs, key: string, push: boolean): NotifPrefs {
+/** Пуш включён у вида. */
+export function pushEnabled(prefs: NotifPrefs, key: string): boolean {
+  return channelEnabled(prefs, key, "push");
+}
+
+/** Письмо на почту включено у вида. */
+export function emailEnabled(prefs: NotifPrefs, key: string): boolean {
+  return channelEnabled(prefs, key, "email");
+}
+
+/** Включить или выключить канал вида; хранятся только отличия от умолчаний. */
+export function withChannel(
+  prefs: NotifPrefs,
+  key: string,
+  channel: NotifChannel,
+  on: boolean,
+): NotifPrefs {
   const next = { ...prefs };
-  const def = NOTIF_KIND_BY_KEY.get(key)?.defaultPush ?? true;
-  if (push === def) delete next[key];
-  else next[key] = { push };
+  const own = { ...next[key] };
+  if (on === channelDefault(key, channel)) delete own[channel];
+  else own[channel] = on;
+  if (Object.keys(own).length === 0) delete next[key];
+  else next[key] = own;
   return next;
+}
+
+export function withPush(prefs: NotifPrefs, key: string, push: boolean): NotifPrefs {
+  return withChannel(prefs, key, "push", push);
+}
+
+/** Сколько видов (из показываемых в настройках) уходит на почту. */
+export function emailKindsCount(prefs: NotifPrefs): number {
+  return NOTIF_KINDS.filter((k) => !k.hidden && emailEnabled(prefs, k.key)).length;
 }

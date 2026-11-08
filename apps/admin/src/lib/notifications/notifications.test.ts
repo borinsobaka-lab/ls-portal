@@ -2,7 +2,15 @@ import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, test } from "bun:test";
 
 import { MAX_PAYLOAD_BYTES } from "@/lib/push/payload";
-import { NOTIF_KINDS, pushEnabled, withPush } from "./kinds";
+import { buildPortalEmail, portalLink } from "./email";
+import {
+  emailEnabled,
+  emailKindsCount,
+  NOTIF_KINDS,
+  pushEnabled,
+  withChannel,
+  withPush,
+} from "./kinds";
 import { buildPortalPushPayload, portalPath } from "./push-payload";
 
 // Актуальное определение notif_default_push — в последней по имени миграции,
@@ -44,6 +52,22 @@ describe("виды уведомлений", () => {
     expect(pushEnabled(prefs, "chat.group")).toBe(false);
     expect(pushEnabled({}, "chat.direct")).toBe(true);
     expect(pushEnabled({}, "unknown.kind")).toBe(true);
+  });
+
+  test("почта: по умолчанию выключена, каналы хранятся независимо", () => {
+    expect(NOTIF_KINDS.every((k) => !emailEnabled({}, k.key))).toBe(true);
+    expect(emailKindsCount({})).toBe(0);
+    let prefs = withChannel({}, "chat.direct", "email", true);
+    expect(prefs).toEqual({ "chat.direct": { email: true } });
+    prefs = withChannel(prefs, "chat.direct", "push", false);
+    expect(prefs).toEqual({ "chat.direct": { email: true, push: false } });
+    expect(emailEnabled(prefs, "chat.direct")).toBe(true);
+    expect(pushEnabled(prefs, "chat.direct")).toBe(false);
+    expect(emailKindsCount(prefs)).toBe(1);
+    prefs = withChannel(prefs, "chat.direct", "email", false);
+    expect(prefs).toEqual({ "chat.direct": { push: false } });
+    prefs = withChannel(prefs, "chat.direct", "push", true);
+    expect(prefs).toEqual({});
   });
 });
 
@@ -104,5 +128,37 @@ describe("настройки", () => {
       ),
     ).toBe("Яндекс Браузер · Android");
     expect(deviceLabel(null)).toBe("Устройство");
+  });
+});
+
+describe("письмо-уведомление", () => {
+  const env = { ADMIN_APP_URL: "https://portal.ladyfitpro.ru/" };
+  const row = {
+    kind: "task.assigned",
+    title: "Новая задача #12",
+    body: "Анна: <b>сделать</b>\nотчёт",
+    url: "/tasks/12",
+    user_name: "Иванова Анна",
+  };
+
+  test("тема, ссылка на портал, экранирование", () => {
+    const mail = buildPortalEmail(row, env);
+    expect(mail.subject).toBe("Новая задача #12 — LadyFitPro");
+    expect(mail.html).toContain('href="https://portal.ladyfitpro.ru/tasks/12"');
+    expect(mail.html).toContain("https://portal.ladyfitpro.ru/notifications/settings");
+    expect(mail.html).toContain("&lt;b&gt;сделать&lt;/b&gt;<br>отчёт");
+    expect(mail.html).not.toContain("<b>сделать");
+    expect(mail.html).toContain("Мне поставили задачу");
+    expect(mail.text).toContain("Открыть в портале: https://portal.ladyfitpro.ru/tasks/12");
+  });
+
+  test("внешняя ссылка и портал без адреса", () => {
+    expect(portalLink("https://evil.example", env)).toBe(
+      "https://portal.ladyfitpro.ru/notifications",
+    );
+    expect(portalLink("//evil.example", env)).toBe("https://portal.ladyfitpro.ru/notifications");
+    expect(portalLink("/x", {})).toBeNull();
+    const mail = buildPortalEmail({ ...row, url: null }, {});
+    expect(mail.html).not.toContain("Открыть в портале");
   });
 });

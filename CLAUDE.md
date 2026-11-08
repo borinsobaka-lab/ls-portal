@@ -1415,6 +1415,22 @@ DEPLOY.md.
   `_finish`, `notif_housekeeping`. Справочник — `company_people`,
   `company_structure` (любому `is_portal_user`: партнёры видят друг друга).
   Тесты — `db/notifications.test.ts`.
+  **Уведомления на почту** (решение владельца 2026-11-08):
+  `db/migrations/2026-11-08_zzzzzzzzzzzz_notif_email.sql` — у каждого вида
+  два канала: пуш и почта (`prefs`: `{"<вид>": {"push": bool, "email":
+  bool}}`, только отличия от умолчаний; почта по умолчанию выключена у всех
+  видов — `notif_email_allowed`). Очередь писем `portal_email_deliveries`
+  (снимок заголовка, текста, ссылки и адрес — `notif_email_address`: почта
+  входа, иначе профиля, без `…@no-email.invalid`) ставит `notif_send_ex`:
+  не тому, кто сейчас на портале, и одно письмо на непрочитанную пачку
+  (продолжение сгруппированной строки — без письма); «Не беспокоить» и
+  тихие часы письма не держат. Отправляет сервер портала —
+  `portal_email_claim` / `portal_email_finish` (только service_role; до 3
+  попыток, старше суток — не уходит), проверочное письмо —
+  `notif_test_email` (раз в минуту). Актуальные определения
+  `portal_settings_get` / `_save` (+ `email` — куда уходят письма),
+  `notif_send_ex`, `notif_housekeeping` — здесь. Тесты —
+  `db/notifications.test.ts`.
   **Чаты портала** (TASKS_CHATS_PLAN.md, веха 2, 2026-11-08; переписку из
   Битрикс24 не переносим): `db/migrations/2026-11-08_chats.sql` — чаты
   `chat_chats` (`direct` — пара людей по `direct_key`, `group`, `self` —
