@@ -1691,6 +1691,25 @@ TASKS_CHATS_PLAN.md, веха 2. Схема — корневой CLAUDE.md
   `sourceText` в `lib/chats/content.ts`, данные — `chatSourcesQuery`,
   `createChatEx`, `saveChatSources`, `ackMessage`, `ackListQuery`,
   `remindAck` в `lib/chats/data.ts`.
+- **Отложенные сообщения и опросы** (этап 2, 2026-11-08; схема —
+  `2026-11-08_zzzzzz_chat_scheduled_polls.sql`): скрепка в поле ввода —
+  меню «Файлы и фото», «Опрос», «Отправить позже…»; «Отправить позже» —
+  и правой кнопкой (на телефоне — долгим нажатием) по кнопке отправки
+  (`composer.tsx`: `onSchedule`, `onPoll`). Окно времени — `ScheduleDialog`
+  (`chat-extras.tsx`: через час, сегодня в 18:00, завтра и в понедельник в
+  9:00, своё время; время браузера, подписи — `scheduleOptions` /
+  `scheduledLabel` в `lib/chats/content.ts`), над полем — `ScheduledBar`
+  («Запланировано: N» / «Не отправлено» → список: отправить сейчас, другое
+  время, удалить; `?scheduled=1` открывает его — ссылка из уведомления).
+  Отправляет сервер — `lib/chats/scheduled.server.ts` (раз в 20 с,
+  `PUSH_WORKER=off` выключает). Опрос — `PollDialog` и `PollView` в
+  сообщении (до голоса — варианты, после или у закрытого — проценты, у
+  неанонимного — кто выбрал; «Отозвать голос», «Закрыть опрос» — автору и
+  админам); опрос не правится. Данные — `scheduledQuery`,
+  `scheduleMessage`, `rescheduleMessage`, `deleteScheduled`,
+  `sendScheduledNow`, `createPoll`, `votePoll`, `closePoll` в
+  `lib/chats/data.ts`. Адрес «Чатов» (`lib/chats/search-params.ts`)
+  принимает все системные папки (раньше `?f=project` / `task` терялись).
 
 ### Задачи (2026-11-08)
 

@@ -120,6 +120,39 @@ export type ChatMessage = {
   deleted: boolean;
   /** «Прочитал» у поста канала: отметили из тех, кто был в чате. */
   ack?: { count: number; total: number; mine: boolean } | null;
+  /** Опрос (сообщение «Опрос: …»). */
+  poll?: ChatPoll | null;
+};
+
+export type ChatPoll = {
+  question: string;
+  multiple: boolean;
+  anonymous: boolean;
+  closed: boolean;
+  /** Сколько людей проголосовало. */
+  voters: number;
+  options: {
+    id: string;
+    text: string;
+    count: number;
+    mine: boolean;
+    /** Кто выбрал (у неанонимного, до 50). */
+    users: string[] | null;
+  }[];
+};
+
+/** Отложенное сообщение (видит только автор). */
+export type ChatScheduled = {
+  id: string;
+  chat_id: string;
+  content: ChatDoc | null;
+  text: string;
+  reply_to_seq: number | null;
+  attachments: ChatAttachment[];
+  send_at: string;
+  status: "pending" | "failed";
+  error: string | null;
+  created_at: string;
 };
 
 export type ChatMember = {

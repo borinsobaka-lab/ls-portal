@@ -33,6 +33,7 @@ import {
   AtSign as AtSignArt,
   BanIcon as BanArt,
   Banknote as BanknoteArt,
+  BarChart as BarChart3Art,
   Bell as BellArt,
   BellOff as BellOffArt,
   Bold as BoldArt,
@@ -222,6 +223,7 @@ export const ArrowUpRight = icon(ArrowUpRightArt, "ArrowUpRight");
 export const AtSign = icon(AtSignArt, "AtSign");
 export const Ban = icon(BanArt, "Ban");
 export const Banknote = icon(BanknoteArt, "Banknote");
+export const BarChart3 = icon(BarChart3Art, "BarChart3");
 export const Bell = icon(BellArt, "Bell");
 export const BellOff = icon(BellOffArt, "BellOff");
 export const Bold = icon(BoldArt, "Bold");

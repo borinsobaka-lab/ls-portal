@@ -20,7 +20,9 @@ import StarterKit from "@tiptap/starter-kit";
 import Mention from "@tiptap/extension-mention";
 import { Placeholder } from "@tiptap/extensions";
 import {
+  BarChart3,
   Bold,
+  Clock,
   Code,
   Italic,
   Link2,
@@ -42,10 +44,11 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { ScheduleDialog } from "@/components/chats/chat-extras";
 import { StaffAvatar } from "@/components/employee-photo";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { docText } from "@/lib/chats/content";
+import { docText, scheduledLabel } from "@/lib/chats/content";
 import { formatFileSize, startChatUpload, type ChatUpload } from "@/lib/chats/files";
 import type { ChatAttachment, ChatDoc, ChatMessage } from "@/lib/chats/types";
 import { cn } from "@/lib/utils";
@@ -171,6 +174,10 @@ export const Composer = forwardRef<
     onEdit: (msg: ComposerSend) => Promise<void>;
     onTyping: () => void;
     onEditLast: () => void;
+    /** «Отправить позже» (этап 2, Д.6). */
+    onSchedule?: (msg: ComposerSend, at: Date) => Promise<void>;
+    /** «Опрос» в меню скрепки (этап 2, 2.16). */
+    onPoll?: () => void;
   }
 >(function Composer(props, ref) {
   const {
@@ -186,7 +193,12 @@ export const Composer = forwardRef<
     onEdit,
     onTyping,
     onEditLast,
+    onSchedule,
+    onPoll,
   } = props;
+  const [attachMenu, setAttachMenu] = useState(false);
+  const [scheduling, setScheduling] = useState(false);
+  const longPress = useRef<{ timer: number | null; fired: boolean }>({ timer: null, fired: false });
   const [uploads, setUploads] = useState<Upload[]>([]);
   const [toolbar, setToolbar] = useState(false);
   const [suggest, setSuggest] = useState<SuggestState>(null);
@@ -427,21 +439,49 @@ export const Composer = forwardRef<
   const uploading = uploads.some((u) => !u.done && !u.error);
   const stalled = uploads.some((u) => u.error || u.waiting);
 
-  const send = useCallback(async () => {
-    if (!editor || busy || disabledReason) return;
+  /** Что отправить: текст и загруженные файлы; null — нечего или файлы не готовы. */
+  const collect = useCallback((): ComposerSend | null => {
+    if (!editor) return null;
     if (uploading || stalled) {
       toast.info(
         stalled
           ? "Не все файлы загрузились — дождитесь связи, нажмите «Повторить» или уберите файл"
           : "Дождитесь загрузки файлов",
       );
-      return;
+      return null;
     }
     const json = editor.getJSON() as ChatDoc;
     const text = docText(json);
     const attachments = uploads.flatMap((u) => (u.done ? [u.done] : []));
-    if (!text && attachments.length === 0) return;
-    const content = text ? json : null;
+    if (!text && attachments.length === 0) return null;
+    return { content: text ? json : null, text, attachments };
+  }, [editor, uploading, stalled, uploads]);
+
+  const clearDraft = useCallback(() => {
+    editor?.commands.clearContent();
+    setUploads([]);
+    try {
+      window.localStorage.removeItem(draftKey(chatId));
+    } catch {
+      // без черновика
+    }
+  }, [editor, chatId]);
+
+  const openSchedule = () => {
+    if (!onSchedule || editing || disabledReason) return;
+    if (!collect()) {
+      if (!uploading && !stalled)
+        toast.info("Напишите сообщение — потом выберите, когда отправить");
+      return;
+    }
+    setScheduling(true);
+  };
+
+  const send = useCallback(async () => {
+    if (!editor || busy || disabledReason) return;
+    const msg = collect();
+    if (!msg) return;
+    const { content, text, attachments } = msg;
     // Фокус возвращаем, только если он был в поле: на телефоне иначе
     // отправка кнопкой при спрятанной клавиатуре снова её открывала бы.
     const keepFocus = editor.isFocused || !isTouch();
@@ -464,7 +504,7 @@ export const Composer = forwardRef<
       setBusy(false);
       if (keepFocus) editor.commands.focus();
     }
-  }, [editor, busy, disabledReason, uploading, stalled, uploads, editing, onEdit, onSend, chatId]);
+  }, [editor, busy, disabledReason, collect, editing, onEdit, onSend, chatId]);
   sendRef.current = () => void send();
 
   const setLink = () => {
@@ -678,16 +718,46 @@ export const Composer = forwardRef<
             }}
           />
           {!editing && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="mb-0.5 size-9 shrink-0"
-              aria-label="Прикрепить файлы"
-              title="Прикрепить файлы"
-              onClick={() => fileInput.current?.click()}
-            >
-              <Paperclip className="size-5" />
-            </Button>
+            <Popover open={attachMenu} onOpenChange={setAttachMenu}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="mb-0.5 size-9 shrink-0"
+                  aria-label="Прикрепить"
+                  title="Файлы, опрос, отправить позже"
+                  {...noBlur}
+                >
+                  <Paperclip className="size-5" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent
+                side="top"
+                align="start"
+                className="w-56 p-1"
+                onOpenAutoFocus={(e) => e.preventDefault()}
+              >
+                {(
+                  [
+                    ["Файлы и фото", Paperclip, () => fileInput.current?.click()],
+                    ...(onPoll ? ([["Опрос", BarChart3, onPoll]] as const) : []),
+                    ...(onSchedule ? ([["Отправить позже…", Clock, openSchedule]] as const) : []),
+                  ] as const
+                ).map(([label, Icon, run]) => (
+                  <button
+                    key={label}
+                    type="button"
+                    className="flex w-full items-center gap-2 rounded-sm px-2 py-2 text-sm hover:bg-muted"
+                    onClick={() => {
+                      setAttachMenu(false);
+                      run();
+                    }}
+                  >
+                    <Icon className="size-4" /> {label}
+                  </button>
+                ))}
+              </PopoverContent>
+            </Popover>
           )}
           <div className="min-w-0 flex-1 rounded-2xl bg-muted/60 focus-within:bg-muted">
             <EditorContent editor={editor} />
@@ -741,16 +811,58 @@ export const Composer = forwardRef<
             size="icon"
             className="mb-0.5 size-9 shrink-0 rounded-full bg-selected text-selected-foreground hover:bg-selected/90"
             aria-label={editing ? "Сохранить" : "Отправить"}
-            title={editing ? "Сохранить (Enter)" : "Отправить (Enter)"}
+            title={
+              editing
+                ? "Сохранить (Enter)"
+                : onSchedule
+                  ? "Отправить (Enter) · правой кнопкой — отправить позже"
+                  : "Отправить (Enter)"
+            }
             disabled={busy}
             {...noBlur}
-            onClick={() => void send()}
+            onContextMenu={(e) => {
+              if (editing || !onSchedule) return;
+              e.preventDefault();
+              openSchedule();
+            }}
+            onTouchStart={() => {
+              if (editing || !onSchedule) return;
+              longPress.current.fired = false;
+              longPress.current.timer = window.setTimeout(() => {
+                longPress.current.fired = true;
+                openSchedule();
+              }, 550);
+            }}
+            onTouchEnd={() => {
+              if (longPress.current.timer) window.clearTimeout(longPress.current.timer);
+              longPress.current.timer = null;
+            }}
+            onClick={() => {
+              if (longPress.current.fired) {
+                longPress.current.fired = false;
+                return;
+              }
+              void send();
+            }}
           >
             {busy ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
           </Button>
         </div>
       </div>
 
+      {onSchedule && (
+        <ScheduleDialog
+          open={scheduling}
+          onClose={() => setScheduling(false)}
+          onPick={async (at) => {
+            const msg = collect();
+            if (!msg) throw new Error("Нечего отправлять");
+            await onSchedule(msg, at);
+            clearDraft();
+            toast.success(`Запланировано: ${scheduledLabel(at.toISOString(), new Date())}`);
+          }}
+        />
+      )}
       {suggest && suggest.items.length > 0 && (suggest.rect || touch) && (
         // С мышью — у курсора; на телефоне — плашкой над полем во всю ширину:
         // координаты курсора при открытой клавиатуре iPhone ненадёжны, а

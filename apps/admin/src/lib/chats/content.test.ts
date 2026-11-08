@@ -188,3 +188,50 @@ describe("каналы и состав из оргструктуры", () => {
     );
   });
 });
+
+describe("отложенные сообщения и адрес", () => {
+  test("быстрые варианты «Отправить позже»", async () => {
+    const { scheduleOptions } = await import("./content");
+    // Чт 12 ноября 2026, 10:07 (время браузера).
+    const thu = new Date(2026, 10, 12, 10, 7);
+    const o = scheduleOptions(thu);
+    expect(o.map((x) => x.label)).toEqual([
+      "Через час, в 11:10",
+      "Сегодня в 18:00",
+      "Завтра в 9:00",
+      "В понедельник в 9:00",
+    ]);
+    expect(o[3].at.getDay()).toBe(1);
+    expect(o[3].at.getDate()).toBe(16);
+    // Воскресенье вечером: «сегодня» уже нет, понедельник — это «завтра».
+    const sun = new Date(2026, 10, 15, 20, 0);
+    expect(scheduleOptions(sun).map((x) => x.label)).toEqual([
+      "Через час, в 21:00",
+      "Завтра в 9:00",
+    ]);
+  });
+
+  test("подпись времени отложенного", async () => {
+    const { scheduledLabel, toLocalInput } = await import("./content");
+    const now = new Date(2026, 10, 12, 10, 0);
+    expect(scheduledLabel(new Date(2026, 10, 12, 18, 0).toISOString(), now)).toBe(
+      "сегодня в 18:00",
+    );
+    expect(scheduledLabel(new Date(2026, 10, 13, 9, 5).toISOString(), now)).toBe("завтра в 09:05");
+    expect(scheduledLabel(new Date(2026, 10, 16, 9, 0).toISOString(), now)).toBe(
+      "пн, 16 нояб. в 09:00",
+    );
+    expect(toLocalInput(new Date(2026, 0, 5, 7, 3))).toBe("2026-01-05T07:03");
+  });
+
+  test("папки и отложенные — в адресе", async () => {
+    const { chatsSearch } = await import("./search-params");
+    expect(chatsSearch({ f: "channel", m: "12", scheduled: "1" })).toEqual({
+      f: "channel",
+      m: 12,
+      scheduled: true,
+    });
+    expect(chatsSearch({ f: "project" })).toEqual({ f: "project" });
+    expect(chatsSearch({ f: "bad folder" })).toEqual({});
+  });
+});

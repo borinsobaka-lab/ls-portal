@@ -1593,6 +1593,22 @@ DEPLOY.md.
   выйти (`chat_auto_member`). RPC `chat_create_ex`, `chat_sources_get` /
   `_save`; `chat_members_list` — с `source`; актуальное определение
   `chat_message_json` (`ack`) — здесь. Тесты — `db/chat-channels.test.ts`.
+  **Отложенные сообщения и опросы** (TASKS_CHATS_PLAN.md, этап 2,
+  2026-11-08): `db/migrations/2026-11-08_zzzzzz_chat_scheduled_polls.sql` —
+  отложенные `chat_scheduled` (свои видит только автор; `chat_schedule` —
+  проверки как у отправки, время от минуты до года, до 100 ждущих;
+  `chat_scheduled_list` / `_reschedule` / `_delete` / `_send_now`);
+  отправляет сервер портала `chat_scheduled_tick` (только service_role,
+  раз в 20 с) обычной `chat_send` от имени автора
+  (`request.jwt.claim.sub` на время отправки, `client_id` = id отложенного —
+  без задвоения), отправленное уходит из очереди, не вышло —
+  `status = 'failed'` с причиной и уведомление `chat.scheduled`; файлы
+  отложенных держит `storage_file_referenced` (актуальное определение —
+  здесь). Опросы — сообщение «Опрос: …» + `chat_polls` (2–10 вариантов,
+  несколько ответов, анонимный, закрыт) и `chat_poll_votes`;
+  `chat_poll_create` / `_vote` (заменяет свои голоса, пусто — отозвать) /
+  `_close` (автор, владелец, админ); `poll` в `chat_message_json`
+  (актуальное определение — здесь). Тесты — `db/chat-scheduled-polls.test.ts`.
   Рейтинг тренеров и чаевые: `db/migrations/2026-10-11_zzzzzzzzzzzzz_trainer_ratings.sql`
   — `trainer_reviews` (оценка 1–5, одна от учётной записи на тренера; клиент
   читает и правит свою, ставит — тренеру, которого видит в приложении,

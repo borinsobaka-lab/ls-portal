@@ -53,6 +53,12 @@ export const NOTIF_KINDS: NotifKind[] = [
     defaultPush: true,
   },
   {
+    key: "chat.scheduled",
+    group: "Чаты",
+    label: "Отложенное сообщение не отправлено",
+    defaultPush: true,
+  },
+  {
     key: "chat.group",
     group: "Чаты",
     label: "Сообщения в группах",

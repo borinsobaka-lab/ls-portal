@@ -154,6 +154,48 @@ export function sourceText(s: ChatSource): string {
   return `${s.unit_name ?? "Подразделение"} — ${who}${s.with_subunits ? ", с подразделениями ниже" : ""}`;
 }
 
+// ---- Отложенные сообщения ---------------------------------------------------------
+
+const at = (base: Date, days: number, h: number, m = 0) => {
+  const d = new Date(base);
+  d.setDate(d.getDate() + days);
+  d.setHours(h, m, 0, 0);
+  return d;
+};
+
+/** Быстрые варианты «Отправить позже» (время браузера). */
+export function scheduleOptions(now: Date): { label: string; at: Date }[] {
+  const hour = new Date(now.getTime() + 60 * 60_000);
+  hour.setMinutes(Math.ceil(hour.getMinutes() / 5) * 5, 0, 0);
+  const out = [
+    { label: `Через час, в ${pad(hour.getHours())}:${pad(hour.getMinutes())}`, at: hour },
+  ];
+  if (now.getHours() < 17) out.push({ label: "Сегодня в 18:00", at: at(now, 0, 18) });
+  out.push({ label: "Завтра в 9:00", at: at(now, 1, 9) });
+  // Ближайший понедельник (не завтрашний — он уже есть).
+  const toMonday = (8 - now.getDay()) % 7 || 7;
+  if (toMonday > 1) out.push({ label: "В понедельник в 9:00", at: at(now, toMonday, 9) });
+  return out;
+}
+
+/** «сегодня в 18:00», «завтра в 09:00», «пн, 10 нояб. в 09:00». */
+export function scheduledLabel(iso: string, now: Date): string {
+  const d = new Date(iso);
+  const day = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const diff = Math.round((day(d) - day(now)) / 86_400_000);
+  const time = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  if (diff === 0) return `сегодня в ${time}`;
+  if (diff === 1) return `завтра в ${time}`;
+  const wd = ["вс", "пн", "вт", "ср", "чт", "пт", "сб"][d.getDay()];
+  const year = d.getFullYear() === now.getFullYear() ? "" : ` ${d.getFullYear()}`;
+  return `${wd}, ${d.getDate()} ${MONTHS_SHORT[d.getMonth()]}${year} в ${time}`;
+}
+
+/** Значение поля datetime-local (время браузера). */
+export function toLocalInput(d: Date): string {
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 /** «задачу» / «задачи» / «задач» после числа. */
 export function tasksWord(n: number): string {
   const m10 = n % 10;

@@ -20,6 +20,7 @@ import type {
   ChatMember,
   ChatMessage,
   ChatRow,
+  ChatScheduled,
   ChatSearchHit,
   ChatSource,
 } from "./types";
@@ -499,6 +500,83 @@ export const ackListQuery = (messageId: string) =>
 export const remindAck = (messageId: string) =>
   rpc<number>("chat_ack_remind", { p_message: messageId });
 
+// ---- Отложенные и опросы (2026-11-08_zzzzzz_chat_scheduled_polls.sql) --------------
+
+export const scheduledQuery = (chatId: string) =>
+  queryOptions({
+    queryKey: ["chat_scheduled", chatId],
+    queryFn: async () =>
+      (await rpc<ChatScheduled[] | null>("chat_scheduled_list", { p_chat: chatId })) ?? [],
+    staleTime: 30_000,
+  });
+
+const invalidateScheduled = (qc: QueryClient, chatId: string) =>
+  qc.invalidateQueries({ queryKey: ["chat_scheduled", chatId] });
+
+export async function scheduleMessage(
+  qc: QueryClient,
+  chatId: string,
+  msg: { content: ChatDoc | null; text: string; attachments: unknown[]; replyTo?: number | null },
+  at: Date,
+) {
+  await rpc("chat_schedule", {
+    p_chat: chatId,
+    p_content: msg.content,
+    p_text: msg.text,
+    p_send_at: at.toISOString(),
+    p_reply_to: msg.replyTo ?? null,
+    p_attachments: msg.attachments,
+  });
+  await invalidateScheduled(qc, chatId);
+}
+
+export async function rescheduleMessage(qc: QueryClient, s: ChatScheduled, at: Date) {
+  await rpc("chat_scheduled_reschedule", { p_id: s.id, p_send_at: at.toISOString() });
+  await invalidateScheduled(qc, s.chat_id);
+}
+
+export async function deleteScheduled(qc: QueryClient, s: ChatScheduled) {
+  await rpc("chat_scheduled_delete", { p_id: s.id });
+  await invalidateScheduled(qc, s.chat_id);
+}
+
+export async function sendScheduledNow(qc: QueryClient, s: ChatScheduled) {
+  try {
+    await rpc("chat_scheduled_send_now", { p_id: s.id });
+  } finally {
+    await invalidateScheduled(qc, s.chat_id);
+  }
+  await loadNewer(qc, s.chat_id);
+}
+
+export async function createPoll(
+  qc: QueryClient,
+  chatId: string,
+  p: { question: string; options: string[]; multiple: boolean; anonymous: boolean },
+) {
+  const m = await rpc<ChatMessage>("chat_poll_create", {
+    p_chat: chatId,
+    p_question: p.question,
+    p_options: p.options,
+    p_multiple: p.multiple,
+    p_anonymous: p.anonymous,
+    p_client_id: crypto.randomUUID(),
+  });
+  putMessage(qc, normalize(m));
+  void qc.invalidateQueries({ queryKey: ["chat_list"] });
+}
+
+export async function votePoll(qc: QueryClient, m: ChatMessage, options: string[]) {
+  putMessage(
+    qc,
+    normalize(await rpc<ChatMessage>("chat_poll_vote", { p_message: m.id, p_options: options })),
+  );
+}
+
+export async function closePoll(qc: QueryClient, m: ChatMessage) {
+  putMessage(qc, normalize(await rpc<ChatMessage>("chat_poll_close", { p_message: m.id })));
+}
+
 export async function searchMessages(query: string, chatId?: string) {
   return (
     (await rpc<ChatSearchHit[] | null>("chat_search", {
@@ -536,6 +614,12 @@ export function chatErrorText(e: unknown): string {
     chat_sources_invalid: "Проверьте состав из оргструктуры",
     chat_ack_remind_soon: "Напоминать можно не чаще раза в час",
     chat_ack_not_needed: "У этого сообщения нет отметки «Прочитал»",
+    chat_schedule_time_invalid:
+      "Время отправки — не раньше чем через минуту и не позже чем через год",
+    chat_schedule_too_many: "Не больше 100 отложенных сообщений",
+    chat_scheduled_not_found: "Отложенное сообщение уже отправлено или удалено",
+    chat_poll_invalid: "Опрос: вопрос и от 2 до 10 разных вариантов, до 100 символов",
+    chat_poll_closed: "Опрос закрыт",
   };
   for (const [k, v] of Object.entries(map)) if (msg.includes(k)) return v;
   return msg;

@@ -19,7 +19,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Virtualizer, type VirtualizerHandle } from "virtua";
 import {
@@ -38,6 +38,7 @@ import {
 import { toast } from "sonner";
 
 import { ChatAvatar } from "@/components/chats/chat-avatar";
+import { PollDialog, ScheduledBar } from "@/components/chats/chat-extras";
 import { AckDialog } from "@/components/chats/chat-sources";
 import { ForwardDialog, ReceiptsDialog } from "@/components/chats/dialogs";
 import { MessageItem, type MessageActions } from "@/components/chats/message-item";
@@ -66,6 +67,7 @@ import {
   pinMessage,
   refreshWindowTail,
   retryMessage,
+  scheduleMessage,
   searchMessages,
   sendMessage,
   toggleReaction,
@@ -143,6 +145,9 @@ export function ChatView({
   const [forwarding, setForwarding] = useState<ChatMessage[] | null>(null);
   const [taskFrom, setTaskFrom] = useState<ChatMessage | null>(null);
   const [acksOf, setAcksOf] = useState<ChatMessage | null>(null);
+  const [pollOpen, setPollOpen] = useState(false);
+  const openScheduled = !!(useSearch({ strict: false }) as { scheduled?: boolean }).scheduled;
+  const [scheduledList, setScheduledList] = useState(openScheduled);
   const [receipts, setReceipts] = useState<ChatMessage | null>(null);
   const [highlight, setHighlight] = useState<number | null>(null);
   const [atBottom, setAtBottom] = useState(true);
@@ -449,6 +454,16 @@ export function ChatView({
     }
   };
 
+  const onSchedule = async (msg: ComposerSend, at: Date) => {
+    try {
+      await scheduleMessage(qc, chat.id, { ...msg, replyTo: replyTo?.seq ?? null }, at);
+      setReplyTo(null);
+    } catch (e) {
+      toast.error(chatErrorText(e));
+      throw e;
+    }
+  };
+
   const onEdit = async (msg: ComposerSend) => {
     if (!editing) return;
     try {
@@ -716,7 +731,7 @@ export function ChatView({
                         highlighted={highlight === m.seq}
                         canPin={canPin}
                         canDelete={m.author_id === me || (chat.kind === "group" && isAdmin)}
-                        canSeeAcks={m.author_id === me || isAdmin}
+                        canManage={m.author_id === me || isAdmin}
                         name={name}
                         avatar={(id) => person(id)?.avatar_url ?? null}
                         actions={actions}
@@ -762,6 +777,9 @@ export function ChatView({
         </div>
       )}
 
+      {canPost && (
+        <ScheduledBar chatId={chat.id} openList={scheduledList} onOpenList={setScheduledList} />
+      )}
       <Suspense fallback={<div className="h-14 border-t bg-background" />}>
         <Composer
           key={chat.id}
@@ -784,6 +802,8 @@ export function ChatView({
           onEdit={onEdit}
           onTyping={() => typingSend.current?.(me)}
           onEditLast={editLast}
+          onSchedule={onSchedule}
+          onPoll={chat.kind === "self" ? undefined : () => setPollOpen(true)}
         />
       </Suspense>
 
@@ -807,6 +827,7 @@ export function ChatView({
       )}
       <ReceiptsDialog message={receipts} onClose={() => setReceipts(null)} />
       <AckDialog message={acksOf} onClose={() => setAcksOf(null)} />
+      <PollDialog chatId={chat.id} open={pollOpen} onClose={() => setPollOpen(false)} />
       {confirmDialog}
     </div>
   );

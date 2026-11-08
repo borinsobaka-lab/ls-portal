@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 
 import { Attachments } from "@/components/chats/attachments";
+import { PollView } from "@/components/chats/chat-extras";
 import { AckBar } from "@/components/chats/chat-sources";
 import { MessageContent } from "@/components/chats/message-content";
 import { StaffAvatar } from "@/components/employee-photo";
@@ -78,8 +79,8 @@ type Props = {
   highlighted: boolean;
   canPin: boolean;
   canDelete: boolean;
-  /** Автор поста канала или админ — видит, кто отметил «Прочитал». */
-  canSeeAcks: boolean;
+  /** Автор или админ: видит, кто отметил «Прочитал», закрывает опрос. */
+  canManage: boolean;
   name: (id: string | null) => string;
   avatar: (id: string | null) => string | null;
   actions: MessageActions;
@@ -105,7 +106,7 @@ function menuItems(p: Props): MenuItem[] {
         : { label: "Закрепить", icon: Pin, run: () => actions.pin(m, true) },
     );
   if (mine) items.push({ label: "Кто прочитал", icon: Eye, run: () => actions.receipts(m) });
-  if (mine && m.kind === "text")
+  if (mine && m.kind === "text" && !m.poll)
     items.push({ label: "Изменить", icon: Pencil, run: () => actions.edit(m) });
   if (p.canDelete)
     items.push({ label: "Удалить", icon: Trash2, run: () => actions.remove(m), destructive: true });
@@ -283,12 +284,16 @@ export const MessageItem = memo(function MessageItem(p: Props) {
               <Attachments files={m.attachments} mine={mine} />
             </div>
           )}
-          {m.text && <MessageContent doc={m.content as ChatDoc | null} text={m.text} mine={mine} />}
+          {m.poll ? (
+            <PollView m={m} canManage={p.canManage} />
+          ) : (
+            m.text && <MessageContent doc={m.content as ChatDoc | null} text={m.text} mine={mine} />
+          )}
           {m.ack && !local && (
             <AckBar
               m={m}
               mine={mine}
-              canSeeAcks={p.canSeeAcks}
+              canSeeAcks={p.canManage}
               onAck={() => actions.ack(m)}
               onOpenList={() => actions.acks(m)}
             />

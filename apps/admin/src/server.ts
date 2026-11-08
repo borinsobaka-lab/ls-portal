@@ -2,6 +2,7 @@ import { startAccessSync } from "./lib/access/sync.server";
 import { startAnalyticsJobs } from "./lib/analytics/server/jobs.server";
 import { startOnecWorker } from "./lib/analytics/server/onec.server";
 import { startChatCallSweep } from "./lib/chats/calls-sweep.server";
+import { startChatScheduledWorker } from "./lib/chats/scheduled.server";
 import { errorResponse } from "./lib/error-page";
 import { startKbTrashPurge } from "./lib/kb/trash-purge.server";
 import { startPortalPushWorker } from "./lib/notifications/portal-push-worker.server";
@@ -21,6 +22,7 @@ startPortalPushWorker();
 startTaskWorker();
 // Видеозвонки чатов: сроки звонков и удаление комнат Kinescope.
 startChatCallSweep();
+startChatScheduledWorker();
 // Корзина базы знаний: истёкшее — навсегда, файлы удалённого — из бакета.
 startKbTrashPurge();
 // Файлы удалённого (чаты, задачи, проекты, аватарки, клубы, «Аналитика»)
