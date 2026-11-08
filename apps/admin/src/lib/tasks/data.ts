@@ -31,6 +31,7 @@ import type {
   TaskFull,
   TaskPlan,
   TaskRow,
+  TaskTagInfo,
   TaskTemplate,
 } from "./types";
 import type { DayKind } from "./work-calendar";
@@ -182,6 +183,24 @@ export const recurrencesQuery = queryOptions({
   meta: { errorMessage: "Не удалось загрузить регулярные задачи" },
 });
 
+// ---- Теги (2026-11-08_zzzzzzzzz_task_tags.sql) --------------------------------------
+
+export const tagsQuery = queryOptions({
+  queryKey: ["tasks", "tags"],
+  queryFn: async () => (await taskRpc<TaskTagInfo[] | null>("task_tags_list")) ?? [],
+  staleTime: 5 * 60_000,
+});
+
+/** Новый тег (или тот же по имени) — id. */
+export async function createTag(qc: QueryClient, name: string, color: string | null) {
+  const id = await taskRpc<string>("task_tag_save", { p_id: null, p_name: name, p_color: color });
+  await qc.invalidateQueries({ queryKey: ["tasks", "tags"] });
+  return id;
+}
+
+export const setTaskTags = (qc: QueryClient, t: Pick<TaskFull, "id" | "number">, ids: string[]) =>
+  withCard(qc, t.number, () => taskRpc<TaskFull>("task_set_tags", { p_task: t.id, p_tags: ids }));
+
 // ---- «Мой план» (2026-11-08_zzzzzzz_task_plan.sql) -----------------------------------
 
 export const PLAN_KEY = ["tasks", "plan"] as const;
@@ -247,6 +266,10 @@ export function taskErrorText(e: unknown): string {
     task_bad_file: "Файл не подходит",
     task_filter_invalid: "Название фильтра — до 60 символов",
     task_plan_column_invalid: "Название колонки — от 1 до 40 символов",
+    task_tag_invalid: "Тег — от 1 до 40 символов",
+    task_tag_exists: "Такой тег уже есть",
+    task_tag_forbidden: "Этот тег правит тот, кто его завёл",
+    task_too_many_tags: "Не больше 10 тегов у задачи",
     task_plan_too_many_columns: "Не больше 10 колонок",
     task_plan_column_not_found: "Колонка не найдена",
     task_result_required: "Сначала напишите результат — постановщик просил его",
@@ -297,6 +320,8 @@ export type NewTask = {
   }[];
   reminder?: { remind_at?: string; before_minutes?: number } | null;
   project_id?: string | null;
+  /** Теги — ставятся сразу после постановки. */
+  tags?: string[];
   /** Подзадача к задаче. */
   parent_id?: string | null;
   /** Задача из сообщения чата. */
@@ -309,6 +334,10 @@ export async function createTask(qc: QueryClient, t: NewTask) {
     "task_create",
     { p: t },
   );
+  if (t.tags?.length)
+    await Promise.all(
+      r.tasks.map((x) => taskRpc("task_set_tags", { p_task: x.id, p_tags: t.tags })),
+    );
   void invalidateTasks(qc);
   return { ...r, tasks: r.tasks.map((x) => ({ ...x, number: Number(x.number) })) };
 }

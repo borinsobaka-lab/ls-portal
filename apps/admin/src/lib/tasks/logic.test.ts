@@ -309,3 +309,27 @@ describe("мой план", () => {
     expect(planMoveOrder(cards, "a", "x", "a")).toEqual(["b", "a", "d"]);
   });
 });
+
+describe("теги", () => {
+  test("тег — в адресе и в RPC, история тегов", async () => {
+    const { parseTaskFilters, filtersToParams, eventText } = await import("./logic");
+    const id = "11111111-1111-4111-8111-111111111111";
+    expect(parseTaskFilters({ tag: id })).toEqual({ tag: id });
+    expect(parseTaskFilters({ tag: "Казань" })).toEqual({});
+    expect(filtersToParams({ tag: id }).tag).toBe(id);
+    expect(
+      eventText(
+        {
+          id: 1,
+          actor_id: null,
+          kind: "tags",
+          data: { added: ["Казань"], removed: ["VK"] },
+          reason: null,
+          created_at: "",
+        },
+        () => "",
+        MSK,
+      ),
+    ).toBe("добавил(а) теги: #Казань; убрал(а) теги: #VK");
+  });
+});

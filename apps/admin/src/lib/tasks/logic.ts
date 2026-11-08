@@ -524,6 +524,16 @@ export function eventText(e: TaskEvent, name: (id: string) => string, tz: string
       return d.to ? `сделал(а) подзадачей #${d.to}` : `отвязал(а) от задачи #${d.from}`;
     case "result":
       return d.cleared ? "убрал(а) результат" : "написал(а) результат";
+    case "tags": {
+      const added = (d.added as string[] | undefined) ?? [];
+      const removed = (d.removed as string[] | undefined) ?? [];
+      return [
+        added.length ? `добавил(а) теги: ${added.map((x) => `#${x}`).join(", ")}` : "",
+        removed.length ? `убрал(а) теги: ${removed.map((x) => `#${x}`).join(", ")}` : "",
+      ]
+        .filter(Boolean)
+        .join("; ");
+    }
     case "result_required":
       return d.to ? "включил(а) «Нужен результат»" : "выключил(а) «Нужен результат»";
     default:
@@ -595,7 +605,7 @@ export function parseTaskFilters(raw: Record<string, unknown>): TaskFilters {
     const v = str(k);
     if (v && DAY_RE.test(v)) f[k] = v;
   }
-  for (const k of ["creator", "assignee", "project"] as const) {
+  for (const k of ["creator", "assignee", "project", "tag"] as const) {
     const v = str(k);
     if (v && UUID_RE.test(v)) f[k] = v;
   }
@@ -629,6 +639,7 @@ export function filtersToParams(f: TaskFilters, offset = 0, limit = 100): Record
     scope: f.team ? "team" : f.all ? "all" : null,
     project: f.project ?? null,
     sort: f.sort ?? "deadline",
+    tag: f.tag ?? null,
     limit,
     offset,
   };

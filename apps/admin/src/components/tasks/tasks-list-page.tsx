@@ -8,7 +8,7 @@
  * (`?task=`), список не теряется.
  */
 import { useMemo, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronDown, ChevronRight, FileText, ListChecks, Plus, Save, X } from "lucide-react";
 import { toast } from "sonner";
 
@@ -61,6 +61,7 @@ import {
   useMyProjects,
   useTaskClock,
   useTaskList,
+  tagsQuery,
 } from "@/lib/tasks/data";
 import {
   assigneeOf,
@@ -109,6 +110,7 @@ export function TasksListPage({
   };
   const role = filters.role ?? "all";
   const projects = useMyProjects();
+  const { data: tags = [] } = useQuery(tagsQuery);
   const title = filters.team
     ? "Подчинённые"
     : filters.mine
@@ -201,6 +203,24 @@ export function TasksListPage({
                 {projects.map((p) => (
                   <SelectItem key={p.id} value={p.id}>
                     {p.title}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          {tags.length > 0 && (
+            <Select
+              value={filters.tag ?? ALL}
+              onValueChange={(v) => set({ tag: v === ALL ? undefined : v })}
+            >
+              <SelectTrigger className="w-40" aria-label="Тег">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL}>Все теги</SelectItem>
+                {tags.map((g) => (
+                  <SelectItem key={g.id} value={g.id}>
+                    #{g.name}
                   </SelectItem>
                 ))}
               </SelectContent>

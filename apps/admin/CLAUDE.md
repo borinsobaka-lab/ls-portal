@@ -1821,6 +1821,15 @@ TASKS_CHATS_PLAN.md, веха 3. Схема — корневой CLAUDE.md
   — сразу на экране (`placePlanCards`, `setQueryData`), порядок колонки —
   `planMoveOrder` / `planColumnCards` в `lib/tasks/logic.ts` (+ тест),
   данные — `useTaskPlan`, `planAction` в `lib/tasks/data.ts`.
+- **Теги задач** (этап 2, 2026-11-08; схема —
+  `2026-11-08_zzzzzzzzz_task_tags.sql`): общие для портала (город, канал,
+  тема) — `components/tasks/task-tags.tsx` (`TaskTagChip` — пилюля цветом
+  тега, набор и выбор цвета — как у тегов базы знаний; `TaskTagsField` —
+  поиск, «Создать тег «…»»). Поле «Теги» — сбоку в карточке (участникам,
+  кроме наблюдателей) и в «Ещё» формы постановки (ставятся сразу после
+  создания — `createTask`); пилюли — в списке, на «Моём плане»; фильтр
+  «Все теги» в списке (`tag` в адресе и сохранённых фильтрах). Данные —
+  `tagsQuery`, `createTag`, `setTaskTags` в `lib/tasks/data.ts`.
 
 ## Известные недоработки (найдены при рефакторинге 2026-10-09, не исправлены)
 

@@ -34,6 +34,7 @@ import {
   TaskStatusChip,
   UrgentMark,
 } from "@/components/tasks/task-bits";
+import { TaskTagChip } from "@/components/tasks/task-tags";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -346,6 +347,9 @@ function PlanCardView({
             </span>
           )}
           {t.project && <ProjectTag project={t.project} className="max-w-32" />}
+          {t.tags.map((g) => (
+            <TaskTagChip key={g.id} tag={g} className="py-0" />
+          ))}
         </span>
       </button>
       <div className="mt-2 flex items-center gap-2">

@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { ChecklistsEditor } from "@/components/tasks/checklists-editor";
 import { DeadlinePicker } from "@/components/tasks/deadline-picker";
 import { AbsentNote, PeopleField } from "@/components/tasks/task-bits";
+import { TaskTagsField } from "@/components/tasks/task-tags";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -232,6 +233,7 @@ function TaskForm({
   const [urgent, setUrgent] = useState(false);
   const [review, setReview] = useState(false);
   const [resultRequired, setResultRequired] = useState(false);
+  const [tags, setTags] = useState<string[]>([]);
   const [reminder, setReminder] = useState("none");
   const [uploads, setUploads] = useState<Upload[]>([]);
   const [saving, setSaving] = useState(false);
@@ -366,6 +368,7 @@ function TaskForm({
         parent_id: parent?.id ?? null,
         source: fromMessage ? { chat_id: fromMessage.chatId, seq: fromMessage.seq } : null,
         result_required: resultRequired,
+        tags,
         files: uploads.flatMap((u) => (u.done ? [u.done] : [])),
         urgent,
         requires_review: review,
@@ -611,6 +614,9 @@ function TaskForm({
                   <Paperclip className="size-4" /> Прикрепить
                 </Button>
               </div>
+            </FormField>
+            <FormField label="Теги" htmlFor={null} hint="Город, канал, тема — для фильтра в списке">
+              <TaskTagsField value={tags} onChange={setTags} />
             </FormField>
             <SwitchRow title="Срочно" checked={urgent} onCheckedChange={setUrgent} />
             <SwitchRow

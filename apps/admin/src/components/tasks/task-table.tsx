@@ -15,6 +15,7 @@ import {
 
 import { TableSkeletonRows } from "@/components/skeletons";
 import { TaskCard } from "@/components/tasks/task-card";
+import { TaskTagChip } from "@/components/tasks/task-tags";
 import {
   DeadlineText,
   PersonLine,
@@ -234,6 +235,7 @@ function TaskLine({
           task.files_count > 0 ||
           task.subtasks_total > 0 ||
           task.parent_number != null ||
+          task.tags.length > 0 ||
           (showProject && task.project)) && (
           <div
             className={cn(
@@ -242,6 +244,9 @@ function TaskLine({
             )}
           >
             {showProject && task.project && <ProjectTag project={task.project} />}
+            {task.tags.map((g) => (
+              <TaskTagChip key={g.id} tag={g} className="py-0" />
+            ))}
             {task.parent_number != null && (
               <span className="inline-flex items-center gap-1" title="Подзадача">
                 <CornerLeftUp className="size-3.5" />#{task.parent_number}

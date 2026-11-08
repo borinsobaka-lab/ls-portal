@@ -48,7 +48,12 @@ export type TaskRow = {
   /** «Нужен результат» — завершить только с результатом. */
   result_required: boolean;
   has_result: boolean;
+  /** Теги задачи (общие для портала). */
+  tags: TaskTag[];
 };
+
+export type TaskTag = { id: string; name: string; color: string | null };
+export type TaskTagInfo = TaskTag & { count: number; can_edit: boolean };
 
 /** Подзадача и родительская задача в карточке. */
 export type TaskBrief = {
@@ -148,6 +153,8 @@ export type TaskFilters = {
   team?: boolean;
   /** Порядок: по сроку (по умолчанию), срочные первыми, новые первыми. */
   sort?: TaskSort;
+  /** Задачи с этим тегом. */
+  tag?: string;
 };
 
 // ---- Проекты (веха 4) ----------------------------------------------------------

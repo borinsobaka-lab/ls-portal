@@ -30,6 +30,7 @@ import { TaskChecklists } from "@/components/tasks/task-checklists";
 import { TaskDiscussion, TaskHistory } from "@/components/tasks/task-discussion";
 import { TaskFiles } from "@/components/tasks/task-files";
 import { TaskOrigin, TaskResult, TaskSubtasks } from "@/components/tasks/task-subtasks";
+import { TaskTagsField } from "@/components/tasks/task-tags";
 import { useConfirm } from "@/components/confirm-dialog";
 import { TemplateDialog } from "@/components/tasks/templates-page";
 import {
@@ -71,6 +72,7 @@ import {
   projectQuery,
   setTaskResult,
   setTaskStatus,
+  setTaskTags,
   taskAction,
   taskRpc,
   taskErrorText,
@@ -464,6 +466,13 @@ function TaskCardBody({ task, onClose }: { task: TaskFull; onClose?: () => void 
             allowClear={perms.boss}
             disabled={!perms.deadline}
             className={cn(late && "border-destructive text-destructive")}
+          />
+        </FormField>
+        <FormField label="Теги" htmlFor={null}>
+          <TaskTagsField
+            value={task.tags.map((t) => t.id)}
+            disabled={!perms.worker}
+            onChange={(ids) => quiet(setTaskTags(qc, task, ids))}
           />
         </FormField>
         <FormField label="Проект" htmlFor={null}>

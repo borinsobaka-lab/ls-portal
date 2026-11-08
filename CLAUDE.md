@@ -1635,6 +1635,16 @@ DEPLOY.md.
   `company.birthday` (без пуша по умолчанию, раз в год — журнал
   `people_birthday_log`); актуальное определение `notif_default_push` —
   здесь. Таблицы закрыты браузеру. Тесты — `db/people.test.ts`.
+  **Теги задач** (TASKS_CHATS_PLAN.md, этап 2, 1.12, 2026-11-08):
+  `db/migrations/2026-11-08_zzzzzzzzz_task_tags.sql` — общие для портала
+  `task_tags` (имя без регистра уникально, «#» срезается, до 40 знаков;
+  цвет — ключ набора тегов базы знаний; завести — любой, править и удалить —
+  кто завёл или `tasks.admin`) и `task_tag_links` (до 10 у задачи; ставят
+  постановщик, руководитель, исполнитель, соисполнители — `task_set_tags`,
+  в историю — «теги»). RPC `task_tags_list`, `task_tag_save`,
+  `task_tag_delete`; `task_json.tags`, `task_list` с `tag` (актуальные
+  определения — здесь). Таблицы закрыты браузеру. Тесты —
+  `db/task-tags.test.ts`.
   Рейтинг тренеров и чаевые: `db/migrations/2026-10-11_zzzzzzzzzzzzz_trainer_ratings.sql`
   — `trainer_reviews` (оценка 1–5, одна от учётной записи на тренера; клиент
   читает и правит свою, ставит — тренеру, которого видит в приложении,
