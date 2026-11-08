@@ -90,6 +90,17 @@ const ICONS: Record<string, string> = {
   WalletMoney: "money",
   Widget3: "settings",
   Widget5: "settings",
+  AddFolder: "folders",
+  CalendarMark: "time",
+  ChecklistMinimalistic: "list",
+  Copy: "ui",
+  Eye: "security",
+  Filter: "ui",
+  Plain: "messages",
+  Repeat: "video",
+  User: "users",
+  UserCheckRounded: "users",
+  UsersGroupTwoRounded: "users",
 };
 
 // HTML-атрибуты → JSX-пропсы (stroke-width → strokeWidth), пустые теги — самозакрывающиеся.

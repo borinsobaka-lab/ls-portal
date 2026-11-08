@@ -5,20 +5,7 @@
  */
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  CalendarClock,
-  Copy,
-  Eye,
-  Filter,
-  FolderOpen,
-  ListChecks,
-  ListTodo,
-  Repeat,
-  Send,
-  UserCheck,
-  Users,
-  UserStar,
-} from "lucide-react";
+import type { ComponentProps } from "react";
 import { toast } from "sonner";
 
 import {
@@ -27,7 +14,28 @@ import {
   ContextMenuItem,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
-import { CountBadge } from "@/components/ui/status-chip";
+import {
+  CalendarMark,
+  ChecklistMinimalistic,
+  ClipboardList,
+  Copy,
+  Eye,
+  Filter,
+  FolderOpen,
+  Plain,
+  Repeat,
+  Structure,
+  UserCheckRounded,
+  UsersGroupTwoRounded,
+  type NavIcon,
+} from "@/components/nav-icons";
+import {
+  SidebarNavButton,
+  SidebarNavContent,
+  SidebarNavGroup,
+  SIDEBAR_NAV_LINK_CLASS,
+} from "@/components/sidebar-nav";
+import { SidebarContent, SidebarMenuItem } from "@/components/ui/sidebar";
 import { TASKS_DEADLINES_URL, TASKS_URL } from "@/lib/nav-sections";
 import {
   taskAction,
@@ -38,16 +46,13 @@ import {
 } from "@/lib/tasks/data";
 import { cleanFilters, ROLE_TABS } from "@/lib/tasks/logic";
 import type { RoleTab, TaskFilters } from "@/lib/tasks/types";
-import { cn } from "@/lib/utils";
-
-type LucideIcon = typeof UserCheck;
-
-const ROLE_ICONS: Record<RoleTab, LucideIcon> = {
-  do: UserCheck,
-  help: Users,
-  assigned: Send,
+// Иконки — Solar, как во всех меню второго уровня (`sidebar-nav.tsx`).
+const ROLE_ICONS: Record<RoleTab, NavIcon> = {
+  do: UserCheckRounded,
+  help: UsersGroupTwoRounded,
+  assigned: Plain,
   watch: Eye,
-  all: ListTodo,
+  all: ClipboardList,
 };
 
 const same = (a: TaskFilters, b: TaskFilters) =>
@@ -57,36 +62,38 @@ const same = (a: TaskFilters, b: TaskFilters) =>
 function MenuLink({
   to,
   search,
-  icon: Icon,
+  icon,
   title,
   active,
   count,
   urgent,
   onNavigate,
-}: {
+  ...item
+}: Omit<ComponentProps<typeof SidebarMenuItem>, "title"> & {
   to: string;
   search?: TaskFilters;
-  icon: LucideIcon;
+  icon: NavIcon;
   title: string;
   active: boolean;
   count?: number;
   urgent?: boolean;
   onNavigate?: () => void;
 }) {
+  // Остальные свойства — строке меню: так её оборачивает ContextMenuTrigger.
   return (
-    <Link
-      to={to}
-      search={search ?? {}}
-      onClick={onNavigate}
-      className={cn(
-        "flex h-9 items-center gap-2 rounded-md px-2 text-sm font-medium text-white hover:bg-white/10",
-        active && "bg-white/10 font-semibold",
-      )}
-    >
-      <Icon className={cn("size-[18px] shrink-0", active && "text-brand-on-dark")} />
-      <span className="min-w-0 flex-1 truncate">{title}</span>
-      {!!count && <CountBadge count={count} tone={urgent ? "urgent" : "quiet"} />}
-    </Link>
+    <SidebarMenuItem {...item}>
+      <SidebarNavButton active={active}>
+        <Link to={to} search={search ?? {}} onClick={onNavigate} className={SIDEBAR_NAV_LINK_CLASS}>
+          <SidebarNavContent
+            icon={icon}
+            active={active}
+            title={title}
+            badge={count}
+            badgeTone={urgent ? "urgent" : "quiet"}
+          />
+        </Link>
+      </SidebarNavButton>
+    </SidebarMenuItem>
   );
 }
 
@@ -102,132 +109,135 @@ export function TasksMenu({ onNavigate }: { onNavigate?: () => void }) {
   void _task;
 
   return (
-    <nav
-      aria-label="Задачи"
-      className="sidebar-scroll flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto px-2 pb-3"
-    >
-      <p className="px-2 pt-1 pb-1 text-[13px] text-white/50">Мои задачи</p>
-      {ROLE_TABS.map((t) => {
-        const filters: TaskFilters = t.key === "all" ? {} : { role: t.key };
-        return (
-          <MenuLink
-            key={t.key}
-            to={TASKS_URL}
-            search={filters}
-            icon={ROLE_ICONS[t.key]}
-            title={t.title}
-            active={onList && same(current, filters)}
-            count={
-              t.key === "do" ? counters.overdue : t.key === "assigned" ? counters.review : undefined
-            }
-            urgent
-            onNavigate={onNavigate}
-          />
-        );
-      })}
-      <p className="mt-2 px-2 pt-1 pb-1 text-[13px] text-white/50">Вид</p>
-      <MenuLink
-        to={TASKS_DEADLINES_URL}
-        icon={CalendarClock}
-        title="Сроки"
-        active={location.pathname.startsWith(TASKS_DEADLINES_URL)}
-        onNavigate={onNavigate}
-      />
-      <MenuLink
-        to={TASKS_URL}
-        search={{ mine: true }}
-        icon={ListChecks}
-        title="Пункты на мне"
-        active={onList && same(current, { mine: true })}
-        onNavigate={onNavigate}
-      />
-      {counters.leader && (
+    <SidebarContent aria-label="Задачи" className="sidebar-scroll gap-1">
+      <SidebarNavGroup id="tasks-roles" label="Мои задачи">
+        {ROLE_TABS.map((t) => {
+          const filters: TaskFilters = t.key === "all" ? {} : { role: t.key };
+          return (
+            <MenuLink
+              key={t.key}
+              to={TASKS_URL}
+              search={filters}
+              icon={ROLE_ICONS[t.key]}
+              title={t.title}
+              active={onList && same(current, filters)}
+              count={
+                t.key === "do"
+                  ? counters.overdue
+                  : t.key === "assigned"
+                    ? counters.review
+                    : undefined
+              }
+              urgent
+              onNavigate={onNavigate}
+            />
+          );
+        })}
+      </SidebarNavGroup>
+      <SidebarNavGroup id="tasks-views" label="Вид">
         <MenuLink
-          to="/tasks/team"
-          icon={UserStar}
-          title="Подчинённые"
-          active={location.pathname.startsWith("/tasks/team") || (onList && !!current.team)}
+          to={TASKS_DEADLINES_URL}
+          icon={CalendarMark}
+          title="Сроки"
+          active={location.pathname.startsWith(TASKS_DEADLINES_URL)}
           onNavigate={onNavigate}
         />
-      )}
-      <MenuLink
-        to="/tasks/templates"
-        icon={Copy}
-        title="Шаблоны"
-        active={location.pathname.startsWith("/tasks/templates")}
-        onNavigate={onNavigate}
-      />
-      <MenuLink
-        to="/tasks/recurring"
-        icon={Repeat}
-        title="Регулярные"
-        active={location.pathname.startsWith("/tasks/recurring")}
-        onNavigate={onNavigate}
-      />
-      <p className="mt-2 px-2 pt-1 pb-1 text-[13px] text-white/50">Проекты</p>
-      {projects.map((p) => {
-        const href = `/tasks/projects/${p.id}`;
-        const active = location.pathname === href;
-        return (
-          <Link
-            key={p.id}
-            to="/tasks/projects/$projectId"
-            params={{ projectId: p.id }}
-            onClick={onNavigate}
-            className={cn(
-              "flex h-9 items-center gap-2 rounded-md px-2 text-sm font-medium text-white hover:bg-white/10",
-              active && "bg-white/10 font-semibold",
-            )}
-          >
-            <span className="flex size-[18px] shrink-0 items-center justify-center">
-              <span
-                className="size-2.5 rounded-full"
-                style={{ background: p.color ?? "#94a3b8" }}
-              />
-            </span>
-            <span className="min-w-0 flex-1 truncate">{p.title}</span>
-            {p.overdue_count > 0 && <CountBadge count={p.overdue_count} tone="urgent" />}
-          </Link>
-        );
-      })}
-      <MenuLink
-        to="/tasks/projects"
-        icon={FolderOpen}
-        title={projects.length ? "Все проекты" : "Проекты"}
-        active={location.pathname === "/tasks/projects" || location.pathname === "/tasks/projects/"}
-        onNavigate={onNavigate}
-      />
+        <MenuLink
+          to={TASKS_URL}
+          search={{ mine: true }}
+          icon={ChecklistMinimalistic}
+          title="Пункты на мне"
+          active={onList && same(current, { mine: true })}
+          onNavigate={onNavigate}
+        />
+        {counters.leader && (
+          <MenuLink
+            to="/tasks/team"
+            icon={Structure}
+            title="Подчинённые"
+            active={location.pathname.startsWith("/tasks/team") || (onList && !!current.team)}
+            onNavigate={onNavigate}
+          />
+        )}
+        <MenuLink
+          to="/tasks/templates"
+          icon={Copy}
+          title="Шаблоны"
+          active={location.pathname.startsWith("/tasks/templates")}
+          onNavigate={onNavigate}
+        />
+        <MenuLink
+          to="/tasks/recurring"
+          icon={Repeat}
+          title="Регулярные"
+          active={location.pathname.startsWith("/tasks/recurring")}
+          onNavigate={onNavigate}
+        />
+      </SidebarNavGroup>
+      <SidebarNavGroup id="tasks-projects" label="Проекты">
+        {projects.map((p) => {
+          const active = location.pathname === `/tasks/projects/${p.id}`;
+          return (
+            <SidebarMenuItem key={p.id}>
+              {/* У проекта вместо иконки — точка его цвета, свечение того же цвета. */}
+              <SidebarNavButton active={active}>
+                <Link
+                  to="/tasks/projects/$projectId"
+                  params={{ projectId: p.id }}
+                  onClick={onNavigate}
+                  className={SIDEBAR_NAV_LINK_CLASS}
+                >
+                  <SidebarNavContent
+                    marker={p.color ?? "#94a3b8"}
+                    active={active}
+                    title={p.title}
+                    badge={p.overdue_count}
+                  />
+                </Link>
+              </SidebarNavButton>
+            </SidebarMenuItem>
+          );
+        })}
+        <MenuLink
+          to="/tasks/projects"
+          icon={FolderOpen}
+          title={projects.length ? "Все проекты" : "Проекты"}
+          active={
+            location.pathname === "/tasks/projects" || location.pathname === "/tasks/projects/"
+          }
+          onNavigate={onNavigate}
+        />
+      </SidebarNavGroup>
       {saved.length > 0 && (
-        <p className="mt-2 px-2 pt-1 pb-1 text-[13px] text-white/50">Мои фильтры</p>
+        <SidebarNavGroup id="tasks-filters" label="Мои фильтры">
+          {saved.map((f) => (
+            <ContextMenu key={f.id}>
+              <ContextMenuTrigger asChild>
+                <MenuLink
+                  to={TASKS_URL}
+                  search={f.params}
+                  icon={Filter}
+                  title={f.name}
+                  active={onList && same(current, f.params)}
+                  onNavigate={onNavigate}
+                />
+              </ContextMenuTrigger>
+              <ContextMenuContent className="w-48">
+                <ContextMenuItem
+                  className="text-destructive"
+                  onSelect={() =>
+                    void taskAction(qc, "task_filter_delete", { p_id: f.id }).catch((e) =>
+                      toast.error(taskErrorText(e)),
+                    )
+                  }
+                >
+                  Удалить фильтр
+                </ContextMenuItem>
+              </ContextMenuContent>
+            </ContextMenu>
+          ))}
+        </SidebarNavGroup>
       )}
-      {saved.map((f) => (
-        <ContextMenu key={f.id}>
-          <ContextMenuTrigger asChild>
-            <div>
-              <MenuLink
-                to={TASKS_URL}
-                search={f.params}
-                icon={Filter}
-                title={f.name}
-                active={onList && same(current, f.params)}
-                onNavigate={onNavigate}
-              />
-            </div>
-          </ContextMenuTrigger>
-          <ContextMenuContent className="w-48">
-            <ContextMenuItem
-              className="text-destructive"
-              onSelect={() =>
-                void taskAction(qc, "task_filter_delete", { p_id: f.id }).catch((e) =>
-                  toast.error(taskErrorText(e)),
-                )
-              }
-            >
-              Удалить фильтр
-            </ContextMenuItem>
-          </ContextMenuContent>
-        </ContextMenu>
-      ))}
-    </nav>
+    </SidebarContent>
   );
 }
