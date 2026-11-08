@@ -60,6 +60,7 @@ import { folderFilter, type FolderKey } from "@/lib/chats/folders";
 import type { ChatRow } from "@/lib/chats/types";
 import { isOnline, matchPerson } from "@/lib/company";
 import { cn } from "@/lib/utils";
+import { BugReportButton } from "@/components/bug-report";
 
 const isMuted = (c: ChatRow) =>
   c.notify === "none" || (!!c.muted_until && new Date(c.muted_until) > new Date());
@@ -272,7 +273,7 @@ export function ChatList({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="flex shrink-0 items-center gap-2 border-b p-2">
+      <div className="flex shrink-0 items-center gap-2 border-b p-2 md:h-16 md:px-3 md:py-0">
         <SearchInput
           value={q}
           onChange={setQ}
@@ -320,6 +321,8 @@ export function ChatList({
             </button>
           </PopoverContent>
         </Popover>
+        {/* На десктопе шапки портала у чатов нет — кнопка здесь. */}
+        <BugReportButton variant="header" className="max-md:hidden" />
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto p-1.5">
