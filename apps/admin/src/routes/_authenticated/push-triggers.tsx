@@ -6,6 +6,8 @@ import { Loader2, Pencil, Save } from "lucide-react";
 import { toast } from "sonner";
 
 import { AdminShell } from "@/components/admin-shell";
+import { TableToolbar } from "@/components/table-toolbar";
+import { FieldHint } from "@/components/ui/field-hint";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/query";
 import { Button } from "@/components/ui/button";
@@ -191,18 +193,23 @@ function PushTriggersPage() {
         ) : null}
 
         {formats.length > 1 && format ? (
-          <FormField label="Приложение" tip={TIPS.app} htmlFor={null}>
-            <SegmentedControl
-              aria-label="Приложение"
-              value={format}
-              onChange={setPicked}
-              options={formats.map((f) => ({
-                value: f,
-                label: STUDIO_FORMAT_APP_URL[f].replace(/^https?:\/\//, ""),
-                title: STUDIO_FORMAT_LABEL[f],
-              }))}
-            />
-          </FormField>
+          <TableToolbar
+            tabs={
+              <div className="flex items-center gap-2">
+                <SegmentedControl
+                  aria-label="Приложение"
+                  value={format}
+                  onChange={setPicked}
+                  options={formats.map((f) => ({
+                    value: f,
+                    label: STUDIO_FORMAT_APP_URL[f].replace(/^https?:\/\//, ""),
+                    title: STUDIO_FORMAT_LABEL[f],
+                  }))}
+                />
+                <FieldHint>{TIPS.app}</FieldHint>
+              </div>
+            }
+          />
         ) : null}
 
         <InfoNote>

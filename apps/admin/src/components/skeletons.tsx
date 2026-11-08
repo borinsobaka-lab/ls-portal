@@ -258,18 +258,34 @@ export function ToolbarSkeleton({
   search = true,
   controls = [],
   children,
+  tabs,
 }: {
   search?: boolean;
   controls?: ControlSkeleton[];
   children?: ReactNode;
+  /** Строка табов первого уровня — как проп `tabs` у TableToolbar. */
+  tabs?: ReactNode;
 }) {
-  return (
-    <div className="table-toolbar flex flex-wrap items-center gap-2 rounded-lg border bg-background p-2 sm:px-3">
+  const hasRow = search || controls.length > 0 || !!children;
+  const row = hasRow && (
+    <div
+      className={cn(
+        "table-toolbar flex flex-wrap items-center gap-2 p-2 sm:px-3",
+        tabs ? "border-t" : "rounded-lg border bg-background",
+      )}
+    >
       {search && <Skeleton className="toolbar-search h-10 w-full max-w-96" />}
       {controls.map((c, i) => (
         <ControlSkeletonView key={i} control={c} />
       ))}
       {children}
+    </div>
+  );
+  if (!tabs) return row || null;
+  return (
+    <div className="rounded-lg border bg-background">
+      <div className="toolbar-tabs overflow-x-auto p-2 sm:px-3">{tabs}</div>
+      {row}
     </div>
   );
 }

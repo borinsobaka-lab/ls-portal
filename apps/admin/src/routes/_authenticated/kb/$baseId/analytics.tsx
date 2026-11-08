@@ -66,6 +66,30 @@ function KbAnalyticsPage() {
   const go = (next: { tab?: Tab; period?: KbPeriod; node?: string }) =>
     void navigate({ search: (s) => ({ ...s, ...next }), replace: true });
 
+  // Табы — первой строкой белой плашки, фильтры вкладки (поиск, период) —
+  // второй строкой той же плашки; у «Сотрудников» и «Статей» плашку рисует
+  // сама вкладка (её поиск и фильтры), табы и период уходят ей.
+  const tabsNode = (
+    <Tabs value={tab} onValueChange={(v) => go({ tab: v as Tab })} activationMode="manual">
+      <TabsList aria-label="Разделы аналитики" indicatorMemoryKey="kb-analytics-tabs">
+        {TABS.map((t) => (
+          <TabsTrigger key={t.value} value={t.value}>
+            {t.label}
+          </TabsTrigger>
+        ))}
+      </TabsList>
+    </Tabs>
+  );
+  const periodNode = (
+    <SegmentedControl
+      aria-label="Период"
+      value={period}
+      onChange={(p) => go({ period: p })}
+      options={KB_PERIODS.map((p) => ({ value: p.value, label: p.label }))}
+      className="sm:ml-auto"
+    />
+  );
+
   return (
     <AdminShell title={`Аналитика${base ? ` · ${base.title}` : ""}`}>
       <div className="mx-auto max-w-6xl space-y-4">
@@ -74,32 +98,9 @@ function KbAnalyticsPage() {
           <InfoNote variant="warning">Аналитику видят редакторы базы и владельцы.</InfoNote>
         ) : (
           <>
-            {/* Табы и период — на белой плашке фильтров, не на канве. */}
-            <TableToolbar>
-              <Tabs
-                value={tab}
-                onValueChange={(v) => go({ tab: v as Tab })}
-                activationMode="manual"
-                className="toolbar-full max-w-full"
-              >
-                <TabsList aria-label="Разделы аналитики" className="max-w-full overflow-x-auto">
-                  {TABS.map((t) => (
-                    <TabsTrigger key={t.value} value={t.value}>
-                      {t.label}
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
-              </Tabs>
-              {tab !== "articles" && (
-                <SegmentedControl
-                  aria-label="Период"
-                  value={period}
-                  onChange={(p) => go({ period: p })}
-                  options={KB_PERIODS.map((p) => ({ value: p.value, label: p.label }))}
-                  className="sm:ml-auto"
-                />
-              )}
-            </TableToolbar>
+            {(tab === "overview" || tab === "ratings" || tab === "search") && (
+              <TableToolbar tabs={tabsNode}>{periodNode}</TableToolbar>
+            )}
             {tab === "overview" && (
               <KbOverviewTab
                 baseId={baseId}
@@ -107,9 +108,20 @@ function KbAnalyticsPage() {
                 onOpenSearch={() => go({ tab: "search" })}
               />
             )}
-            {tab === "people" && <KbPeopleTab baseId={baseId} period={period} />}
+            {tab === "people" && (
+              <KbPeopleTab
+                baseId={baseId}
+                period={period}
+                toolbarTabs={tabsNode}
+                toolbarExtra={periodNode}
+              />
+            )}
             {tab === "articles" && (
-              <KbArticlesTab baseId={baseId} canGrant={hasRight(access, "users.manage")} />
+              <KbArticlesTab
+                baseId={baseId}
+                canGrant={hasRight(access, "users.manage")}
+                toolbarTabs={tabsNode}
+              />
             )}
             {tab === "search" && <KbSearchTab baseId={baseId} period={period} />}
             {tab === "ratings" && (

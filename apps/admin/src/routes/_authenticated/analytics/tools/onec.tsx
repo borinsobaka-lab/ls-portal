@@ -33,29 +33,38 @@ function AnalyticsOnecPage() {
   const latest = data?.runs[0];
   const locked = !!latest && ONEC_ACTIVE.includes(latest.status);
 
+  // Табы — первой строкой белой плашки; у справочников на ней же их поиск и
+  // кнопки (плашку рисует OnecRefsTab).
+  const tabsNode = (
+    <Tabs
+      value={tab}
+      onValueChange={(v) => void navigate({ search: { tab: v as AnOnecTab }, replace: true })}
+      activationMode="manual"
+    >
+      <TabsList aria-label="Разделы обработки 1С" indicatorMemoryKey="an-onec-tabs">
+        {AN_ONEC_TABS.map((t) => (
+          <TabsTrigger key={t.value} value={t.value}>
+            {t.label}
+          </TabsTrigger>
+        ))}
+      </TabsList>
+    </Tabs>
+  );
+
   return (
     <AdminShell title={AN_TITLES.onec}>
       <div className="space-y-4">
-        <TableToolbar>
-          <Tabs
-            value={tab}
-            onValueChange={(v) => void navigate({ search: { tab: v as AnOnecTab }, replace: true })}
-            activationMode="manual"
-            className="toolbar-full max-w-full"
-          >
-            <TabsList aria-label="Разделы обработки 1С" className="max-w-full overflow-x-auto">
-              {AN_ONEC_TABS.map((t) => (
-                <TabsTrigger key={t.value} value={t.value}>
-                  {t.label}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
-        </TableToolbar>
+        {tab === "processing" && <TableToolbar tabs={tabsNode} />}
         {tab === "processing" ? (
           <OnecProcessingTab />
         ) : (
-          <OnecRefsTab key={tab} refKind={tab} info={data?.refs[tab]} locked={locked} />
+          <OnecRefsTab
+            key={tab}
+            refKind={tab}
+            info={data?.refs[tab]}
+            locked={locked}
+            toolbarTabs={tabsNode}
+          />
         )}
       </div>
     </AdminShell>

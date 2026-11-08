@@ -67,30 +67,31 @@ function ReviewPage() {
   return (
     <AdminShell title="Проверка">
       <div className="mx-auto max-w-5xl space-y-3">
-        <TableToolbar>
-          <Tabs
-            value={tab}
-            onValueChange={(t) =>
-              void navigate({
-                to: "/academy/review",
-                search: t === "completed" ? { tab: "completed" } : {},
-                replace: true,
-              })
-            }
-            className="toolbar-full"
-          >
-            <TabsList>
-              <TabsTrigger value="answers" className="gap-1.5">
-                Ответы
-                {toReview > 0 && <CountBadge count={toReview} />}
-              </TabsTrigger>
-              <TabsTrigger value="completed" className="gap-1.5">
-                Пройденные курсы
-                {newCompletions > 0 && <CountBadge count={newCompletions} />}
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-        </TableToolbar>
+        <TableToolbar
+          tabs={
+            <Tabs
+              value={tab}
+              onValueChange={(t) =>
+                void navigate({
+                  to: "/academy/review",
+                  search: t === "completed" ? { tab: "completed" } : {},
+                  replace: true,
+                })
+              }
+            >
+              <TabsList>
+                <TabsTrigger value="answers" className="gap-1.5">
+                  Ответы
+                  {toReview > 0 && <CountBadge count={toReview} />}
+                </TabsTrigger>
+                <TabsTrigger value="completed" className="gap-1.5">
+                  Пройденные курсы
+                  {newCompletions > 0 && <CountBadge count={newCompletions} />}
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          }
+        />
         {tab === "completed" ? <CompletionsTab /> : <AnswersTab />}
       </div>
     </AdminShell>

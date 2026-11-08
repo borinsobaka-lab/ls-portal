@@ -341,8 +341,14 @@ function LegendDot({ color, children }: { color: string; children: ReactNode }) 
   );
 }
 
-function TableCard({ children }: { children: ReactNode }) {
-  return <div className="rounded-lg border bg-background">{children}</div>;
+function TableCard({ children, bar }: { children: ReactNode; bar?: ReactNode }) {
+  return (
+    <div className="rounded-lg border bg-background">
+      {/* Переключатель таблицы — на её же белой карточке, не на канве. */}
+      {bar && <div className="overflow-x-auto border-b p-2 sm:px-3">{bar}</div>}
+      {children}
+    </div>
+  );
 }
 
 function EmptyRow({ colSpan, children }: { colSpan: number; children: string }) {
@@ -365,18 +371,17 @@ function ProductsSection({ payload }: { payload: FbMyCityPayload }) {
   });
   const rows = sort.apply(fbCityProducts(payload, segment));
   return (
-    <Section
-      title="Что покупают"
-      aside={
-        <SegmentedControl
-          aria-label="Тип покупателя"
-          value={segment}
-          onChange={setSegment}
-          options={PRODUCT_SEGMENTS}
-        />
-      }
-    >
-      <TableCard>
+    <Section title="Что покупают">
+      <TableCard
+        bar={
+          <SegmentedControl
+            aria-label="Тип покупателя"
+            value={segment}
+            onChange={setSegment}
+            options={PRODUCT_SEGMENTS}
+          />
+        }
+      >
         <Table>
           <TableHeader>
             <TableRow>

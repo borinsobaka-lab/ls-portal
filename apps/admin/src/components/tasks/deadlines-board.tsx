@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/dialog";
 import { FormField } from "@/components/ui/form-field";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { TableToolbar } from "@/components/table-toolbar";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -121,7 +122,16 @@ export function DeadlinesBoard({
       }
     >
       <div className="space-y-3">
-        <SegmentedControl aria-label="Чьи задачи" value={role} onChange={onRole} options={ROLES} />
+        <TableToolbar
+          tabs={
+            <SegmentedControl
+              aria-label="Чьи задачи"
+              value={role}
+              onChange={onRole}
+              options={ROLES}
+            />
+          }
+        />
         <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-2">
           {COLUMNS.map((col) => {
             const list = byColumn.get(col.key) ?? [];
@@ -141,7 +151,7 @@ export function DeadlinesBoard({
                   setDrag(null);
                 }}
                 className={cn(
-                  "flex w-64 shrink-0 flex-col rounded-lg border bg-muted/40 transition-colors",
+                  "flex w-64 shrink-0 flex-col rounded-lg border bg-background transition-colors",
                   over === col.key && "border-chat-accent bg-chat-accent-soft",
                 )}
               >

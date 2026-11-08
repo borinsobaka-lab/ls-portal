@@ -205,15 +205,15 @@ function OtherSalesTabs({ studioId }: { studioId: string }) {
 
   return (
     <Tabs value={tab} onValueChange={(v) => setTab(v as TabValue)} className="space-y-3">
-      {/* Табы — на белой плашке фильтров, не прямо на канве. */}
-      <TableToolbar>
-        <div className="toolbar-full">
+      {/* Табы — строкой на белой плашке, не прямо на канве. */}
+      <TableToolbar
+        tabs={
           <TabsList>
             <TabsTrigger value="sales">Продажи</TabsTrigger>
             <TabsTrigger value="catalog">Позиции</TabsTrigger>
           </TabsList>
-        </div>
-      </TableToolbar>
+        }
+      />
       <FloatingActions>
         {tab === "sales" ? (
           <Button onClick={() => setSaleOpen(true)} disabled={items.length === 0}>

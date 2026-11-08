@@ -170,11 +170,11 @@ function AnalyticsStaffStatsPage() {
                   <span className="text-sm text-muted-foreground">Новые сверху</span>
                 </div>
                 {responses.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">
+                  <InfoNote variant="empty">
                     {data?.responses.length
                       ? "Ответы не найдены."
                       : "Комментариев и ответов пока нет."}
-                  </p>
+                  </InfoNote>
                 ) : (
                   <div className="grid gap-3 lg:grid-cols-2">
                     {responses.map((r) => (

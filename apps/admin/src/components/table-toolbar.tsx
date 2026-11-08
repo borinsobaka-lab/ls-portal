@@ -2,6 +2,7 @@ import { Children, Fragment, isValidElement, useState, type ReactNode } from "re
 import { SlidersHorizontal, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/search-input";
+import { cn } from "@/lib/utils";
 
 // Единая плашка поиска и фильтров над таблицей — один вид во всех разделах.
 // Правила (см. .interface-design/system.md):
@@ -16,10 +17,28 @@ import { SearchInput } from "@/components/ui/search-input";
 //    помещались парой и вставали по одному в неровную колонку).
 //  - на телефоне при поиске и двух и больше фильтрах фильтры прячутся за
 //    кнопку «Фильтры» рядом с поиском (точка на ней — фильтр применён):
-//    в «Абонементах» восемь фильтров занимали весь первый экран.
-export function TableToolbar({ children }: { children: ReactNode }) {
-  const [open, setOpen] = useState(false);
+//    в «Абонементах» восемь фильтров занимали весь первый экран;
+//  - табы первого уровня (разделы, роли, вкладки страницы) — проп `tabs`:
+//    своя строка сверху плашки, фильтры — второй строкой под линией. Табы
+//    и сегменты-переключатели страницы прямо на канве не ставим.
+export function TableToolbar({ children, tabs }: { children?: ReactNode; tabs?: ReactNode }) {
   const items = Children.toArray(children);
+  if (tabs === undefined || tabs === null || tabs === false) {
+    return <ToolbarRow items={items} className="rounded-lg border bg-background" />;
+  }
+  // Табы первого уровня — своей строкой сверху, фильтры (второй уровень) —
+  // под ними на той же плашке, через линию (решение владельца 2026-11-08:
+  // табы прямо на канве сливались с подложкой раздела).
+  return (
+    <div className="rounded-lg border bg-background">
+      <div className="toolbar-tabs overflow-x-auto p-2 sm:px-3">{tabs}</div>
+      {items.length > 0 && <ToolbarRow items={items} className="border-t" />}
+    </div>
+  );
+}
+
+function ToolbarRow({ items, className }: { items: ReactNode[]; className?: string }) {
+  const [open, setOpen] = useState(false);
   const isSearch = (c: ReactNode) => isValidElement(c) && c.type === ToolbarSearch;
   const collapsible = items.some(isSearch) && items.filter((c) => !isSearch(c)).length >= 2;
   const applied = items.some(
@@ -27,7 +46,7 @@ export function TableToolbar({ children }: { children: ReactNode }) {
   );
   return (
     <div
-      className="table-toolbar flex flex-wrap items-center gap-2 rounded-lg border bg-background p-2 sm:px-3"
+      className={cn("table-toolbar flex flex-wrap items-center gap-2 p-2 sm:px-3", className)}
       data-collapsible={collapsible ? "" : undefined}
       data-open={open ? "" : undefined}
     >

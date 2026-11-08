@@ -255,7 +255,7 @@ function Comments({ comments }: { comments: RvComment[] }) {
         <span className="text-sm text-muted-foreground">{formatNumber(comments.length)} шт.</span>
       </div>
       {comments.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Нет текстовых комментариев.</p>
+        <InfoNote variant="empty">Нет текстовых комментариев.</InfoNote>
       ) : (
         <>
           <div className="grid gap-3 lg:grid-cols-2">

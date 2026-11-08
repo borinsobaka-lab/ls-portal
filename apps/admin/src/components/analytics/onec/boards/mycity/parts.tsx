@@ -16,6 +16,7 @@ export function Section({
   children,
 }: {
   title: string;
+  /** Подпись справа от заголовка (строка) или мелкий текст; переключатели — на белой карточке блока, не здесь. */
   aside?: ReactNode;
   children: ReactNode;
 }) {

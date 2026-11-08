@@ -129,10 +129,10 @@ function AnalyticsFbTrialsReviewPage() {
             </Link>
           </Button>
         </div>
-        <div className="space-y-1 text-sm text-muted-foreground">
+        <InfoNote>
           <p>{FB_REVIEW_TEXT.intro}</p>
-          <p>{FB_REVIEW_TEXT.time}</p>
-        </div>
+          <p className="mt-1">{FB_REVIEW_TEXT.time}</p>
+        </InfoNote>
         <TableToolbar>
           <DateRangeFilter
             value={draft ?? { from: toDate(filters.from), to: toDate(filters.to) }}
@@ -228,16 +228,16 @@ function AnalyticsFbTrialsReviewPage() {
           <div
             className={cn("space-y-3", isFetching && !isPending && "opacity-60 transition-opacity")}
           >
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <p className="text-sm">
-                Найдено записей: <b>{rows.length}</b>
-              </p>
-              <Button variant="outline" onClick={download}>
-                <Download />
-                Скачать CSV — все найденные записи
-              </Button>
-            </div>
             <section className="rounded-lg border bg-background">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b p-2 sm:px-3">
+                <p className="px-1 text-sm">
+                  Найдено записей: <b>{rows.length}</b>
+                </p>
+                <Button variant="outline" onClick={download}>
+                  <Download />
+                  Скачать CSV — все найденные записи
+                </Button>
+              </div>
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -269,9 +269,7 @@ function AnalyticsFbTrialsReviewPage() {
                 </TableBody>
               </Table>
             </section>
-            {rows.length > 500 && (
-              <p className="text-sm text-muted-foreground">{FB_REVIEW_TEXT.limit}</p>
-            )}
+            {rows.length > 500 && <InfoNote>{FB_REVIEW_TEXT.limit}</InfoNote>}
           </div>
         )}
       </div>

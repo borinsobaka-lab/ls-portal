@@ -138,25 +138,26 @@ function StructurePage() {
   return (
     <AdminShell title="Оргструктура">
       <div className="space-y-4">
-        {/* Табы — на белой плашке фильтров, не на канве. */}
-        <TableToolbar>
-          <Tabs
-            value={tab}
-            onValueChange={(v) =>
-              void navigate({ search: { tab: v === "units" ? undefined : (v as Tab) } })
-            }
-            activationMode="manual"
-            className="toolbar-full max-w-full"
-          >
-            <TabsList aria-label="Разделы оргструктуры" className="max-w-full overflow-x-auto">
-              {TABS.map((t) => (
-                <TabsTrigger key={t.value} value={t.value}>
-                  {t.label}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
-        </TableToolbar>
+        {/* Табы — строкой на белой плашке, не на канве. */}
+        <TableToolbar
+          tabs={
+            <Tabs
+              value={tab}
+              onValueChange={(v) =>
+                void navigate({ search: { tab: v === "units" ? undefined : (v as Tab) } })
+              }
+              activationMode="manual"
+            >
+              <TabsList aria-label="Разделы оргструктуры">
+                {TABS.map((t) => (
+                  <TabsTrigger key={t.value} value={t.value}>
+                    {t.label}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
+          }
+        />
         <PageIntro key={tab} id={`structure-${tab}`}>
           {INTRO[tab]}
         </PageIntro>

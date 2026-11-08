@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 
 import { DataPagination, usePagination } from "@/components/data-pagination";
@@ -66,7 +66,16 @@ type Show = "all" | "unfinished";
  * только прежнюю версию), дочитали, среднее время, открытия за 30 дней. По
  * строке — кто прочитал (KbReadersDialogBody).
  */
-export function KbArticlesTab({ baseId, canGrant }: { baseId: string; canGrant: boolean }) {
+export function KbArticlesTab({
+  baseId,
+  canGrant,
+  toolbarTabs,
+}: {
+  baseId: string;
+  canGrant: boolean;
+  /** Табы страницы — первой строкой плашки фильтров. */
+  toolbarTabs?: ReactNode;
+}) {
   const { data, isLoading, error } = useKbReport(baseId, true);
   const { data: nodes } = useKbTree(baseId);
   const index = useMemo(() => indexTree(nodes ?? []), [nodes]);
@@ -89,11 +98,17 @@ export function KbArticlesTab({ baseId, canGrant }: { baseId: string; canGrant: 
       .map((a) => a.title)
       .join(" › ");
 
-  if (error && !data) return <InfoNote variant="warning">{error.message}</InfoNote>;
+  if (error && !data)
+    return (
+      <div className="space-y-3">
+        <TableToolbar tabs={toolbarTabs} />
+        <InfoNote variant="warning">{error.message}</InfoNote>
+      </div>
+    );
 
   return (
     <div className="space-y-3">
-      <TableToolbar>
+      <TableToolbar tabs={toolbarTabs}>
         <ToolbarSearch value={q} onChange={setQ} placeholder="Название статьи" />
         <Select value={status} onValueChange={(v) => setStatus(v as "all" | KbStatus)}>
           <SelectTrigger className="w-44">

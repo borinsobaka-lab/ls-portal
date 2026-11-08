@@ -14,7 +14,7 @@
  */
 import { StatusChip } from "@/components/ui/status-chip";
 import { EmptyCard } from "@/components/scripts/empty-card";
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useMemo, useState, type ReactNode } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
 import { TableCardSkeleton, TableSkeletonRows } from "@/components/skeletons";
@@ -63,7 +63,7 @@ const ALL = "all";
 
 type View = "summary" | "calls";
 
-export function CallStatsTab() {
+export function CallStatsTab({ toolbarTabs }: { toolbarTabs?: ReactNode } = {}) {
   const { data: sections } = usePlaybook();
   const [period, setPeriod] = useState<Period>(defaultPeriod);
   const [section, setSection] = useState("");
@@ -99,7 +99,7 @@ export function CallStatsTab() {
 
   return (
     <div className="space-y-3">
-      <TableToolbar>
+      <TableToolbar tabs={toolbarTabs}>
         <PeriodFilter value={period} onChange={setPeriod} />
         {data && data.sections.length > 1 && (
           <Select value={data.section_id ?? ""} onValueChange={setSection}>

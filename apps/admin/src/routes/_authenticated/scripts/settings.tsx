@@ -6,6 +6,7 @@ import { AdminShell } from "@/components/admin-shell";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CountBadge } from "@/components/ui/status-chip";
 import { TableToolbar } from "@/components/table-toolbar";
+import { InfoNote } from "@/components/ui/form-field";
 import { CallStatsTab } from "@/components/scripts/settings/call-stats";
 import { CopyStatsTab } from "@/components/scripts/settings/copy-stats";
 import { HistoryTab } from "@/components/scripts/settings/history";
@@ -98,6 +99,16 @@ function SettingsTabs({ canEdit }: { canEdit: boolean }) {
     { key: "vars", label: "Подстановка" },
     ...(canEdit ? [{ key: "import" as const, label: "Импорт" }] : []),
   ];
+  const tabsNode = (
+    <TabsList indicatorMemoryKey="scripts-settings-tabs">
+      {tabs.map((t) => (
+        <TabsTrigger key={t.key} value={t.key} className="gap-1.5">
+          {t.label}
+          {!!t.badge && <CountBadge count={t.badge} />}
+        </TabsTrigger>
+      ))}
+    </TabsList>
+  );
 
   return (
     <Tabs
@@ -107,25 +118,15 @@ function SettingsTabs({ canEdit }: { canEdit: boolean }) {
       }}
       className="space-y-3"
     >
+      {/* Табы — первой строкой белой плашки (на узком экране строка
+          прокручивается); у «Статистики» и «Звонков» плашку с фильтрами
+          рисует сама вкладка — табы уходят ей. */}
+      {tab !== "stats" && tab !== "calls" && <TableToolbar tabs={tabsNode} />}
       {!canEdit && (
-        <p className="text-sm text-muted-foreground">
+        <InfoNote>
           Только просмотр: менять настройки могут те, кому выдано «Скрипты LS: правка».
-        </p>
+        </InfoNote>
       )}
-      {/* Табы — на белой плашке фильтров, не прямо на канве; на узком экране
-          прокручиваются. */}
-      <TableToolbar>
-        <div className="toolbar-full max-w-full overflow-x-auto">
-          <TabsList>
-            {tabs.map((t) => (
-              <TabsTrigger key={t.key} value={t.key} className="gap-1.5">
-                {t.label}
-                {!!t.badge && <CountBadge count={t.badge} />}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </div>
-      </TableToolbar>
 
       <TabsContent value="history">
         <HistoryTab />
@@ -133,11 +134,11 @@ function SettingsTabs({ canEdit }: { canEdit: boolean }) {
       <TabsContent value="suggestions">
         <SuggestionsTab canEdit={canEdit} seenBefore={seenBefore} />
       </TabsContent>
-      <TabsContent value="stats">
-        <CopyStatsTab />
+      <TabsContent value="stats" className="mt-0">
+        <CopyStatsTab toolbarTabs={tabsNode} />
       </TabsContent>
-      <TabsContent value="calls">
-        <CallStatsTab />
+      <TabsContent value="calls" className="mt-0">
+        <CallStatsTab toolbarTabs={tabsNode} />
       </TabsContent>
       <TabsContent value="vars">
         <SubstitutionTab canEdit={canEdit} />

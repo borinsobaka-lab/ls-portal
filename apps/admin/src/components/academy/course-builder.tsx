@@ -119,15 +119,17 @@ export function CourseBuilder({ courseId, tab }: { courseId: string; tab: Builde
   return (
     <div className="mx-auto max-w-5xl space-y-4">
       <CourseHead course={course} canEdit={canEdit} />
-      <TableToolbar>
-        <Tabs value={tab} onValueChange={setTab} className="toolbar-full max-w-full">
-          <TabsList className="max-w-full overflow-x-auto">
-            <TabsTrigger value="content">Содержание</TabsTrigger>
-            <TabsTrigger value="learners">Ученики</TabsTrigger>
-            <TabsTrigger value="errors">Ошибки</TabsTrigger>
-          </TabsList>
-        </Tabs>
-      </TableToolbar>
+      <TableToolbar
+        tabs={
+          <Tabs value={tab} onValueChange={setTab}>
+            <TabsList>
+              <TabsTrigger value="content">Содержание</TabsTrigger>
+              <TabsTrigger value="learners">Ученики</TabsTrigger>
+              <TabsTrigger value="errors">Ошибки</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        }
+      />
       {tab === "content" ? (
         <ContentTab course={course} canEdit={canEdit} />
       ) : tab === "learners" ? (

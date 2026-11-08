@@ -158,7 +158,22 @@ function Top10Body({ info }: { info: Top10Info }) {
           и загрузите данные в отчёты — тогда появятся рейтинги продлений и Excel.
         </InfoNote>
       )}
-      <TableToolbar>
+      {/* Месяцы — строкой табов на той же плашке, что и период. */}
+      <TableToolbar
+        tabs={
+          months.length > 1 && from <= to && !tooMany && !error ? (
+            <Tabs value={current} onValueChange={setTab} activationMode="manual">
+              <TabsList aria-label="Месяцы">
+                {months.map((m) => (
+                  <TabsTrigger key={m} value={m}>
+                    {top10SheetName(m)}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
+          ) : undefined
+        }
+      >
         {monthSelect(from, setFrom, "Первый месяц")}
         {monthSelect(to, setTo, "Последний месяц")}
         <Button
@@ -178,17 +193,6 @@ function Top10Body({ info }: { info: Top10Info }) {
         <InfoNote variant="warning">{onecErrorText(error)}</InfoNote>
       ) : (
         <>
-          {months.length > 1 && (
-            <Tabs value={current} onValueChange={setTab} activationMode="manual">
-              <TabsList aria-label="Месяцы" className="max-w-full overflow-x-auto">
-                {months.map((m) => (
-                  <TabsTrigger key={m} value={m}>
-                    {top10SheetName(m)}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </Tabs>
-          )}
           <div className="grid gap-4 xl:grid-cols-2">
             {TOP10_RANKINGS.filter((d) => ready || d.den).map((d) => (
               <RankingCard
@@ -199,11 +203,13 @@ function Top10Body({ info }: { info: Top10Info }) {
               />
             ))}
           </div>
-          <ul className="space-y-1 text-xs text-muted-foreground">
-            {(data ? [top10SourceNote(data)] : []).concat(TOP10_NOTES_STATIC).map((n) => (
-              <li key={n}>{n}</li>
-            ))}
-          </ul>
+          <InfoNote>
+            <ul className="space-y-1">
+              {(data ? [top10SourceNote(data)] : []).concat(TOP10_NOTES_STATIC).map((n) => (
+                <li key={n}>{n}</li>
+              ))}
+            </ul>
+          </InfoNote>
         </>
       )}
     </div>

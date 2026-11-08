@@ -13,6 +13,7 @@ import { toast } from "sonner";
 
 import { AdminShell } from "@/components/admin-shell";
 import { useConfirm } from "@/components/confirm-dialog";
+import { TableToolbar } from "@/components/table-toolbar";
 import { ProjectSettingsForm } from "@/components/tasks/project-form";
 import { PeopleField, PersonLine, UrgentMark, DeadlineText } from "@/components/tasks/task-bits";
 import { NewTaskDialog } from "@/components/tasks/task-form";
@@ -68,6 +69,7 @@ export function ProjectPage({
 }) {
   const { data: project, isPending, error } = useQuery(projectQuery(projectId));
   const [creating, setCreating] = useState(false);
+  const [done, setDone] = useState(false);
 
   if (isPending)
     return (
@@ -101,53 +103,85 @@ export function ProjectPage({
         ) : undefined
       }
     >
-      <div className="space-y-4">
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-          <span className="inline-flex items-center gap-2">
-            <span
-              className="size-3 rounded-full"
-              style={{ background: project.color ?? "var(--muted-foreground)" }}
-            />
-            {PROJECT_KIND_LABEL[project.kind]}
-          </span>
-          <StatusChip tone={project.visibility === "open" ? "info" : "neutral"}>
-            {project.visibility === "open" ? "Открытый" : "Закрытый"}
-          </StatusChip>
-          {project.archived_at && <StatusChip tone="warning">В архиве</StatusChip>}
-          {project.my_role && (
-            <span className="text-muted-foreground">
-              Вы — {PROJECT_ROLE_LABEL[project.my_role].toLowerCase()}
+      <div className="space-y-3">
+        <div className="space-y-2 rounded-lg border bg-background p-3 sm:px-4">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+            <span className="inline-flex items-center gap-2">
+              <span
+                className="size-3 rounded-full"
+                style={{ background: project.color ?? "var(--muted-foreground)" }}
+              />
+              {PROJECT_KIND_LABEL[project.kind]}
             </span>
-          )}
-          <span className="text-muted-foreground">
-            {DEADLINE_RULE_LABEL[project.deadline_rule]}
-          </span>
-          {project.chat_id && project.my_role && (
-            <Button variant="outline" size="sm" asChild className="ml-auto">
-              <Link to="/chats/$chatId" params={{ chatId: project.chat_id }}>
-                <MessageSquare className="size-4" /> Чат проекта
-              </Link>
-            </Button>
+            <StatusChip tone={project.visibility === "open" ? "info" : "neutral"}>
+              {project.visibility === "open" ? "Открытый" : "Закрытый"}
+            </StatusChip>
+            {project.archived_at && <StatusChip tone="warning">В архиве</StatusChip>}
+            {project.my_role && (
+              <span className="text-muted-foreground">
+                Вы — {PROJECT_ROLE_LABEL[project.my_role].toLowerCase()}
+              </span>
+            )}
+            <span className="text-muted-foreground">
+              {DEADLINE_RULE_LABEL[project.deadline_rule]}
+            </span>
+            {project.chat_id && project.my_role && (
+              <Button variant="outline" size="sm" asChild className="ml-auto">
+                <Link to="/chats/$chatId" params={{ chatId: project.chat_id }}>
+                  <MessageSquare className="size-4" /> Чат проекта
+                </Link>
+              </Button>
+            )}
+          </div>
+          {project.description && (
+            <p className="max-w-3xl text-sm text-muted-foreground">{project.description}</p>
           )}
         </div>
-        {project.description && (
-          <p className="max-w-3xl text-sm text-muted-foreground">{project.description}</p>
-        )}
 
         <Tabs value={tab} onValueChange={(t) => onSearch({ tab: t as ProjectTab, view, task })}>
-          <TabsList>
-            <TabsTrigger value="tasks">Задачи</TabsTrigger>
-            <TabsTrigger value="members">Участники · {project.member_count}</TabsTrigger>
-            {project.can_manage && <TabsTrigger value="settings">Настройки</TabsTrigger>}
-          </TabsList>
-          <TabsContent value="tasks" className="pt-3">
-            <ProjectTasks project={project} view={view} task={task} onSearch={onSearch} />
+          <TableToolbar
+            tabs={
+              <TabsList>
+                <TabsTrigger value="tasks">Задачи</TabsTrigger>
+                <TabsTrigger value="members">Участники · {project.member_count}</TabsTrigger>
+                {project.can_manage && <TabsTrigger value="settings">Настройки</TabsTrigger>}
+              </TabsList>
+            }
+          >
+            {tab === "tasks" && (
+              <SegmentedControl
+                aria-label="Вид"
+                value={view}
+                onChange={(v) => onSearch({ tab: "tasks", view: v, task })}
+                options={[
+                  { value: "list", label: "Список" },
+                  { value: "board", label: "Канбан" },
+                ]}
+              />
+            )}
+            {tab === "tasks" && view === "list" && (
+              <div className="flex h-10 items-center gap-2 px-1">
+                <Switch id="project-done" checked={done} onCheckedChange={setDone} />
+                <Label htmlFor="project-done" className="cursor-pointer whitespace-nowrap">
+                  Завершённые
+                </Label>
+              </div>
+            )}
+          </TableToolbar>
+          <TabsContent value="tasks" className="mt-3">
+            <ProjectTasks
+              project={project}
+              view={view}
+              done={done}
+              task={task}
+              onSearch={onSearch}
+            />
           </TabsContent>
-          <TabsContent value="members" className="pt-3">
+          <TabsContent value="members" className="mt-3">
             <ProjectMembers project={project} />
           </TabsContent>
           {project.can_manage && (
-            <TabsContent value="settings" className="space-y-6 pt-3">
+            <TabsContent value="settings" className="mt-3 space-y-6">
               <ProjectSettingsForm key={project.id} project={project} />
               <StagesEditor project={project} />
               <DangerZone project={project} />
@@ -170,16 +204,17 @@ export function ProjectPage({
 function ProjectTasks({
   project,
   view,
+  done,
   task,
   onSearch,
 }: {
   project: ProjectFull;
   view: "list" | "board";
+  done: boolean;
   task: number | undefined;
   onSearch: (s: { tab?: ProjectTab; view?: "list" | "board"; task?: number }) => void;
 }) {
   const { tz } = useTaskClock();
-  const [done, setDone] = useState(false);
   const { data, isPending } = useTaskList(
     { project: project.id, done: view === "list" && done },
     2,
@@ -188,25 +223,6 @@ function ProjectTasks({
   const open = (n: number | undefined) => onSearch({ tab: "tasks", view, task: n });
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-center gap-3">
-        <SegmentedControl
-          aria-label="Вид"
-          value={view}
-          onChange={(v) => onSearch({ tab: "tasks", view: v, task })}
-          options={[
-            { value: "list", label: "Список" },
-            { value: "board", label: "Канбан" },
-          ]}
-        />
-        {view === "list" && (
-          <div className="flex items-center gap-2">
-            <Switch id="project-done" checked={done} onCheckedChange={setDone} />
-            <Label htmlFor="project-done" className="cursor-pointer">
-              Завершённые
-            </Label>
-          </div>
-        )}
-      </div>
       {view === "list" ? (
         <TaskTable
           rows={rows}
@@ -273,7 +289,7 @@ function Board({
               setDrag(null);
             }}
             className={cn(
-              "flex w-64 shrink-0 flex-col rounded-lg border bg-muted/40",
+              "flex w-64 shrink-0 flex-col rounded-lg border bg-background",
               over === s.id && "border-chat-accent bg-chat-accent-soft",
             )}
           >

@@ -3,6 +3,7 @@ import { useState } from "react";
 import { CheckCheck, Loader2, Settings } from "lucide-react";
 
 import { AdminShell } from "@/components/admin-shell";
+import { TableToolbar } from "@/components/table-toolbar";
 import { NotificationsPageSkeleton } from "@/components/page-skeletons";
 import { NotifRow } from "@/components/notifications/notif-row";
 import { Button } from "@/components/ui/button";
@@ -44,29 +45,36 @@ function NotificationsPage() {
   return (
     <AdminShell title="Уведомления">
       <div className="mx-auto max-w-3xl space-y-4">
-        <div className="flex flex-wrap items-center gap-2">
-          <SegmentedControl
-            aria-label="Какие уведомления показать"
-            value={filter}
-            onChange={setFilter}
-            options={[
-              { value: "all", label: "Все" },
-              { value: "unread", label: unread ? `Непрочитанные · ${unread}` : "Непрочитанные" },
-            ]}
-          />
-          <div className="ml-auto flex items-center gap-2">
-            {unread > 0 && (
-              <Button variant="outline" onClick={() => void markRead()}>
-                <CheckCheck /> Прочитать все
-              </Button>
-            )}
-            <Button variant="outline" asChild>
-              <Link to={NOTIFICATIONS_SETTINGS_URL}>
-                <Settings /> Настройки
-              </Link>
-            </Button>
-          </div>
-        </div>
+        <TableToolbar
+          tabs={
+            <div className="flex flex-wrap items-center gap-2">
+              <SegmentedControl
+                aria-label="Какие уведомления показать"
+                value={filter}
+                onChange={setFilter}
+                options={[
+                  { value: "all", label: "Все" },
+                  {
+                    value: "unread",
+                    label: unread ? `Непрочитанные · ${unread}` : "Непрочитанные",
+                  },
+                ]}
+              />
+              <div className="ml-auto flex items-center gap-2">
+                {unread > 0 && (
+                  <Button variant="outline" onClick={() => void markRead()}>
+                    <CheckCheck /> Прочитать все
+                  </Button>
+                )}
+                <Button variant="outline" asChild>
+                  <Link to={NOTIFICATIONS_SETTINGS_URL}>
+                    <Settings /> Настройки
+                  </Link>
+                </Button>
+              </div>
+            </div>
+          }
+        />
 
         <div className="rounded-xl border bg-background p-1.5">
           {feed.isLoading ? (

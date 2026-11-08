@@ -425,28 +425,27 @@ function NpsPage() {
       }
     >
       <div className="space-y-3">
-        {/* Табы и фильтры «Статистики» — на одной белой плашке, не на канве. */}
-        <TableToolbar>
-          <Tabs
-            value={tab}
-            onValueChange={(v) => setTab(v as "surveys" | "stats")}
-            className="toolbar-full"
-          >
-            <TabsList>
-              <TabsTrigger value="surveys">Опросы</TabsTrigger>
-              <TabsTrigger value="stats">
-                Статистика
-                {unreadCount > 0 && (
-                  <CountBadge
-                    count={unreadCount}
-                    tone="quiet"
-                    aria-label={`Непрочитанных: ${unreadCount}`}
-                    className="ml-1.5"
-                  />
-                )}
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
+        {/* Табы — первой строкой белой плашки, фильтры «Статистики» — второй. */}
+        <TableToolbar
+          tabs={
+            <Tabs value={tab} onValueChange={(v) => setTab(v as "surveys" | "stats")}>
+              <TabsList>
+                <TabsTrigger value="surveys">Опросы</TabsTrigger>
+                <TabsTrigger value="stats">
+                  Статистика
+                  {unreadCount > 0 && (
+                    <CountBadge
+                      count={unreadCount}
+                      tone="quiet"
+                      aria-label={`Непрочитанных: ${unreadCount}`}
+                      className="ml-1.5"
+                    />
+                  )}
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          }
+        >
           {multi && studios && (
             <StudioFilter studios={studios} value={studioFilter} onChange={setStudioFilter} />
           )}

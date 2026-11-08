@@ -24,6 +24,7 @@ import {
 import { toast } from "sonner";
 
 import { AdminShell } from "@/components/admin-shell";
+import { TableToolbar } from "@/components/table-toolbar";
 import { useConfirm } from "@/components/confirm-dialog";
 import { TaskCard } from "@/components/tasks/task-card";
 import { NewTaskDialog } from "@/components/tasks/task-form";
@@ -134,8 +135,8 @@ export function PlanBoard({
       }
     >
       <div className="space-y-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <p className="mr-auto text-sm text-muted-foreground max-sm:w-full">
+        <TableToolbar>
+          <p className="toolbar-full mr-auto px-1 text-sm text-muted-foreground">
             Разложите свои задачи по колонкам, как удобно. Статус и срок задачи доска не меняет.
           </p>
           <Button variant="outline" onClick={() => setAdding(true)}>
@@ -148,7 +149,7 @@ export function PlanBoard({
           >
             <Plus className="size-4" /> Колонка
           </Button>
-        </div>
+        </TableToolbar>
         <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-2">
           {lanes.map((lane, li) => {
             const list = planColumnCards(cards, lane.column?.id ?? null);
@@ -168,7 +169,7 @@ export function PlanBoard({
                   setDrop(null);
                 }}
                 className={cn(
-                  "flex w-72 shrink-0 flex-col rounded-lg border bg-muted/40 transition-colors",
+                  "flex w-72 shrink-0 flex-col rounded-lg border bg-background transition-colors",
                   over && "border-chat-accent bg-chat-accent-soft",
                 )}
               >

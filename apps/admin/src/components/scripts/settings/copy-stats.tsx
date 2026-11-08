@@ -6,7 +6,7 @@
  * или у одного сотрудника, на всех языках или на одном. Скрипты, которые не
  * копируют месяцами, — кандидаты на переписывание или удаление.
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
 import { TableToolbar, ToolbarReset } from "@/components/table-toolbar";
@@ -62,7 +62,7 @@ const USER_GETTERS: SortGetters<UserRow> = {
   total: (r) => r.total,
 };
 
-export function CopyStatsTab() {
+export function CopyStatsTab({ toolbarTabs }: { toolbarTabs?: ReactNode } = {}) {
   const { data: sections = [] } = usePlaybook();
   const openScript = useOpenScript();
   const [period, setPeriod] = useState<Period>(defaultPeriod);
@@ -111,7 +111,7 @@ export function CopyStatsTab() {
 
   return (
     <div className="space-y-3">
-      <TableToolbar>
+      <TableToolbar tabs={toolbarTabs}>
         <PeriodFilter value={period} onChange={setPeriod} />
         <Select value={user || ALL} onValueChange={(v) => setUser(v === ALL ? "" : v)}>
           <SelectTrigger className="w-48" aria-label="Сотрудник">

@@ -69,23 +69,25 @@ function ReportPage() {
     <AdminShell title="Отчёт по обучению">
       <div className="mx-auto max-w-6xl space-y-4">
         {/* Табы и поиск вкладки — на одной белой плашке, не на канве. */}
-        <TableToolbar>
-          <Tabs
-            value={tab}
-            onValueChange={(t) =>
-              void navigate({
-                to: "/academy/report",
-                search: t === "people" ? { tab: "people" } : {},
-                replace: true,
-              })
-            }
-            className="toolbar-full"
-          >
-            <TabsList>
-              <TabsTrigger value="courses">Курсы</TabsTrigger>
-              <TabsTrigger value="people">Сотрудники</TabsTrigger>
-            </TabsList>
-          </Tabs>
+        <TableToolbar
+          tabs={
+            <Tabs
+              value={tab}
+              onValueChange={(t) =>
+                void navigate({
+                  to: "/academy/report",
+                  search: t === "people" ? { tab: "people" } : {},
+                  replace: true,
+                })
+              }
+            >
+              <TabsList>
+                <TabsTrigger value="courses">Курсы</TabsTrigger>
+                <TabsTrigger value="people">Сотрудники</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          }
+        >
           {tab === "people" && (
             <ToolbarSearch value={q} onChange={setQ} placeholder="Имя сотрудника" />
           )}

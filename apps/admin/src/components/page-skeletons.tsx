@@ -133,12 +133,15 @@ function TabsSkeleton({
  */
 function StaffTabsSkeleton({ active, children }: { active: string; children?: ReactNode }) {
   return (
-    <ToolbarSkeleton search={false}>
-      <TabsSkeleton
-        labels={STAFF_ITEMS.map((i) => i.tab)}
-        active={STAFF_ITEMS.findIndex((i) => i.url === active)}
-        className="toolbar-full max-w-full overflow-x-auto"
-      />
+    <ToolbarSkeleton
+      search={false}
+      tabs={
+        <TabsSkeleton
+          labels={STAFF_ITEMS.map((i) => i.tab)}
+          active={STAFF_ITEMS.findIndex((i) => i.url === active)}
+        />
+      }
+    >
       {children}
     </ToolbarSkeleton>
   );
@@ -783,9 +786,7 @@ export function OtherSalesPageSkeleton() {
   return (
     <ShellSkeleton title="Прочие продажи" actions={[{ label: "Добавить продажу" }]}>
       <div className="space-y-3">
-        <ToolbarSkeleton search={false}>
-          <TabsSkeleton labels={["Продажи", "Позиции"]} className="toolbar-full" />
-        </ToolbarSkeleton>
+        <ToolbarSkeleton search={false} tabs={<TabsSkeleton labels={["Продажи", "Позиции"]} />} />
         <TableCardSkeleton
           pagination
           headers={[
@@ -1113,8 +1114,7 @@ export function NpsPageSkeleton() {
   return (
     <ShellSkeleton title="NPS-опросы" actions={[{ label: "Добавить ответ" }]}>
       <div className="space-y-3">
-        <ToolbarSkeleton search={false}>
-          <TabsSkeleton labels={["Опросы", "Статистика"]} className="toolbar-full" />
+        <ToolbarSkeleton search={false} tabs={<TabsSkeleton labels={["Опросы", "Статистика"]} />}>
           {/* Фильтр «Клуб» — при нескольких клубах. */}
           <Skeleton className="h-10 w-56" />
         </ToolbarSkeleton>
@@ -1740,9 +1740,10 @@ export function AccessStructurePageSkeleton() {
   return (
     <ShellSkeleton title="Оргструктура">
       <div className="space-y-4">
-        <div className="table-toolbar flex flex-wrap items-center gap-2 rounded-lg border bg-background p-2 sm:px-3">
-          <Skeleton className="toolbar-full h-10 w-80 max-w-full rounded-full" />
-        </div>
+        <ToolbarSkeleton
+          search={false}
+          tabs={<Skeleton className="h-10 w-80 max-w-full rounded-full" />}
+        />
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,22rem)_1fr]">
           <section className="space-y-2 rounded-lg border bg-background p-3">
             {Array.from({ length: 7 }, (_, i) => (
@@ -2021,10 +2022,10 @@ function PeriodFilterSkeleton() {
 }
 
 /** «Статистика» (копирования): фильтры, четыре плитки, таблица скриптов. */
-export function CopyStatsSkeleton() {
+export function CopyStatsSkeleton({ tabs }: { tabs?: ReactNode } = {}) {
   return (
     <div className="space-y-3">
-      <ToolbarSkeleton search={false}>
+      <ToolbarSkeleton search={false} tabs={tabs}>
         <PeriodFilterSkeleton />
         <Skeleton className="h-10 w-48" />
         <TabsSkeleton labels={["Все языки", "RU", "EN", "GE"]} className="toolbar-full" />
@@ -2054,10 +2055,10 @@ export function CopyStatsSkeleton() {
 const CALL_TILES = ["Звонков за период", "Дошли до конца сценария", "Шагов сценария в среднем"];
 
 /** «Звонки»: фильтр периода, «Сводка / Звонки» и сводка. */
-export function CallStatsSkeleton() {
+export function CallStatsSkeleton({ tabs }: { tabs?: ReactNode } = {}) {
   return (
     <div className="space-y-3">
-      <ToolbarSkeleton search={false}>
+      <ToolbarSkeleton search={false} tabs={tabs}>
         <PeriodFilterSkeleton />
         <TabsSkeleton labels={["Сводка", "Звонки"]} className="toolbar-full sm:ml-auto" />
       </ToolbarSkeleton>
@@ -2070,24 +2071,18 @@ export function CallStatsSkeleton() {
 /** Тело «Настроек скриптов» для вкладки `tab` (из адреса, ?tab=). */
 export function ScriptsSettingsBodySkeleton({ tab = "history" }: { tab?: string }) {
   const known = SCRIPTS_SETTINGS_TABS.some((t) => t.key === tab) ? tab : "history";
+  const tabs = (
+    <TabsSkeleton
+      labels={SCRIPTS_SETTINGS_TABS.map((t) => t.label)}
+      active={SCRIPTS_SETTINGS_TABS.findIndex((t) => t.key === known)}
+    />
+  );
+  if (known === "stats") return <CopyStatsSkeleton tabs={tabs} />;
+  if (known === "calls") return <CallStatsSkeleton tabs={tabs} />;
   return (
     <div className="space-y-3">
-      <ToolbarSkeleton search={false}>
-        <TabsSkeleton
-          labels={SCRIPTS_SETTINGS_TABS.map((t) => t.label)}
-          active={SCRIPTS_SETTINGS_TABS.findIndex((t) => t.key === known)}
-          className="toolbar-full max-w-full overflow-x-auto"
-        />
-      </ToolbarSkeleton>
-      {known === "stats" ? (
-        <CopyStatsSkeleton />
-      ) : known === "calls" ? (
-        <CallStatsSkeleton />
-      ) : known === "vars" ? (
-        <ScriptsSubstitutionSkeleton />
-      ) : (
-        <ScriptsFeedSkeleton />
-      )}
+      <ToolbarSkeleton search={false} tabs={tabs} />
+      {known === "vars" ? <ScriptsSubstitutionSkeleton /> : <ScriptsFeedSkeleton />}
     </div>
   );
 }
@@ -2224,10 +2219,12 @@ export function KbAnalyticsPageSkeleton() {
           <Skeleton className="h-4 w-40" />
           <Skeleton className="mt-1.5 h-7 w-44" />
         </div>
-        <div className="table-toolbar flex flex-wrap items-center gap-2 rounded-lg border bg-background p-2 sm:px-3">
-          <Skeleton className="toolbar-full h-10 w-96 max-w-full rounded-full" />
-          <Skeleton className="toolbar-full h-10 w-64 rounded-full sm:ml-auto" />
-        </div>
+        <ToolbarSkeleton
+          search={false}
+          tabs={<TabsSkeleton labels={["Обзор", "Сотрудники", "Статьи", "Оценки", "Поиск"]} />}
+        >
+          <Skeleton className="h-10 w-64 rounded-full sm:ml-auto" />
+        </ToolbarSkeleton>
         <DashboardStatsSkeleton
           labels={[
             "Прочитано",
@@ -2371,7 +2368,10 @@ export function AcademyReviewPageSkeleton() {
   return (
     <ShellSkeleton title="Проверка" network>
       <div className="mx-auto max-w-5xl space-y-3">
-        <ToolbarSkeleton search={false} controls={["w-72"]} />
+        <ToolbarSkeleton
+          search={false}
+          tabs={<TabsSkeleton labels={["Ответы", "Пройденные курсы"]} />}
+        />
         <TableCardSkeleton
           headers={["Сотрудник", "Курс и тест", "Свободных ответов", "Отправлено"]}
           rows={4}
@@ -2409,15 +2409,10 @@ export function AcademyBuilderPageSkeleton() {
     <ShellSkeleton title="Курс" network>
       <div className="mx-auto max-w-5xl space-y-4">
         <AcademyCourseHeadSkeleton />
-        <div className="table-toolbar flex flex-wrap items-center gap-2 rounded-lg border bg-background p-2 sm:px-3">
-          <div className="toolbar-full inline-flex h-10 items-center gap-1 rounded-full bg-muted p-1">
-            {["Содержание", "Ученики", "Ошибки"].map((t) => (
-              <span key={t} className="px-3 text-sm text-muted-foreground">
-                {t}
-              </span>
-            ))}
-          </div>
-        </div>
+        <ToolbarSkeleton
+          search={false}
+          tabs={<TabsSkeleton labels={["Содержание", "Ученики", "Ошибки"]} />}
+        />
         <ul className="divide-y rounded-lg border bg-background">
           {Array.from({ length: 4 }, (_, i) => (
             <li key={i} className="flex items-center gap-3 p-3">
@@ -2457,15 +2452,7 @@ export function AcademyReportPageSkeleton() {
   return (
     <ShellSkeleton title="Отчёт по обучению" network>
       <div className="mx-auto max-w-6xl space-y-4">
-        <div className="table-toolbar flex flex-wrap items-center gap-2 rounded-lg border bg-background p-2 sm:px-3">
-          <div className="toolbar-full inline-flex h-10 items-center gap-1 rounded-full bg-muted p-1">
-            {["Курсы", "Сотрудники"].map((t) => (
-              <span key={t} className="px-3 text-sm text-muted-foreground">
-                {t}
-              </span>
-            ))}
-          </div>
-        </div>
+        <ToolbarSkeleton search={false} tabs={<TabsSkeleton labels={["Курсы", "Сотрудники"]} />} />
         <TableCardSkeleton
           headers={[
             "Курс",
@@ -2684,9 +2671,10 @@ export function AnalyticsOnecPageSkeleton() {
   return (
     <ShellSkeleton title={AN_TITLES.onec} network>
       <div className="space-y-4">
-        <div className="rounded-lg border bg-background p-2">
-          <Skeleton className="h-9 w-80 max-w-full rounded-full" />
-        </div>
+        <ToolbarSkeleton
+          search={false}
+          tabs={<Skeleton className="h-10 w-80 max-w-full rounded-full" />}
+        />
         <div className="space-y-3 rounded-lg border bg-background p-4">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="space-y-2">
@@ -3539,12 +3527,12 @@ export function AnalyticsFbTrialsPageSkeleton() {
 /** «Воронка пробных» → «Записи без услуги»: счётчик, CSV, таблица. */
 export function AnalyticsFbTrialsReviewBodySkeleton() {
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between gap-3">
+    <div className="rounded-lg border bg-background">
+      <div className="flex items-center justify-between gap-3 border-b p-2 sm:px-3">
         <Skeleton className="h-5 w-40" />
-        <Skeleton className="h-9 w-72 rounded-full" />
+        <Skeleton className="h-10 w-72 rounded-full" />
       </div>
-      <Skeleton className="h-96 rounded-lg" />
+      <Skeleton className="m-3 h-96" />
     </div>
   );
 }
@@ -4048,7 +4036,7 @@ export function NotificationsPageSkeleton() {
   return (
     <ShellSkeleton title="Уведомления">
       <div className="mx-auto max-w-3xl space-y-4">
-        <TabsSkeleton labels={["Все", "Непрочитанные"]} />
+        <ToolbarSkeleton search={false} tabs={<TabsSkeleton labels={["Все", "Непрочитанные"]} />} />
         <div className="divide-y rounded-xl border bg-background p-1.5">
           {Array.from({ length: 6 }, (_, i) => (
             <div key={i} className="flex items-start gap-3 px-3 py-3">
@@ -4110,7 +4098,12 @@ export function TasksPageSkeleton() {
   return (
     <ShellSkeleton title="Задачи" actions={["w-36"]}>
       <div className="space-y-3">
-        <ToolbarSkeleton controls={["w-44", "w-40", "w-48", "w-36", "w-28"]} />
+        <ToolbarSkeleton
+          controls={["w-44", "w-40", "w-48", "w-36", "w-28"]}
+          tabs={
+            <TabsSkeleton labels={["Делаю", "Помогаю", "Поручил", "Наблюдаю", "Все"]} active={4} />
+          }
+        />
         <TableCardSkeleton
           headers={["№", "Задача", "Срок", "Исполнитель", "Постановщик", "Статус"]}
         />
@@ -4124,11 +4117,11 @@ export function TasksPlanPageSkeleton() {
   return (
     <ShellSkeleton title="Мой план" actions={["w-36"]}>
       <div className="space-y-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <Skeleton className="mr-auto h-4 w-96 max-w-full" />
+        <ToolbarSkeleton search={false}>
+          <Skeleton className="toolbar-full mr-auto h-4 w-96 max-w-full" />
           <Skeleton className="h-10 w-40 rounded-full" />
           <Skeleton className="h-10 w-28 rounded-full" />
-        </div>
+        </ToolbarSkeleton>
         <div className="flex gap-3 overflow-hidden">
           {Array.from({ length: 4 }, (_, i) => (
             <div key={i} className="w-72 shrink-0 space-y-2 rounded-lg border bg-background p-2">
@@ -4149,7 +4142,10 @@ export function TasksDeadlinesPageSkeleton() {
   return (
     <ShellSkeleton title="Сроки" actions={["w-36"]}>
       <div className="space-y-3">
-        <ToolbarSkeleton search={false} controls={["w-60"]} />
+        <ToolbarSkeleton
+          search={false}
+          tabs={<TabsSkeleton labels={["Делаю", "Поручил", "Все мои"]} />}
+        />
         <div className="flex gap-3 overflow-hidden">
           {Array.from({ length: 5 }, (_, i) => (
             <div key={i} className="w-64 shrink-0 space-y-2 rounded-lg border bg-background p-2">

@@ -168,7 +168,7 @@ export function ReadStateChip({ state, short }: { state: KbReadState; short?: bo
 /** Пустое состояние блока. */
 export function EmptyBlock({ children }: { children: ReactNode }) {
   return (
-    <div className="flex min-h-24 items-center justify-center rounded-lg border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">
+    <div className="flex min-h-24 items-center justify-center rounded-lg border border-dashed bg-background px-4 py-6 text-center text-sm text-muted-foreground">
       {children}
     </div>
   );

@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Download, Loader2, Pencil, Plus, Upload } from "lucide-react";
 import { toast } from "sonner";
@@ -97,10 +97,13 @@ export function OnecRefsTab({
   refKind: ref,
   info,
   locked,
+  toolbarTabs,
 }: {
   refKind: OnecRefKind;
   info: OnecRefInfo | undefined;
   locked: boolean;
+  /** Табы страницы — первой строкой плашки фильтров. */
+  toolbarTabs?: ReactNode;
 }) {
   const qc = useQueryClient();
   const { confirm, confirmDialog } = useConfirm();
@@ -174,8 +177,7 @@ export function OnecRefsTab({
   const columns = TABLE_COLUMNS[ref];
   return (
     <div className="space-y-3">
-      <InfoNote>{INTRO[ref]}</InfoNote>
-      <TableToolbar>
+      <TableToolbar tabs={toolbarTabs}>
         <ToolbarSearch value={search} onChange={setSearch} placeholder="Поиск по справочнику" />
         {ref === "nomenclature" && (
           <Select value={category} onValueChange={setCategory}>
@@ -224,6 +226,7 @@ export function OnecRefsTab({
           />
         </div>
       </TableToolbar>
+      <InfoNote>{INTRO[ref]}</InfoNote>
       <div className="text-xs text-muted-foreground">
         {ONEC_REF_FILES[ref]} · строк: {formatNumber(info?.rows ?? rows.length)}
         {info?.updated_at &&

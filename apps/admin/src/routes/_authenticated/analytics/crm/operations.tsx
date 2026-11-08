@@ -392,7 +392,23 @@ function Report({ data, name, search }: { data: OpsWindowData; name: string; sea
         {opsStamp(d.start)} — {opsStamp(d.end)} МСК · загружено {opsStamp(d.captured_at)} МСК
       </p>
       <InfoNote variant="info">{TEXT.notice}</InfoNote>
-      <TableToolbar>
+      {/* Показатели — строкой табов, фильтры — второй строкой той же плашки. */}
+      <TableToolbar
+        tabs={
+          <Tabs
+            value={tab}
+            onValueChange={(v) => setFilter({ tab: v === "reaction" ? undefined : (v as Tab) })}
+          >
+            <TabsList aria-label="Показатели">
+              {TABS.map((t) => (
+                <TabsTrigger key={t.value} value={t.value}>
+                  {t.label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+        }
+      >
         <div className="grid w-full gap-3 sm:grid-cols-2 lg:max-w-2xl">
           <FormField label="Ответственный">
             <Select
@@ -432,18 +448,6 @@ function Report({ data, name, search }: { data: OpsWindowData; name: string; sea
           </FormField>
         </div>
       </TableToolbar>
-      <Tabs
-        value={tab}
-        onValueChange={(v) => setFilter({ tab: v === "reaction" ? undefined : (v as Tab) })}
-      >
-        <TabsList aria-label="Показатели" className="max-w-full overflow-x-auto">
-          {TABS.map((t) => (
-            <TabsTrigger key={t.value} value={t.value}>
-              {t.label}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-      </Tabs>
       {tab === "reaction" && <ReactionTab rows={ls} lead={lead} />}
       {tab === "tasks" && (
         <TasksTab report={d} rows={ls} filtered={team !== "all" || source !== "all"} />

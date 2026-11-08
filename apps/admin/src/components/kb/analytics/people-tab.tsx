@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 
 import { DataPagination, usePagination } from "@/components/data-pagination";
@@ -56,7 +56,19 @@ const SORT: SortGetters<KbPersonRow> = {
  * прочитал, время, дни активности, последнее чтение и вход в админку. По
  * строке — карточка чтения сотрудника (KbPersonDialogBody).
  */
-export function KbPeopleTab({ baseId, period }: { baseId: string; period: KbPeriod }) {
+export function KbPeopleTab({
+  baseId,
+  period,
+  toolbarTabs,
+  toolbarExtra,
+}: {
+  baseId: string;
+  period: KbPeriod;
+  /** Табы страницы — первой строкой плашки фильтров. */
+  toolbarTabs?: ReactNode;
+  /** Контролы страницы (период) — на плашке после поиска. */
+  toolbarExtra?: ReactNode;
+}) {
   const { data, isLoading, error } = useKbPeople(baseId, period, true);
   const [q, setQ] = useState("");
   const [open, setOpen] = useState<KbPersonRow | null>(null);
@@ -67,19 +79,32 @@ export function KbPeopleTab({ baseId, period }: { baseId: string; period: KbPeri
   );
   const pg = usePagination(sort.apply(rows), undefined, `${sort.key}|${term}`);
 
-  if (error && !data) return <InfoNote variant="warning">{error.message}</InfoNote>;
+  const toolbar = (
+    <TableToolbar tabs={toolbarTabs}>
+      <ToolbarSearch value={q} onChange={setQ} placeholder="Имя сотрудника" />
+      {toolbarExtra}
+    </TableToolbar>
+  );
+  if (error && !data)
+    return (
+      <div className="space-y-3">
+        {toolbar}
+        <InfoNote variant="warning">{error.message}</InfoNote>
+      </div>
+    );
   if (data && data.length === 0)
     return (
-      <EmptyBlock>
-        Базу пока никому не выдали в «Доступах». Владельцы в аналитике не участвуют.
-      </EmptyBlock>
+      <div className="space-y-3">
+        {toolbar}
+        <EmptyBlock>
+          Базу пока никому не выдали в «Доступах». Владельцы в аналитике не участвуют.
+        </EmptyBlock>
+      </div>
     );
 
   return (
     <div className="space-y-3">
-      <TableToolbar>
-        <ToolbarSearch value={q} onChange={setQ} placeholder="Имя сотрудника" />
-      </TableToolbar>
+      {toolbar}
       <div className="rounded-lg border bg-background">
         <Table>
           <TableHeader>

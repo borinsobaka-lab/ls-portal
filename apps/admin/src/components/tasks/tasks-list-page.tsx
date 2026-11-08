@@ -127,15 +127,16 @@ export function TasksListPage({
       }
     >
       <div className="space-y-3">
-        <div className="overflow-x-auto">
-          <SegmentedControl
-            aria-label="Моя роль в задаче"
-            value={role}
-            onChange={(v: RoleTab) => set({ role: v === "all" ? undefined : v, mine: undefined })}
-            options={ROLE_TABS.map((t) => ({ value: t.key, label: t.title }))}
-          />
-        </div>
-        <TableToolbar>
+        <TableToolbar
+          tabs={
+            <SegmentedControl
+              aria-label="Моя роль в задаче"
+              value={role}
+              onChange={(v: RoleTab) => set({ role: v === "all" ? undefined : v, mine: undefined })}
+              options={ROLE_TABS.map((t) => ({ value: t.key, label: t.title }))}
+            />
+          }
+        >
           <ToolbarSearch value={q} onChange={setQ} placeholder="Номер, название, описание" />
           <Select
             value={filters.status?.[0] ?? ALL}
