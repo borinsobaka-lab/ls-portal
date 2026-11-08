@@ -21,6 +21,7 @@ import { toast } from "sonner";
 
 import { FileCard } from "@/components/chats/attachments";
 import { ChatAvatar } from "@/components/chats/chat-avatar";
+import { ChatSourcesBlock } from "@/components/chats/chat-sources";
 import { AddMembersDialog } from "@/components/chats/dialogs";
 import { useConfirm } from "@/components/confirm-dialog";
 import { StaffAvatar } from "@/components/employee-photo";
@@ -79,6 +80,9 @@ export function ChatInfo({
   const members = useQuery({ ...chatMembersQuery(chat.id), enabled: open });
   const isAdmin = chat.my_role !== "member";
   const isGroup = chat.kind === "group";
+  const channel = !!chat.settings?.channel;
+  const noun = channel ? "канал" : "группу";
+  const myAuto = (members.data ?? []).some((m) => m.user_id === me && m.source === "auto");
 
   const refresh = () =>
     Promise.all([
@@ -98,7 +102,7 @@ export function ChatInfo({
 
   const leave = async () => {
     const ok = await confirm({
-      title: "Выйти из группы?",
+      title: channel ? "Выйти из канала?" : "Выйти из группы?",
       description: "Вернуться можно, только если вас добавят снова.",
       confirmLabel: "Выйти",
     });
@@ -110,12 +114,16 @@ export function ChatInfo({
 
   const removeGroup = async () => {
     const ok = await confirm({
-      title: "Удалить группу?",
+      title: `Удалить ${noun}?`,
       description: "Переписка и файлы пропадут у всех участников. Вернуть нельзя.",
-      confirmLabel: "Удалить группу",
+      confirmLabel: `Удалить ${noun}`,
     });
     if (!ok) return;
-    await call("chat_delete_group", { p_chat: chat.id }, "Группа удалена");
+    await call(
+      "chat_delete_group",
+      { p_chat: chat.id },
+      channel ? "Канал удалён" : "Группа удалена",
+    );
     onClose();
     navigate({ to: "/chats" });
   };
@@ -190,6 +198,7 @@ export function ChatInfo({
         {isGroup && isAdmin && (
           <GroupSettings key={chat.id + chat.title} chat={chat} onSaved={refresh} />
         )}
+        {isGroup && <ChatSourcesBlock chat={chat} open={open} />}
 
         <div className="border-b p-4">
           <SegmentedControl
@@ -237,7 +246,12 @@ export function ChatInfo({
                           {m.user_id === me && <span className="text-muted-foreground"> · вы</span>}
                         </span>
                         <span className="block truncate text-xs text-muted-foreground">
-                          {lastSeenLabel(person(m.user_id)?.last_seen_at ?? null)}
+                          {[
+                            m.source === "auto" ? "из оргструктуры" : null,
+                            lastSeenLabel(person(m.user_id)?.last_seen_at ?? null),
+                          ]
+                            .filter(Boolean)
+                            .join(" · ")}
                         </span>
                       </span>
                     </PersonButton>
@@ -267,17 +281,18 @@ export function ChatInfo({
                     {isGroup &&
                       m.user_id !== me &&
                       m.role !== "owner" &&
+                      m.source !== "auto" &&
                       (chat.my_role === "owner" ||
                         (chat.my_role === "admin" && m.role === "member")) && (
                         <Button
                           variant="ghost"
                           size="icon"
                           className="size-8"
-                          title="Убрать из группы"
-                          aria-label="Убрать из группы"
+                          title={channel ? "Убрать из канала" : "Убрать из группы"}
+                          aria-label={channel ? "Убрать из канала" : "Убрать из группы"}
                           onClick={async () => {
                             const ok = await confirm({
-                              title: `Убрать ${name(m.user_id)} из группы?`,
+                              title: `Убрать ${name(m.user_id)} из ${channel ? "канала" : "группы"}?`,
                               confirmLabel: "Убрать",
                             });
                             if (ok)
@@ -302,20 +317,26 @@ export function ChatInfo({
 
         {isGroup && (
           <div className="space-y-2 border-t p-4">
-            <Button
-              variant="outline"
-              className="w-full text-destructive"
-              onClick={() => void leave()}
-            >
-              <LogOut /> Выйти из группы
-            </Button>
+            {myAuto ? (
+              <p className="text-xs text-muted-foreground">
+                Вы здесь по оргструктуре — выйти нельзя, но можно выключить уведомления выше.
+              </p>
+            ) : (
+              <Button
+                variant="outline"
+                className="w-full text-destructive"
+                onClick={() => void leave()}
+              >
+                <LogOut /> {channel ? "Выйти из канала" : "Выйти из группы"}
+              </Button>
+            )}
             {chat.my_role === "owner" && (
               <Button
                 variant="outline"
                 className="w-full text-destructive"
                 onClick={() => void removeGroup()}
               >
-                <Trash2 /> Удалить группу
+                <Trash2 /> {channel ? "Удалить канал" : "Удалить группу"}
               </Button>
             )}
           </div>
@@ -352,7 +373,7 @@ function GroupSettings({ chat, onSaved }: { chat: ChatRow; onSaved: () => Promis
     void save({ settings: { [key]: value } });
   return (
     <div className="space-y-3 border-b p-4">
-      <FormField label="Название группы">
+      <FormField label={chat.settings?.channel ? "Название канала" : "Название группы"}>
         <Input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={100} />
       </FormField>
       <FormField label="Описание" optional>
@@ -368,26 +389,33 @@ function GroupSettings({ chat, onSaved }: { chat: ChatRow; onSaved: () => Promis
           {busy && <Loader2 className="animate-spin" />} Сохранить
         </Button>
       )}
+      {chat.settings?.channel && (
+        <p className="text-sm text-muted-foreground">
+          Канал: пишут владелец и админы, у каждого поста — «Прочитал».
+        </p>
+      )}
       {(
         [
           ["post", "Кто пишет"],
           ["pin", "Кто закрепляет"],
           ["add", "Кто добавляет участников"],
         ] as const
-      ).map(([key, label]) => (
-        <FormField key={key} label={label} htmlFor={null}>
-          <SegmentedControl
-            aria-label={label}
-            fullWidth
-            value={chat.settings?.[key] ?? (key === "post" ? "all" : "admins")}
-            onChange={(v) => setting(key, v)}
-            options={[
-              { value: "all", label: "Все участники" },
-              { value: "admins", label: "Только админы" },
-            ]}
-          />
-        </FormField>
-      ))}
+      )
+        .filter(([key]) => !(chat.settings?.channel && key === "post"))
+        .map(([key, label]) => (
+          <FormField key={key} label={label} htmlFor={null}>
+            <SegmentedControl
+              aria-label={label}
+              fullWidth
+              value={chat.settings?.[key] ?? (key === "post" ? "all" : "admins")}
+              onChange={(v) => setting(key, v)}
+              options={[
+                { value: "all", label: "Все участники" },
+                { value: "admins", label: "Только админы" },
+              ]}
+            />
+          </FormField>
+        ))}
     </div>
   );
 }

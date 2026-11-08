@@ -14,7 +14,15 @@ import { queryOptions, useQuery, type QueryClient } from "@tanstack/react-query"
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/query";
 import { useRealtimeConnected } from "./realtime-state";
-import type { ChatDoc, ChatFolder, ChatMember, ChatMessage, ChatRow, ChatSearchHit } from "./types";
+import type {
+  ChatDoc,
+  ChatFolder,
+  ChatMember,
+  ChatMessage,
+  ChatRow,
+  ChatSearchHit,
+  ChatSource,
+} from "./types";
 
 export const PAGE = 50;
 
@@ -425,6 +433,72 @@ export const createGroup = (title: string, members: string[], description?: stri
     p_description: description ?? null,
   });
 
+// ---- Каналы и состав из оргструктуры (2026-11-08_zzzzz_chat_channels.sql) ----------
+
+/** Что человек может привязать: всю компанию (announce) и эти подразделения. */
+export const chatSourceOptionsQuery = queryOptions({
+  queryKey: ["chat_source_options"],
+  queryFn: () => rpc<{ announce: boolean; units: string[] }>("chat_source_options"),
+  staleTime: 5 * 60_000,
+});
+
+/** Можно ли человеку привязывать состав: вся компания или хоть одно подразделение. */
+export function useSourceOptions() {
+  const { data } = useQuery(chatSourceOptionsQuery);
+  return {
+    announce: !!data?.announce,
+    units: data?.units ?? [],
+    any: !!data?.announce || (data?.units.length ?? 0) > 0,
+  };
+}
+
+export const chatSourcesQuery = (chatId: string) =>
+  queryOptions({
+    queryKey: ["chat_sources", chatId],
+    queryFn: () =>
+      rpc<{ sources: ChatSource[]; can_edit: boolean }>("chat_sources_get", { p_chat: chatId }),
+    staleTime: 30_000,
+  });
+
+export const createChatEx = (p: {
+  title: string;
+  description?: string;
+  channel?: boolean;
+  members: string[];
+  sources: ChatSource[];
+}) => rpc<string>("chat_create_ex", { p });
+
+export async function saveChatSources(qc: QueryClient, chatId: string, sources: ChatSource[]) {
+  await rpc("chat_sources_save", { p_chat: chatId, p_sources: sources });
+  await Promise.all([
+    qc.invalidateQueries({ queryKey: ["chat_sources", chatId] }),
+    qc.invalidateQueries({ queryKey: ["chat_members", chatId] }),
+    qc.invalidateQueries({ queryKey: ["chat_list"] }),
+  ]);
+}
+
+/** «Прочитал» у поста канала — сразу в переписке. */
+export async function ackMessage(qc: QueryClient, m: ChatMessage) {
+  putMessage(qc, normalize(await rpc<ChatMessage>("chat_ack", { p_message: m.id })));
+  void qc.invalidateQueries({ queryKey: ["chat_list"] });
+  void qc.invalidateQueries({ queryKey: ["chat_unread"] });
+}
+
+export type AckList = {
+  acked: { user_id: string; at: string }[];
+  pending: string[];
+  reminded_at: string | null;
+};
+
+export const ackListQuery = (messageId: string) =>
+  queryOptions({
+    queryKey: ["chat_acks", messageId],
+    queryFn: () => rpc<AckList>("chat_ack_list", { p_message: messageId }),
+  });
+
+export const remindAck = (messageId: string) =>
+  rpc<number>("chat_ack_remind", { p_message: messageId });
+
 export async function searchMessages(query: string, chatId?: string) {
   return (
     (await rpc<ChatSearchHit[] | null>("chat_search", {
@@ -456,6 +530,12 @@ export function chatErrorText(e: unknown): string {
     chat_too_many_folders: "Не больше 20 папок",
     chat_folder_title_invalid: "Название папки — до 40 символов",
     chat_too_many_reactions: "Слишком много разных реакций",
+    chat_auto_member:
+      "Этот участник — из подразделения или «всей компании»: состав меняется в оргструктуре",
+    chat_sources_forbidden: "Привязать можно только свои подразделения (вся компания — по праву)",
+    chat_sources_invalid: "Проверьте состав из оргструктуры",
+    chat_ack_remind_soon: "Напоминать можно не чаще раза в час",
+    chat_ack_not_needed: "У этого сообщения нет отметки «Прочитал»",
   };
   for (const [k, v] of Object.entries(map)) if (msg.includes(k)) return v;
   return msg;

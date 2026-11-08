@@ -86,9 +86,7 @@ import {
   FileSpreadsheetIcon as FileSpreadsheetArt,
   FileText as FileTextArt,
   FileUp as FileUpArt,
-  Filter as FilterArt,
   FlaskConical as FlaskConicalArt,
-  Folder as FolderArt,
   FolderTransferIcon as FolderInputArt,
   FolderOpen as FolderOpenArt,
   FolderPlus as FolderPlusArt,
@@ -121,6 +119,7 @@ import {
   Mail as MailArt,
   MapPin as MapPinArt,
   ArrowExpandIcon as MaximizeArt,
+  Megaphone as MegaphoneArt,
   Meh as MehArt,
   MessageCircle as MessageCircleArt,
   MessageCirclePlus as MessageCirclePlusArt,
@@ -180,13 +179,10 @@ import {
   Undo2 as Undo2Art,
   Unlink as UnlinkArt,
   Upload as UploadArt,
-  User as UserArt,
   UserArrowLeftRightIcon as UserArrowLeftRightArt,
-  UserCheck as UserCheckArt,
   UserMinus as UserMinusArt,
   UserPlus as UserPlusArt,
   UserRound as UserRoundArt,
-  UserStar as UserStarArt,
   Users as UsersArt,
   Video as VideoArt,
   VkIcon as VkArt,
@@ -279,9 +275,7 @@ export const FilePlus = icon(FilePlusArt, "FilePlus");
 export const FileSpreadsheet = icon(FileSpreadsheetArt, "FileSpreadsheet");
 export const FileText = icon(FileTextArt, "FileText");
 export const FileUp = icon(FileUpArt, "FileUp");
-export const Filter = icon(FilterArt, "Filter");
 export const FlaskConical = icon(FlaskConicalArt, "FlaskConical");
-export const Folder = icon(FolderArt, "Folder");
 export const FolderInput = icon(FolderInputArt, "FolderInput");
 export const FolderOpen = icon(FolderOpenArt, "FolderOpen");
 export const FolderPlus = icon(FolderPlusArt, "FolderPlus");
@@ -314,6 +308,7 @@ export const LogOut = icon(LogOutArt, "LogOut");
 export const Mail = icon(MailArt, "Mail");
 export const MapPin = icon(MapPinArt, "MapPin");
 export const Maximize = icon(MaximizeArt, "Maximize");
+export const Megaphone = icon(MegaphoneArt, "Megaphone");
 export const Meh = icon(MehArt, "Meh");
 export const MessageCircle = icon(MessageCircleArt, "MessageCircle");
 export const MessageCirclePlus = icon(MessageCirclePlusArt, "MessageCirclePlus");
@@ -373,13 +368,10 @@ export const Underline = icon(UnderlineArt, "Underline");
 export const Undo2 = icon(Undo2Art, "Undo2");
 export const Unlink = icon(UnlinkArt, "Unlink");
 export const Upload = icon(UploadArt, "Upload");
-export const User = icon(UserArt, "User");
 export const UserArrowLeftRight = icon(UserArrowLeftRightArt, "UserArrowLeftRight");
-export const UserCheck = icon(UserCheckArt, "UserCheck");
 export const UserMinus = icon(UserMinusArt, "UserMinus");
 export const UserPlus = icon(UserPlusArt, "UserPlus");
 export const UserRound = icon(UserRoundArt, "UserRound");
-export const UserStar = icon(UserStarArt, "UserStar");
 export const Users = icon(UsersArt, "Users");
 export const Video = icon(VideoArt, "Video");
 export const Vk = icon(VkArt, "Vk");

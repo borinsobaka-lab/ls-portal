@@ -25,6 +25,7 @@ import {
   Folder,
   FolderOpen,
   User,
+  UserSpeakRounded,
   UsersGroupRounded,
 } from "@/components/nav-icons";
 import {
@@ -41,13 +42,20 @@ import {
   markAllRead,
   useChatList,
 } from "@/lib/chats/data";
-import { folderFilter, folderUnread, SYSTEM_FOLDERS, type FolderKey } from "@/lib/chats/folders";
+import {
+  folderFilter,
+  folderUnread,
+  isChannel,
+  SYSTEM_FOLDERS,
+  type FolderKey,
+} from "@/lib/chats/folders";
 import type { ChatFolder } from "@/lib/chats/types";
 
 // Иконки — Solar, как во всех меню второго уровня (`sidebar-nav.tsx`).
 const ICONS = {
   all: ChatRoundDots,
   direct: User,
+  channel: UserSpeakRounded,
   group: UsersGroupRounded,
   project: FolderOpen,
   task: ClipboardCheck,
@@ -66,11 +74,13 @@ export function ChatFoldersMenu({ onNavigate }: { onNavigate?: () => void }) {
   // «Задачи» — когда есть хоть одно обсуждение задачи.
   const hasTaskChats = chats.some((c) => c.kind === "task");
   const hasProjectChats = chats.some((c) => c.kind === "project");
+  const hasChannels = chats.some(isChannel);
   const items: { key: FolderKey; title: string; folder?: ChatFolder }[] = [
     ...SYSTEM_FOLDERS.filter(
       (f) =>
         (f.key !== "task" || hasTaskChats || current === "task") &&
-        (f.key !== "project" || hasProjectChats || current === "project"),
+        (f.key !== "project" || hasProjectChats || current === "project") &&
+        (f.key !== "channel" || hasChannels || current === "channel"),
     ),
     ...folders.map((f) => ({ key: f.id, title: f.title, folder: f })),
   ];

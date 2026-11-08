@@ -19,7 +19,8 @@ export type ChatSystem = {
     | "task_chat"
     | "call"
     | "project_created"
-    | "task_created";
+    | "task_created"
+    | "channel_created";
   title?: string;
   /** Задача из сообщения (type = task_created): номера, сколько, сообщение. */
   numbers?: number[];
@@ -52,6 +53,10 @@ export type ChatSettings = {
   task_number?: number;
   /** У чата проекта — его id (ссылка «Проект»). */
   project_id?: string;
+  /** Канал: пишут только админы, у постов — «Прочитал». */
+  channel?: boolean;
+  /** Состав из оргструктуры (вся компания или подразделения). */
+  auto?: boolean;
 };
 
 export type ChatRow = {
@@ -113,6 +118,8 @@ export type ChatMessage = {
   created_at: string;
   edited_at: string | null;
   deleted: boolean;
+  /** «Прочитал» у поста канала: отметили из тех, кто был в чате. */
+  ack?: { count: number; total: number; mine: boolean } | null;
 };
 
 export type ChatMember = {
@@ -120,6 +127,17 @@ export type ChatMember = {
   role: ChatRole;
   joined_at: string;
   last_read_seq: number;
+  /** auto — из подразделения или «всей компании»: не убрать вручную. */
+  source?: "manual" | "auto";
+};
+
+/** Источник состава чата: вся компания или подразделение. */
+export type ChatSource = {
+  kind: "all" | "unit";
+  unit_id: string | null;
+  scope: "all" | "heads";
+  with_subunits: boolean;
+  unit_name?: string | null;
 };
 
 export type ChatFolder = { id: string; title: string; sort_order: number; chat_ids: string[] };

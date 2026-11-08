@@ -1,5 +1,6 @@
 /**
- * Окна чатов: «Кто прочитал», «Переслать», новый личный чат и группа,
+ * Окна чатов: «Кто прочитал», «Переслать», новый личный чат, группа, чат
+ * подразделения и канал,
  * папка (название и чаты), выбор людей с поиском.
  */
 import { useMemo, useState } from "react";
@@ -23,9 +24,19 @@ import { FormField } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
 import { SearchInput } from "@/components/ui/search-input";
 import { chatMatches, chatTitle } from "@/lib/chats/content";
-import { chatErrorText, chatListQuery, chatRpc, createGroup, openDirect } from "@/lib/chats/data";
+import { SourcesEditor } from "@/components/chats/chat-sources";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  chatErrorText,
+  chatListQuery,
+  chatRpc,
+  createChatEx,
+  createGroup,
+  openDirect,
+  useSourceOptions,
+} from "@/lib/chats/data";
 import { usePeople } from "@/lib/chats/people";
-import type { ChatMessage, ChatRow } from "@/lib/chats/types";
+import type { ChatMessage, ChatRow, ChatSource } from "@/lib/chats/types";
 import { matchPerson } from "@/lib/company";
 import { cn } from "@/lib/utils";
 
@@ -103,36 +114,71 @@ export function PeoplePicker({
 
 // ---- Новый чат ------------------------------------------------------------------
 
+/** Что создаём: личный чат, группа, чат подразделения (состав из оргструктуры), канал. */
+export type NewChatMode = "direct" | "group" | "unit" | "channel";
+
 export function NewChatDialog({
   mode,
   onClose,
   onOpened,
 }: {
-  mode: "direct" | "group" | null;
+  mode: NewChatMode | null;
   onClose: () => void;
   onOpened: (chatId: string) => void;
 }) {
   return (
     <Dialog open={!!mode} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="flex max-h-[92dvh] flex-col sm:max-w-lg">
         {mode && <NewChatForm key={mode} mode={mode} onClose={onClose} onOpened={onOpened} />}
       </DialogContent>
     </Dialog>
   );
 }
 
+const NEW_CHAT_TEXT = {
+  group: {
+    title: "Новая группа",
+    description: "Название и участники. Позже участников можно добавить и убрать.",
+    submit: "Создать группу",
+    placeholder: "Например, Отдел развития",
+  },
+  unit: {
+    title: "Чат подразделения",
+    description:
+      "Участники — из оргструктуры: новые сотрудники подразделения попадают в чат сами, ушедшие — уходят.",
+    submit: "Создать чат",
+    placeholder: "Например, Отдел развития",
+  },
+  channel: {
+    title: "Новый канал",
+    description:
+      "Объявления: пишут только администраторы канала, у каждого поста — «Прочитал» и список, кто ещё не прочитал.",
+    submit: "Создать канал",
+    placeholder: "Например, Новости Lady Stretch",
+  },
+} as const;
+
 function NewChatForm({
   mode,
   onClose,
   onOpened,
 }: {
-  mode: "direct" | "group";
+  mode: NewChatMode;
   onClose: () => void;
   onOpened: (chatId: string) => void;
 }) {
   const qc = useQueryClient();
+  const opts = useSourceOptions();
   const [selected, setSelected] = useState<string[]>([]);
   const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [sources, setSources] = useState<ChatSource[]>(() =>
+    mode === "unit" && opts.units[0]
+      ? [{ kind: "unit", unit_id: opts.units[0], scope: "all", with_subunits: true }]
+      : mode === "channel" && opts.announce
+        ? [{ kind: "all", unit_id: null, scope: "all", with_subunits: true }]
+        : [],
+  );
   const [busy, setBusy] = useState(false);
 
   const openWith = async (id: string) => {
@@ -151,12 +197,25 @@ function NewChatForm({
 
   const create = async () => {
     if (!title.trim()) {
-      toast.error("Укажите название группы");
+      toast.error(mode === "channel" ? "Укажите название канала" : "Укажите название");
+      return;
+    }
+    if (mode === "unit" && !sources.some((x) => x.kind === "unit")) {
+      toast.error("Выберите подразделение");
       return;
     }
     setBusy(true);
     try {
-      const chatId = await createGroup(title.trim(), selected);
+      const chatId =
+        mode === "group"
+          ? await createGroup(title.trim(), selected)
+          : await createChatEx({
+              title: title.trim(),
+              description: description.trim() || undefined,
+              channel: mode === "channel",
+              members: selected,
+              sources,
+            });
       await qc.invalidateQueries({ queryKey: ["chat_list"] });
       onOpened(chatId);
       onClose();
@@ -180,13 +239,12 @@ function NewChatForm({
       </>
     );
   }
+  const text = NEW_CHAT_TEXT[mode];
   return (
     <>
       <DialogHeader>
-        <DialogTitle>Новая группа</DialogTitle>
-        <DialogDescription>
-          Название и участники. Позже участников можно добавить и убрать.
-        </DialogDescription>
+        <DialogTitle>{text.title}</DialogTitle>
+        <DialogDescription>{text.description}</DialogDescription>
       </DialogHeader>
       <DialogBody className="space-y-4">
         <FormField label="Название" required>
@@ -194,11 +252,36 @@ function NewChatForm({
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             maxLength={100}
-            placeholder="Например, Отдел развития"
+            placeholder={text.placeholder}
           />
         </FormField>
+        {mode !== "group" && (
+          <>
+            <FormField label="Описание" optional>
+              <Textarea
+                rows={2}
+                maxLength={1000}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+              />
+            </FormField>
+            <FormField
+              label="Состав из оргструктуры"
+              required={mode === "unit"}
+              hint={
+                mode === "channel" ? "Можно оставить пустым и добавить людей вручную" : undefined
+              }
+              htmlFor={null}
+            >
+              <SourcesEditor value={sources} onChange={setSources} />
+            </FormField>
+          </>
+        )}
         <FormField
-          label={`Участники${selected.length ? ` · ${selected.length}` : ""}`}
+          label={`${mode === "group" ? "Участники" : "Ещё участники вручную"}${
+            selected.length ? ` · ${selected.length}` : ""
+          }`}
+          optional={mode !== "group"}
           htmlFor={null}
         >
           <PeoplePicker
@@ -214,7 +297,7 @@ function NewChatForm({
           Отмена
         </Button>
         <Button disabled={busy} onClick={() => void create()}>
-          {busy && <Loader2 className="animate-spin" />} Создать группу
+          {busy && <Loader2 className="animate-spin" />} {text.submit}
         </Button>
       </DialogFooter>
     </>

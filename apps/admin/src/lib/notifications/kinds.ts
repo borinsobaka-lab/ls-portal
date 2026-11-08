@@ -40,6 +40,19 @@ export const NOTIF_KINDS: NotifKind[] = [
     defaultPush: true,
   },
   {
+    key: "chat.channel",
+    group: "Чаты",
+    label: "Посты в каналах",
+    hint: "Объявления компании и отделов",
+    defaultPush: true,
+  },
+  {
+    key: "chat.ack",
+    group: "Чаты",
+    label: "Просьба отметить «Прочитал»",
+    defaultPush: true,
+  },
+  {
     key: "chat.group",
     group: "Чаты",
     label: "Сообщения в группах",

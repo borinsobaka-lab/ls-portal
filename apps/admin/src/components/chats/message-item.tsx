@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 
 import { Attachments } from "@/components/chats/attachments";
+import { AckBar } from "@/components/chats/chat-sources";
 import { MessageContent } from "@/components/chats/message-content";
 import { StaffAvatar } from "@/components/employee-photo";
 import { PersonButton } from "@/components/people/person-card";
@@ -54,6 +55,9 @@ export type MessageActions = {
   forward: (m: ChatMessage) => void;
   /** «Поставить задачу» из сообщения (этап 2, 1.18). */
   task: (m: ChatMessage) => void;
+  /** «Прочитал» у поста канала и окно «Кто прочитал». */
+  ack: (m: ChatMessage) => void;
+  acks: (m: ChatMessage) => void;
   pin: (m: ChatMessage, on: boolean) => void;
   receipts: (m: ChatMessage) => void;
   edit: (m: ChatMessage) => void;
@@ -74,6 +78,8 @@ type Props = {
   highlighted: boolean;
   canPin: boolean;
   canDelete: boolean;
+  /** Автор поста канала или админ — видит, кто отметил «Прочитал». */
+  canSeeAcks: boolean;
   name: (id: string | null) => string;
   avatar: (id: string | null) => string | null;
   actions: MessageActions;
@@ -278,6 +284,15 @@ export const MessageItem = memo(function MessageItem(p: Props) {
             </div>
           )}
           {m.text && <MessageContent doc={m.content as ChatDoc | null} text={m.text} mine={mine} />}
+          {m.ack && !local && (
+            <AckBar
+              m={m}
+              mine={mine}
+              canSeeAcks={p.canSeeAcks}
+              onAck={() => actions.ack(m)}
+              onOpenList={() => actions.acks(m)}
+            />
+          )}
         </>
       )}
       <div className="mt-1 flex items-center justify-end gap-1 text-[11px] leading-none text-chat-meta">

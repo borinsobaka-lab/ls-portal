@@ -144,3 +144,47 @@ describe("папки", () => {
     expect(chats.filter(folderFilter("task", [])).map((c: { id: string }) => c.id)).toEqual(["e"]);
   });
 });
+
+describe("каналы и состав из оргструктуры", () => {
+  test("канал — своя папка, не в «Группах»", async () => {
+    const { folderFilter, isChannel } = await import("./folders");
+    const chats = [
+      { id: "g", kind: "group", settings: {} },
+      { id: "c", kind: "group", settings: { channel: true } },
+      { id: "d", kind: "direct", settings: {} },
+    ] as never[];
+    expect(chats.filter(folderFilter("channel", [])).map((c: { id: string }) => c.id)).toEqual([
+      "c",
+    ]);
+    expect(chats.filter(folderFilter("group", [])).map((c: { id: string }) => c.id)).toEqual(["g"]);
+    expect(isChannel({ kind: "direct", settings: { channel: true } })).toBe(false);
+  });
+
+  test("подписи источников и системной строки", async () => {
+    const { sourceText, systemText } = await import("./content");
+    expect(sourceText({ kind: "all", unit_id: null, scope: "all", with_subunits: true })).toBe(
+      "Вся компания — все люди портала",
+    );
+    expect(
+      sourceText({
+        kind: "unit",
+        unit_id: "u",
+        unit_name: "Отдел развития",
+        scope: "heads",
+        with_subunits: false,
+      }),
+    ).toBe("Отдел развития — руководители и заместители");
+    expect(
+      sourceText({
+        kind: "unit",
+        unit_id: "u",
+        unit_name: "Казань",
+        scope: "all",
+        with_subunits: true,
+      }),
+    ).toBe("Казань — все сотрудники, с подразделениями ниже");
+    expect(systemText({ type: "channel_created", title: "Новости" }, "a", () => "Анна")).toBe(
+      "Анна создал(а) канал «Новости»",
+    );
+  });
+});

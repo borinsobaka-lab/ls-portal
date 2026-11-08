@@ -6,7 +6,7 @@
 import { STATUS_LABEL } from "@/lib/tasks/logic";
 import type { TaskStatus } from "@/lib/tasks/types";
 import { callSystemText } from "./call-logic";
-import type { ChatDoc, ChatNode, ChatRow, ChatSystem } from "./types";
+import type { ChatDoc, ChatNode, ChatRow, ChatSource, ChatSystem } from "./types";
 
 /** Узлы и отметки, которые показывает чат (остальное из вставки — как текст). */
 export const BLOCK_NODES = new Set([
@@ -130,6 +130,8 @@ export function systemText(
       return `${users || who} вышел(а) из группы`;
     case "renamed":
       return `${who} переименовал(а) группу в «${system.title ?? ""}»`;
+    case "channel_created":
+      return `${who} создал(а) канал «${system.title ?? ""}»`;
     case "project_created":
       return `${who} создал(а) проект «${system.title ?? ""}»`;
     case "task_chat":
@@ -143,6 +145,13 @@ export function systemText(
     default:
       return "";
   }
+}
+
+/** Источник состава чата: «Вся компания», «Отдел развития — все, с подразделениями ниже». */
+export function sourceText(s: ChatSource): string {
+  if (s.kind === "all") return "Вся компания — все люди портала";
+  const who = s.scope === "heads" ? "руководители и заместители" : "все сотрудники";
+  return `${s.unit_name ?? "Подразделение"} — ${who}${s.with_subunits ? ", с подразделениями ниже" : ""}`;
 }
 
 /** «задачу» / «задачи» / «задач» после числа. */

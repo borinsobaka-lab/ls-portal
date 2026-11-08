@@ -1571,6 +1571,28 @@ DEPLOY.md.
   `task_list` — `sort` (`deadline` / `urgent` / `created`). Актуальные
   определения `task_roles`, `task_json`, `task_list`, `task_create_as`,
   `task_update`, `task_set_status` — здесь. Тесты — `db/task-subtasks.test.ts`.
+  **Каналы и чаты с составом из оргструктуры** (TASKS_CHATS_PLAN.md, этап 2,
+  2026-11-08): `db/migrations/2026-11-08_zzzzz_chat_channels.sql` — на
+  группах (`kind = 'group'`). Канал — `settings.channel = true`: пишут
+  только владелец и админы (`post = 'admins'` держит триггер
+  `chat_chats_channel_biu`), у постов — «Прочитал»
+  (`chat_messages.ack_required` ставит триггер, отметки
+  `chat_message_acks`, RPC `chat_ack`; кто отметил и кто нет —
+  `chat_ack_list` автору и админам; «Напомнить» — `chat_ack_remind`,
+  уведомление `chat.ack`, не чаще раза в час); пост канала — уведомление
+  `chat.channel` (лента и пуш; актуальное определение
+  `chat_notify_message` — здесь). Создаёт канал право `chats.announce`
+  (новое, «Управление порталом»; и суперадминистратор). Состав из
+  оргструктуры — `chat_member_sources` (вся компания — `portal_people_ids`,
+  только `chats.announce`; подразделение — все или руководители, с
+  подразделениями ниже или без; `chats.announce` или руководитель /
+  заместитель этого подразделения или выше — `chat_source_options`);
+  участники из источников — `chat_members.source = 'auto'`, их ведёт
+  `chat_sync_sources` (триггеры на `org_unit_members`, `org_units`,
+  `access_user_rights`, `user_roles`), вручную не убрать и самому не
+  выйти (`chat_auto_member`). RPC `chat_create_ex`, `chat_sources_get` /
+  `_save`; `chat_members_list` — с `source`; актуальное определение
+  `chat_message_json` (`ack`) — здесь. Тесты — `db/chat-channels.test.ts`.
   Рейтинг тренеров и чаевые: `db/migrations/2026-10-11_zzzzzzzzzzzzz_trainer_ratings.sql`
   — `trainer_reviews` (оценка 1–5, одна от учётной записи на тренера; клиент
   читает и правит свою, ставит — тренеру, которого видит в приложении,

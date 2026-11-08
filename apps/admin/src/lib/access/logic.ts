@@ -34,6 +34,7 @@ export const ACCESS_RIGHTS = [
   "staff.directory",
   "app.content",
   "tasks.admin",
+  "chats.announce",
 ] as const;
 export type AccessRight = (typeof ACCESS_RIGHTS)[number];
 

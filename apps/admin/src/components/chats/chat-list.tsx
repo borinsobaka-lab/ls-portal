@@ -18,11 +18,13 @@ import {
   Pin,
   Plus,
   Users,
+  Megaphone,
+  Building2,
 } from "lucide-react";
 import { toast } from "sonner";
 
 import { ChatAvatar } from "@/components/chats/chat-avatar";
-import { NewChatDialog } from "@/components/chats/dialogs";
+import { NewChatDialog, type NewChatMode } from "@/components/chats/dialogs";
 import { StaffAvatar } from "@/components/employee-photo";
 import { Button } from "@/components/ui/button";
 import {
@@ -54,6 +56,7 @@ import {
   openDirect,
   searchMessages,
   useChatList,
+  useSourceOptions,
 } from "@/lib/chats/data";
 import { shortName, usePeople } from "@/lib/chats/people";
 import { folderFilter, type FolderKey } from "@/lib/chats/folders";
@@ -81,7 +84,8 @@ export function ChatList({
   const { data: folders = [] } = useQuery(chatFoldersQuery);
   const { name, people } = usePeople();
   const [q, setQ] = useState("");
-  const [creating, setCreating] = useState<"direct" | "group" | null>(null);
+  const [creating, setCreating] = useState<NewChatMode | null>(null);
+  const sourceOpts = useSourceOptions();
   const query = useDebouncedValue(q.trim(), 300);
   const searching = q.trim().length > 0;
 
@@ -166,9 +170,14 @@ export function ChatList({
             <ChatAvatar chat={chat} title={title} />
             <span className="min-w-0 flex-1">
               <span className="flex items-center gap-1.5">
-                {chat.kind === "group" && (
-                  <Users className="size-3.5 shrink-0 text-muted-foreground" />
-                )}
+                {chat.kind === "group" &&
+                  (chat.settings?.channel ? (
+                    <Megaphone className="size-3.5 shrink-0 text-muted-foreground" />
+                  ) : chat.settings?.auto ? (
+                    <Building2 className="size-3.5 shrink-0 text-muted-foreground" />
+                  ) : (
+                    <Users className="size-3.5 shrink-0 text-muted-foreground" />
+                  ))}
                 <span
                   className={cn(
                     "min-w-0 flex-1 truncate",
@@ -307,6 +316,24 @@ export function ChatList({
             >
               <Users className="size-4" /> Группа
             </button>
+            {sourceOpts.any && (
+              <button
+                type="button"
+                className="flex w-full items-center gap-2 rounded-sm px-2 py-2 text-sm hover:bg-muted"
+                onClick={() => setCreating("unit")}
+              >
+                <Building2 className="size-4" /> Чат подразделения
+              </button>
+            )}
+            {sourceOpts.announce && (
+              <button
+                type="button"
+                className="flex w-full items-center gap-2 rounded-sm px-2 py-2 text-sm hover:bg-muted"
+                onClick={() => setCreating("channel")}
+              >
+                <Megaphone className="size-4" /> Канал
+              </button>
+            )}
             <button
               type="button"
               className="flex w-full items-center gap-2 rounded-sm px-2 py-2 text-sm hover:bg-muted"

@@ -1,16 +1,22 @@
 /**
- * Папки чатов: системные «Все», «Личные» (и «Избранное»), «Группы»,
+ * Папки чатов: системные «Все», «Личные» (и «Избранное»), «Каналы»
+ * (когда есть), «Группы» (без каналов),
  * «Проекты» (чаты проектов, они и во «Всех»), «Задачи» (обсуждения задач —
  * только здесь, не во «Всех»: бриф, Д.2) и свои
  * папки человека (chat_folders). Папка — в адресе `?f=`.
  */
 import type { ChatFolder, ChatRow } from "./types";
 
-export type FolderKey = "all" | "direct" | "group" | "project" | "task" | string;
+/** Канал — группа, где пишут админы и у постов «Прочитал». */
+export const isChannel = (c: Pick<ChatRow, "kind" | "settings">) =>
+  c.kind === "group" && !!c.settings?.channel;
+
+export type FolderKey = "all" | "direct" | "channel" | "group" | "project" | "task" | string;
 
 export const SYSTEM_FOLDERS: { key: FolderKey; title: string }[] = [
   { key: "all", title: "Все чаты" },
   { key: "direct", title: "Личные" },
+  { key: "channel", title: "Каналы" },
   { key: "group", title: "Группы" },
   { key: "project", title: "Проекты" },
   { key: "task", title: "Задачи" },
@@ -19,7 +25,8 @@ export const SYSTEM_FOLDERS: { key: FolderKey; title: string }[] = [
 export function folderFilter(folder: FolderKey, folders: Pick<ChatFolder, "id" | "chat_ids">[]) {
   if (folder === "all") return (c: ChatRow) => c.kind !== "task";
   if (folder === "direct") return (c: ChatRow) => c.kind === "direct" || c.kind === "self";
-  if (folder === "group") return (c: ChatRow) => c.kind === "group";
+  if (folder === "channel") return (c: ChatRow) => isChannel(c);
+  if (folder === "group") return (c: ChatRow) => c.kind === "group" && !isChannel(c);
   if (folder === "task") return (c: ChatRow) => c.kind === "task";
   if (folder === "project") return (c: ChatRow) => c.kind === "project";
   const ids = new Set(folders.find((f) => f.id === folder)?.chat_ids ?? []);

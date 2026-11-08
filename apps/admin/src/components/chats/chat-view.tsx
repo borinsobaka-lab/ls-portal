@@ -38,6 +38,7 @@ import {
 import { toast } from "sonner";
 
 import { ChatAvatar } from "@/components/chats/chat-avatar";
+import { AckDialog } from "@/components/chats/chat-sources";
 import { ForwardDialog, ReceiptsDialog } from "@/components/chats/dialogs";
 import { MessageItem, type MessageActions } from "@/components/chats/message-item";
 import type { ComposerHandle, ComposerSend, MentionCandidate } from "@/components/chats/composer";
@@ -50,6 +51,7 @@ import { activeChatCallQuery, startCall, useActiveCall } from "@/lib/chats/calls
 import { useChatCallsEnabled } from "@/lib/chats/calls-config";
 import { chatTitle, dayLabel, sameDay, snippetParts, timeOf } from "@/lib/chats/content";
 import {
+  ackMessage,
   chatErrorText,
   chatMembersQuery,
   chatPinnedQuery,
@@ -140,6 +142,7 @@ export function ChatView({
   const [editing, setEditing] = useState<ChatMessage | null>(null);
   const [forwarding, setForwarding] = useState<ChatMessage[] | null>(null);
   const [taskFrom, setTaskFrom] = useState<ChatMessage | null>(null);
+  const [acksOf, setAcksOf] = useState<ChatMessage | null>(null);
   const [receipts, setReceipts] = useState<ChatMessage | null>(null);
   const [highlight, setHighlight] = useState<number | null>(null);
   const [atBottom, setAtBottom] = useState(true);
@@ -404,6 +407,8 @@ export function ChatView({
           .then(() => toast.success("Ссылка скопирована")),
       forward: (m) => setForwarding([m]),
       task: (m) => setTaskFrom(m),
+      ack: (m) => void ackMessage(qc, m).catch((e) => toast.error(chatErrorText(e))),
+      acks: (m) => setAcksOf(m),
       pin: (m, on) => void pinMessage(qc, m, on).catch((e) => toast.error(chatErrorText(e))),
       receipts: (m) => setReceipts(m),
       edit: (m) => {
@@ -711,6 +716,7 @@ export function ChatView({
                         highlighted={highlight === m.seq}
                         canPin={canPin}
                         canDelete={m.author_id === me || (chat.kind === "group" && isAdmin)}
+                        canSeeAcks={m.author_id === me || isAdmin}
                         name={name}
                         avatar={(id) => person(id)?.avatar_url ?? null}
                         actions={actions}
@@ -765,7 +771,13 @@ export function ChatView({
           replyTo={replyTo}
           editing={editing}
           authorName={(id) => name(id)}
-          disabledReason={canPost ? null : "В этой группе пишут только администраторы"}
+          disabledReason={
+            canPost
+              ? null
+              : chat.settings?.channel
+                ? "Это канал: пишут администраторы, вы отмечаете «Прочитал»"
+                : "В этой группе пишут только администраторы"
+          }
           onCancelReply={() => setReplyTo(null)}
           onCancelEdit={() => setEditing(null)}
           onSend={onSend}
@@ -794,6 +806,7 @@ export function ChatView({
         </Suspense>
       )}
       <ReceiptsDialog message={receipts} onClose={() => setReceipts(null)} />
+      <AckDialog message={acksOf} onClose={() => setAcksOf(null)} />
       {confirmDialog}
     </div>
   );
