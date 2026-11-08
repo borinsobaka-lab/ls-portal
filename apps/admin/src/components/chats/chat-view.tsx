@@ -30,6 +30,7 @@ import {
   Info,
   ListChecks,
   Loader2,
+  MoreHorizontal,
   Pin,
   Search,
   Video,
@@ -45,6 +46,7 @@ import { MessageItem, type MessageActions } from "@/components/chats/message-ite
 import type { ComposerHandle, ComposerSend, MentionCandidate } from "@/components/chats/composer";
 import { useConfirm } from "@/components/confirm-dialog";
 import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { SearchInput } from "@/components/ui/search-input";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { callErrorText } from "@/lib/chats/call-logic";
@@ -87,6 +89,10 @@ const NewTaskDialog = lazy(() =>
 );
 
 const GROUP_GAP_MS = 5 * 60_000;
+
+/** Пункт меню «⋯» шапки чата на телефоне — как в меню сообщения. */
+const HEADER_MENU_ITEM =
+  "flex w-full items-center gap-2 rounded-sm px-2 py-2 text-left text-sm hover:bg-muted";
 
 export function ChatView({
   chat,
@@ -154,6 +160,7 @@ export function ChatView({
   const [pinIndex, setPinIndex] = useState(0);
   const [typing, setTyping] = useState<Record<string, number>>({});
   const [searchOpen, setSearchOpen] = useState(false);
+  const [headerMenu, setHeaderMenu] = useState(false);
   const [dragging, setDragging] = useState(false);
   // Граница «Новые сообщения» — какой была при открытии чата.
   const [readMark] = useState(chat.last_read_seq);
@@ -524,7 +531,13 @@ export function ChatView({
         composer.current?.addFiles(Array.from(e.dataTransfer.files));
       }}
     >
-      <header className="flex shrink-0 items-center gap-2 border-b bg-background px-2 py-2 sm:px-3 md:h-16 md:py-0">
+      {/*
+        На телефоне (до md) справа — только звонок и «⋯»: поиск, сведения и
+        переход к задаче / проекту — в меню «⋯», чтобы имени собеседника
+        оставалось больше места (решение владельца 2026-11-08). С md — как
+        было, отдельными кнопками.
+      */}
+      <header className="flex shrink-0 items-center gap-1 border-b bg-background px-2 py-2 sm:px-3 md:h-16 md:gap-2 md:py-0">
         <Button
           variant="ghost"
           size="icon"
@@ -561,18 +574,18 @@ export function ChatView({
           </span>
         </button>
         {chat.kind === "project" && chat.settings?.project_id && (
-          <Button variant="ghost" size="sm" asChild className="text-chat-accent">
+          <Button variant="ghost" size="sm" asChild className="text-chat-accent max-md:hidden">
             <Link to="/tasks/projects/$projectId" params={{ projectId: chat.settings.project_id }}>
               <FolderOpen className="size-4" />
-              <span className="hidden sm:inline">Задачи проекта</span>
+              Задачи проекта
             </Link>
           </Button>
         )}
         {chat.kind === "task" && chat.settings?.task_number && (
-          <Button variant="ghost" size="sm" asChild className="text-chat-accent">
+          <Button variant="ghost" size="sm" asChild className="text-chat-accent max-md:hidden">
             <Link to="/tasks/$number" params={{ number: String(chat.settings.task_number) }}>
               <ListChecks className="size-4" />
-              <span className="hidden sm:inline">Задача #{chat.settings.task_number}</span>
+              Задача #{chat.settings.task_number}
             </Link>
           </Button>
         )}
@@ -594,6 +607,7 @@ export function ChatView({
         <Button
           variant="ghost"
           size="icon"
+          className="max-md:hidden"
           aria-label="Поиск в чате"
           title="Поиск в чате"
           aria-pressed={searchOpen}
@@ -604,12 +618,72 @@ export function ChatView({
         <Button
           variant="ghost"
           size="icon"
+          className="max-md:hidden"
           aria-label="Сведения о чате"
           title="Сведения о чате"
           onClick={onInfo}
         >
           <Info className="size-5" />
         </Button>
+        <Popover open={headerMenu} onOpenChange={setHeaderMenu}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="shrink-0 md:hidden"
+              aria-label="Ещё"
+              title="Ещё"
+            >
+              <MoreHorizontal className="size-5" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent align="end" className="w-56 p-1">
+            <button
+              type="button"
+              className={HEADER_MENU_ITEM}
+              onClick={() => {
+                setHeaderMenu(false);
+                setSearchOpen((v) => !v);
+              }}
+            >
+              <Search className="size-4" />
+              {searchOpen ? "Закрыть поиск" : "Поиск в чате"}
+            </button>
+            <button
+              type="button"
+              className={HEADER_MENU_ITEM}
+              onClick={() => {
+                setHeaderMenu(false);
+                onInfo();
+              }}
+            >
+              <Info className="size-4" />
+              Сведения о чате
+            </button>
+            {chat.kind === "project" && chat.settings?.project_id && (
+              <Link
+                to="/tasks/projects/$projectId"
+                params={{ projectId: chat.settings.project_id }}
+                className={HEADER_MENU_ITEM}
+                onClick={() => setHeaderMenu(false)}
+              >
+                <FolderOpen className="size-4" />
+                Задачи проекта
+              </Link>
+            )}
+            {chat.kind === "task" && chat.settings?.task_number && (
+              <Link
+                to="/tasks/$number"
+                params={{ number: String(chat.settings.task_number) }}
+                className={HEADER_MENU_ITEM}
+                onClick={() => setHeaderMenu(false)}
+              >
+                <ListChecks className="size-4" />
+                Задача #{chat.settings.task_number}
+              </Link>
+            )}
+          </PopoverContent>
+        </Popover>
       </header>
 
       {callsEnabled && liveCall.data && !inThisCall && (
