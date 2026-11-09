@@ -1,20 +1,20 @@
 /**
  * «Проекты» (TASKS_CHATS_PLAN.md, 4.10): мои проекты карточками (задачи в
- * работе, просроченные, участники), открытые — с «Вступить», архив — внизу.
+ * работе, просроченные, участники), открытые — ссылкой на проект (там
+ * «Вступить»), архив — внизу.
  * «Новый проект» — любой человек портала (он — владелец).
  */
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Archive, FolderOpen, Lock, Plus, Users } from "lucide-react";
-import { toast } from "sonner";
 
 import { AdminShell } from "@/components/admin-shell";
 import { NewProjectDialog } from "@/components/tasks/project-form";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatusChip } from "@/components/ui/status-chip";
-import { projectsQuery, taskAction, taskErrorText } from "@/lib/tasks/data";
+import { projectsQuery } from "@/lib/tasks/data";
 import { PROJECT_KIND_LABEL, PROJECT_ROLE_LABEL, plural } from "@/lib/tasks/logic";
 import type { Project } from "@/lib/tasks/types";
 
@@ -45,7 +45,7 @@ export function ProjectsPage() {
           <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed bg-background px-4 py-12 text-center">
             <FolderOpen className="size-8 text-muted-foreground" />
             <p className="max-w-md text-sm text-muted-foreground">
-              Проект — пространство отдела, города или проекта: свои задачи списком и канбаном,
+              Проект — пространство отдела, города или инициативы: свои задачи списком и канбаном,
               участники и чат. Задачи закрытого проекта видят только его участники.
             </p>
             <Button onClick={() => setCreating(true)}>
@@ -62,7 +62,10 @@ export function ProjectsPage() {
               </Section>
             )}
             {open.length > 0 && (
-              <Section title="Открытые проекты" hint="Видны всем — вступить может любой">
+              <Section
+                title="Открытые проекты"
+                hint="Видны всем: откройте, чтобы посмотреть и вступить"
+              >
                 {open.map((p) => (
                   <ProjectCard key={p.id} project={p} />
                 ))}
@@ -108,7 +111,6 @@ function Section({
 }
 
 function ProjectCard({ project: p }: { project: Project }) {
-  const qc = useQueryClient();
   const body = (
     <>
       <span className="flex items-start gap-3">
@@ -125,12 +127,16 @@ function ProjectCard({ project: p }: { project: Project }) {
           </span>
         </span>
         {p.visibility === "closed" ? (
-          <Lock className="size-4 shrink-0 text-muted-foreground" aria-label="Закрытый" />
+          <span title="Закрытый: видят только участники">
+            <Lock className="size-4 shrink-0 text-muted-foreground" aria-label="Закрытый" />
+          </span>
         ) : (
           <StatusChip tone="info">Открытый</StatusChip>
         )}
         {p.archived_at && (
-          <Archive className="size-4 shrink-0 text-muted-foreground" aria-label="В архиве" />
+          <span title="В архиве">
+            <Archive className="size-4 shrink-0 text-muted-foreground" aria-label="В архиве" />
+          </span>
         )}
       </span>
       <span className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
@@ -146,27 +152,6 @@ function ProjectCard({ project: p }: { project: Project }) {
       </span>
     </>
   );
-  if (!p.my_role && !p.can_manage)
-    return (
-      <div className="flex flex-col rounded-lg border bg-background p-4">
-        {body}
-        <Button
-          variant="outline"
-          size="sm"
-          className="mt-3 self-start"
-          onClick={() =>
-            void taskAction(qc, "task_project_join", { p_project: p.id })
-              .then(() => {
-                void qc.invalidateQueries({ queryKey: ["chat_list"] });
-                toast.success(`Вы в проекте «${p.title}»`);
-              })
-              .catch((e) => toast.error(taskErrorText(e)))
-          }
-        >
-          Вступить
-        </Button>
-      </div>
-    );
   return (
     <Link
       to="/tasks/projects/$projectId"

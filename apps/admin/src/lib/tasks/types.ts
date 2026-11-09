@@ -206,6 +206,7 @@ export type TemplateTask = {
   checklists?: { title: string; items: { text: string; assignee_id?: string | null }[] }[];
   urgent?: boolean;
   requires_review?: boolean;
+  result_required?: boolean;
   /** Срок — через N рабочих дней (null — без срока). */
   deadline_days?: number | null;
   deadline_time?: string | null;
@@ -234,6 +235,8 @@ export type Recurrence = {
   id: string;
   template_id: string;
   template_name: string;
+  /** Шаблон завели сами — «Повторять» / «Сделать регулярной» (его нет в «Шаблонах»). */
+  template_hidden?: boolean;
   title: string;
   rule: RecurrenceRule;
   at_time: string;

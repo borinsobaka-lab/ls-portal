@@ -23,6 +23,7 @@ import type {
   Project,
   ProjectFull,
   Recurrence,
+  RecurrenceRule,
   SavedFilter,
   Subordinate,
   TaskCounters,
@@ -33,6 +34,7 @@ import type {
   TaskRow,
   TaskTagInfo,
   TaskTemplate,
+  TemplateTask,
 } from "./types";
 import type { DayKind } from "./work-calendar";
 
@@ -294,6 +296,7 @@ export function taskErrorText(e: unknown): string {
     recurrence_invalid: "Проверьте расписание",
     recurrence_forbidden: "Это не ваша регулярная задача",
     too_many_recurrences: "Не больше 100 регулярных задач",
+    task_already_recurring: "Задача уже регулярная — расписание в «Регулярных»",
   };
   for (const [k, v] of Object.entries(map)) if (msg.includes(k)) return v;
   return msg;
@@ -379,6 +382,26 @@ export const setTaskResult = (qc: QueryClient, t: Pick<TaskFull, "id" | "number"
   withCard(qc, t.number, () =>
     taskRpc<TaskFull>("task_set_result", { p_task: t.id, p_text: text }),
   );
+
+/**
+ * «Повторять» / «Сделать регулярной»: задача — первая, дальше по расписанию
+ * (шаблон заводится сам и скрыт). `task` — поля шаблона из формы постановки;
+ * без него — из самой задачи.
+ */
+export async function makeRecurring(
+  qc: QueryClient,
+  taskId: string,
+  p: {
+    rule: RecurrenceRule;
+    at_time: string;
+    mode?: "wait" | "skip";
+    task?: TemplateTask;
+  },
+) {
+  const id = await taskRpc<string>("task_make_recurring", { p_task: taskId, p });
+  void invalidateTasks(qc);
+  return id;
+}
 
 export const taskAction = async (qc: QueryClient, fn: string, args: Record<string, unknown>) => {
   const r = await taskRpc(fn, args);

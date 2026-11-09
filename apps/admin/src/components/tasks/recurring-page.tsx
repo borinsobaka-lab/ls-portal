@@ -1,21 +1,29 @@
 /**
- * «Регулярные» (TASKS_CHATS_PLAN.md, 4.9): мои регулярные задачи — шаблон и
- * расписание (каждый день, по рабочим дням, по дням недели, по числу
- * месяца, через N дней после закрытия), время в моём поясе. Задачи не
- * копятся: пока прежняя открыта, следующая ждёт её закрытия или прежняя
- * закрывается как пропущенная. Создаёт сервер (task_tick).
+ * «Регулярные» (TASKS_CHATS_PLAN.md, 4.9; UI_REVIEW_CHATS_TASKS_CALENDAR.md,
+ * 4.9): мои регулярные задачи — шаблон и расписание (каждый день, по
+ * рабочим дням, по дням недели, по числу месяца, через N дней после
+ * закрытия), время в моём поясе. Задачи не копятся: пока прежняя открыта,
+ * следующая ждёт её закрытия или прежняя закрывается как пропущенная
+ * («Пропускать, если прежняя не закрыта» — в «Дополнительно»). Чаще всего
+ * регулярная заводится из самой задачи — «Повторять» в форме постановки
+ * или «Сделать регулярной» в карточке (шаблон тогда свой, скрытый); здесь —
+ * список и «Новая регулярная задача» по шаблону. Создаёт задачи сервер
+ * (task_tick).
  */
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
+import { AlertTriangle, ChevronDown, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { AdminShell } from "@/components/admin-shell";
 import { useConfirm } from "@/components/confirm-dialog";
+import { RecurrenceFields } from "@/components/tasks/recurrence-fields";
+import { NewTaskDialog } from "@/components/tasks/task-form";
+import { TaskMenu } from "@/components/tasks/task-menu";
 import { TaskStatusChip } from "@/components/tasks/task-bits";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   Dialog,
   DialogBody,
@@ -26,9 +34,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { FormField, SwitchRow } from "@/components/ui/form-field";
-import { Input } from "@/components/ui/input";
-import { SegmentedControl } from "@/components/ui/segmented-control";
+import { FormField, InfoNote, SwitchRow } from "@/components/ui/form-field";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -45,20 +52,11 @@ import {
   templatesQuery,
   useTaskClock,
 } from "@/lib/tasks/data";
-import { formatMoment, hhmm, recurrenceText } from "@/lib/tasks/logic";
-import type { Recurrence, RecurrenceRule } from "@/lib/tasks/types";
-
-const FREQS: { value: RecurrenceRule["freq"]; label: string }[] = [
-  { value: "daily", label: "Каждый день" },
-  { value: "workdays", label: "По рабочим дням" },
-  { value: "weekly", label: "По дням недели" },
-  { value: "monthly", label: "Каждый месяц" },
-  { value: "after_close", label: "Через N дней после закрытия прежней" },
-];
-const WEEKDAYS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
+import { buildRule, formatMoment, hhmm, recurrenceText, ruleDraft } from "@/lib/tasks/logic";
+import type { Recurrence } from "@/lib/tasks/types";
 
 const TIPS = {
-  mode: "Задачи не копятся. «Ждать» — следующая появится, когда закроют прежнюю. «Пропустить» — прежняя закроется как пропущенная.",
+  skip: "Задачи не копятся. Выключено — следующая появится, когда закроют прежнюю. Включено — прежняя закроется как пропущенная, и придёт новая.",
 };
 
 export function RecurringPage() {
@@ -67,6 +65,7 @@ export function RecurringPage() {
   const { data = [], isPending } = useQuery(recurrencesQuery);
   const { confirm, confirmDialog } = useConfirm();
   const [editing, setEditing] = useState<Partial<Recurrence> | null>(null);
+  const [creatingTask, setCreatingTask] = useState(false);
   const save = (r: Recurrence, patch: Partial<Recurrence>) =>
     taskAction(qc, "task_recurrence_save", {
       p_id: r.id,
@@ -78,37 +77,59 @@ export function RecurringPage() {
         active: r.active,
         ...patch,
       },
-    }).catch((e) => toast.error(taskErrorText(e)));
+    })
+      .then(() => toast.success(patch.active ? "Регулярная задача включена" : "Выключена"))
+      .catch((e) => toast.error(taskErrorText(e)));
 
   return (
     <AdminShell
       title="Регулярные задачи"
       actions={
         <Button onClick={() => setEditing({})}>
-          <Plus className="size-4" /> Новая регулярная
+          <Plus className="size-4" /> Новая регулярная задача
         </Button>
       }
     >
       {isPending ? (
         <Skeleton className="h-40 w-full" />
       ) : data.length === 0 ? (
-        <p className="rounded-lg border border-dashed bg-background px-4 py-10 text-center text-sm text-muted-foreground">
-          Регулярная задача — шаблон и расписание: «каждый понедельник в 10:00 — отчёт за неделю».
-          Сначала сделайте шаблон в «Шаблонах».
-        </p>
+        <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed bg-background px-4 py-10 text-center">
+          <p className="max-w-lg text-sm text-muted-foreground">
+            Регулярная задача — «каждый понедельник в 10:00 — отчёт за неделю». Проще всего:
+            поставьте задачу и включите «Повторять» в «Ещё» — или «Сделать регулярной» в карточке
+            уже поставленной.
+          </p>
+          <div className="flex flex-wrap justify-center gap-2">
+            <Button onClick={() => setCreatingTask(true)}>
+              <Plus className="size-4" /> Поставить задачу
+            </Button>
+            <Button variant="outline" onClick={() => setEditing({})}>
+              По шаблону
+            </Button>
+          </div>
+        </div>
       ) : (
         <div className="divide-y rounded-lg border bg-background">
           {data.map((r) => (
-            <div key={r.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
-              <Switch
-                checked={r.active}
-                aria-label={r.active ? "Выключить" : "Включить"}
-                onCheckedChange={(v) => void save(r, { active: v })}
-              />
+            <div key={r.id} className="group flex flex-wrap items-center gap-3 px-4 py-3">
+              <div className="flex items-center gap-2">
+                <Switch
+                  id={`rec-${r.id}`}
+                  checked={r.active}
+                  onCheckedChange={(v) => void save(r, { active: v })}
+                />
+                <Label
+                  htmlFor={`rec-${r.id}`}
+                  className="w-20 cursor-pointer text-xs font-normal text-muted-foreground"
+                >
+                  {r.active ? "Включена" : "Выключена"}
+                </Label>
+              </div>
               <div className="min-w-0 flex-1">
                 <div className="font-medium">{r.title}</div>
                 <div className="text-sm text-muted-foreground">
-                  {recurrenceText(r.rule, r.at_time)} · шаблон «{r.template_name}»
+                  {recurrenceText(r.rule, r.at_time)}
+                  {r.template_hidden ? "" : ` · шаблон «${r.template_name}»`}
                   {r.mode === "skip" ? " · прежняя — пропускается" : ""}
                 </div>
                 <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
@@ -137,37 +158,36 @@ export function RecurringPage() {
                   </div>
                 )}
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label="Изменить"
-                onClick={() => setEditing(r)}
-              >
-                <Pencil className="size-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label="Удалить"
-                onClick={async () => {
-                  const ok = await confirm({
-                    title: "Удалить регулярную задачу?",
-                    description: "Новые задачи по ней больше не появятся. Поставленные останутся.",
-                    confirmLabel: "Удалить",
-                  });
-                  if (ok)
-                    void taskAction(qc, "task_recurrence_delete", { p_id: r.id }).catch((e) =>
-                      toast.error(taskErrorText(e)),
-                    );
-                }}
-              >
-                <Trash2 className="size-4" />
-              </Button>
+              <TaskMenu
+                label={`«${r.title}»: действия`}
+                items={[
+                  { label: "Изменить расписание", icon: Pencil, run: () => setEditing(r) },
+                  "separator",
+                  {
+                    label: "Удалить",
+                    icon: Trash2,
+                    danger: true,
+                    run: async () => {
+                      const ok = await confirm({
+                        title: "Удалить регулярную задачу?",
+                        description:
+                          "Новые задачи по ней больше не появятся. Поставленные останутся.",
+                        confirmLabel: "Удалить",
+                      });
+                      if (ok)
+                        void taskAction(qc, "task_recurrence_delete", { p_id: r.id })
+                          .then(() => toast.success("Регулярная задача удалена"))
+                          .catch((e) => toast.error(taskErrorText(e)));
+                    },
+                  },
+                ]}
+              />
             </div>
           ))}
         </div>
       )}
       <RecurrenceDialog open={!!editing} initial={editing} onClose={() => setEditing(null)} />
+      <NewTaskDialog open={creatingTask} onClose={() => setCreatingTask(false)} />
       {confirmDialog}
     </AdminShell>
   );
@@ -202,38 +222,29 @@ function RecurrenceForm({
 }) {
   const qc = useQueryClient();
   const { data: templates = [] } = useQuery(templatesQuery);
-  const rule = initial.rule;
   const [template, setTemplate] = useState(initial.template_id ?? templates[0]?.id ?? "");
-  const [freq, setFreq] = useState<RecurrenceRule["freq"]>(rule?.freq ?? "weekly");
-  const [weekdays, setWeekdays] = useState<number[]>(rule?.freq === "weekly" ? rule.weekdays : [1]);
-  const [monthday, setMonthday] = useState(String(rule?.freq === "monthly" ? rule.monthday : 1));
-  const [afterDays, setAfterDays] = useState(
-    String(rule?.freq === "after_close" ? rule.after_days : 1),
-  );
+  const [draft, setDraft] = useState(() => ruleDraft(initial.rule));
   const [time, setTime] = useState(hhmm(initial.at_time ?? "09:00"));
-  const [mode, setMode] = useState<"wait" | "skip">(initial.mode ?? "wait");
+  const [skip, setSkip] = useState(initial.mode === "skip");
   const [startNow, setStartNow] = useState(false);
+  const [errors, setErrors] = useState<{ template?: string; rule?: string }>({});
   const [saving, setSaving] = useState(false);
-
-  const build = (): RecurrenceRule | null => {
-    if (freq === "weekly") return weekdays.length ? { freq, weekdays } : null;
-    if (freq === "monthly") {
-      const d = Number(monthday);
-      return d >= 1 && d <= 31 ? { freq, monthday: d } : null;
-    }
-    if (freq === "after_close") {
-      const d = Number(afterDays);
-      return d >= 0 && d <= 365 ? { freq, after_days: d } : null;
-    }
-    return { freq };
-  };
+  const own = !!initial.template_hidden;
 
   return (
     <DialogForm
       onSubmit={async () => {
-        const r = build();
-        if (!template) return void toast.info("Выберите шаблон");
-        if (!r) return void toast.info("Проверьте расписание");
+        const r = buildRule(draft);
+        const e = {
+          template: template ? undefined : "Выберите шаблон",
+          rule: r
+            ? undefined
+            : draft.freq === "weekly"
+              ? "Отметьте хотя бы один день"
+              : "Проверьте расписание",
+        };
+        setErrors(e);
+        if (e.template || e.rule) return;
         setSaving(true);
         try {
           await taskAction(qc, "task_recurrence_save", {
@@ -242,7 +253,7 @@ function RecurrenceForm({
               template_id: template,
               rule: r,
               at_time: time,
-              mode,
+              mode: skip ? "skip" : "wait",
               active: initial.active ?? true,
               start_now: startNow,
             },
@@ -251,8 +262,8 @@ function RecurrenceForm({
             startNow ? "Первая задача появится в течение минуты" : "Расписание сохранено",
           );
           onClose();
-        } catch (e) {
-          toast.error(taskErrorText(e));
+        } catch (err) {
+          toast.error(taskErrorText(err));
         } finally {
           setSaving(false);
         }
@@ -261,12 +272,16 @@ function RecurrenceForm({
       <DialogHeader className="border-b px-4 py-4 sm:px-6">
         <DialogTitle>{initial.id ? "Регулярная задача" : "Новая регулярная задача"}</DialogTitle>
         <DialogDescription>
-          Задачу ставите вы: по шаблону, по расписанию, в вашем часовом поясе.
+          Задачу ставите вы: по расписанию, в вашем часовом поясе.
         </DialogDescription>
       </DialogHeader>
       <DialogBody className="space-y-4">
-        <FormField label="Шаблон" required>
-          {templates.length ? (
+        {own ? (
+          <FormField label="Задача" htmlFor={null}>
+            <p className="text-sm">{initial.title}</p>
+          </FormField>
+        ) : templates.length ? (
+          <FormField label="Шаблон" required error={errors.template}>
             <Select value={template} onValueChange={setTemplate}>
               <SelectTrigger>
                 <SelectValue placeholder="Выберите шаблон" />
@@ -279,93 +294,55 @@ function RecurrenceForm({
                 ))}
               </SelectContent>
             </Select>
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              Шаблонов нет — сначала создайте в{" "}
-              <Link to="/tasks/templates" className="underline" onClick={onClose}>
-                «Шаблонах»
-              </Link>
-              .
-            </p>
-          )}
-        </FormField>
-        <FormField label="Повторять">
-          <Select value={freq} onValueChange={(v) => setFreq(v as RecurrenceRule["freq"])}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {FREQS.map((f) => (
-                <SelectItem key={f.value} value={f.value}>
-                  {f.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </FormField>
-        {freq === "weekly" && (
-          <div className="flex flex-wrap gap-3">
-            {WEEKDAYS.map((w, i) => (
-              <label key={w} className="flex items-center gap-1.5 text-sm">
-                <Checkbox
-                  checked={weekdays.includes(i + 1)}
-                  onCheckedChange={(v) =>
-                    setWeekdays((d) =>
-                      v === true ? [...d, i + 1].sort() : d.filter((x) => x !== i + 1),
-                    )
-                  }
-                />
-                {w}
-              </label>
-            ))}
-          </div>
-        )}
-        {freq === "monthly" && (
-          <FormField label="Число месяца" hint="31 — в последний день месяца, если дней меньше">
-            <Input
-              type="number"
-              min={1}
-              max={31}
-              value={monthday}
-              onChange={(e) => setMonthday(e.target.value)}
-            />
           </FormField>
+        ) : (
+          <InfoNote variant="info">
+            Шаблонов пока нет. Проще поставить задачу и включить «Повторять» — или сначала{" "}
+            <Link to="/tasks/templates" className="underline" onClick={onClose}>
+              создать шаблон
+            </Link>
+            .
+          </InfoNote>
         )}
-        {freq === "after_close" && (
-          <FormField label="Через сколько дней после закрытия">
-            <Input
-              type="number"
-              min={0}
-              max={365}
-              value={afterDays}
-              onChange={(e) => setAfterDays(e.target.value)}
+        <RecurrenceFields
+          draft={draft}
+          onDraft={(d) => {
+            setDraft(d);
+            setErrors((x) => ({ ...x, rule: undefined }));
+          }}
+          time={time}
+          onTime={setTime}
+          error={errors.rule}
+        />
+        <Collapsible defaultOpen={skip}>
+          <CollapsibleTrigger asChild>
+            <Button variant="ghost" size="sm">
+              <ChevronDown className="size-4" /> Дополнительно
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="space-y-3 pt-3">
+            <SwitchRow
+              title="Пропускать, если прежняя не закрыта"
+              tip={TIPS.skip}
+              checked={skip}
+              onCheckedChange={setSkip}
             />
-          </FormField>
-        )}
-        <FormField label="Во сколько">
-          <Input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
-        </FormField>
-        <FormField label="Если прежняя ещё открыта" tip={TIPS.mode} htmlFor={null}>
-          <SegmentedControl
-            aria-label="Если прежняя открыта"
-            fullWidth
-            value={mode}
-            onChange={setMode}
-            options={[
-              { value: "wait", label: "Ждать закрытия" },
-              { value: "skip", label: "Пропустить прежнюю" },
-            ]}
-          />
-        </FormField>
-        <SwitchRow title="Первую задачу — сразу" checked={startNow} onCheckedChange={setStartNow} />
+            <SwitchRow
+              title="Первую задачу — сразу"
+              hint="Не ждать первого дня по расписанию"
+              checked={startNow}
+              onCheckedChange={setStartNow}
+            />
+          </CollapsibleContent>
+        </Collapsible>
       </DialogBody>
       <DialogFooter>
-        <Button variant="outline" onClick={onClose}>
+        <Button variant="outline" onClick={onClose} disabled={saving}>
           Отмена
         </Button>
-        <Button type="submit" disabled={saving || !templates.length}>
+        <Button type="submit" disabled={saving || (!own && !templates.length)}>
           {saving && <Loader2 className="size-4 animate-spin" />}
-          Сохранить
+          {initial.id ? "Сохранить" : "Создать"}
         </Button>
       </DialogFooter>
     </DialogForm>

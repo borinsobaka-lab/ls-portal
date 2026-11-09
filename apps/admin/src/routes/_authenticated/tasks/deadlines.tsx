@@ -11,7 +11,7 @@ type Search = { role?: RoleTab; task?: number };
 export const Route = createFileRoute("/_authenticated/tasks/deadlines")({
   head: () => ({ meta: [{ title: `Сроки задач — ${PORTAL_NAME}` }] }),
   validateSearch: (raw: Record<string, unknown>): Search => {
-    const role = ["do", "assigned", "all"].includes(String(raw.role))
+    const role = ["do", "help", "assigned", "watch", "all"].includes(String(raw.role))
       ? (raw.role as RoleTab)
       : undefined;
     const n = Number(raw.task);

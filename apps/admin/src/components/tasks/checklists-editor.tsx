@@ -1,11 +1,17 @@
 /**
  * Чек-листы в форме постановки и шаблона: несколько списков с названием,
- * пункты (Enter — следующий пункт).
+ * пункты (Enter — следующий пункт), у пункта — исполнитель, как в карточке
+ * (не в задаче — станет соисполнителем).
  */
-import { Plus, X } from "lucide-react";
+import { useState } from "react";
+import { Plus, UserPlus, X } from "lucide-react";
 
+import { PeoplePicker } from "@/components/chats/dialogs";
+import { PersonLine } from "@/components/tasks/task-bits";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { usePeople } from "@/lib/chats/people";
 import type { DraftList } from "@/lib/tasks/logic";
 
 export function ChecklistsEditor({
@@ -32,13 +38,14 @@ export function ChecklistsEditor({
               variant="ghost"
               size="icon"
               aria-label="Убрать чек-лист"
+              title="Убрать чек-лист"
               onClick={() => onChange(lists.filter((_, j) => j !== i))}
             >
               <X className="size-4" />
             </Button>
           </div>
           {l.items.map((it, k) => (
-            <div key={k} className="flex gap-1.5 pl-3">
+            <div key={k} className="flex items-center gap-1.5 pl-3">
               <Input
                 value={it.text}
                 placeholder={`Пункт ${k + 1}`}
@@ -58,10 +65,20 @@ export function ChecklistsEditor({
                   }
                 }}
               />
+              <ItemAssignee
+                value={it.assignee_id ?? null}
+                onChange={(id) =>
+                  setList(i, {
+                    ...l,
+                    items: l.items.map((x, n) => (n === k ? { ...x, assignee_id: id } : x)),
+                  })
+                }
+              />
               <Button
                 variant="ghost"
                 size="icon"
                 aria-label="Убрать пункт"
+                title="Убрать пункт"
                 onClick={() => setList(i, { ...l, items: l.items.filter((_, n) => n !== k) })}
               >
                 <X className="size-4" />
@@ -88,5 +105,46 @@ export function ChecklistsEditor({
         <Plus className="size-4" /> Чек-лист
       </Button>
     </div>
+  );
+}
+
+/** Исполнитель пункта: аватарка или «назначить»; повторный выбор того же — снять. */
+function ItemAssignee({
+  value,
+  onChange,
+}: {
+  value: string | null;
+  onChange: (id: string | null) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const { name } = usePeople();
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label={value ? `Исполнитель пункта: ${name(value)}` : "Назначить пункт"}
+          title={value ? `Исполнитель пункта: ${name(value)}` : "Назначить пункт"}
+          className="shrink-0 text-muted-foreground"
+        >
+          {value ? (
+            <PersonLine id={value} size="xs" className="[&>span:last-child]:sr-only" />
+          ) : (
+            <UserPlus />
+          )}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-[min(24rem,calc(100vw-2rem))] p-3">
+        <PeoplePicker
+          single
+          selected={value ? [value] : []}
+          onToggle={(uid) => {
+            setOpen(false);
+            onChange(uid === value ? null : uid);
+          }}
+        />
+      </PopoverContent>
+    </Popover>
   );
 }

@@ -1,13 +1,14 @@
 /**
- * «Шаблоны» (TASKS_CHATS_PLAN.md, 4.9): личные, проекта (ведут владелец и
- * модераторы), общие («Администратор задач»). В шаблоне — поля новой
- * задачи и срок «через N рабочих дней». «Поставить» — форма новой задачи с
- * полями шаблона, «Сделать регулярной» — расписание. Сохранить карточку
- * задачи шаблоном — «⋯» в карточке.
+ * «Шаблоны» (TASKS_CHATS_PLAN.md, 4.9; UI_REVIEW_CHATS_TASKS_CALENDAR.md,
+ * 4.9): «Только мне», «Проекту» (ведут владелец и модераторы), «Всем»
+ * («Администратор задач»). В шаблоне — поля новой задачи в том же порядке,
+ * что в форме постановки, и срок «через N рабочих дней». «Поставить задачу»
+ * — форма новой задачи с полями шаблона, «Сделать регулярной» —
+ * расписание. Сохранить карточку задачи шаблоном — «⋯» в карточке.
  */
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Copy, Loader2, Pencil, Plus, Repeat, Trash2 } from "lucide-react";
+import { Copy, Loader2, Pencil, Plus, Repeat, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { AdminShell } from "@/components/admin-shell";
@@ -16,6 +17,7 @@ import { ChecklistsEditor } from "@/components/tasks/checklists-editor";
 import { RecurrenceDialog } from "@/components/tasks/recurring-page";
 import { PeopleField, ProjectTag } from "@/components/tasks/task-bits";
 import { NewTaskDialog } from "@/components/tasks/task-form";
+import { TaskMenu } from "@/components/tasks/task-menu";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -40,6 +42,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatusChip } from "@/components/ui/status-chip";
 import { Textarea } from "@/components/ui/textarea";
+import { TimeField } from "@/components/ui/date-field";
 import { useAdminAccess } from "@/hooks/use-admin-access";
 import { hasRight } from "@/lib/admin-access";
 import { documentLines } from "@/lib/kb/document";
@@ -48,9 +51,17 @@ import { cleanLists, plural, type DraftList } from "@/lib/tasks/logic";
 import type { TaskTemplate, TemplateTask } from "@/lib/tasks/types";
 
 const SCOPE_LABEL: Record<TaskTemplate["scope"], string> = {
-  personal: "Личный",
-  project: "Проекта",
-  shared: "Общий",
+  personal: "Только мне",
+  project: "Проекту",
+  shared: "Всем",
+};
+
+const TIPS = {
+  scope:
+    "Только мне — шаблон видите вы. Проекту — участники проекта (правят владелец и модераторы). Всем — все сотрудники портала.",
+  review: "Исполнитель отправит задачу на проверку, постановщик примет или вернёт.",
+  result: "Исполнитель не завершит задачу, пока не напишет результат: что сделано, ссылка, цифры.",
+  mode: "«Одна общая» — первый исполнитель, остальные помогают. «Каждому своя» — отдельная задача на каждого.",
 };
 
 export function TemplatesPage() {
@@ -66,7 +77,7 @@ export function TemplatesPage() {
       title="Шаблоны задач"
       actions={
         <Button onClick={() => setEditing({})}>
-          <Plus className="size-4" /> Новый шаблон
+          <Plus className="size-4" /> Создать шаблон
         </Button>
       }
     >
@@ -74,10 +85,16 @@ export function TemplatesPage() {
         {isPending ? (
           <Skeleton className="h-40 w-full" />
         ) : data.length === 0 ? (
-          <p className="rounded-lg border border-dashed bg-background px-4 py-10 text-center text-sm text-muted-foreground">
-            Шаблон — заготовка задачи: название, люди, чек-листы, срок «через N рабочих дней». Из
-            него ставят задачу в два клика и делают регулярные задачи.
-          </p>
+          <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed bg-background px-4 py-10 text-center">
+            <p className="max-w-lg text-sm text-muted-foreground">
+              Шаблон — заготовка задачи: название, люди, чек-листы, срок «через N рабочих дней». Из
+              него ставят задачу в два клика и делают регулярные. Готовую задачу можно сохранить
+              шаблоном из её карточки — «⋯».
+            </p>
+            <Button onClick={() => setEditing({})}>
+              <Plus className="size-4" /> Создать шаблон
+            </Button>
+          </div>
         ) : (
           <div className="divide-y rounded-lg border bg-background">
             {data.map((tp) => (
@@ -98,61 +115,52 @@ export function TemplatesPage() {
                   </div>
                 </div>
                 <Button size="sm" onClick={() => setUsing(tp)}>
-                  Поставить
+                  Поставить задачу
                 </Button>
-                <Button size="sm" variant="outline" onClick={() => setRepeat(tp)}>
-                  <Repeat className="size-4" /> Регулярно
-                </Button>
-                {tp.can_edit && (
-                  <>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      aria-label={`Изменить «${tp.name}»`}
-                      onClick={() => setEditing(tp)}
-                    >
-                      <Pencil className="size-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      aria-label={`Удалить «${tp.name}»`}
-                      onClick={async () => {
-                        const ok = await confirm({
-                          title: `Удалить шаблон «${tp.name}»?`,
-                          description:
-                            "Регулярные задачи по нему тоже удалятся. Поставленные задачи останутся.",
-                          confirmLabel: "Удалить",
-                        });
-                        if (ok)
-                          void taskAction(qc, "task_template_delete", { p_id: tp.id }).catch((e) =>
-                            toast.error(taskErrorText(e)),
-                          );
-                      }}
-                    >
-                      <Trash2 className="size-4" />
-                    </Button>
-                  </>
-                )}
-                {!tp.can_edit && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    aria-label={`Копия «${tp.name}» себе`}
-                    title="Сделать личную копию"
-                    onClick={() =>
-                      setEditing({
-                        ...tp,
-                        id: undefined,
-                        scope: "personal",
-                        project_id: null,
-                        name: `${tp.name} (копия)`,
-                      })
-                    }
-                  >
-                    <Copy className="size-4" />
-                  </Button>
-                )}
+                <TaskMenu
+                  label={`Шаблон «${tp.name}»: действия`}
+                  items={[
+                    { label: "Сделать регулярной", icon: Repeat, run: () => setRepeat(tp) },
+                    ...(tp.can_edit
+                      ? [{ label: "Изменить", icon: Pencil, run: () => setEditing(tp) }]
+                      : [
+                          {
+                            label: "Сделать личную копию",
+                            icon: Copy,
+                            run: () =>
+                              setEditing({
+                                ...tp,
+                                id: undefined,
+                                scope: "personal",
+                                project_id: null,
+                                name: `${tp.name} (копия)`,
+                              }),
+                          },
+                        ]),
+                    ...(tp.can_edit
+                      ? [
+                          "separator" as const,
+                          {
+                            label: "Удалить шаблон",
+                            icon: Trash2,
+                            danger: true,
+                            run: async () => {
+                              const ok = await confirm({
+                                title: `Удалить шаблон «${tp.name}»?`,
+                                description:
+                                  "Регулярные задачи по нему тоже удалятся. Поставленные задачи останутся.",
+                                confirmLabel: "Удалить",
+                              });
+                              if (ok)
+                                void taskAction(qc, "task_template_delete", { p_id: tp.id })
+                                  .then(() => toast.success("Шаблон удалён"))
+                                  .catch((e) => toast.error(taskErrorText(e)));
+                            },
+                          },
+                        ]
+                      : []),
+                  ]}
+                />
               </div>
             ))}
           </div>
@@ -226,13 +234,14 @@ function TemplateForm({
   const [time, setTime] = useState(t.deadline_time ?? "");
   const [urgent, setUrgent] = useState(!!t.urgent);
   const [review, setReview] = useState(!!t.requires_review);
+  const [resultRequired, setResultRequired] = useState(!!t.result_required);
   const [errors, setErrors] = useState<{ name?: string; title?: string }>({});
   const [saving, setSaving] = useState(false);
 
   const scopes: { value: TaskTemplate["scope"]; label: string }[] = [
-    { value: "personal", label: "Личный" },
-    ...(managed.length ? [{ value: "project" as const, label: "Проекта" }] : []),
-    ...(isAdmin ? [{ value: "shared" as const, label: "Общий" }] : []),
+    { value: "personal", label: SCOPE_LABEL.personal },
+    ...(managed.length ? [{ value: "project" as const, label: SCOPE_LABEL.project }] : []),
+    ...(isAdmin ? [{ value: "shared" as const, label: SCOPE_LABEL.shared }] : []),
   ];
 
   return (
@@ -270,12 +279,13 @@ function TemplateForm({
                 checklists: cleanLists(lists),
                 urgent,
                 requires_review: review,
+                result_required: resultRequired,
                 deadline_days: n,
                 deadline_time: time || null,
               },
             },
           });
-          toast.success("Шаблон сохранён");
+          toast.success(template.id ? "Шаблон сохранён" : "Шаблон создан");
           onClose();
         } catch (err) {
           toast.error(taskErrorText(err));
@@ -287,7 +297,8 @@ function TemplateForm({
       <DialogHeader className="border-b px-4 py-4 sm:px-6">
         <DialogTitle>{template.id ? "Шаблон" : "Новый шаблон"}</DialogTitle>
         <DialogDescription>
-          Заготовка задачи: из неё ставят задачу и делают регулярные.
+          Заготовка задачи: из неё ставят задачу и делают регулярные. Поля — как в форме новой
+          задачи.
         </DialogDescription>
       </DialogHeader>
       <DialogBody className="space-y-4">
@@ -295,7 +306,7 @@ function TemplateForm({
           <Input autoFocus value={name} maxLength={120} onChange={(e) => setName(e.target.value)} />
         </FormField>
         {scopes.length > 1 && (
-          <FormField label="Кому виден" htmlFor={null}>
+          <FormField label="Кому виден" tip={TIPS.scope} htmlFor={null}>
             <SegmentedControl
               aria-label="Кому виден шаблон"
               value={scope}
@@ -320,75 +331,113 @@ function TemplateForm({
             </Select>
           </FormField>
         )}
-        <FormField label="Название задачи" required error={errors.title}>
-          <Input value={title} maxLength={300} onChange={(e) => setTitle(e.target.value)} />
-        </FormField>
-        <FormField
-          label="Исполнитель"
-          hint={assignees.length ? undefined : "Не выбран — тот, кто ставит"}
-          htmlFor={null}
-        >
-          <PeopleField value={assignees} onChange={setAssignees} addLabel="Выбрать" />
-        </FormField>
-        {assignees.length > 1 && (
-          <SegmentedControl
-            aria-label="Как поставить нескольким"
-            fullWidth
-            value={mode}
-            onChange={setMode}
-            options={[
-              { value: "shared", label: "Одна общая задача" },
-              { value: "separate", label: "Отдельная каждому" },
-            ]}
-          />
-        )}
-        <FormField label="Соисполнители" htmlFor={null}>
-          <PeopleField value={coassignees} onChange={setCoassignees} exclude={assignees} />
-        </FormField>
-        <FormField label="Наблюдатели" htmlFor={null}>
-          <PeopleField
-            value={watchers}
-            onChange={setWatchers}
-            exclude={[...assignees, ...coassignees]}
-          />
-        </FormField>
-        <FormField label="Описание" optional>
-          <Textarea
-            rows={3}
-            value={description}
-            onChange={(e) => {
-              setDescription(e.target.value);
-              setDescDoc(null);
-            }}
-          />
-        </FormField>
-        <FormField label="Чек-листы" htmlFor={null}>
-          <ChecklistsEditor lists={lists} onChange={setLists} />
-        </FormField>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <FormField label="Срок — через рабочих дней" hint="Пусто — без срока; 0 — в тот же день">
-            <Input
-              type="number"
-              min={0}
-              max={365}
-              value={days}
-              onChange={(e) => setDays(e.target.value)}
+        <div className="space-y-4 border-t pt-4">
+          <p className="text-xs font-medium text-muted-foreground uppercase">Новая задача</p>
+          <FormField label="Что сделать" required error={errors.title}>
+            <Input value={title} maxLength={300} onChange={(e) => setTitle(e.target.value)} />
+          </FormField>
+          <FormField label="Описание" optional>
+            <Textarea
+              rows={3}
+              value={description}
+              onChange={(e) => {
+                setDescription(e.target.value);
+                setDescDoc(null);
+              }}
             />
           </FormField>
-          <FormField label="Ко времени" hint="Пусто — к концу рабочего дня">
-            <Input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
+          <FormField
+            label={assignees.length > 1 ? "Исполнители" : "Исполнитель"}
+            hint={assignees.length ? undefined : "Не выбран — тот, кто ставит"}
+            htmlFor={null}
+          >
+            <PeopleField value={assignees} onChange={setAssignees} addLabel="Выбрать" />
           </FormField>
+          {assignees.length > 1 && (
+            <FormField label="Как поставить" tip={TIPS.mode} htmlFor={null}>
+              <SegmentedControl
+                aria-label="Как поставить нескольким"
+                fullWidth
+                value={mode}
+                onChange={setMode}
+                options={[
+                  { value: "shared", label: "Одна общая задача" },
+                  { value: "separate", label: "Каждому своя" },
+                ]}
+              />
+            </FormField>
+          )}
+          <div className="grid gap-3 sm:grid-cols-2">
+            <FormField
+              label="Срок — через рабочих дней"
+              hint="Пусто — без срока; 0 — в тот же день"
+            >
+              <Input
+                type="number"
+                min={0}
+                max={365}
+                value={days}
+                onChange={(e) => setDays(e.target.value)}
+              />
+            </FormField>
+            <FormField label="Ко времени" hint="Не выбрано — к концу рабочего дня" htmlFor={null}>
+              <div className="flex items-center gap-1">
+                <TimeField
+                  value={time}
+                  onChange={setTime}
+                  placeholder="Конец дня"
+                  aria-label="Ко времени"
+                  className="w-full"
+                />
+                {time && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Сбросить время"
+                    title="Сбросить — к концу рабочего дня"
+                    onClick={() => setTime("")}
+                  >
+                    <X />
+                  </Button>
+                )}
+              </div>
+            </FormField>
+          </div>
+          <FormField label="Соисполнители" htmlFor={null}>
+            <PeopleField value={coassignees} onChange={setCoassignees} exclude={assignees} />
+          </FormField>
+          <FormField label="Наблюдатели" htmlFor={null}>
+            <PeopleField
+              value={watchers}
+              onChange={setWatchers}
+              exclude={[...assignees, ...coassignees]}
+            />
+          </FormField>
+          <FormField label="Чек-листы" htmlFor={null}>
+            <ChecklistsEditor lists={lists} onChange={setLists} />
+          </FormField>
+          <SwitchRow title="Срочно" checked={urgent} onCheckedChange={setUrgent} />
+          <SwitchRow
+            title="Принять работу после завершения"
+            tip={TIPS.review}
+            checked={review}
+            onCheckedChange={setReview}
+          />
+          <SwitchRow
+            title="Требовать отчёт о результате"
+            tip={TIPS.result}
+            checked={resultRequired}
+            onCheckedChange={setResultRequired}
+          />
         </div>
-        <SwitchRow title="Срочно" checked={urgent} onCheckedChange={setUrgent} />
-        <SwitchRow title="Требует проверки" checked={review} onCheckedChange={setReview} />
       </DialogBody>
       <DialogFooter>
-        <Button variant="outline" onClick={onClose}>
+        <Button variant="outline" onClick={onClose} disabled={saving}>
           Отмена
         </Button>
         <Button type="submit" disabled={saving}>
           {saving && <Loader2 className="size-4 animate-spin" />}
-          Сохранить шаблон
+          {template.id ? "Сохранить" : "Создать шаблон"}
         </Button>
       </DialogFooter>
     </DialogForm>

@@ -138,7 +138,7 @@ describe.skipIf(!url)("мой план (база)", () => {
 
       await as(tx, b);
       let p = await plan(tx);
-      expect(p.columns.map((x) => x.title)).toEqual(["Сегодня", "На этой неделе", "Потом"]);
+      expect(p.columns.map((x) => x.title)).toEqual(["Сейчас", "Дальше", "Когда-нибудь"]);
       expect(col(p, null).sort()).toEqual(["Афиша", "Отчёт", "Помогаю"]);
       const today = p.columns[0].id;
       await tx`select task_plan_place(${today}, ${[t2.id, t1.id]}::uuid[])`;

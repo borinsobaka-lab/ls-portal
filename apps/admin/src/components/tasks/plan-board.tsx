@@ -5,29 +5,23 @@
  * например, из «Поручил»). «Не разобрано» — новые и без места. Карточки
  * перетаскиваются между колонками и внутри колонки; на телефоне —
  * «Переместить» в меню карточки. Доска не меняет задачу: ни статус, ни срок.
- * Схема — db/migrations/2026-11-08_zzzzzzz_task_plan.sql.
+ * Стартовые колонки новой доски — «Сейчас», «Дальше», «Когда-нибудь» (не
+ * сроки: срок меняют «Сроки»). Меню «⋯» — общее для задач (`TaskMenu`).
+ * Схема — db/migrations/2026-11-08_zzzzzzz_task_plan.sql,
+ * 2026-11-09_task_ui_review.sql.
  */
 import { useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import {
-  ArrowLeft,
-  ArrowRight,
-  ListChecks,
-  Loader2,
-  MoreHorizontal,
-  Pencil,
-  Plus,
-  Search,
-  Trash2,
-  X,
-} from "lucide-react";
+import { ArrowLeft, ArrowRight, ListChecks, Loader2, Pencil, Plus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { AdminShell } from "@/components/admin-shell";
 import { TableToolbar } from "@/components/table-toolbar";
 import { useConfirm } from "@/components/confirm-dialog";
-import { TaskCard } from "@/components/tasks/task-card";
 import { NewTaskDialog } from "@/components/tasks/task-form";
+import { TaskMenu } from "@/components/tasks/task-menu";
+import { TaskSheet } from "@/components/tasks/task-table";
+import { TasksViewTabs } from "@/components/tasks/tasks-views";
 import {
   DeadlineText,
   PersonLine,
@@ -47,11 +41,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { FormField } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
 import { SearchInput } from "@/components/ui/search-input";
-import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CountBadge } from "@/components/ui/status-chip";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
@@ -135,19 +127,21 @@ export function PlanBoard({
       }
     >
       <div className="space-y-3">
-        <TableToolbar>
+        <TableToolbar tabs={<TasksViewTabs view="plan" />}>
           <p className="toolbar-full mr-auto px-1 text-sm text-muted-foreground">
-            Разложите свои задачи по колонкам, как удобно. Статус и срок задачи доска не меняет.
+            Личная доска: разложите задачи по колонкам, как удобно. Статус и срок задачи доска не
+            меняет.
           </p>
           <Button variant="outline" onClick={() => setAdding(true)}>
-            <Search className="size-4" /> Добавить задачу
+            <Plus className="size-4" /> Добавить в план…
           </Button>
           <Button
             variant="outline"
             disabled={columns.length >= 10}
+            title={columns.length >= 10 ? "Не больше 10 колонок" : undefined}
             onClick={() => setNaming("new")}
           >
-            <Plus className="size-4" /> Колонка
+            <Plus className="size-4" /> Новая колонка
           </Button>
         </TableToolbar>
         <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-2">
@@ -177,8 +171,8 @@ export function PlanBoard({
                   <span className="min-w-0 truncate text-sm font-semibold">{lane.title}</span>
                   {list.length > 0 && <CountBadge count={list.length} tone="quiet" />}
                   {lane.column && (
-                    <Menu
-                      label={`Колонка «${lane.title}»`}
+                    <TaskMenu
+                      label={`Колонка «${lane.title}»: действия`}
                       className="ml-auto"
                       items={[
                         { label: "Переименовать", icon: Pencil, run: () => setNaming(lane.column) },
@@ -194,6 +188,7 @@ export function PlanBoard({
                           disabled: li >= lanes.length - 1,
                           run: () => shiftColumn(lane.column!, 1),
                         },
+                        "separator",
                         {
                           label: "Удалить колонку",
                           icon: Trash2,
@@ -247,18 +242,15 @@ export function PlanBoard({
           })}
         </div>
       </div>
-      <Sheet open={!!task} onOpenChange={(o) => !o && onTask(undefined)}>
-        <SheetContent className="w-full overflow-y-auto p-4 sm:max-w-5xl sm:p-6">
-          <SheetTitle className="sr-only">Задача #{task}</SheetTitle>
-          <SheetDescription className="sr-only">Карточка задачи</SheetDescription>
-          {task && <TaskCard number={task} onClose={() => onTask(undefined)} />}
-        </SheetContent>
-      </Sheet>
-      <NewTaskDialog
-        open={creating}
-        onClose={() => setCreating(false)}
-        onCreated={() => undefined}
+      <TaskSheet
+        number={task}
+        onClose={() => onTask(undefined)}
+        onOpen={onTask}
+        list={lanes.flatMap((l) =>
+          planColumnCards(cards, l.column?.id ?? null).map((c) => c.task.number),
+        )}
       />
+      <NewTaskDialog open={creating} onClose={() => setCreating(false)} onOpenTask={onTask} />
       <ColumnDialog value={naming} onClose={() => setNaming(null)} />
       <AddTaskDialog
         open={adding}
@@ -325,15 +317,26 @@ function PlanCardView({
             <span className="min-w-0 font-medium break-words">{t.title}</span>
           </span>
         </button>
-        <Menu
+        <TaskMenu
           label="Действия с карточкой"
-          className="-mt-0.5 -mr-1"
-          heading="Переместить"
+          reveal
+          className="-mt-1 -mr-1"
           items={[
+            { heading: "Переместить в колонку" },
             ...lanes
               .filter((l) => l.key !== here)
               .map((l) => ({ label: l.title, run: () => onMove(l.key) })),
-            ...(card.added ? [{ label: "Убрать из плана", icon: X, run: onRemove }] : []),
+            ...(card.added
+              ? [
+                  "separator" as const,
+                  {
+                    label: "Убрать из плана",
+                    icon: X,
+                    hint: "Задача останется — пропадёт только с доски",
+                    run: onRemove,
+                  },
+                ]
+              : []),
           ]}
         />
       </div>
@@ -359,69 +362,6 @@ function PlanCardView({
         {t.status !== "new" && <TaskStatusChip status={t.status} />}
       </div>
     </div>
-  );
-}
-
-type MenuItem = {
-  label: string;
-  icon?: typeof Pencil;
-  disabled?: boolean;
-  danger?: boolean;
-  run: () => void;
-};
-
-/** Меню «⋯» колонки и карточки. */
-function Menu({
-  label,
-  heading,
-  items,
-  className,
-}: {
-  label: string;
-  heading?: string;
-  items: MenuItem[];
-  className?: string;
-}) {
-  const [open, setOpen] = useState(false);
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <button
-          type="button"
-          aria-label={label}
-          title={label}
-          className={cn(
-            "shrink-0 rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground",
-            className,
-          )}
-        >
-          <MoreHorizontal className="size-4" />
-        </button>
-      </PopoverTrigger>
-      <PopoverContent align="end" className="w-52 p-1">
-        {heading && (
-          <p className="px-2.5 pt-1 pb-1.5 text-xs font-medium text-muted-foreground">{heading}</p>
-        )}
-        {items.map((it) => (
-          <button
-            key={it.label}
-            type="button"
-            disabled={it.disabled}
-            onClick={() => {
-              setOpen(false);
-              it.run();
-            }}
-            className={cn(
-              "flex w-full items-center gap-2 rounded px-2.5 py-1.5 text-left text-sm hover:bg-muted disabled:pointer-events-none disabled:opacity-40",
-              it.danger && "text-destructive",
-            )}
-          >
-            {it.icon && <it.icon className="size-4" />}
-            {it.label}
-          </button>
-        ))}
-      </PopoverContent>
-    </Popover>
   );
 }
 
@@ -471,7 +411,7 @@ function ColumnForm({ value, onClose }: { value: PlanColumn | "new"; onClose: ()
     >
       <DialogHeader className="border-b px-4 py-4 sm:px-6">
         <DialogTitle>{value === "new" ? "Новая колонка" : "Переименовать колонку"}</DialogTitle>
-        <DialogDescription>Например: «Сегодня», «Жду ответа», «Казань».</DialogDescription>
+        <DialogDescription>Например: «Жду ответа», «Казань», «Созвон».</DialogDescription>
       </DialogHeader>
       <DialogBody>
         <FormField label="Название" required error={error}>
@@ -491,7 +431,8 @@ function ColumnForm({ value, onClose }: { value: PlanColumn | "new"; onClose: ()
           Отмена
         </Button>
         <Button type="submit" disabled={busy}>
-          {busy && <Loader2 className="size-4 animate-spin" />} Сохранить
+          {busy && <Loader2 className="size-4 animate-spin" />}
+          {value === "new" ? "Создать колонку" : "Сохранить"}
         </Button>
       </DialogFooter>
     </DialogForm>
@@ -510,14 +451,14 @@ function AddTaskDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="flex max-h-[85dvh] flex-col sm:max-w-lg">
-        {open && <AddTaskList inPlan={inPlan} />}
+      <DialogContent className="flex max-h-[85dvh] flex-col gap-0 p-0 sm:max-w-lg">
+        {open && <AddTaskList inPlan={inPlan} onClose={onClose} />}
       </DialogContent>
     </Dialog>
   );
 }
 
-function AddTaskList({ inPlan }: { inPlan: Set<string> }) {
+function AddTaskList({ inPlan, onClose }: { inPlan: Set<string>; onClose: () => void }) {
   const qc = useQueryClient();
   const { tz } = useTaskClock();
   const [q, setQ] = useState("");
@@ -526,8 +467,8 @@ function AddTaskList({ inPlan }: { inPlan: Set<string> }) {
   const rows = (data?.rows ?? []).filter((t) => !inPlan.has(t.id));
   return (
     <>
-      <DialogHeader>
-        <DialogTitle>Добавить задачу в план</DialogTitle>
+      <DialogHeader className="border-b px-4 py-4 sm:px-6">
+        <DialogTitle>Добавить в план</DialogTitle>
         <DialogDescription>
           Свои задачи как исполнителя уже на доске; здесь — остальные: поручил, наблюдаю, проекты.
         </DialogDescription>
@@ -543,7 +484,7 @@ function AddTaskList({ inPlan }: { inPlan: Set<string> }) {
         {isPending ? (
           <Loader2 className="mx-auto size-5 animate-spin text-muted-foreground" />
         ) : rows.length === 0 ? (
-          <p className="py-6 text-center text-sm text-muted-foreground">Ничего не нашлось</p>
+          <p className="py-6 text-center text-sm text-muted-foreground">Ничего не найдено</p>
         ) : (
           <ul className="divide-y rounded-lg border">
             {rows.slice(0, 50).map((t) => (
@@ -569,6 +510,9 @@ function AddTaskList({ inPlan }: { inPlan: Set<string> }) {
           </ul>
         )}
       </DialogBody>
+      <DialogFooter>
+        <Button onClick={onClose}>Готово</Button>
+      </DialogFooter>
     </>
   );
 }

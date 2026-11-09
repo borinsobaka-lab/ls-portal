@@ -108,8 +108,8 @@ export function TaskTagsField({
       {!disabled && !full && (
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>
-            <Button variant="outline" size="sm" className="h-7 px-2.5 text-xs">
-              <Plus className="size-3.5" /> Тег
+            <Button variant="outline" size="sm">
+              <Plus className="size-4" /> Тег
             </Button>
           </PopoverTrigger>
           <PopoverContent align="start" className="w-72 space-y-2 p-2">
@@ -142,7 +142,7 @@ export function TaskTagsField({
               ))}
               {options.length === 0 && !name && (
                 <p className="px-2 py-2 text-xs text-muted-foreground">
-                  Тегов пока нет — создайте первый.
+                  Тегов пока нет — напишите название и создайте первый.
                 </p>
               )}
             </div>

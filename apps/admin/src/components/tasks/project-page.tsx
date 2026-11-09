@@ -1,24 +1,45 @@
 /**
- * Проект (TASKS_CHATS_PLAN.md, 4.10): «Задачи» — списком или канбаном по
- * стадиям проекта (перетаскивание меняет стадию, статус — нет), «Участники»
- * (роли, из подразделения, добавить, выйти), «Настройки» (владелец и
- * модераторы: проект, стадии, архив, удаление). Чат проекта — в «Чатах» →
- * «Проекты».
+ * Проект (TASKS_CHATS_PLAN.md, 4.10; UI_REVIEW_CHATS_TASKS_CALENDAR.md, 4.8):
+ * «Задачи» — списком или канбаном по стадиям проекта (перетаскивание или «⋯ →
+ * Переместить в стадию» меняет стадию, статус — нет; на карточке — чип
+ * статуса; завершённые — в последней стадии свёрнуто), «Участники» (роли,
+ * из подразделения, добавить, выйти), «Настройки» (владелец и модераторы:
+ * проект, стадии, архив, удаление — с подтверждением). В шапке — задачи,
+ * просроченные, участники. Открытый проект виден и не участнику — с плашкой
+ * «Вступить». Чат проекта — в «Чатах» → «Проекты».
  */
 import { useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowDown, ArrowUp, MessageSquare, Plus, Trash2, UserMinus } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  ChevronDown,
+  ExternalLink,
+  MessageSquare,
+  Plus,
+  Trash2,
+  UserMinus,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { AdminShell } from "@/components/admin-shell";
 import { useConfirm } from "@/components/confirm-dialog";
 import { TableToolbar } from "@/components/table-toolbar";
 import { ProjectSettingsForm } from "@/components/tasks/project-form";
-import { PeopleField, PersonLine, UrgentMark, DeadlineText } from "@/components/tasks/task-bits";
+import {
+  DeadlineText,
+  PeopleField,
+  PersonLine,
+  TaskStatusChip,
+  UrgentMark,
+} from "@/components/tasks/task-bits";
+import { TaskMenu } from "@/components/tasks/task-menu";
 import { NewTaskDialog } from "@/components/tasks/task-form";
 import { TaskSheet, TaskTable } from "@/components/tasks/task-table";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { InfoNote } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SegmentedControl } from "@/components/ui/segmented-control";
@@ -31,7 +52,6 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CountBadge, StatusChip } from "@/components/ui/status-chip";
-import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useStaffProfile } from "@/hooks/use-staff-profile";
 import {
@@ -44,7 +64,8 @@ import {
 } from "@/lib/tasks/data";
 import {
   assigneeOf,
-  DEADLINE_RULE_LABEL,
+  isClosed,
+  plural,
   PROJECT_KIND_LABEL,
   PROJECT_ROLE_LABEL,
   taskPerms,
@@ -123,7 +144,17 @@ export function ProjectPage({
               </span>
             )}
             <span className="text-muted-foreground">
-              {DEADLINE_RULE_LABEL[project.deadline_rule]}
+              {project.open_count} {plural(project.open_count, "задача", "задачи", "задач")} в
+              работе
+              {project.overdue_count > 0 && (
+                <span className="font-medium text-destructive">
+                  {" · "}
+                  {project.overdue_count} просрочено
+                </span>
+              )}
+              {" · "}
+              {project.member_count}{" "}
+              {plural(project.member_count, "участник", "участника", "участников")}
             </span>
             {project.chat_id && project.my_role && (
               <Button variant="outline" size="sm" asChild className="ml-auto">
@@ -137,6 +168,9 @@ export function ProjectPage({
             <p className="max-w-3xl text-sm text-muted-foreground">{project.description}</p>
           )}
         </div>
+        {!project.my_role && !project.archived_at && project.visibility === "open" && (
+          <JoinBanner project={project} />
+        )}
 
         <Tabs value={tab} onValueChange={(t) => onSearch({ tab: t as ProjectTab, view, task })}>
           <TableToolbar
@@ -159,23 +193,37 @@ export function ProjectPage({
                 ]}
               />
             )}
-            {tab === "tasks" && view === "list" && (
+            {tab === "tasks" && (
               <div className="flex h-10 items-center gap-2 px-1">
-                <Switch id="project-done" checked={done} onCheckedChange={setDone} />
-                <Label htmlFor="project-done" className="cursor-pointer whitespace-nowrap">
-                  Завершённые
+                <Checkbox
+                  id="project-done"
+                  checked={done}
+                  onCheckedChange={(v) => setDone(v === true)}
+                />
+                <Label
+                  htmlFor="project-done"
+                  className="cursor-pointer font-normal whitespace-nowrap"
+                >
+                  Показать завершённые
                 </Label>
               </div>
             )}
           </TableToolbar>
           <TabsContent value="tasks" className="mt-3">
-            <ProjectTasks
-              project={project}
-              view={view}
-              done={done}
-              task={task}
-              onSearch={onSearch}
-            />
+            {project.my_role || project.can_manage ? (
+              <ProjectTasks
+                project={project}
+                view={view}
+                done={done}
+                onDone={setDone}
+                task={task}
+                onSearch={onSearch}
+              />
+            ) : (
+              <p className="rounded-lg border border-dashed bg-background px-4 py-10 text-center text-sm text-muted-foreground">
+                Задачи проекта видят его участники — вступите, чтобы их увидеть.
+              </p>
+            )}
           </TabsContent>
           <TabsContent value="members" className="mt-3">
             <ProjectMembers project={project} />
@@ -193,11 +241,38 @@ export function ProjectPage({
         open={creating}
         onClose={() => setCreating(false)}
         initialProject={project.id}
-        onCreated={(numbers) =>
-          onSearch({ tab: "tasks", view, task: numbers.length === 1 ? numbers[0] : undefined })
-        }
+        onOpenTask={(n) => onSearch({ tab: "tasks", view, task: n })}
       />
     </AdminShell>
+  );
+}
+
+function JoinBanner({ project }: { project: ProjectFull }) {
+  const qc = useQueryClient();
+  const [busy, setBusy] = useState(false);
+  return (
+    <InfoNote variant="info" className="flex flex-wrap items-center gap-3">
+      <span className="min-w-0 flex-1">
+        Вы не участник этого проекта. Открытый проект: вступить может любой — тогда увидите его
+        задачи и чат.
+      </span>
+      <Button
+        size="sm"
+        disabled={busy}
+        onClick={() => {
+          setBusy(true);
+          void taskAction(qc, "task_project_join", { p_project: project.id })
+            .then(() => {
+              void qc.invalidateQueries({ queryKey: ["chat_list"] });
+              toast.success(`Вы в проекте «${project.title}»`);
+            })
+            .catch((e) => toast.error(taskErrorText(e)))
+            .finally(() => setBusy(false));
+        }}
+      >
+        Вступить
+      </Button>
+    </InfoNote>
   );
 }
 
@@ -205,18 +280,21 @@ function ProjectTasks({
   project,
   view,
   done,
+  onDone,
   task,
   onSearch,
 }: {
   project: ProjectFull;
   view: "list" | "board";
   done: boolean;
+  onDone: (v: boolean) => void;
   task: number | undefined;
   onSearch: (s: { tab?: ProjectTab; view?: "list" | "board"; task?: number }) => void;
 }) {
   const { tz } = useTaskClock();
+  // Канбан — с завершёнными: они в последней стадии, свёрнуто.
   const { data, isPending } = useTaskList(
-    { project: project.id, done: view === "list" && done },
+    { project: project.id, done: view === "board" || done },
     2,
   );
   const rows = data?.rows ?? [];
@@ -235,9 +313,22 @@ function ProjectTasks({
           empty="В проекте пока нет задач."
         />
       ) : (
-        <Board project={project} rows={rows} isPending={isPending} tz={tz} onOpen={open} />
+        <Board
+          project={project}
+          rows={rows}
+          isPending={isPending}
+          tz={tz}
+          onOpen={open}
+          showDone={done}
+          onShowDone={onDone}
+        />
       )}
-      <TaskSheet number={task} onClose={() => open(undefined)} />
+      <TaskSheet
+        number={task}
+        onClose={() => open(undefined)}
+        onOpen={open}
+        list={rows.map((r) => r.number)}
+      />
     </div>
   );
 }
@@ -248,20 +339,26 @@ function Board({
   isPending,
   tz,
   onOpen,
+  showDone,
+  onShowDone,
 }: {
   project: ProjectFull;
   rows: TaskRow[];
   isPending: boolean;
   tz: string;
   onOpen: (n: number) => void;
+  showDone: boolean;
+  onShowDone: (v: boolean) => void;
 }) {
   const qc = useQueryClient();
   const [drag, setDrag] = useState<TaskRow | null>(null);
   const [over, setOver] = useState<string | null>(null);
   const first = project.stages[0]?.id;
+  const last = project.stages.at(-1)?.id;
+  const canMove = (t: TaskRow) => taskPerms(t).worker || project.can_manage;
   const move = (t: TaskRow, stage: string) => {
     if ((t.stage_id ?? first) === stage) return;
-    if (!taskPerms(t).worker && !project.can_manage) {
+    if (!canMove(t)) {
       toast.info("Стадию меняют исполнители задачи и ведущие проекта");
       return;
     }
@@ -269,92 +366,171 @@ function Board({
       toast.error(taskErrorText(e)),
     );
   };
+  const closed = rows.filter((t) => isClosed(t.status));
   return (
-    <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-2">
-      {project.stages.map((s) => {
-        const list = rows.filter((t) => (t.stage_id ?? first) === s.id);
-        return (
-          <div
-            key={s.id}
-            onDragOver={(e) => {
-              if (!drag) return;
-              e.preventDefault();
-              setOver(s.id);
-            }}
-            onDragLeave={() => setOver((o) => (o === s.id ? null : o))}
-            onDrop={(e) => {
-              e.preventDefault();
-              setOver(null);
-              if (drag) move(drag, s.id);
-              setDrag(null);
-            }}
+    <div className="space-y-2">
+      <p className="px-1 text-xs text-muted-foreground">
+        Перетащите карточку в колонку — сменится стадия. Статус задачи от стадии не зависит.
+      </p>
+      <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-2">
+        {project.stages.map((s) => {
+          const list = rows.filter((t) => !isClosed(t.status) && (t.stage_id ?? first) === s.id);
+          const isLast = s.id === last;
+          return (
+            <div
+              key={s.id}
+              onDragOver={(e) => {
+                if (!drag) return;
+                e.preventDefault();
+                setOver(s.id);
+              }}
+              onDragLeave={() => setOver((o) => (o === s.id ? null : o))}
+              onDrop={(e) => {
+                e.preventDefault();
+                setOver(null);
+                if (drag) move(drag, s.id);
+                setDrag(null);
+              }}
+              className={cn(
+                "flex w-64 shrink-0 flex-col rounded-lg border bg-background",
+                over === s.id && "border-chat-accent bg-chat-accent-soft",
+              )}
+            >
+              <div className="flex items-center gap-2 px-3 py-2">
+                <span className="text-sm font-semibold">{s.title}</span>
+                {list.length > 0 && <CountBadge count={list.length} tone="quiet" />}
+              </div>
+              <div className="flex min-h-24 flex-col gap-2 px-2 pb-2">
+                {isPending
+                  ? Array.from({ length: 2 }, (_, i) => (
+                      <Skeleton key={i} className="h-20 w-full" />
+                    ))
+                  : list.map((t) => (
+                      <BoardCard
+                        key={t.id}
+                        task={t}
+                        tz={tz}
+                        project={project}
+                        movable={canMove(t)}
+                        onOpen={onOpen}
+                        onMove={(stage) => move(t, stage)}
+                        onDragStart={() => setDrag(t)}
+                        onDragEnd={() => {
+                          setDrag(null);
+                          setOver(null);
+                        }}
+                      />
+                    ))}
+                {isLast && !isPending && closed.length > 0 && (
+                  <div className="space-y-2 border-t pt-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full"
+                      aria-expanded={showDone}
+                      onClick={() => onShowDone(!showDone)}
+                    >
+                      <ChevronDown
+                        className={cn("size-4 transition-transform", showDone && "rotate-180")}
+                      />
+                      {showDone ? "Скрыть завершённые" : `Показать завершённые (${closed.length})`}
+                    </Button>
+                    {showDone &&
+                      closed.map((t) => (
+                        <BoardCard
+                          key={t.id}
+                          task={t}
+                          tz={tz}
+                          project={project}
+                          movable={false}
+                          onOpen={onOpen}
+                          onMove={() => {}}
+                        />
+                      ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function BoardCard({
+  task: t,
+  tz,
+  project,
+  movable,
+  onOpen,
+  onMove,
+  onDragStart,
+  onDragEnd,
+}: {
+  task: TaskRow;
+  tz: string;
+  project: ProjectFull;
+  movable: boolean;
+  onOpen: (n: number) => void;
+  onMove: (stage: string) => void;
+  onDragStart?: () => void;
+  onDragEnd?: () => void;
+}) {
+  const here = t.stage_id ?? project.stages[0]?.id;
+  const closed = isClosed(t.status);
+  return (
+    <div
+      draggable={movable && !!onDragStart}
+      onDragStart={(e) => {
+        e.dataTransfer.effectAllowed = "move";
+        e.dataTransfer.setData("text/plain", String(t.number));
+        onDragStart?.();
+      }}
+      onDragEnd={onDragEnd}
+      className={cn(
+        "group rounded-md border bg-background p-2.5 text-sm shadow-xs",
+        movable && "cursor-grab active:cursor-grabbing",
+        closed && "opacity-70",
+      )}
+    >
+      <div className="flex items-start gap-1">
+        <button type="button" onClick={() => onOpen(t.number)} className="min-w-0 flex-1 text-left">
+          <span
             className={cn(
-              "flex w-64 shrink-0 flex-col rounded-lg border bg-background",
-              over === s.id && "border-chat-accent bg-chat-accent-soft",
+              "font-medium break-words",
+              closed && "text-muted-foreground line-through",
             )}
           >
-            <div className="flex items-center gap-2 px-3 py-2">
-              <span className="text-sm font-semibold">{s.title}</span>
-              {list.length > 0 && <CountBadge count={list.length} tone="quiet" />}
-            </div>
-            <div className="flex min-h-24 flex-col gap-2 px-2 pb-2">
-              {isPending
-                ? Array.from({ length: 2 }, (_, i) => <Skeleton key={i} className="h-20 w-full" />)
-                : list.map((t) => (
-                    <div
-                      key={t.id}
-                      draggable
-                      onDragStart={(e) => {
-                        e.dataTransfer.effectAllowed = "move";
-                        e.dataTransfer.setData("text/plain", String(t.number));
-                        setDrag(t);
-                      }}
-                      onDragEnd={() => {
-                        setDrag(null);
-                        setOver(null);
-                      }}
-                      className="cursor-grab rounded-md border bg-background p-2.5 text-sm shadow-xs active:cursor-grabbing"
-                    >
-                      <button
-                        type="button"
-                        onClick={() => onOpen(t.number)}
-                        className="block w-full text-left"
-                      >
-                        <span className="font-medium break-words">{t.title}</span>
-                        <span className="mt-1 flex flex-wrap gap-x-2 text-xs text-muted-foreground">
-                          <span>#{t.number}</span>
-                          <DeadlineText task={t} tz={tz} />
-                        </span>
-                      </button>
-                      <div className="mt-2 flex items-center gap-2">
-                        <PersonLine
-                          id={assigneeOf(t)}
-                          size="xs"
-                          className="min-w-0 flex-1 text-xs"
-                        />
-                        {t.urgent && <UrgentMark />}
-                        <Select value={t.stage_id ?? first} onValueChange={(v) => move(t, v)}>
-                          <SelectTrigger
-                            className="h-7 w-auto gap-1 border-0 px-1.5 text-xs shadow-none"
-                            aria-label="Стадия"
-                          >
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {project.stages.map((st) => (
-                              <SelectItem key={st.id} value={st.id}>
-                                {st.title}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  ))}
-            </div>
-          </div>
-        );
-      })}
+            {t.title}
+          </span>
+          <span className="mt-1 flex flex-wrap gap-x-2 text-xs text-muted-foreground">
+            <span>#{t.number}</span>
+            <DeadlineText task={t} tz={tz} />
+          </span>
+        </button>
+        <TaskMenu
+          label={`Задача #${t.number}: действия`}
+          reveal
+          className="-mt-1 -mr-1"
+          items={[
+            { label: "Открыть", icon: ExternalLink, run: () => onOpen(t.number) },
+            ...(movable && project.stages.length > 1
+              ? [
+                  { heading: "Переместить в стадию" },
+                  ...project.stages
+                    .filter((s) => s.id !== here)
+                    .map((s) => ({ label: s.title, run: () => onMove(s.id) })),
+                ]
+              : []),
+          ]}
+        />
+      </div>
+      <div className="mt-2 flex items-center gap-2">
+        <PersonLine id={assigneeOf(t)} size="xs" className="min-w-0 flex-1 text-xs" />
+        {t.urgent && !closed && <UrgentMark />}
+        <TaskStatusChip status={t.status} />
+      </div>
     </div>
   );
 }
@@ -457,6 +633,7 @@ function ProjectMembers({ project }: { project: ProjectFull }) {
 
 function StagesEditor({ project }: { project: ProjectFull }) {
   const qc = useQueryClient();
+  const { confirm, confirmDialog } = useConfirm();
   const [title, setTitle] = useState("");
   const call = (fn: string, args: Record<string, unknown>) =>
     taskAction(qc, fn, args).catch((e) => toast.error(taskErrorText(e)));
@@ -509,8 +686,16 @@ function StagesEditor({ project }: { project: ProjectFull }) {
               variant="ghost"
               size="icon"
               aria-label={`Удалить стадию «${s.title}»`}
+              title={`Удалить стадию «${s.title}»`}
               disabled={project.stages.length === 1}
-              onClick={() => void call("task_stage_delete", { p_id: s.id })}
+              onClick={async () => {
+                const ok = await confirm({
+                  title: `Удалить стадию «${s.title}»?`,
+                  description: "Задачи из неё перейдут в первую стадию. Сами задачи не изменятся.",
+                  confirmLabel: "Удалить",
+                });
+                if (ok) void call("task_stage_delete", { p_id: s.id });
+              }}
             >
               <Trash2 className="size-4" />
             </Button>
@@ -536,9 +721,10 @@ function StagesEditor({ project }: { project: ProjectFull }) {
           onChange={(e) => setTitle(e.target.value)}
         />
         <Button type="submit" variant="outline">
-          Добавить
+          <Plus className="size-4" /> Добавить стадию
         </Button>
       </form>
+      {confirmDialog}
     </section>
   );
 }
@@ -551,7 +737,18 @@ function DangerZone({ project }: { project: ProjectFull }) {
     <section className="flex max-w-xl flex-wrap gap-2">
       <Button
         variant="outline"
-        onClick={() =>
+        onClick={async () => {
+          if (
+            !project.archived_at &&
+            !(await confirm({
+              title: `Отправить проект «${project.title}» в архив?`,
+              description:
+                "Задачи и чат сохранятся, но проект уйдёт из меню и списка «Мои проекты», новые задачи в нём не поставить. Вернуть можно в любой момент — «Вернуть из архива».",
+              confirmLabel: "В архив",
+              destructive: false,
+            }))
+          )
+            return;
           void taskAction(qc, "task_project_archive", {
             p_project: project.id,
             p_archived: !project.archived_at,
@@ -559,8 +756,8 @@ function DangerZone({ project }: { project: ProjectFull }) {
             .then(() =>
               toast.success(project.archived_at ? "Проект возвращён из архива" : "Проект в архиве"),
             )
-            .catch((e) => toast.error(taskErrorText(e)))
-        }
+            .catch((e) => toast.error(taskErrorText(e)));
+        }}
       >
         {project.archived_at ? "Вернуть из архива" : "В архив"}
       </Button>

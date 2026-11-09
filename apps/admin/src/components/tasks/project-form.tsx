@@ -1,18 +1,21 @@
 /**
- * Проект (TASKS_CHATS_PLAN.md, 4.10): название, вид, цвет, закрытый или
- * открытый, правило срока и «Требует проверки» для новых задач, состав из
- * подразделения оргструктуры. Новый проект — окном (`NewProjectDialog`),
+ * Проект (TASKS_CHATS_PLAN.md, 4.10; UI_REVIEW_CHATS_TASKS_CALENDAR.md, 4.8.4):
+ * коротко — название, цвет, «Открытый проект», участники; в
+ * «Дополнительно» — тип (отдел, город, инициатива), описание, состав из
+ * подразделения оргструктуры, «Исполнитель меняет срок» и проверка для
+ * новых задач. Новый проект — окном (`NewProjectDialog`),
  * настройки — во вкладке проекта (`ProjectSettingsForm`).
  */
 import { UnitScopeFields } from "@/components/people/unit-scope-fields";
 import { useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, Loader2 } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { PeopleField } from "@/components/tasks/task-bits";
 import { Button } from "@/components/ui/button";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   Dialog,
   DialogBody,
@@ -44,10 +47,11 @@ const NONE = "none";
 
 const TIPS = {
   visibility:
-    "Закрытый — проект и его задачи видят только участники. Открытый — виден всем в каталоге, вступить может любой.",
-  unit: "Все из подразделения (и ниже) становятся участниками сами — и новые сотрудники тоже.",
-  rule: "Как исполнитель может переносить срок задачи проекта. Постановщик меняет срок всегда.",
-  review: "Новые задачи проекта сразу с «Требует проверки» — постановщик примет работу или вернёт.",
+    "Выключено — проект и его задачи видят только участники. Включено — проект виден всем в «Проектах», вступить может любой.",
+  unit: "Люди подразделения становятся участниками сами — и новые сотрудники тоже.",
+  rule: "Свободно — исполнитель переносит срок сам; с причиной — пишет причину, постановщик её увидит; нельзя — срок меняет только постановщик.",
+  review:
+    "Исполнитель не завершит задачу сам — отправит на проверку, постановщик примет или вернёт.",
 };
 
 type Values = {
@@ -103,6 +107,7 @@ function ProjectFields({
   isNew: boolean;
   titleError: string | null;
 }) {
+  const [more, setMore] = useState(!isNew);
   const { data: units = [] } = useQuery(companyStructureQuery);
   const unitList = useMemo(() => {
     const children = unitChildren(units);
@@ -128,17 +133,6 @@ function ProjectFields({
           onChange={(e) => set({ title: e.target.value })}
         />
       </FormField>
-      <FormField label="Вид" htmlFor={null}>
-        <SegmentedControl
-          aria-label="Вид проекта"
-          value={v.kind}
-          onChange={(kind) => set({ kind })}
-          options={(Object.keys(PROJECT_KIND_LABEL) as ProjectKind[]).map((k) => ({
-            value: k,
-            label: PROJECT_KIND_LABEL[k],
-          }))}
-        />
-      </FormField>
       <FormField label="Цвет" htmlFor={null}>
         <div className="flex flex-wrap gap-2">
           {PROJECT_COLORS.map((c) => (
@@ -156,76 +150,89 @@ function ProjectFields({
           ))}
         </div>
       </FormField>
-      <FormField label="Описание" optional>
-        <Textarea
-          rows={2}
-          value={v.description}
-          onChange={(e) => set({ description: e.target.value })}
-        />
-      </FormField>
-      <FormField label="Кто видит" tip={TIPS.visibility} htmlFor={null}>
-        <SegmentedControl
-          aria-label="Кто видит проект"
-          value={v.visibility}
-          onChange={(visibility) => set({ visibility })}
-          options={[
-            { value: "closed", label: "Только участники" },
-            { value: "open", label: "Все — открытый" },
-          ]}
-        />
-      </FormField>
-      <FormField label="Участники из подразделения" tip={TIPS.unit}>
-        <Select value={v.unit_id} onValueChange={(unit_id) => set({ unit_id })}>
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={NONE}>Не привязывать — участники вручную</SelectItem>
-            {unitList.map((u) => (
-              <SelectItem key={u.id} value={u.id}>
-                <span style={{ paddingLeft: `${u.depth * 12}px` }}>{u.name}</span>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </FormField>
-      {v.unit_id !== NONE && (
-        <div className="space-y-3 rounded-lg border p-3">
-          <UnitScopeFields
-            scope={v.unit_scope}
-            withSubunits={v.with_subunits}
-            onChange={(x) => set({ unit_scope: x.scope, with_subunits: x.withSubunits })}
-          />
-        </div>
-      )}
+      <SwitchRow
+        title="Открытый проект: видят все, вступить может любой"
+        tip={TIPS.visibility}
+        checked={v.visibility === "open"}
+        onCheckedChange={(open) => set({ visibility: open ? "open" : "closed" })}
+      />
       {isNew && (
         <FormField label="Участники" hint="Вы — владелец проекта" htmlFor={null}>
           <PeopleField value={v.members} onChange={(members) => set({ members })} />
         </FormField>
       )}
-      <FormField label="Перенос срока" tip={TIPS.rule}>
-        <Select
-          value={v.deadline_rule}
-          onValueChange={(r) => set({ deadline_rule: r as DeadlineRule })}
-        >
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {(Object.keys(DEADLINE_RULE_LABEL) as DeadlineRule[]).map((r) => (
-              <SelectItem key={r} value={r}>
-                {DEADLINE_RULE_LABEL[r]}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </FormField>
-      <SwitchRow
-        title="Новые задачи — «Требует проверки»"
-        tip={TIPS.review}
-        checked={v.requires_review}
-        onCheckedChange={(requires_review) => set({ requires_review })}
-      />
+
+      <Collapsible open={more} onOpenChange={setMore}>
+        <CollapsibleTrigger asChild>
+          <Button variant="ghost" size="sm" aria-expanded={more}>
+            {more ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
+            Дополнительно: тип, описание, подразделение, сроки, проверка
+          </Button>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="space-y-4 pt-4">
+          <FormField label="Тип" htmlFor={null}>
+            <SegmentedControl
+              aria-label="Тип проекта"
+              fullWidth
+              value={v.kind}
+              onChange={(kind) => set({ kind })}
+              options={(Object.keys(PROJECT_KIND_LABEL) as ProjectKind[]).map((k) => ({
+                value: k,
+                label: PROJECT_KIND_LABEL[k],
+              }))}
+            />
+          </FormField>
+          <FormField label="Описание" optional>
+            <Textarea
+              rows={2}
+              value={v.description}
+              onChange={(e) => set({ description: e.target.value })}
+            />
+          </FormField>
+          <FormField label="Участники из подразделения" tip={TIPS.unit}>
+            <Select value={v.unit_id} onValueChange={(unit_id) => set({ unit_id })}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NONE}>Не привязывать — участники вручную</SelectItem>
+                {unitList.map((u) => (
+                  <SelectItem key={u.id} value={u.id}>
+                    <span style={{ paddingLeft: `${u.depth * 12}px` }}>{u.name}</span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FormField>
+          {v.unit_id !== NONE && (
+            <div className="space-y-3 rounded-lg border p-3">
+              <UnitScopeFields
+                scope={v.unit_scope}
+                withSubunits={v.with_subunits}
+                onChange={(x) => set({ unit_scope: x.scope, with_subunits: x.withSubunits })}
+              />
+            </div>
+          )}
+          <FormField label="Исполнитель меняет срок" tip={TIPS.rule} htmlFor={null}>
+            <SegmentedControl
+              aria-label="Исполнитель меняет срок"
+              fullWidth
+              value={v.deadline_rule}
+              onChange={(deadline_rule) => set({ deadline_rule })}
+              options={(Object.keys(DEADLINE_RULE_LABEL) as DeadlineRule[]).map((r) => ({
+                value: r,
+                label: DEADLINE_RULE_LABEL[r],
+              }))}
+            />
+          </FormField>
+          <SwitchRow
+            title="Новые задачи — принять работу после завершения"
+            tip={TIPS.review}
+            checked={v.requires_review}
+            onCheckedChange={(requires_review) => set({ requires_review })}
+          />
+        </CollapsibleContent>
+      </Collapsible>
     </div>
   );
 }
@@ -258,9 +265,14 @@ function NewProjectForm({ onClose }: { onClose: () => void }) {
           const id = await taskRpc<string>("task_project_save", { p_id: null, p: toPayload(v) });
           void invalidateTasks(qc);
           void qc.invalidateQueries({ queryKey: ["chat_list"] });
-          toast.success("Проект создан — у него уже есть чат в «Чатах» → «Проекты»");
           onClose();
-          void navigate({ to: "/tasks/projects/$projectId", params: { projectId: id } });
+          toast.success(`Проект «${v.title.trim()}» создан — у него уже есть чат`, {
+            action: {
+              label: "Открыть",
+              onClick: () =>
+                void navigate({ to: "/tasks/projects/$projectId", params: { projectId: id } }),
+            },
+          });
         } catch (e) {
           toast.error(taskErrorText(e));
         } finally {
