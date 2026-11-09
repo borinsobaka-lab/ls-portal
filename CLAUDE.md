@@ -1750,6 +1750,28 @@ DEPLOY.md.
   `chat_voice_waveform`; превью — «Голосовое сообщение (м:сс)»
   (`chat_preview_text` — актуальное определение здесь). Тесты —
   `db/chat-voice.test.ts`.
+  **Разбор интерфейса перед тестом** (2026-11-09,
+  `UI_REVIEW_CHATS_TASKS_CALENDAR.md`): `db/migrations/2026-11-09_chat_unread_quiet_mentions.sql`
+  — чат «только упоминания» тихий и в счётчике «Чатов», и на значке
+  приложения (как в списке портала; упоминание приходит строкой ленты);
+  актуальные определения `chat_has_new`, `chat_unread_summary`,
+  `portal_badge_count` — здесь. `db/migrations/2026-11-09_notif_unread_birthday_no_year.sql`
+  — RPC `notif_mark_unread(p_ids)` (своё; сгруппированную строку не
+  возвращает, если по ключу уже есть непрочитанная) и день рождения без года
+  (`people_birthdays.year_known`; без года в `birth_date` — 2000-й, возраст
+  никому не показывается; `people_birthday_save` — четвёртый параметр
+  `p_year_known`, по умолчанию true; актуальные определения
+  `people_birthday_get` / `_save` / `people_birthdays_upcoming` — здесь).
+  `db/migrations/2026-11-09_task_ui_review.sql` — регулярная задача из самой
+  задачи: `task_make_recurring(p_task, p)` (постановщик или `manager`),
+  шаблон заводится сам и скрыт (`task_templates.hidden`, уходит с последней
+  регулярной — триггер `task_recurrences_hidden_template_ad`; актуальные
+  `task_templates_list`, `task_recurrences_list` — здесь); стартовые колонки
+  новой доски «Моего плана» — «Сейчас / Дальше / Когда-нибудь» (актуальный
+  `task_plan_get` — здесь); картинки описания до постановки — папка
+  `kb-media/tasks/new/<uid>/` (политика «tasks kb-media new own»). Тесты —
+  `db/task-ui-review.test.ts`, `db/chat-topics.test.ts`, `db/people.test.ts`,
+  `db/notifications.test.ts`.
   Рейтинг тренеров и чаевые: `db/migrations/2026-10-11_zzzzzzzzzzzzz_trainer_ratings.sql`
   — `trainer_reviews` (оценка 1–5, одна от учётной записи на тренера; клиент
   читает и правит свою, ставит — тренеру, которого видит в приложении,

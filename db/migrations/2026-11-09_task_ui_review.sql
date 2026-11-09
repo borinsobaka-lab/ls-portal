@@ -188,7 +188,7 @@ begin
     raise exception 'task_not_found' using errcode = '42501';
   end if;
   v_roles := public.task_roles(p_task, v_uid);
-  if not (v_roles && array['creator', 'manager']) then
+  if not coalesce(v_roles && array['creator', 'manager'], false) then
     raise exception 'task_forbidden' using errcode = '42501';
   end if;
   if t.recurrence_id is not null
