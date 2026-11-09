@@ -6,7 +6,16 @@
 import { STATUS_LABEL } from "@/lib/tasks/logic";
 import type { TaskStatus } from "@/lib/tasks/types";
 import { callSystemText } from "./call-logic";
-import type { ChatDoc, ChatNode, ChatRow, ChatSource, ChatSystem } from "./types";
+import type {
+  ChatDoc,
+  ChatMessage,
+  ChatNode,
+  ChatNotify,
+  ChatPreview,
+  ChatRow,
+  ChatSource,
+  ChatSystem,
+} from "./types";
 
 /** Узлы и отметки, которые показывает чат (остальное из вставки — как текст). */
 export const BLOCK_NODES = new Set([
@@ -165,7 +174,7 @@ export function systemText(
 
 /** Источник состава чата: «Вся компания», «Отдел развития — все, с подразделениями ниже». */
 export function sourceText(s: ChatSource): string {
-  if (s.kind === "all") return "Вся компания — все люди портала";
+  if (s.kind === "all") return "Вся компания — все сотрудники";
   const who = s.scope === "heads" ? "руководители и заместители" : "все сотрудники";
   return `${s.unit_name ?? "Подразделение"} — ${who}${s.with_subunits ? ", с подразделениями ниже" : ""}`;
 }
@@ -315,6 +324,100 @@ export function snippetParts(snippet: string): { text: string; hit: boolean }[] 
   }
   if (last < snippet.length) parts.push({ text: snippet.slice(last), hit: false });
   return parts;
+}
+
+// ---- Без звука (одно правило для списка, шапки, тем и папок) ------------------------
+
+type Mutable = Pick<ChatRow, "notify" | "muted_until">;
+
+/**
+ * Заглушен ли чат: уведомления не «все» (только упоминания или выключены) или
+ * «без звука» до времени в будущем. Счётчик такого чата — серый и в общее
+ * число не входит.
+ */
+export function isMuted(c: Mutable, now = new Date()): boolean {
+  return c.notify !== "all" || (!!c.muted_until && new Date(c.muted_until) > now);
+}
+
+/** «Без звука» на время: до какого момента ещё тихо (null — не на время). */
+export function mutedUntil(c: Mutable, now = new Date()): Date | null {
+  if (!c.muted_until) return null;
+  const d = new Date(c.muted_until);
+  return d > now ? d : null;
+}
+
+export type MuteChoice = {
+  key: "1h" | "8h" | "2d" | "forever";
+  label: string;
+  notify: ChatNotify;
+  until: Date | null;
+};
+
+/**
+ * Пункты подменю «Без звука» (как в Telegram). На время — уведомления те же,
+ * что были («все» или «только упоминания»), плюс `muted_until`: время вышло —
+ * звук вернулся сам, упоминания приходят и в тишине. «Навсегда» — уведомления
+ * выключены (`none`), пока их не включат.
+ */
+export function muteOptions(current: ChatNotify, now = new Date()): MuteChoice[] {
+  const notify: ChatNotify = current === "none" ? "all" : current;
+  const after = (ms: number) => new Date(now.getTime() + ms);
+  return [
+    { key: "1h", label: "На 1 час", notify, until: after(3_600_000) },
+    { key: "8h", label: "На 8 часов", notify, until: after(8 * 3_600_000) },
+    { key: "2d", label: "На 2 дня", notify, until: after(2 * 86_400_000) },
+    { key: "forever", label: "Навсегда", notify: "none", until: null },
+  ];
+}
+
+/** Настройка «Уведомления: Все / Упоминания / Без звука» в сведениях чата. */
+export function notifyChoice(c: Mutable, now = new Date()): ChatNotify {
+  if (c.notify === "none" || mutedUntil(c, now)) return "none";
+  return c.notify;
+}
+
+/** «до 18:40», «до завтра, 09:00», «до 12 нояб., 09:00». */
+export function untilLabel(d: Date, now = new Date()): string {
+  const day = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const diff = Math.round((day(d) - day(now)) / 86_400_000);
+  const time = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  if (diff === 0) return `до ${time}`;
+  if (diff === 1) return `до завтра, ${time}`;
+  const year = d.getFullYear() === now.getFullYear() ? "" : ` ${d.getFullYear()}`;
+  return `до ${d.getDate()} ${MONTHS_SHORT[d.getMonth()]}${year}, ${time}`;
+}
+
+/** Подпись значка «без звука»: «Без звука до 18:40», «Только упоминания». */
+export function muteLabel(c: Mutable, now = new Date()): string {
+  const until = mutedUntil(c, now);
+  if (c.notify === "none") return "Без звука";
+  if (until) return `Без звука ${untilLabel(until, now)}`;
+  if (c.notify === "mentions") return "Только упоминания";
+  return "";
+}
+
+// ---- Превью последнего сообщения ------------------------------------------------------
+
+/**
+ * Что показать в превью строки списка: последнее сообщение, а если оно
+ * удалено — предыдущее из уже загруженной переписки (как в Telegram).
+ * «Сообщение удалено» — только если другого под рукой нет.
+ */
+export function previewOf(last: ChatPreview, loaded: ChatMessage[] | undefined): ChatPreview {
+  if (!last.deleted) return last;
+  const prev = [...(loaded ?? [])]
+    .reverse()
+    .find((m) => m.seq < last.seq && !m.deleted && !m.id.startsWith("local:"));
+  if (!prev) return last;
+  return {
+    seq: prev.seq,
+    author_id: prev.author_id,
+    kind: prev.kind,
+    text: prev.text,
+    forward: !!prev.forward,
+    system:
+      prev.kind === "system" ? ((prev.content as { system?: ChatSystem } | null)?.system ?? null) : null,
+  };
 }
 
 /** Сколько непрочитанных показывать: 99+. */

@@ -647,13 +647,14 @@ export function chatErrorText(e: unknown): string {
     chat_user_unknown: "Этого человека нет на портале",
     chat_file_invalid: "Файл не подходит",
     chat_too_many_files: "Не больше 20 файлов в сообщении",
-    chat_too_many_folders: "Не больше 20 папок",
+    chat_too_many_folders: "Папок уже 20 — больше нельзя. Удалите ненужную",
     chat_folder_title_invalid: "Название папки — до 40 символов",
     chat_too_many_reactions: "Слишком много разных реакций",
     chat_auto_member:
-      "Этот участник — из подразделения или «всей компании»: состав меняется в оргструктуре",
-    chat_sources_forbidden: "Привязать можно только свои подразделения (вся компания — по праву)",
-    chat_sources_invalid: "Проверьте состав из оргструктуры",
+      "Этот человек в чате автоматически — по подразделению. Убрать его можно только в оргструктуре",
+    chat_sources_forbidden:
+      "Можно привязать только своё подразделение. Всю компанию — только с правом «Каналы»",
+    chat_sources_invalid: "Проверьте, кто будет в чате автоматически: выберите подразделение",
     chat_ack_remind_soon: "Напоминать можно не чаще раза в час",
     chat_ack_not_needed: "У этого сообщения нет отметки «Прочитал»",
     chat_schedule_time_invalid:
@@ -667,7 +668,16 @@ export function chatErrorText(e: unknown): string {
     chat_topics_exist: "Сначала удалите темы — тогда их можно выключить",
     chat_topics_group_only: "Темы бывают только в группах, не в каналах",
     chat_topics_limit: "Не больше 100 тем в группе",
+    chat_forward_invalid: "Переслать можно в чаты, где вы участник, — не больше 20 за раз",
+    chat_not_group: "Это можно только в группе",
+    chat_pin_forbidden: "Закреплять сообщения здесь могут только администраторы",
+    chat_react_forbidden: "Здесь нельзя поставить реакцию",
+    chat_emoji_invalid: "Эта реакция не подходит",
+    chat_role_invalid: "Такой роли нет",
+    chat_notify_invalid: "Такой настройки уведомлений нет",
   };
   for (const [k, v] of Object.entries(map)) if (msg.includes(k)) return v;
+  // Код базы, которого нет в словаре («chat_…»), или пусто — понятный запасной текст.
+  if (!msg.trim() || /^[a-z0-9_]+$/.test(msg.trim())) return "Не получилось. Попробуйте ещё раз";
   return msg;
 }
