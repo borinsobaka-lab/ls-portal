@@ -146,7 +146,7 @@ export function PeopleField({
       {!disabled && (
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>
-            <Button id={id} variant="outline" size="sm" className="h-8">
+            <Button id={id} variant="outline" size="sm">
               <Plus className="size-4" />
               {single && value.length ? "Сменить" : addLabel}
             </Button>
@@ -156,6 +156,7 @@ export function PeopleField({
               selected={value}
               exclude={exclude}
               single={single}
+              onDone={() => setOpen(false)}
               onToggle={(uid) => {
                 if (single) {
                   onChange([uid]);

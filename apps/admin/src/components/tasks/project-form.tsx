@@ -4,6 +4,7 @@
  * подразделения оргструктуры. Новый проект — окном (`NewProjectDialog`),
  * настройки — во вкладке проекта (`ProjectSettingsForm`).
  */
+import { UnitScopeFields } from "@/components/people/unit-scope-fields";
 import { useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -190,20 +191,10 @@ function ProjectFields({
       </FormField>
       {v.unit_id !== NONE && (
         <div className="space-y-3 rounded-lg border p-3">
-          <SegmentedControl
-            aria-label="Кто из подразделения"
-            fullWidth
-            value={v.unit_scope}
-            onChange={(unit_scope) => set({ unit_scope })}
-            options={[
-              { value: "all", label: "Все сотрудники" },
-              { value: "heads", label: "Руководители и заместители" },
-            ]}
-          />
-          <SwitchRow
-            title="И подразделения ниже"
-            checked={v.with_subunits}
-            onCheckedChange={(with_subunits) => set({ with_subunits })}
+          <UnitScopeFields
+            scope={v.unit_scope}
+            withSubunits={v.with_subunits}
+            onChange={(x) => set({ unit_scope: x.scope, with_subunits: x.withSubunits })}
           />
         </div>
       )}

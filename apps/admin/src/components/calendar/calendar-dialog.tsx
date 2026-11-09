@@ -4,6 +4,7 @@
  * сотрудник; «Смотрит» / «Добавляет события» / «Управляет»). Проверки прав —
  * у базы (cal_calendar_save).
  */
+import { UnitScopeFields } from "@/components/people/unit-scope-fields";
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Building2, Check, FolderOpen, Globe, Loader2, Plus, Trash2, User, X } from "lucide-react";
@@ -339,23 +340,11 @@ function AccessEditor({
             </Button>
           </div>
           {r.subject === "unit" && (
-            <>
-              <SegmentedControl
-                aria-label="Кто из подразделения"
-                fullWidth
-                value={r.unit_scope ?? "all"}
-                onChange={(unit_scope) => set(i, { unit_scope })}
-                options={[
-                  { value: "all", label: "Все сотрудники" },
-                  { value: "heads", label: "Руководители" },
-                ]}
-              />
-              <SwitchRow
-                title="И подразделения ниже"
-                checked={r.with_subunits ?? true}
-                onCheckedChange={(with_subunits) => set(i, { with_subunits })}
-              />
-            </>
+            <UnitScopeFields
+              scope={r.unit_scope ?? "all"}
+              withSubunits={r.with_subunits ?? true}
+              onChange={(v) => set(i, { unit_scope: v.scope, with_subunits: v.withSubunits })}
+            />
           )}
         </div>
       ))}
