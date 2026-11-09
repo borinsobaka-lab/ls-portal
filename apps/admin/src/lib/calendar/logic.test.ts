@@ -1,7 +1,18 @@
 import { describe, expect, test } from "bun:test";
 
 import {
+  allDayReminder,
+  allDayReminderParts,
+  applyRepeatPreset,
   calendarSearch,
+  emptyPeriodText,
+  formErrors,
+  invitesText,
+  quickSlotTime,
+  repeatOptions,
+  repeatPresetOf,
+  shortWhen,
+  tzCity,
   calErrorText,
   canJoinVideo,
   eventWhen,
@@ -198,5 +209,89 @@ describe("адрес и ошибки", () => {
     expect(calErrorText(new Error("cal_forbidden"))).toBe("Нет прав на это действие в календаре");
     expect(calErrorText(new Error("cal_access_forbidden"))).toContain("всей компании");
     expect(calErrorText(new Error("что-то"))).toBe("что-то");
+  });
+});
+
+describe("упрощённая форма и плашки", () => {
+  test("повтор под дату — как в Google", () => {
+    const labels = repeatOptions("2026-11-10").map((o) => o.label);
+    expect(labels).toEqual([
+      "Не повторять",
+      "Каждый день",
+      "По рабочим дням",
+      "Каждую неделю по вторникам",
+      "Каждый месяц 10-го числа",
+      "Каждый год 10 ноября",
+      "Настроить…",
+    ]);
+    const f = {
+      freq: "none" as const,
+      interval: 1,
+      weekdays: [2],
+      until: "",
+      dayFrom: "2026-11-10",
+    };
+    expect(repeatPresetOf(f)).toBe("none");
+    const weekly = { ...f, ...applyRepeatPreset(f, "weekly") };
+    expect(weekly).toMatchObject({ freq: "weekly", weekdays: [2], interval: 1 });
+    expect(repeatPresetOf(weekly)).toBe("weekly");
+    expect(repeatPresetOf({ ...weekly, weekdays: [1, 3] })).toBe("custom");
+    expect(repeatPresetOf({ ...weekly, interval: 2 })).toBe("custom");
+    expect(repeatPresetOf({ ...weekly, freq: "monthly", until: "2027-01-01" })).toBe("custom");
+    expect(repeatPresetOf({ ...weekly, freq: "workdays", interval: 3 })).toBe("workdays");
+    expect(applyRepeatPreset(f, "custom").freq).toBe("weekly");
+  });
+
+  test("ошибки — по полям", () => {
+    const f = newEventForm("cal", TZ, new Date("2026-11-10T07:20:00Z"));
+    expect(formErrors(f, TZ)).toEqual({ title: "Напишите название" });
+    expect(formErrors({ ...f, title: "x", timeTo: "09:00" }, TZ)).toEqual({
+      time: "Окончание раньше начала",
+    });
+    expect(formErrors({ ...f, title: "x" }, TZ)).toEqual({});
+  });
+
+  test("быстрое создание: время и строка", () => {
+    const now = new Date("2026-11-10T07:20:00Z"); // 10:20 МСК
+    expect(quickSlotTime("2026-11-10", TZ, now)).toBe("11:00");
+    expect(quickSlotTime("2026-11-11", TZ, now)).toBe("10:00");
+    expect(quickSlotTime("2026-11-10", TZ, new Date("2026-11-10T17:30:00Z"))).toBe("10:00");
+    expect(
+      shortWhen({
+        allDay: false,
+        dayFrom: "2026-11-11",
+        dayTo: "2026-11-11",
+        timeFrom: "10:00",
+        timeTo: "11:00",
+      }),
+    ).toMatch(/^ср, 11 нояб?\.? · 10:00–11:00$/);
+  });
+
+  test("напоминание на весь день — дни и час", () => {
+    expect(allDayReminder(0, 9)).toBe(-540);
+    expect(allDayReminder(1, 9)).toBe(900);
+    expect(allDayReminder(7, 9)).toBe(9540);
+    expect(allDayReminderParts(2340)).toEqual({ days: 2, hour: 9 });
+    expect(allDayReminderParts(-480)).toEqual({ days: 0, hour: 8 });
+    expect(reminderLabel(allDayReminder(1, 18), true)).toBe("За день в 18:00");
+  });
+
+  test("подписи плашек", () => {
+    expect(invitesText(1)).toBe("1 приглашение ждёт ответа");
+    expect(invitesText(2)).toBe("2 приглашения ждут ответа");
+    expect(invitesText(5)).toBe("5 приглашений ждут ответа");
+    expect(emptyPeriodText("timeGridWeek")).toBe("Событий на этой неделе нет");
+    expect(tzCity("Владивосток (МСК+7)")).toBe("Владивосток");
+  });
+
+  test("адрес: день, новое событие с участником, возврат к приглашениям", () => {
+    const id = "6f1c7a8e-2f4b-4b6e-9a51-0c1d2e3f4a5b";
+    expect(calendarSearch({ date: "2026-11-20", new: "1", with: id })).toEqual({
+      date: "2026-11-20",
+      new: true,
+      with: id,
+    });
+    expect(calendarSearch({ date: "20.11.2026", with: id })).toEqual({});
+    expect(calendarSearch({ event: id, from: "invites" })).toEqual({ event: id, from: "invites" });
   });
 });

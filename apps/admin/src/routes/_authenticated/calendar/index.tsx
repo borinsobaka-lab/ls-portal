@@ -7,8 +7,9 @@ import { calendarSearch } from "@/lib/calendar/logic";
 
 /**
  * «Календарь» (TASKS_CHATS_PLAN.md, этап 2): личный и общие календари,
- * встречи. `?event=<id>&at=<повторение>` — карточка события, `?settings=` —
- * настройки календаря, `?invites=1` — «Ждут ответа».
+ * встречи. `?event=<id>&at=<событие серии>` — карточка события, `?settings=` —
+ * настройки календаря, `?invites=1` — «Ждут ответа», `?date=` — перейти к
+ * дню, `?new=1&with=<id>` — новое событие с участником.
  */
 export const Route = createFileRoute("/_authenticated/calendar/")({
   head: () => ({ meta: [{ title: `Календарь — ${PORTAL_NAME}` }] }),

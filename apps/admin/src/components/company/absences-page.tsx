@@ -26,6 +26,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { DateField } from "@/components/ui/date-field";
 import { FormField } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
 import {
@@ -77,9 +78,23 @@ export function AbsencesPage() {
   );
   const soon = useMemo(() => list.filter((a) => a.starts_on > today), [list, today]);
 
+  const { name } = usePeople();
   const remove = async (a: Absence) => {
-    if (!(await confirm({ title: "Удалить отсутствие?", confirmLabel: "Удалить" }))) return;
-    void deleteAbsence(qc, a.id).catch((e) => toast.error(peopleErrorText(e)));
+    const what = a.kind === "other" ? "отсутствие" : ABSENCE_KIND_LABEL[a.kind].toLowerCase();
+    if (
+      !(await confirm({
+        title: `Удалить ${what}: ${name(a.user_id)}, ${period(a)}?`,
+        description: "Коллеги перестанут видеть его в «Компании», карточке и задачах.",
+        confirmLabel: "Удалить",
+      }))
+    )
+      return;
+    try {
+      await deleteAbsence(qc, a.id);
+      toast.success("Удалено");
+    } catch (e) {
+      toast.error(peopleErrorText(e));
+    }
   };
 
   return (
@@ -158,11 +173,15 @@ function AbsenceSection({
                 <span className="min-w-0">
                   <span className="block truncate text-sm font-medium">{name(a.user_id)}</span>
                   <span className="block truncate text-xs text-muted-foreground">
-                    {a.note || person(a.user_id)?.position_name || ""}
+                    {person(a.user_id)?.position_name || ""}
                   </span>
                 </span>
               </PersonButton>
-              <StatusChip tone={KIND_TONE[a.kind]} size="sm">
+              <StatusChip
+                tone={KIND_TONE[a.kind]}
+                size="sm"
+                title={a.note ? `Комментарий: ${a.note}` : undefined}
+              >
                 {ABSENCE_KIND_LABEL[a.kind]}
               </StatusChip>
               <span className="w-36 shrink-0 text-right text-sm tabular-nums max-sm:w-auto">
@@ -172,21 +191,22 @@ function AbsenceSection({
                 <span className="flex shrink-0">
                   <Button
                     variant="ghost"
-                    size="icon"
-                    className="size-8"
+                    size="icon-sm"
                     aria-label="Изменить"
+                    title="Изменить"
                     onClick={() => onEdit(a)}
                   >
-                    <Pencil className="size-4" />
+                    <Pencil />
                   </Button>
                   <Button
                     variant="ghost"
-                    size="icon"
-                    className="size-8 text-destructive"
+                    size="icon-sm"
+                    className="text-destructive"
                     aria-label="Удалить"
+                    title="Удалить"
                     onClick={() => onRemove(a)}
                   >
-                    <Trash2 className="size-4" />
+                    <Trash2 />
                   </Button>
                 </span>
               )}
@@ -241,17 +261,19 @@ function AbsenceForm({
   const [to, setTo] = useState(a?.ends_on ?? addDaysISO(today, 6));
   const [note, setNote] = useState(a?.note ?? "");
   const [busy, setBusy] = useState(false);
+  const [errors, setErrors] = useState<{ user?: string; dates?: string }>({});
   return (
     <DialogForm
       onSubmit={async () => {
-        if (!userId) {
-          toast.error("Выберите сотрудника");
+        const e: typeof errors = {};
+        if (!userId) e.user = "Выберите сотрудника";
+        if (!from || !to) e.dates = "Укажите даты";
+        else if (to < from) e.dates = "«По» — не раньше «С»";
+        if (e.user || e.dates) {
+          setErrors(e);
           return;
         }
-        if (!from || !to || to < from) {
-          toast.error("«По» — не раньше «С»");
-          return;
-        }
+        if (!userId) return;
         setBusy(true);
         try {
           await saveAbsence(qc, {
@@ -279,18 +301,22 @@ function AbsenceForm({
       </DialogHeader>
       <DialogBody className="space-y-4">
         <FormField
-          label="Кто"
+          label="Сотрудник"
           required
           htmlFor={null}
+          error={errors.user}
           hint="Себе — всегда; руководитель — своим людям"
         >
           <PeopleField
             single
             value={userId ? [userId] : []}
-            onChange={(ids) => setUserId(ids[0] ?? null)}
+            onChange={(ids) => {
+              setUserId(ids[0] ?? null);
+              setErrors((x) => ({ ...x, user: undefined }));
+            }}
           />
         </FormField>
-        <FormField label="Что" required>
+        <FormField label="Причина" required>
           <Select value={kind} onValueChange={(v) => setKind(v as AbsenceKind)}>
             <SelectTrigger>
               <SelectValue />
@@ -304,26 +330,31 @@ function AbsenceForm({
             </SelectContent>
           </Select>
         </FormField>
-        <div className="grid grid-cols-2 gap-3">
-          <FormField label="С" required htmlFor="absence-from">
-            <Input
-              id="absence-from"
-              type="date"
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <FormField label="С" required htmlFor={null}>
+            <DateField
+              aria-label="С какого дня"
               value={from}
-              onChange={(e) => setFrom(e.target.value)}
+              onChange={(v) => {
+                setFrom(v);
+                if (to && to < v) setTo(v);
+                setErrors((x) => ({ ...x, dates: undefined }));
+              }}
             />
           </FormField>
-          <FormField label="По" required htmlFor="absence-to">
-            <Input
-              id="absence-to"
-              type="date"
+          <FormField label="По" required htmlFor={null} error={errors.dates}>
+            <DateField
+              aria-label="По какой день"
               value={to}
               min={from}
-              onChange={(e) => setTo(e.target.value)}
+              onChange={(v) => {
+                setTo(v);
+                setErrors((x) => ({ ...x, dates: undefined }));
+              }}
             />
           </FormField>
         </div>
-        <FormField label="Заметка" optional hint="Видят только те, кто может править">
+        <FormField label="Комментарий (видят только руководители)">
           <Input
             maxLength={200}
             value={note}

@@ -32,7 +32,7 @@ export const ABSENCE_KIND_LABEL: Record<AbsenceKind, string> = {
   sick: "Больничный",
   trip: "Командировка",
   dayoff: "Отгул",
-  other: "Нет на месте",
+  other: "Другое",
 };
 
 /** «в отпуске», «на больничном»… — для строки «… до 15 ноября». */

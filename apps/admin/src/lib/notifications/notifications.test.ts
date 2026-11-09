@@ -11,7 +11,9 @@ import {
   withChannel,
   withPush,
 } from "./kinds";
+import { groupNotifs, notifCategory, notifDayGroup, untilMorning } from "./feed-logic";
 import { buildPortalPushPayload, portalPath } from "./push-payload";
+import { timezoneByText } from "./settings-logic";
 
 // Актуальное определение notif_default_push — в последней по имени миграции,
 // где она есть (мигратор выполняет файлы по порядку имён).
@@ -148,7 +150,7 @@ describe("письмо-уведомление", () => {
     expect(mail.html).toContain("https://portal.ladyfitpro.ru/notifications/settings");
     expect(mail.html).toContain("&lt;b&gt;сделать&lt;/b&gt;<br>отчёт");
     expect(mail.html).not.toContain("<b>сделать");
-    expect(mail.html).toContain("Мне поставили задачу");
+    expect(mail.html).toContain("Новая задача мне");
     expect(mail.text).toContain("Открыть в портале: https://portal.ladyfitpro.ru/tasks/12");
   });
 
@@ -160,5 +162,58 @@ describe("письмо-уведомление", () => {
     expect(portalLink("/x", {})).toBeNull();
     const mail = buildPortalEmail({ ...row, url: null }, {});
     expect(mail.html).not.toContain("Открыть в портале");
+  });
+});
+
+describe("лента и время", () => {
+  const TZ = "Europe/Moscow";
+  // Среда, 11 ноября 2026, 12:00 МСК.
+  const now = new Date("2026-11-11T09:00:00Z");
+
+  test("группы по дням в поясе человека", () => {
+    expect(notifDayGroup("2026-11-11T05:00:00Z", TZ, now)).toBe("today");
+    // 23:30 МСК 10 ноября — вчера, хотя в UTC это 20:30.
+    expect(notifDayGroup("2026-11-10T20:30:00Z", TZ, now)).toBe("yesterday");
+    expect(notifDayGroup("2026-11-09T08:00:00Z", TZ, now)).toBe("week");
+    expect(notifDayGroup("2026-11-08T08:00:00Z", TZ, now)).toBe("earlier");
+    const groups = groupNotifs(
+      [
+        { id: 1, updated_at: "2026-11-11T08:00:00Z" },
+        { id: 2, updated_at: "2026-11-11T06:00:00Z" },
+        { id: 3, updated_at: "2026-11-09T06:00:00Z" },
+        { id: 4, updated_at: "2026-10-01T06:00:00Z" },
+      ],
+      TZ,
+      now,
+    );
+    expect(groups.map((g) => [g.group, g.items.map((i) => i.id)])).toEqual([
+      ["today", [1, 2]],
+      ["week", [3]],
+      ["earlier", [4]],
+    ]);
+  });
+
+  test("вид уведомления по ключу", () => {
+    expect(notifCategory("chat.direct")).toBe("chat");
+    expect(notifCategory("task.review")).toBe("task");
+    expect(notifCategory("cal.invite")).toBe("calendar");
+    expect(notifCategory("company.birthday")).toBe("company");
+    expect(notifCategory("test")).toBe("other");
+  });
+
+  test("«до утра» — 9:00 в поясе человека", () => {
+    expect(untilMorning(TZ, now).toISOString()).toBe("2026-11-12T06:00:00.000Z");
+    // 7:00 МСК — ещё сегодня в 9:00.
+    expect(untilMorning(TZ, new Date("2026-11-11T04:00:00Z")).toISOString()).toBe(
+      "2026-11-11T06:00:00.000Z",
+    );
+    expect(untilMorning("Asia/Vladivostok", now).toISOString()).toBe("2026-11-11T23:00:00.000Z");
+  });
+
+  test("пояс — «по Москве (МСК)»", () => {
+    expect(timezoneByText("Europe/Moscow")).toBe("по Москве (МСК)");
+    expect(timezoneByText("Asia/Vladivostok")).toBe("по Владивостоку (МСК+7)");
+    expect(timezoneByText("Asia/Tbilisi")).toBe("по Тбилиси");
+    expect(timezoneByText("Europe/Paris")).toBe("по поясу Europe/Paris");
   });
 });

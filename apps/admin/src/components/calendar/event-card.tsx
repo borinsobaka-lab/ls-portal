@@ -1,28 +1,27 @@
 /**
  * Карточка события календаря: когда, где, участники и их ответы, мой ответ
  * «Приду / Возможно / Не приду», мои напоминания, «Подключиться» к
- * видеовстрече и «Обсуждение» (чат встречи), правка и удаление (повторение
- * или вся серия).
+ * видеовстрече и «Обсуждение» (чат встречи), «Скопировать ссылку», правка и
+ * удаление (одно событие серии или вся серия).
  */
 import { useState, type ReactNode } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  Check,
-  Clock,
-  HelpCircle,
+  Link2,
   Loader2,
   MapPin,
   MessageSquareText,
   Pencil,
   Repeat,
+  Settings,
   Trash2,
   Video,
-  X,
 } from "lucide-react";
 import { toast } from "sonner";
 
 import { ReminderPicker, type EventDraft } from "@/components/calendar/event-form";
+import { ScopeDialog } from "@/components/calendar/scope-dialog";
 import { useConfirm } from "@/components/confirm-dialog";
 import { PersonButton } from "@/components/people/person-card";
 import { PersonLine } from "@/components/tasks/task-bits";
@@ -36,8 +35,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 import { Skeleton } from "@/components/ui/skeleton";
+import { StatusChip } from "@/components/ui/status-chip";
+import type { StatusTone } from "@/components/ui/status-chip-styles";
 import {
+  calendarsQuery,
   calEventQuery,
   deleteEvent,
   openEventChat,
@@ -45,35 +48,45 @@ import {
   saveMyReminders,
 } from "@/lib/calendar/data";
 import {
+  ANSWER_OPTIONS,
+  answerToast,
   calColor,
   calErrorText,
   canJoinVideo,
   eventWhen,
   RESPONSE_LABEL,
   rruleText,
+  tzCity,
 } from "@/lib/calendar/logic";
 import type { CalEvent, Response } from "@/lib/calendar/types";
 import { startCall } from "@/lib/chats/calls";
 import { callErrorText } from "@/lib/chats/call-logic";
 import { safeHref, URL_RE } from "@/lib/chats/content";
+import { timezoneLabel } from "@/lib/notifications/settings-logic";
 import { useTaskClock } from "@/lib/tasks/data";
+import { localDay, localTime } from "@/lib/tasks/logic";
 import { cn } from "@/lib/utils";
 
-const RESPONSE_ICON: Record<Response, ReactNode> = {
-  accepted: <Check className="size-3.5 text-emerald-600" />,
-  declined: <X className="size-3.5 text-red-600" />,
-  maybe: <HelpCircle className="size-3.5 text-amber-600" />,
-  pending: <Clock className="size-3.5 text-muted-foreground" />,
+const RESPONSE_TONE: Record<Response, StatusTone> = {
+  accepted: "positive",
+  declined: "negative",
+  maybe: "warning",
+  pending: "neutral",
 };
+
+type Answer = Exclude<Response, "pending">;
 
 export function EventCardDialog({
   target,
   onClose,
   onEdit,
+  onSettings,
 }: {
   target: { id: string; occ: string | null } | null;
   onClose: () => void;
   onEdit: (draft: EventDraft) => void;
+  /** «Настройки календаря…» у имени календаря. */
+  onSettings?: (calendarId: string) => void;
 }) {
   return (
     <Dialog open={!!target} onOpenChange={(o) => !o && onClose()}>
@@ -85,6 +98,7 @@ export function EventCardDialog({
             occ={target.occ}
             onClose={onClose}
             onEdit={onEdit}
+            onSettings={onSettings}
           />
         )}
       </DialogContent>
@@ -97,11 +111,13 @@ function EventCardBody({
   occ,
   onClose,
   onEdit,
+  onSettings,
 }: {
   id: string;
   occ: string | null;
   onClose: () => void;
   onEdit: (draft: EventDraft) => void;
+  onSettings?: (calendarId: string) => void;
 }) {
   const { data: e, isPending, error } = useQuery(calEventQuery(id, occ));
   if (isPending) {
@@ -135,26 +151,30 @@ function EventCardBody({
       </>
     );
   }
-  return <EventCardView e={e} onClose={onClose} onEdit={onEdit} />;
+  return <EventCardView e={e} onClose={onClose} onEdit={onEdit} onSettings={onSettings} />;
 }
 
 function EventCardView({
   e,
   onClose,
   onEdit,
+  onSettings,
 }: {
   e: CalEvent;
   onClose: () => void;
   onEdit: (draft: EventDraft) => void;
+  onSettings?: (calendarId: string) => void;
 }) {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const { tz } = useTaskClock();
+  const { data: calendars = [] } = useQuery(calendarsQuery);
   const { confirm, confirmDialog } = useConfirm();
   const [busy, setBusy] = useState<string | null>(null);
   const [scopeFor, setScopeFor] = useState<"edit" | "delete" | null>(null);
   const attendee = e.my_response !== null;
   const series = !!e.rrule;
+  const calendarDescription = calendars.find((c) => c.id === e.calendar.id)?.description;
   const when = eventWhen(
     {
       start: e.occ_start,
@@ -165,18 +185,30 @@ function EventCardView({
     },
     tz,
   );
+  // Организатор в другом поясе — его время рядом с нашим (сеть — от
+  // Калининграда до Камчатки).
+  const otherTz =
+    !e.all_day &&
+    e.tz &&
+    e.tz !== tz &&
+    localTime(new Date(e.occ_start), e.tz) !== localTime(new Date(e.occ_start), tz)
+      ? `у организатора ${localTime(new Date(e.occ_start), e.tz)}, ${tzCity(timezoneLabel(e.tz))}`
+      : null;
   const counts = e.attendees.reduce<Record<Response, number>>(
     (acc, a) => ({ ...acc, [a.response]: acc[a.response] + 1 }),
     { accepted: 0, declined: 0, maybe: 0, pending: 0 },
   );
   const joinable = canJoinVideo(e.occ_start, e.occ_end);
+  const occDay = e.all_day ? e.day_from : localDay(new Date(e.occ_start), tz);
 
   const run = async (key: string, fn: () => Promise<unknown>, errorText = calErrorText) => {
     setBusy(key);
     try {
       await fn();
+      return true;
     } catch (err) {
       toast.error(errorText(err));
+      return false;
     } finally {
       setBusy(null);
     }
@@ -203,19 +235,38 @@ function EventCardView({
       void navigate({ to: "/chats/$chatId", params: { chatId } });
     });
 
+  const answer = (r: Answer) =>
+    run("respond", async () => {
+      await respondEvent(qc, e.id, r);
+      toast.success(answerToast(r, e.title));
+    });
+
+  const copyLink = () => {
+    const params = new URLSearchParams({ event: e.id });
+    if (series) params.set("at", e.occ_start);
+    navigator.clipboard.writeText(`${window.location.origin}/calendar?${params}`).then(
+      () => toast.success("Ссылка на событие скопирована"),
+      () => toast.error("Не удалось скопировать — скопируйте адрес из строки браузера"),
+    );
+  };
+
   const remove = async (scope: "one" | "all" | "single") => {
-    if (scope === "single") {
+    if (scope !== "one") {
       const ok = await confirm({
-        title: `Удалить «${e.title}»?`,
+        title: scope === "all" ? `Удалить всю серию «${e.title}»?` : `Удалить «${e.title}»?`,
         description:
-          e.attendees.length > 1 ? "Участники получат уведомление об отмене." : undefined,
-        confirmLabel: "Удалить",
+          e.attendees.length > 1
+            ? "Участники получат уведомление об отмене."
+            : scope === "all"
+              ? "Удалятся все события серии."
+              : undefined,
+        confirmLabel: scope === "all" ? "Удалить серию" : "Удалить",
       });
       if (!ok) return;
     }
     await run("delete", async () => {
       await deleteEvent(qc, e.id, scope === "one" ? e.occ_start : null);
-      toast.success(scope === "one" ? "Это повторение отменено" : "Удалено");
+      toast.success(scope === "all" ? "Серия удалена" : "Событие удалено");
       onClose();
     });
   };
@@ -223,15 +274,52 @@ function EventCardView({
   return (
     <>
       <DialogHeader className="border-b px-4 py-4 sm:px-6">
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <span
-            className="size-2.5 shrink-0 rounded-full"
-            style={{ backgroundColor: calColor(e.calendar.color) }}
-          />
-          <span className="truncate">{e.calendar.visible ? e.calendar.name : "Приглашение"}</span>
+        <div className="flex items-start gap-2">
+          <div className="min-w-0 flex-1 space-y-1">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span
+                className="size-2.5 shrink-0 rounded-sm"
+                style={{ backgroundColor: calColor(e.calendar.color) }}
+              />
+              <span className="truncate">
+                {e.calendar.visible
+                  ? e.calendar.kind === "personal"
+                    ? "Личный календарь"
+                    : e.calendar.name
+                  : "Приглашение"}
+              </span>
+              {e.calendar.visible && onSettings && (
+                <Button
+                  variant="link"
+                  size="inline"
+                  className="text-xs"
+                  title="Настройки календаря"
+                  onClick={() => onSettings(e.calendar.id)}
+                >
+                  <Settings /> Настройки календаря…
+                </Button>
+              )}
+            </div>
+            {e.calendar.visible && calendarDescription && (
+              <p className="line-clamp-2 text-xs text-muted-foreground">{calendarDescription}</p>
+            )}
+            <DialogTitle className="text-lg leading-snug break-words">{e.title}</DialogTitle>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="-mt-1 shrink-0"
+            aria-label="Скопировать ссылку на событие"
+            title="Скопировать ссылку на событие"
+            onClick={copyLink}
+          >
+            <Link2 />
+          </Button>
         </div>
-        <DialogTitle className="text-lg leading-snug break-words">{e.title}</DialogTitle>
-        <DialogDescription className="text-sm text-foreground">{when}</DialogDescription>
+        <DialogDescription className="text-sm text-foreground">
+          {when}
+          {otherTz && <span className="text-muted-foreground"> ({otherTz})</span>}
+        </DialogDescription>
         {series && (
           <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
             <Repeat className="size-4 shrink-0" />
@@ -240,7 +328,7 @@ function EventCardView({
         )}
         {e.series_id && (
           <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-            <Repeat className="size-4 shrink-0" /> Изменённое повторение серии
+            <Repeat className="size-4 shrink-0" /> Отличается от остальных в серии
           </p>
         )}
       </DialogHeader>
@@ -262,7 +350,8 @@ function EventCardView({
                 {attendee && (
                   <Button
                     size="sm"
-                    className="ml-auto bg-emerald-600 text-white hover:bg-emerald-700"
+                    variant="success"
+                    className="ml-auto"
                     disabled={!joinable || busy === "join"}
                     title={
                       joinable
@@ -271,11 +360,7 @@ function EventCardView({
                     }
                     onClick={() => void join()}
                   >
-                    {busy === "join" ? (
-                      <Loader2 className="size-4 animate-spin" />
-                    ) : (
-                      <Video className="size-4" />
-                    )}
+                    {busy === "join" ? <Loader2 className="animate-spin" /> : <Video />}
                     Подключиться
                   </Button>
                 )}
@@ -298,21 +383,15 @@ function EventCardView({
         {attendee && (
           <section className="space-y-2">
             <h3 className="text-sm font-semibold">Ваш ответ</h3>
-            <div className="flex flex-wrap gap-2">
-              {(["accepted", "maybe", "declined"] as const).map((r) => (
-                <Button
-                  key={r}
-                  size="sm"
-                  variant={e.my_response === r ? "default" : "outline"}
-                  disabled={busy === "respond"}
-                  onClick={() => void run("respond", () => respondEvent(qc, e.id, r))}
-                >
-                  {r === "accepted" ? "Приду" : r === "maybe" ? "Возможно" : "Не приду"}
-                </Button>
-              ))}
-            </div>
+            <SegmentedControl
+              aria-label="Ваш ответ"
+              fullWidth
+              value={e.my_response === "pending" ? ("" as Answer) : (e.my_response as Answer)}
+              onChange={(r) => busy !== "respond" && void answer(r)}
+              options={ANSWER_OPTIONS}
+            />
             {e.rrule && (
-              <p className="text-xs text-muted-foreground">Ответ — для всех повторений.</p>
+              <p className="text-xs text-muted-foreground">Ответ относится ко всей серии.</p>
             )}
           </section>
         )}
@@ -326,7 +405,7 @@ function EventCardView({
                   counts.accepted && `придут ${counts.accepted}`,
                   counts.maybe && `возможно ${counts.maybe}`,
                   counts.declined && `не придут ${counts.declined}`,
-                  counts.pending && `не ответили ${counts.pending}`,
+                  counts.pending && `без ответа ${counts.pending}`,
                 ]
                   .filter(Boolean)
                   .join(" · ")}
@@ -339,15 +418,11 @@ function EventCardView({
                     <PersonLine id={a.user_id} size="xs" />
                   </PersonButton>
                   {a.user_id === e.organizer_id && (
-                    <span className="text-xs text-muted-foreground">организатор</span>
+                    <span className="text-xs text-muted-foreground max-sm:hidden">организатор</span>
                   )}
-                  <span
-                    className="inline-flex items-center gap-1 text-xs text-muted-foreground"
-                    title={RESPONSE_LABEL[a.response]}
-                  >
-                    {RESPONSE_ICON[a.response]}
-                    <span className="max-sm:sr-only">{RESPONSE_LABEL[a.response]}</span>
-                  </span>
+                  <StatusChip tone={RESPONSE_TONE[a.response]} size="sm">
+                    {RESPONSE_LABEL[a.response]}
+                  </StatusChip>
                 </li>
               ))}
             </ul>
@@ -378,11 +453,7 @@ function EventCardView({
         <div className="flex flex-wrap gap-2 max-sm:w-full max-sm:[&>*]:flex-1">
           {attendee && e.attendees.length > 1 && (
             <Button variant="outline" disabled={busy === "chat"} onClick={() => void discuss()}>
-              {busy === "chat" ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                <MessageSquareText className="size-4" />
-              )}
+              {busy === "chat" ? <Loader2 className="animate-spin" /> : <MessageSquareText />}
               Обсуждение
             </Button>
           )}
@@ -394,20 +465,21 @@ function EventCardView({
               disabled={busy === "delete"}
               onClick={() => (series ? setScopeFor("delete") : void remove("single"))}
             >
-              <Trash2 className="size-4" /> Удалить
+              <Trash2 /> Удалить
             </Button>
             <Button
               onClick={() =>
                 series ? setScopeFor("edit") : onEdit({ mode: "edit", event: e, scope: "all" })
               }
             >
-              <Pencil className="size-4" /> Изменить
+              <Pencil /> Изменить
             </Button>
           </div>
         )}
       </DialogFooter>
       <ScopeDialog
         action={scopeFor}
+        day={occDay}
         onClose={() => setScopeFor(null)}
         onPick={(scope) => {
           const action = scopeFor;
@@ -418,45 +490,6 @@ function EventCardView({
       />
       {confirmDialog}
     </>
-  );
-}
-
-/** «Только это событие» или «Все события серии». */
-function ScopeDialog({
-  action,
-  onClose,
-  onPick,
-}: {
-  action: "edit" | "delete" | null;
-  onClose: () => void;
-  onPick: (scope: "one" | "all") => void;
-}) {
-  return (
-    <Dialog open={!!action} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="sm:max-w-sm">
-        <DialogHeader>
-          <DialogTitle>
-            {action === "delete"
-              ? "Удалить повторяющееся событие"
-              : "Изменить повторяющееся событие"}
-          </DialogTitle>
-          <DialogDescription>
-            Это событие повторяется. Что {action === "delete" ? "удалить" : "изменить"}?
-          </DialogDescription>
-        </DialogHeader>
-        <div className="grid gap-2">
-          <Button variant="outline" onClick={() => onPick("one")}>
-            Только это событие
-          </Button>
-          <Button
-            variant={action === "delete" ? "destructive" : "default"}
-            onClick={() => onPick("all")}
-          >
-            Все события серии
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
   );
 }
 

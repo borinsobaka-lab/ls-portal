@@ -1,17 +1,21 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { BellOff, Download, Loader2, Mail, Share, Smartphone, Trash2 } from "lucide-react";
-import { addDays, format, set } from "date-fns";
+import { BellOff, Check, Download, Loader2, Mail, Share, Smartphone, Trash2 } from "lucide-react";
+import { format } from "date-fns";
 import { ru } from "date-fns/locale";
 import { toast } from "sonner";
 
 import { AdminShell } from "@/components/admin-shell";
-import { NotificationSettingsPageSkeleton } from "@/components/page-skeletons";
+import { useConfirm } from "@/components/confirm-dialog";
+import {
+  NotificationSettingsCardsSkeleton,
+  NotificationSettingsPageSkeleton,
+} from "@/components/page-skeletons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { TimeField } from "@/components/ui/date-field";
 import { FormField, InfoNote, SwitchRow } from "@/components/ui/form-field";
-import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import {
   Select,
@@ -20,6 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import { StatusChip } from "@/components/ui/status-chip";
 import { useStaffProfile } from "@/hooks/use-staff-profile";
 import { supabase } from "@/integrations/supabase/client";
@@ -32,6 +37,7 @@ import {
   useSavePortalSettings,
   type PortalSettings,
 } from "@/lib/notifications/data";
+import { dndUntilText, untilMorning } from "@/lib/notifications/feed-logic";
 import { promptInstall, useCanInstall } from "@/lib/notifications/install";
 import {
   emailEnabled,
@@ -53,11 +59,12 @@ import { deviceLabel, RU_TIMEZONES, timezoneLabel } from "@/lib/notifications/se
 
 /**
  * Настройки уведомлений (TASKS_CHATS_PLAN.md, «Уведомления», боли № 8, 15,
- * 38 брифа): пуши на этом устройстве и установка приложения, «Не
- * беспокоить» разово и по расписанию, какие события присылать пушем и
- * какие — письмом на почту (2026-11-08; почта по умолчанию выключена),
- * часовой пояс (по нему — тихие часы и сроки задач), свои устройства.
- * В ленту портала уведомления приходят всегда.
+ * 38 брифа; упрощение — UI_REVIEW, 5.8): уведомления на этом устройстве,
+ * «Отключить на время» и «Тихие часы» — отдельными карточками, что и куда
+ * присылать («На устройство» / «На почту»; почта по умолчанию выключена),
+ * время и рабочий день (пояс — для календаря, сроков задач и тихих часов),
+ * свои устройства, в конце — установка приложения. В ленту портала
+ * уведомления приходят всегда. Сохраняется сразу — «Сохранено» на 2 с.
  */
 export const Route = createFileRoute("/_authenticated/notifications/settings")({
   head: () => ({ meta: [{ title: `Настройки уведомлений — ${PORTAL_NAME}` }] }),
@@ -68,10 +75,16 @@ export const Route = createFileRoute("/_authenticated/notifications/settings")({
 function NotificationSettingsPage() {
   const { data: settings, isLoading } = usePortalSettings();
   const save = useSavePortalSettings();
+  const [saved, setSaved] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => void (timer.current && clearTimeout(timer.current)), []);
 
   const update = async (patch: Partial<PortalSettings>) => {
     try {
       await save(patch);
+      setSaved(true);
+      if (timer.current) clearTimeout(timer.current);
+      timer.current = setTimeout(() => setSaved(false), 2000);
     } catch (e) {
       toast.error(`Не удалось сохранить: ${(e as Error).message}`);
     }
@@ -80,20 +93,32 @@ function NotificationSettingsPage() {
   return (
     <AdminShell title="Настройки уведомлений">
       <div className="mx-auto max-w-3xl space-y-4">
+        {/* Автосохранение — с видимым ответом (UI_REVIEW, 5.8.7). */}
+        <div
+          aria-live="polite"
+          className="pointer-events-none sticky top-0 z-30 flex h-0 justify-end"
+        >
+          {saved && (
+            <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-emerald-100 px-3 py-1 text-sm font-medium text-emerald-800 shadow-sm">
+              <Check className="size-4" /> Сохранено
+            </span>
+          )}
+        </div>
         <ThisDeviceCard />
-        <InstallCard />
         {isLoading || !settings ? (
-          <div className="flex h-40 items-center justify-center text-sm text-muted-foreground">
-            <Loader2 className="mr-2 size-4 animate-spin" /> Загружаем…
-          </div>
+          <NotificationSettingsCardsSkeleton
+            titles={["Отключить на время", "Тихие часы", "Что и куда присылать"]}
+          />
         ) : (
           <>
             <DndCard settings={settings} update={update} />
+            <QuietCard settings={settings} update={update} />
             <KindsCard settings={settings} update={update} />
             <TimezoneCard settings={settings} update={update} />
           </>
         )}
         <DevicesCard />
+        <InstallCard />
       </div>
     </AdminShell>
   );
@@ -119,7 +144,7 @@ function Section({
   );
 }
 
-// ---- Пуши на этом устройстве ------------------------------------------------
+// ---- Уведомления на этом устройстве---------------------------------------------
 
 function ThisDeviceCard() {
   const permission = usePushPermission();
@@ -141,7 +166,7 @@ function ThisDeviceCard() {
       const res = await enablePush(profile.id);
       if (res.permission === "denied") toast.error("Уведомления запрещены в браузере");
       else if (res.error === "no-worker")
-        toast.error("Пуши работают только в рабочей версии портала (не в разработке)");
+        toast.error("Уведомления на устройство работают только в рабочей версии портала");
       else if (res.error) toast.error("Не удалось подписаться на уведомления. Попробуйте ещё раз");
       else if (res.subscribed) toast.success("Уведомления включены на этом устройстве");
       setSubscribed(res.subscribed);
@@ -199,7 +224,7 @@ function ThisDeviceCard() {
   return (
     <Section
       title="Уведомления на этом устройстве"
-      description="Пуш придёт, даже когда портал закрыт. Пока вы на портале, пуши не приходят — новое видно в «Уведомлениях» в меню слева."
+      description="Уведомление придёт на телефон или компьютер, даже когда портал закрыт. Пока вы на портале, на устройство ничего не приходит — новое видно в «Уведомлениях» в меню слева."
     >
       <div className="flex flex-wrap items-center gap-3">
         <span className="text-sm">Сейчас:</span>
@@ -216,7 +241,7 @@ function ThisDeviceCard() {
       {ios && !installed && (
         <InfoNote>
           На iPhone и iPad уведомления приходят только в установленном приложении портала (iOS 16.4
-          и новее). Установите его — ниже — и включите уведомления уже в нём.
+          и новее). Установите его — в конце страницы — и включите уведомления уже в нём.
         </InfoNote>
       )}
     </Section>
@@ -234,7 +259,7 @@ function InstallCard() {
   return (
     <Section
       title="Приложение портала"
-      description="Портал можно установить на телефон и компьютер: свой значок, отдельное окно и уведомления, как у обычного приложения."
+      description="Нужно для уведомлений на iPhone и iPad. На телефон и компьютер портал ставится как приложение: свой значок и отдельное окно."
     >
       {installed ? (
         <div className="flex items-center gap-2 text-sm">
@@ -278,31 +303,26 @@ function InstallCard() {
   );
 }
 
-// ---- «Не беспокоить» и тихие часы -----------------------------------------
+// ---- «Отключить на время» и «Тихие часы» --------------------------------------
 
 type Update = (patch: Partial<PortalSettings>) => Promise<void>;
 
 function DndCard({ settings, update }: { settings: PortalSettings; update: Update }) {
   const active = dndActive(settings);
+  const tz = settings.timezone;
   const until = (d: Date) => void update({ dnd_until: d.toISOString() });
-  const tomorrowMorning = set(addDays(new Date(), new Date().getHours() < 9 ? 0 : 1), {
-    hours: 9,
-    minutes: 0,
-    seconds: 0,
-    milliseconds: 0,
-  });
 
   return (
     <Section
-      title="Не беспокоить"
-      description="Пуши не приходят, уведомления копятся в «Уведомлениях» на портале."
+      title="Отключить на время"
+      description="Разово: на устройство ничего не придёт, уведомления копятся в «Уведомлениях» на портале. То же — кнопкой «Не беспокоить» в ленте."
     >
       <div className="flex flex-wrap items-center gap-2">
         {active ? (
           <>
             <StatusChip tone="info">
               <BellOff className="mr-1 size-3.5" />
-              До {format(new Date(settings.dnd_until!), "d MMMM, HH:mm", { locale: ru })}
+              Не беспокоить {dndUntilText(settings.dnd_until!, tz)}
             </StatusChip>
             <Button variant="outline" onClick={() => void update({ dnd_until: null })}>
               Выключить
@@ -316,40 +336,47 @@ function DndCard({ settings, update }: { settings: PortalSettings; update: Updat
             <Button variant="outline" onClick={() => until(new Date(Date.now() + 3 * 3600_000))}>
               На 3 часа
             </Button>
-            <Button variant="outline" onClick={() => until(tomorrowMorning)}>
+            <Button variant="outline" onClick={() => until(untilMorning(tz))}>
               До утра (9:00)
             </Button>
           </>
         )}
       </div>
+    </Section>
+  );
+}
+
+function QuietCard({ settings, update }: { settings: PortalSettings; update: Update }) {
+  return (
+    <Section
+      title="Тихие часы"
+      description="Каждый день в одно и то же время на устройство ничего не приходит — например, с 21:00 до 9:00. Время — по вашему часовому поясу (ниже)."
+    >
       <SwitchRow
-        title="Тихие часы каждый день"
-        hint="В это время пуши не приходят. Время — по вашему часовому поясу."
+        title="Включить тихие часы"
         checked={settings.quiet_enabled}
         onCheckedChange={(v) => void update({ quiet_enabled: v })}
       />
       {settings.quiet_enabled && (
         <div className="grid gap-3 sm:grid-cols-2">
-          <FormField label="С">
-            <Input
-              type="time"
-              defaultValue={settings.quiet_from}
-              onBlur={(e) =>
-                e.target.value &&
-                e.target.value !== settings.quiet_from &&
-                void update({ quiet_from: e.target.value })
-              }
+          <FormField label="С" htmlFor={null}>
+            <TimeField
+              step={15}
+              className="w-full"
+              aria-label="Тихие часы с"
+              common={["20:00", "21:00", "22:00", "23:00"]}
+              value={settings.quiet_from}
+              onChange={(v) => v !== settings.quiet_from && void update({ quiet_from: v })}
             />
           </FormField>
-          <FormField label="До">
-            <Input
-              type="time"
-              defaultValue={settings.quiet_to}
-              onBlur={(e) =>
-                e.target.value &&
-                e.target.value !== settings.quiet_to &&
-                void update({ quiet_to: e.target.value })
-              }
+          <FormField label="До" htmlFor={null}>
+            <TimeField
+              step={15}
+              className="w-full"
+              aria-label="Тихие часы до"
+              common={["07:00", "08:00", "09:00", "10:00"]}
+              value={settings.quiet_to}
+              onChange={(v) => v !== settings.quiet_to && void update({ quiet_to: v })}
             />
           </FormField>
           <SwitchRow
@@ -375,41 +402,45 @@ function KindsCard({ settings, update }: { settings: PortalSettings; update: Upd
   return (
     <Section
       title="Что и куда присылать"
-      description="В «Уведомления» на портале приходит всё. Здесь — что дублировать пушем на телефон и компьютер и что письмом на почту: можно одно, оба или ничего."
+      description="В «Уведомления» на портале приходит всё. Здесь — что ещё присылать на устройство (телефон, компьютер) и на почту: можно одно, оба или ничего."
     >
       <EmailNote settings={settings} />
       {groups.map((group) => (
-        <div key={group} className="space-y-2">
-          <div className="flex items-end gap-3 px-3">
-            <h3 className="flex-1 text-sm font-semibold text-muted-foreground">{group}</h3>
-            <span className="w-14 text-center text-xs text-muted-foreground">Пуш</span>
-            <span className="w-14 text-center text-xs text-muted-foreground">Почта</span>
+        <div key={group}>
+          <div className="sticky top-0 z-10 flex items-end gap-3 border-b bg-card px-1 pt-2 pb-1.5">
+            <h3 className="flex-1 text-sm font-semibold">{group}</h3>
+            <span className="w-20 text-center text-xs text-muted-foreground">На устройство</span>
+            <span className="w-20 text-center text-xs text-muted-foreground">На почту</span>
           </div>
-          {kinds
-            .filter((k) => k.group === group)
-            .map((k) => (
-              <div key={k.key} className="flex items-center gap-3 rounded-md border p-3">
-                <span className="flex-1 space-y-0.5">
-                  <span className="block text-sm font-medium">{k.label}</span>
-                  {k.hint && <span className="block text-xs text-muted-foreground">{k.hint}</span>}
-                </span>
-                <span className="flex w-14 justify-center">
-                  <Switch
-                    aria-label={`${k.label}: пуш`}
-                    checked={pushEnabled(settings.prefs, k.key)}
-                    onCheckedChange={(v) => set(k.key, "push", v)}
-                  />
-                </span>
-                <span className="flex w-14 justify-center">
-                  <Switch
-                    aria-label={`${k.label}: почта`}
-                    checked={emailEnabled(settings.prefs, k.key)}
-                    disabled={noEmail && !emailEnabled(settings.prefs, k.key)}
-                    onCheckedChange={(v) => set(k.key, "email", v)}
-                  />
-                </span>
-              </div>
-            ))}
+          <div className="divide-y">
+            {kinds
+              .filter((k) => k.group === group)
+              .map((k) => (
+                <div key={k.key} className="flex items-center gap-3 px-1 py-2.5">
+                  <span className="flex-1 space-y-0.5">
+                    <span className="block text-sm">{k.label}</span>
+                    {k.hint && (
+                      <span className="block text-xs text-muted-foreground">{k.hint}</span>
+                    )}
+                  </span>
+                  <span className="flex w-20 justify-center">
+                    <Switch
+                      aria-label={`${k.label}: на устройство`}
+                      checked={pushEnabled(settings.prefs, k.key)}
+                      onCheckedChange={(v) => set(k.key, "push", v)}
+                    />
+                  </span>
+                  <span className="flex w-20 justify-center">
+                    <Switch
+                      aria-label={`${k.label}: на почту`}
+                      checked={emailEnabled(settings.prefs, k.key)}
+                      disabled={noEmail && !emailEnabled(settings.prefs, k.key)}
+                      onCheckedChange={(v) => set(k.key, "email", v)}
+                    />
+                  </span>
+                </div>
+              ))}
+          </div>
         </div>
       ))}
     </Section>
@@ -453,7 +484,7 @@ function EmailNote({ settings }: { settings: PortalSettings }) {
         {emailKindsCount(settings.prefs) === 0 && (
           <span className="text-muted-foreground"> — сейчас ни одно уведомление не выбрано</span>
         )}
-        . «Не беспокоить» и тихие часы письма не задерживают; пока вы на портале, писем нет.
+        . «Отключить на время» и тихие часы письма не задерживают; пока вы на портале, писем нет.
       </span>
       <Button variant="outline" disabled={busy} onClick={() => void test()}>
         {busy && <Loader2 className="animate-spin" />} Прислать проверочное письмо
@@ -462,7 +493,7 @@ function EmailNote({ settings }: { settings: PortalSettings }) {
   );
 }
 
-// ---- Часовой пояс ---------------------------------------------------------------
+// ---- Время и рабочий день -------------------------------------------------------
 
 function TimezoneCard({ settings, update }: { settings: PortalSettings; update: Update }) {
   const browserTz =
@@ -473,11 +504,11 @@ function TimezoneCard({ settings, update }: { settings: PortalSettings; update: 
   }
   return (
     <Section
-      title="Часовой пояс"
-      description="По нему считаются тихие часы, а дальше — сроки задач и «до конца дня»."
+      title="Время и рабочий день"
+      description="По этому поясу показывается время в календаре, сроки задач и тихие часы. Конец рабочего дня — срок «сегодня» у задач."
     >
       <div className="grid gap-3 sm:grid-cols-2">
-        <FormField label="Пояс">
+        <FormField label="Часовой пояс">
           <Select value={settings.timezone} onValueChange={(v) => void update({ timezone: v })}>
             <SelectTrigger>
               <SelectValue />
@@ -491,15 +522,14 @@ function TimezoneCard({ settings, update }: { settings: PortalSettings; update: 
             </SelectContent>
           </Select>
         </FormField>
-        <FormField label="Конец рабочего дня">
-          <Input
-            type="time"
-            defaultValue={settings.workday_end}
-            onBlur={(e) =>
-              e.target.value &&
-              e.target.value !== settings.workday_end &&
-              void update({ workday_end: e.target.value })
-            }
+        <FormField label="Конец рабочего дня" htmlFor={null}>
+          <TimeField
+            step={15}
+            className="w-full"
+            aria-label="Конец рабочего дня"
+            common={["17:00", "18:00", "19:00", "20:00"]}
+            value={settings.workday_end}
+            onChange={(v) => v !== settings.workday_end && void update({ workday_end: v })}
           />
         </FormField>
       </div>
@@ -523,11 +553,22 @@ function TimezoneCard({ settings, update }: { settings: PortalSettings; update: 
 
 function DevicesCard() {
   const queryClient = useQueryClient();
+  const { confirm, confirmDialog } = useConfirm();
   const { data: devices = [], isLoading } = useQuery(pushDevicesQuery);
-  const remove = async (id: string) => {
+  const thisUa = typeof navigator !== "undefined" ? navigator.userAgent : null;
+  const remove = async (id: string, label: string, current: boolean) => {
+    const ok = await confirm({
+      title: `Убрать «${label}»?`,
+      description: current
+        ? "Это устройство. Уведомления на него перестанут приходить, пока вы снова их не включите."
+        : "Уведомления на это устройство перестанут приходить.",
+      confirmLabel: "Убрать",
+    });
+    if (!ok) return;
     try {
       await unwrap(supabase.rpc("portal_push_device_delete", { p_id: id }));
       await queryClient.invalidateQueries({ queryKey: pushDevicesQuery.queryKey });
+      toast.success("Устройство убрано");
     } catch (e) {
       toast.error((e as Error).message);
     }
@@ -535,40 +576,60 @@ function DevicesCard() {
   return (
     <Section
       title="Мои устройства"
-      description="Куда приходят пуши. Уберите устройство, которым больше не пользуетесь."
+      description="Куда приходят уведомления на устройство. Уберите то, которым больше не пользуетесь."
     >
       {isLoading ? (
-        <Loader2 className="size-4 animate-spin text-muted-foreground" />
+        <div className="divide-y rounded-md border">
+          {[0, 1].map((i) => (
+            <div key={i} className="flex items-center gap-3 px-3 py-2.5">
+              <Skeleton className="size-4" />
+              <div className="flex-1 space-y-1.5">
+                <Skeleton className="h-4 w-40" />
+                <Skeleton className="h-3 w-56" />
+              </div>
+            </div>
+          ))}
+        </div>
       ) : devices.length === 0 ? (
         <p className="text-sm text-muted-foreground">Пока ни одного — включите уведомления выше.</p>
       ) : (
         <ul className="divide-y rounded-md border">
-          {devices.map((d) => (
-            <li key={d.id} className="flex items-center gap-3 px-3 py-2.5">
-              <Smartphone className="size-4 shrink-0 text-muted-foreground" />
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-medium">
-                  {deviceLabel(d.user_agent)}
+          {devices.map((d) => {
+            const label = deviceLabel(d.user_agent);
+            const current = !!thisUa && d.user_agent === thisUa;
+            return (
+              <li key={d.id} className="flex items-center gap-3 px-3 py-2.5">
+                <Smartphone className="size-4 shrink-0 text-muted-foreground" />
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-center gap-2 truncate text-sm font-medium">
+                    {label}
+                    {current && (
+                      <StatusChip tone="info" size="sm">
+                        это устройство
+                      </StatusChip>
+                    )}
+                  </span>
+                  <span className="block text-xs text-muted-foreground">
+                    Добавлено {format(new Date(d.created_at), "d MMM yyyy", { locale: ru })}
+                    {d.last_sent_at &&
+                      ` · последнее уведомление ${format(new Date(d.last_sent_at), "d MMM, HH:mm", { locale: ru })}`}
+                  </span>
                 </span>
-                <span className="block text-xs text-muted-foreground">
-                  Добавлено {format(new Date(d.created_at), "d MMM yyyy", { locale: ru })}
-                  {d.last_sent_at &&
-                    ` · последний пуш ${format(new Date(d.last_sent_at), "d MMM, HH:mm", { locale: ru })}`}
-                </span>
-              </span>
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label="Убрать устройство"
-                title="Убрать устройство"
-                onClick={() => void remove(d.id)}
-              >
-                <Trash2 className="size-4" />
-              </Button>
-            </li>
-          ))}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label={`Убрать устройство ${label}`}
+                  title="Убрать устройство"
+                  onClick={() => void remove(d.id, label, current)}
+                >
+                  <Trash2 />
+                </Button>
+              </li>
+            );
+          })}
         </ul>
       )}
+      {confirmDialog}
     </Section>
   );
 }

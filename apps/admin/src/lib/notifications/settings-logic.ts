@@ -24,6 +24,30 @@ export function timezoneLabel(tz: string): string {
   return RU_TIMEZONES.find((t) => t.value === tz)?.label ?? tz;
 }
 
+const DATIVE: Record<string, string> = {
+  "Europe/Kaliningrad": "Калининграду",
+  "Europe/Moscow": "Москве",
+  "Europe/Samara": "Самаре",
+  "Asia/Yekaterinburg": "Екатеринбургу",
+  "Asia/Omsk": "Омску",
+  "Asia/Novosibirsk": "Новосибирску",
+  "Asia/Krasnoyarsk": "Красноярску",
+  "Asia/Irkutsk": "Иркутску",
+  "Asia/Yakutsk": "Якутску",
+  "Asia/Vladivostok": "Владивостоку",
+  "Asia/Magadan": "Магадану",
+  "Asia/Kamchatka": "Камчатке",
+  "Asia/Tbilisi": "Тбилиси",
+};
+
+/** «по Москве (МСК)», «по Самаре (МСК+1)»; незнакомый пояс — «по поясу Europe/Paris». */
+export function timezoneByText(tz: string): string {
+  const city = DATIVE[tz];
+  if (!city) return `по поясу ${tz}`;
+  const m = /\(([^)]*)\)/.exec(timezoneLabel(tz));
+  return m ? `по ${city} (${m[1]})` : `по ${city}`;
+}
+
 /** «Chrome · Windows», «Safari · iPhone» — для списка устройств. */
 export function deviceLabel(ua: string | null | undefined): string {
   const s = ua ?? "";

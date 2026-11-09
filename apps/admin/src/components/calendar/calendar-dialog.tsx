@@ -1,17 +1,30 @@
 /**
  * Календарь: создать общий или настроить (название, цвет, описание и для
  * общего — кому открыт: вся компания, подразделение, участники проекта,
- * сотрудник; «Смотрит» / «Добавляет события» / «Управляет»). Проверки прав —
- * у базы (cal_calendar_save).
+ * сотрудник; «Просмотр» / «Добавление событий» / «Полный доступ»). Кому
+ * открыт — одной кнопкой «+ Добавить» с выбором тут же, в выпадающем окне
+ * (передумал — закрыл окно). Проверки прав — у базы (cal_calendar_save).
  */
-import { UnitScopeFields } from "@/components/people/unit-scope-fields";
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Building2, Check, FolderOpen, Globe, Loader2, Plus, Trash2, User, X } from "lucide-react";
+import {
+  Building2,
+  Check,
+  ChevronLeft,
+  FolderOpen,
+  Globe,
+  Loader2,
+  Plus,
+  Trash2,
+  User,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 
+import { PeoplePicker } from "@/components/chats/dialogs";
 import { useConfirm } from "@/components/confirm-dialog";
-import { PeopleField, PersonLine } from "@/components/tasks/task-bits";
+import { UnitScopeFields } from "@/components/people/unit-scope-fields";
+import { PersonLine } from "@/components/tasks/task-bits";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -23,9 +36,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { FormField, InfoNote, SwitchRow } from "@/components/ui/form-field";
+import { FormField, InfoNote } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
-import { SegmentedControl } from "@/components/ui/segmented-control";
+import { ListItemButton } from "@/components/ui/list-item-button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -41,14 +55,18 @@ import {
   deleteCalendar,
   saveCalendar,
 } from "@/lib/calendar/data";
-import { CAL_COLOR_KEYS, CAL_COLORS, calErrorText, LEVEL_LABEL } from "@/lib/calendar/logic";
+import {
+  CAL_COLOR_KEYS,
+  CAL_COLORS,
+  calErrorText,
+  LEVEL_LABEL,
+  LEVEL_TIP,
+} from "@/lib/calendar/logic";
 import type { CalAccessRow, CalColor, CalLevel, CalendarFull } from "@/lib/calendar/types";
 import { companyStructureQuery, unitChildren } from "@/lib/company";
-import { cn } from "@/lib/utils";
 
 const TIPS = {
-  access:
-    "Кто видит календарь у себя в «Календаре». «Добавляет события» — может создавать и править события, «Управляет» — ещё и настройки.",
+  access: `Кто видит календарь у себя в «Календаре». ${LEVEL_TIP}`,
 };
 
 export function CalendarDialog({
@@ -118,12 +136,15 @@ function CalendarForm({
   const [description, setDescription] = useState(value?.description ?? "");
   const [access, setAccess] = useState<CalAccessRow[]>(value?.access ?? []);
   const [busy, setBusy] = useState(false);
+  const [nameError, setNameError] = useState<string | null>(null);
+  const personal = value?.kind === "personal";
   const shared = !value || value.kind === "shared";
   const manage = !value || value.level === "manage";
 
   const submit = async () => {
-    if (!name.trim()) {
-      toast.error("Напишите название");
+    if (!personal && !name.trim()) {
+      setNameError("Напишите название");
+      document.getElementById("cal-name")?.focus();
       return;
     }
     setBusy(true);
@@ -165,67 +186,105 @@ function CalendarForm({
     <DialogForm onSubmit={submit}>
       <DialogHeader className="border-b px-4 py-4 sm:px-6">
         <DialogTitle>
-          {value ? (manage ? "Настройки календаря" : value.name) : "Новый общий календарь"}
+          {personal
+            ? "Личный календарь"
+            : value
+              ? manage
+                ? "Настройки календаря"
+                : value.name
+              : "Новый общий календарь"}
         </DialogTitle>
         <DialogDescription>
-          {value?.kind === "personal"
-            ? "Личный календарь видите только вы; встречи, куда вы пригласили людей, — и они."
+          {personal
+            ? "Его видите только вы (встречу — и те, кого вы пригласили). Удалить нельзя."
             : "Планёрки отдела, акции и маркетинг, проекты — календарь видят все, кому он открыт."}
         </DialogDescription>
       </DialogHeader>
       <DialogBody className="space-y-4">
-        <FormField label="Название" required htmlFor="cal-name">
-          <Input
-            id="cal-name"
-            autoFocus={!value}
-            maxLength={80}
-            value={name}
-            disabled={!manage}
-            placeholder="Например: Акции и маркетинг"
-            onChange={(e) => setName(e.target.value)}
-          />
-        </FormField>
-        <FormField label="Цвет" htmlFor={null}>
-          <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Цвет">
-            {CAL_COLOR_KEYS.map((c) => (
-              <button
-                key={c}
-                type="button"
-                role="radio"
-                aria-checked={color === c}
-                aria-label={CAL_COLORS[c].label}
-                title={CAL_COLORS[c].label}
-                disabled={!manage}
-                className="flex size-8 items-center justify-center rounded-full ring-offset-2 ring-offset-background transition-shadow aria-checked:ring-2 aria-checked:ring-foreground"
-                style={{ backgroundColor: CAL_COLORS[c].solid }}
-                onClick={() => setColor(c)}
-              >
-                {color === c && <Check className="size-4 text-white" />}
-              </button>
-            ))}
+        {!manage ? (
+          <div className="space-y-2 text-sm">
+            <p className="flex items-center gap-2 font-medium">
+              <span
+                className="size-3 shrink-0 rounded-sm"
+                style={{ backgroundColor: CAL_COLORS[color].solid }}
+              />
+              {name}
+            </p>
+            {description && <p className="text-muted-foreground">{description}</p>}
+            <InfoNote>
+              Ваш доступ — «{LEVEL_LABEL[value?.level ?? "view"]}». Настройки меняют те, у кого
+              «Полный доступ».
+            </InfoNote>
           </div>
-        </FormField>
-        <FormField label="Описание" optional htmlFor="cal-desc">
-          <Textarea
-            id="cal-desc"
-            rows={2}
-            maxLength={500}
-            value={description}
-            disabled={!manage}
-            onChange={(e) => setDescription(e.target.value)}
-          />
-        </FormField>
-        {shared && manage && (
-          <FormField label="Кому открыт" htmlFor={null} tip={TIPS.access}>
-            <AccessEditor value={access} onChange={setAccess} />
-          </FormField>
+        ) : (
+          <>
+            {!personal && (
+              <FormField label="Название" required htmlFor="cal-name" error={nameError}>
+                <Input
+                  id="cal-name"
+                  autoFocus={!value}
+                  maxLength={80}
+                  value={name}
+                  placeholder="Например: Акции и маркетинг"
+                  onChange={(e) => {
+                    setName(e.target.value);
+                    setNameError(null);
+                  }}
+                />
+              </FormField>
+            )}
+            <FormField label="Цвет" htmlFor={null}>
+              <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Цвет">
+                {CAL_COLOR_KEYS.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    role="radio"
+                    aria-checked={color === c}
+                    aria-label={CAL_COLORS[c].label}
+                    title={CAL_COLORS[c].label}
+                    className="flex size-8 cursor-pointer items-center justify-center rounded-full ring-offset-2 ring-offset-background transition-shadow aria-checked:ring-2 aria-checked:ring-foreground"
+                    style={{ backgroundColor: CAL_COLORS[c].solid }}
+                    onClick={() => setColor(c)}
+                  >
+                    {color === c && <Check className="size-4 text-white" />}
+                  </button>
+                ))}
+              </div>
+            </FormField>
+            {!personal && (
+              <FormField
+                label="Описание"
+                optional
+                htmlFor="cal-desc"
+                hint="Видно при наведении на календарь в меню и в карточках его событий."
+              >
+                <Textarea
+                  id="cal-desc"
+                  rows={2}
+                  maxLength={500}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                />
+              </FormField>
+            )}
+            {shared && (
+              <FormField label="Кому открыт" htmlFor={null} tip={TIPS.access}>
+                <AccessEditor value={access} onChange={setAccess} />
+              </FormField>
+            )}
+          </>
         )}
       </DialogBody>
       <DialogFooter className="flex-wrap gap-2 sm:justify-between">
         <div>
           {value?.kind === "shared" && manage && (
-            <Button variant="outline" onClick={() => void remove()}>
-              <Trash2 className="size-4" /> Удалить
+            <Button
+              variant="ghost"
+              className="text-destructive hover:text-destructive"
+              onClick={() => void remove()}
+            >
+              <Trash2 /> Удалить календарь
             </Button>
           )}
         </div>
@@ -235,8 +294,8 @@ function CalendarForm({
           </Button>
           {manage && (
             <Button type="submit" disabled={busy}>
-              {busy && <Loader2 className="size-4 animate-spin" />}
-              {value ? "Сохранить" : "Создать"}
+              {busy && <Loader2 className="animate-spin" />}
+              {value ? "Сохранить" : "Создать календарь"}
             </Button>
           )}
         </div>
@@ -248,13 +307,15 @@ function CalendarForm({
 
 const LEVELS: CalLevel[] = ["view", "edit", "manage"];
 
+type UnitOption = { id: string; name: string; depth: number };
+
 function useUnits(allowed: string[]) {
   const { data: units = [] } = useQuery(companyStructureQuery);
   return useMemo(() => {
     const ok = new Set(allowed);
     const children = unitChildren(units);
     const all = new Map(units.map((u) => [u.id, u.name]));
-    const options: { id: string; name: string; depth: number }[] = [];
+    const options: UnitOption[] = [];
     const walk = (parent: string | null, depth: number) => {
       for (const u of children.get(parent) ?? []) {
         if (ok.has(u.id)) options.push({ id: u.id, name: u.name, depth });
@@ -276,15 +337,10 @@ function AccessEditor({
 }) {
   const { data: opts } = useQuery(calSourceOptionsQuery);
   const units = useUnits(opts?.units ?? []);
-  const [adding, setAdding] = useState<"unit" | "project" | "user" | null>(null);
   const set = (i: number, patch: Partial<CalAccessRow>) =>
     onChange(value.map((r, j) => (j === i ? { ...r, ...patch } : r)));
   const projectName = (id: string | null | undefined) =>
     opts?.projects.find((p) => p.id === id)?.title ?? "Проект";
-  const hasAll = value.some((r) => r.subject === "all");
-  const usedUnits = new Set(value.map((r) => r.unit_id).filter(Boolean));
-  const usedProjects = new Set(value.map((r) => r.project_id).filter(Boolean));
-  const usedUsers = value.map((r) => r.user_id).filter((x): x is string => !!x);
 
   return (
     <div className="space-y-2">
@@ -296,7 +352,7 @@ function AccessEditor({
           key={`${r.subject}:${r.unit_id ?? r.project_id ?? r.user_id ?? "all"}`}
           className="space-y-2 rounded-lg border p-3"
         >
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <span className="flex min-w-0 flex-1 items-center gap-2 text-sm font-medium">
               {r.subject === "all" && (
                 <>
@@ -318,7 +374,7 @@ function AccessEditor({
               {r.subject === "user" && <PersonLine id={r.user_id} size="xs" />}
             </span>
             <Select value={r.level} onValueChange={(v) => set(i, { level: v as CalLevel })}>
-              <SelectTrigger aria-label="Права" className="h-8 w-auto min-w-36 text-sm">
+              <SelectTrigger aria-label="Права" className="w-48">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -332,11 +388,12 @@ function AccessEditor({
             <Button
               variant="ghost"
               size="icon"
-              className="size-8 shrink-0"
+              className="shrink-0"
               aria-label="Убрать"
+              title="Убрать"
               onClick={() => onChange(value.filter((_, j) => j !== i))}
             >
-              <X className="size-4" />
+              <X />
             </Button>
           </div>
           {r.subject === "unit" && (
@@ -348,108 +405,136 @@ function AccessEditor({
           )}
         </div>
       ))}
-
-      {adding === "unit" && (
-        <Select
-          value=""
-          onValueChange={(id) => {
-            onChange([
-              ...value,
-              {
-                subject: "unit",
-                unit_id: id,
-                unit_scope: "all",
-                with_subunits: true,
-                level: "view",
-              },
-            ]);
-            setAdding(null);
-          }}
-        >
-          <SelectTrigger aria-label="Подразделение">
-            <SelectValue placeholder="Выберите подразделение" />
-          </SelectTrigger>
-          <SelectContent>
-            {units.options.map((u) => (
-              <SelectItem key={u.id} value={u.id} disabled={usedUnits.has(u.id)}>
-                <span style={{ paddingLeft: `${u.depth * 12}px` }}>{u.name}</span>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      )}
-      {adding === "project" && (
-        <Select
-          value=""
-          onValueChange={(id) => {
-            onChange([...value, { subject: "project", project_id: id, level: "view" }]);
-            setAdding(null);
-          }}
-        >
-          <SelectTrigger aria-label="Проект">
-            <SelectValue placeholder="Выберите проект" />
-          </SelectTrigger>
-          <SelectContent>
-            {(opts?.projects ?? []).map((p) => (
-              <SelectItem key={p.id} value={p.id} disabled={usedProjects.has(p.id)}>
-                {p.title}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      )}
-      {adding === "user" && (
-        <PeopleField
-          value={[]}
-          exclude={usedUsers}
-          addLabel="Выбрать сотрудника"
-          single
-          onChange={(ids) => {
-            if (ids[0]) onChange([...value, { subject: "user", user_id: ids[0], level: "view" }]);
-            setAdding(null);
-          }}
-        />
-      )}
-
-      <div className="flex flex-wrap gap-2">
-        {opts?.company && !hasAll && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onChange([{ subject: "all", level: "view" }, ...value])}
-          >
-            <Plus className="size-4" /> Вся компания
-          </Button>
-        )}
-        {units.options.length > 0 && (
-          <Button
-            variant="outline"
-            size="sm"
-            className={cn(adding === "unit" && "bg-muted")}
-            onClick={() => setAdding("unit")}
-          >
-            <Plus className="size-4" /> Подразделение
-          </Button>
-        )}
-        {(opts?.projects.length ?? 0) > 0 && (
-          <Button
-            variant="outline"
-            size="sm"
-            className={cn(adding === "project" && "bg-muted")}
-            onClick={() => setAdding("project")}
-          >
-            <Plus className="size-4" /> Проект
-          </Button>
-        )}
-        <Button
-          variant="outline"
-          size="sm"
-          className={cn(adding === "user" && "bg-muted")}
-          onClick={() => setAdding("user")}
-        >
-          <User className="size-4" /> Сотрудник
-        </Button>
-      </div>
+      <AddAccess
+        value={value}
+        company={!!opts?.company}
+        units={units.options}
+        projects={opts?.projects ?? []}
+        onAdd={(row) => onChange(row.subject === "all" ? [row, ...value] : [...value, row])}
+      />
     </div>
+  );
+}
+
+/** «+ Добавить»: «Вся компания / Подразделение… / Проект… / Сотрудник…», выбор — тут же. */
+function AddAccess({
+  value,
+  company,
+  units,
+  projects,
+  onAdd,
+}: {
+  value: CalAccessRow[];
+  company: boolean;
+  units: UnitOption[];
+  projects: { id: string; title: string }[];
+  onAdd: (row: CalAccessRow) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [step, setStep] = useState<"menu" | "unit" | "project" | "user">("menu");
+  const hasAll = value.some((r) => r.subject === "all");
+  const usedUnits = new Set(value.map((r) => r.unit_id).filter(Boolean));
+  const usedProjects = new Set(value.map((r) => r.project_id).filter(Boolean));
+  const usedUsers = value.map((r) => r.user_id).filter((x): x is string => !!x);
+  const add = (row: CalAccessRow) => {
+    onAdd(row);
+    setOpen(false);
+  };
+  const back = (
+    <ListItemButton className="text-muted-foreground" onClick={() => setStep("menu")}>
+      <ChevronLeft /> Назад
+    </ListItemButton>
+  );
+  return (
+    <Popover
+      open={open}
+      onOpenChange={(o) => {
+        setOpen(o);
+        if (o) setStep("menu");
+      }}
+    >
+      <PopoverTrigger asChild>
+        <Button variant="outline" size="sm">
+          <Plus /> Добавить
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-[min(22rem,calc(100vw-2rem))] p-1">
+        {step === "menu" && (
+          <>
+            {company && (
+              <ListItemButton
+                disabled={hasAll}
+                onClick={() => add({ subject: "all", level: "view" })}
+              >
+                <Globe /> Вся компания
+              </ListItemButton>
+            )}
+            <ListItemButton disabled={units.length === 0} onClick={() => setStep("unit")}>
+              <Building2 /> Подразделение…
+            </ListItemButton>
+            <ListItemButton disabled={projects.length === 0} onClick={() => setStep("project")}>
+              <FolderOpen /> Проект…
+            </ListItemButton>
+            <ListItemButton onClick={() => setStep("user")}>
+              <User /> Сотрудник…
+            </ListItemButton>
+          </>
+        )}
+        {step === "unit" && (
+          <>
+            {back}
+            <div className="max-h-72 overflow-y-auto">
+              {units.map((u) => (
+                <ListItemButton
+                  key={u.id}
+                  disabled={usedUnits.has(u.id)}
+                  style={{ paddingLeft: `${12 + u.depth * 12}px` }}
+                  onClick={() =>
+                    add({
+                      subject: "unit",
+                      unit_id: u.id,
+                      unit_scope: "all",
+                      with_subunits: true,
+                      level: "view",
+                    })
+                  }
+                >
+                  {u.name}
+                </ListItemButton>
+              ))}
+            </div>
+          </>
+        )}
+        {step === "project" && (
+          <>
+            {back}
+            <div className="max-h-72 overflow-y-auto">
+              {projects.map((p) => (
+                <ListItemButton
+                  key={p.id}
+                  disabled={usedProjects.has(p.id)}
+                  onClick={() => add({ subject: "project", project_id: p.id, level: "view" })}
+                >
+                  {p.title}
+                </ListItemButton>
+              ))}
+            </div>
+          </>
+        )}
+        {step === "user" && (
+          <div className="space-y-1">
+            {back}
+            <div className="p-2">
+              <PeoplePicker
+                single
+                selected={[]}
+                exclude={usedUsers}
+                onToggle={(uid) => add({ subject: "user", user_id: uid, level: "view" })}
+              />
+            </div>
+          </div>
+        )}
+      </PopoverContent>
+    </Popover>
   );
 }
