@@ -521,7 +521,7 @@ export function CalendarPage({
         onClose={() => setAwayDay(null)}
       />
       <PersonCardDialog userId={person} onClose={() => setPerson(null)} />
-      <TaskSheet number={task} onClose={() => setTask(undefined)} />
+      <TaskSheet number={task} onClose={() => setTask(undefined)} onOpen={setTask} />
     </AdminShell>
   );
 }
