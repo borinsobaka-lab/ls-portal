@@ -3,21 +3,20 @@
  * быстрые сроки по рабочим дням и концу рабочего дня, календарь (выходные и
  * праздники производственного календаря — красным) и время. Всё — в поясе
  * человека; в базу уходит момент времени.
+ *
+ * Быстрый срок применяется сразу. День и время из календаря применяются при
+ * закрытии окна — «Готово» или нажатием мимо: выбранное не теряется
+ * (UI_REVIEW_CHATS_TASKS_CALENDAR.md, 4.5). Без права менять срок — не
+ * поле, а текст с пояснением, кто его меняет.
  */
 import { useMemo, useState } from "react";
 import { ru } from "date-fns/locale";
-import { CalendarClock, X } from "lucide-react";
+import { CalendarClock, Lock, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
+import { TimeField } from "@/components/ui/date-field";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { fieldClass } from "@/components/ui/field-styles";
 import {
   formatDeadline,
@@ -30,16 +29,6 @@ import {
 } from "@/lib/tasks/logic";
 import { dayKind, isoDay } from "@/lib/tasks/work-calendar";
 import { cn } from "@/lib/utils";
-
-function timeOptions(extra: string[]): string[] {
-  const set = new Set<string>(extra);
-  for (let h = 0; h < 24; h++) {
-    set.add(`${String(h).padStart(2, "0")}:00`);
-    set.add(`${String(h).padStart(2, "0")}:30`);
-  }
-  set.add("23:59");
-  return [...set].sort();
-}
 
 const toLocalDate = (day: string) => {
   const [y, m, d] = day.split("-").map(Number);
@@ -54,6 +43,7 @@ export function DeadlinePicker({
   calendar,
   allowClear = true,
   disabled = false,
+  disabledHint = "Срок меняет постановщик",
   id,
   className,
 }: {
@@ -64,6 +54,8 @@ export function DeadlinePicker({
   calendar: WorkCalendar;
   allowClear?: boolean;
   disabled?: boolean;
+  /** Почему срок не меняется (виден под текстом срока). */
+  disabledHint?: string;
   id?: string;
   className?: string;
 }) {
@@ -78,19 +70,42 @@ export function DeadlinePicker({
     () => (open ? quickDeadlines(new Date(), tz, workdayEnd, calendar) : []),
     [open, tz, workdayEnd, calendar],
   );
-  const times = useMemo(() => timeOptions([end, time]), [end, time]);
+  const [dirty, setDirty] = useState(false);
+  const common = useMemo(() => [...new Set(["09:00", "12:00", "15:00", end])].sort(), [end]);
+  const notes = useMemo(() => ({ [end]: "конец дня" }), [end]);
 
+  const commit = () => {
+    const iso = zoned(day, time, tz).toISOString();
+    if (!value || new Date(value).getTime() !== new Date(iso).getTime()) onChange(iso);
+  };
   const reset = (o: boolean) => {
     if (o) {
       setDay(value ? localDay(new Date(value), tz) : localDay(new Date(), tz));
       setTime(value ? localTime(new Date(value), tz) : end);
-    }
+      setDirty(false);
+    } else if (dirty) commit();
     setOpen(o);
   };
   const pick = (iso: string | null) => {
+    setDirty(false);
     onChange(iso);
     setOpen(false);
   };
+
+  if (disabled)
+    return (
+      <div className={cn("space-y-0.5", className)}>
+        <div className="flex items-center gap-2 text-sm">
+          <CalendarClock className="size-4 shrink-0 text-muted-foreground" />
+          <span className={cn(!value && "text-muted-foreground")}>
+            {value ? formatDeadline(value, tz) : "Без срока"}
+          </span>
+        </div>
+        <p className="flex items-center gap-1 text-xs text-muted-foreground">
+          <Lock className="size-3" /> {disabledHint}
+        </p>
+      </div>
+    );
 
   return (
     <Popover open={open} onOpenChange={reset}>
@@ -98,12 +113,7 @@ export function DeadlinePicker({
         <button
           id={id}
           type="button"
-          disabled={disabled}
-          className={cn(
-            fieldClass,
-            "flex items-center gap-2 text-left disabled:cursor-default disabled:opacity-100",
-            className,
-          )}
+          className={cn(fieldClass, "flex items-center gap-2 text-left", className)}
         >
           <CalendarClock className="size-4 shrink-0 text-muted-foreground" />
           <span className={cn("min-w-0 flex-1 truncate", !value && "text-muted-foreground")}>
@@ -143,24 +153,25 @@ export function DeadlinePicker({
               weekStartsOn={1}
               selected={toLocalDate(day)}
               defaultMonth={toLocalDate(day)}
-              onSelect={(d) => d && setDay(isoDay(d))}
+              onSelect={(d) => {
+                if (!d) return;
+                setDay(isoDay(d));
+                setDirty(true);
+              }}
               modifiers={{ off: (d: Date) => dayKind(isoDay(d), calendar) === "off" }}
               modifiersClassNames={{ off: "text-destructive" }}
             />
             <div className="flex items-center gap-2 border-t p-3">
-              <Select value={time} onValueChange={setTime}>
-                <SelectTrigger className="w-40" aria-label="Время">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="max-h-64">
-                  {times.map((t) => (
-                    <SelectItem key={t} value={t}>
-                      {t}
-                      {t === end ? " · конец дня" : ""}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <TimeField
+                value={time}
+                onChange={(t) => {
+                  setTime(t);
+                  setDirty(true);
+                }}
+                common={common}
+                notes={notes}
+                className="w-40"
+              />
               <Button className="ml-auto" onClick={() => pick(zoned(day, time, tz).toISOString())}>
                 Готово
               </Button>
