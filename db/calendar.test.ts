@@ -447,7 +447,8 @@ describe.skipIf(!url)("календарь (база)", () => {
       expect((await tx`select cal_tick('2026-11-20T05:00:00Z') as n`)[0].n).toBe(0);
       expect((await tx`select cal_tick('2026-11-20T06:00:00Z') as n`)[0].n).toBe(1);
       const ra = await notifs(tx, a, "cal.remind");
-      expect(ra.at(-1)?.body).toBe("20.11, весь день");
+      // Строки одной транзакции — с одним временем: порядок не гарантирован.
+      expect(ra.map((r) => r.body)).toContain("20.11, весь день");
     });
   });
 
