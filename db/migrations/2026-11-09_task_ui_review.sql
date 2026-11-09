@@ -21,6 +21,13 @@
 --    «Сроками», хотя срок доска не меняет). Колонки, которые уже есть у
 --    людей, не переименовываются. Актуальное определение `task_plan_get` —
 --    здесь.
+-- 3. Картинки в описании новой задачи (форма постановки — тот же редактор,
+--    что карточка): до постановки у задачи нет папки `tasks/<id>/` в
+--    `kb-media`, поэтому файлы описания ложатся в свою папку
+--    `tasks/new/<человек>/` (только сам: прочитать, загрузить, убрать —
+--    политика «tasks kb-media new own»), после постановки портал копирует их
+--    в папку задачи и правит ссылки в описании. Брошенные — уборка файлов
+--    без ссылок (kb_file_gc_candidates, через 7 дней).
 --
 -- Идемпотентно.
 -- ============================================================================
@@ -271,7 +278,19 @@ begin
 end;
 $$;
 
--- 3. Права на функции -----------------------------------------------------------
+-- 3. Своя папка картинок новой задачи ---------------------------------------------
+
+drop policy if exists "tasks kb-media new own" on storage.objects;
+create policy "tasks kb-media new own" on storage.objects
+  for all to authenticated
+  using (bucket_id = 'kb-media' and (storage.foldername(name))[1] = 'tasks'
+         and (storage.foldername(name))[2] = 'new'
+         and (storage.foldername(name))[3] = (select auth.uid())::text)
+  with check (bucket_id = 'kb-media' and (storage.foldername(name))[1] = 'tasks'
+              and (storage.foldername(name))[2] = 'new'
+              and (storage.foldername(name))[3] = (select auth.uid())::text);
+
+-- 4. Права на функции -----------------------------------------------------------
 
 do $$
 declare

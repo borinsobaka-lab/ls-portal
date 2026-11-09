@@ -196,6 +196,27 @@ describe.skipIf(!url)("задачи: регулярная из задачи, с�
     });
   });
 
+  test("картинки описания новой задачи — в своей папке tasks/new/<я>/", async () => {
+    await scenario(async (tx) => {
+      const { a, b } = await people(tx);
+      await tx`grant usage on schema storage to authenticated`;
+      await tx`grant select, insert, update, delete on storage.objects to authenticated`;
+      const obj = (name: string, owner: string) =>
+        tx`insert into storage.objects (bucket_id, name, owner, metadata)
+           values ('kb-media', ${name}, ${owner}, '{"size": 100}')`;
+      const sees = async (uid: string) => {
+        await as(tx, uid);
+        const rows = await tx`select name from storage.objects where bucket_id = 'kb-media'`;
+        return rows.map((r: { name: string }) => r.name);
+      };
+      await as(tx, a);
+      expect(await failure(tx, () => obj(`tasks/new/${a}/pic.webp`, a))).toBeNull();
+      expect(await failure(tx, () => obj(`tasks/new/${b}/pic.webp`, a))).not.toBeNull();
+      expect(await sees(a)).toEqual([`tasks/new/${a}/pic.webp`]);
+      expect(await sees(b)).toEqual([]);
+    });
+  });
+
   test("«Мой план»: стартовые колонки — «Сейчас», «Дальше», «Когда-нибудь»", async () => {
     await scenario(async (tx) => {
       const { a } = await people(tx);
