@@ -24,14 +24,18 @@ export const CAL_COLOR_KEYS = Object.keys(CAL_COLORS) as CalColor[];
 export const calColor = (c: string | null | undefined) =>
   CAL_COLORS[(c as CalColor) in CAL_COLORS ? (c as CalColor) : "blue"].solid;
 
+/** Уровни доступа — словарь прав портала («Просмотр / Правка» базы знаний). */
 export const LEVEL_LABEL: Record<CalLevel, string> = {
-  view: "Смотрит",
-  edit: "Добавляет события",
-  manage: "Управляет",
+  view: "Просмотр",
+  edit: "Добавление событий",
+  manage: "Полный доступ",
 };
 
+export const LEVEL_TIP =
+  "«Просмотр» — видит события. «Добавление событий» — ещё создаёт и меняет события. «Полный доступ» — ещё меняет название, цвет и кому открыт календарь.";
+
 export const RESPONSE_LABEL: Record<Response, string> = {
-  pending: "Не ответил(а)",
+  pending: "Нет ответа",
   accepted: "Придёт",
   declined: "Не придёт",
   maybe: "Возможно",
@@ -153,6 +157,79 @@ export function rruleText(r: RRule | null | undefined, startDay?: string): strin
   return text;
 }
 
+/** «по понедельникам» … «по воскресеньям» — для подписи повтора под дату. */
+const WEEKDAY_PLURAL = [
+  "понедельникам",
+  "вторникам",
+  "средам",
+  "четвергам",
+  "пятницам",
+  "субботам",
+  "воскресеньям",
+];
+
+/** Повтор в форме события — как в Google: готовые варианты под дату и «Настроить…». */
+export type RepeatPreset =
+  | "none"
+  | "daily"
+  | "workdays"
+  | "weekly"
+  | "monthly"
+  | "yearly"
+  | "custom";
+
+/**
+ * Варианты повтора для дня начала: «Каждую неделю по вторникам», «Каждый
+ * месяц 11-го числа», «Каждый год 11 ноября».
+ */
+export function repeatOptions(day: string): { value: RepeatPreset; label: string }[] {
+  const dow = day ? isoDow(day) : 1;
+  const date = day ? Number(day.slice(8, 10)) : 1;
+  return [
+    { value: "none", label: "Не повторять" },
+    { value: "daily", label: "Каждый день" },
+    { value: "workdays", label: "По рабочим дням" },
+    { value: "weekly", label: `Каждую неделю по ${WEEKDAY_PLURAL[dow - 1]}` },
+    { value: "monthly", label: `Каждый месяц ${date}-го числа` },
+    { value: "yearly", label: day ? `Каждый год ${dayTitle(day, false)}` : "Каждый год" },
+    { value: "custom", label: "Настроить…" },
+  ];
+}
+
+/** Какой вариант повтора соответствует форме (не простой — «Настроить…»). */
+export function repeatPresetOf(
+  f: Pick<EventForm, "freq" | "interval" | "weekdays" | "until" | "dayFrom">,
+): RepeatPreset {
+  if (f.freq === "none") return "none";
+  if (f.until || (f.freq !== "workdays" && f.interval > 1)) return "custom";
+  if (f.freq === "weekly") {
+    const days = [...new Set(f.weekdays)];
+    return days.length === 1 && f.dayFrom && days[0] === isoDow(f.dayFrom) ? "weekly" : "custom";
+  }
+  return f.freq;
+}
+
+/** Поля формы для выбранного варианта повтора («Настроить…» оставляет как есть). */
+export function applyRepeatPreset(
+  f: Pick<EventForm, "freq" | "interval" | "weekdays" | "until" | "dayFrom">,
+  preset: RepeatPreset,
+): Pick<EventForm, "freq" | "interval" | "weekdays" | "until"> {
+  if (preset === "custom") {
+    return {
+      freq: f.freq === "none" ? "weekly" : f.freq,
+      interval: f.interval,
+      weekdays: f.weekdays.length ? f.weekdays : [f.dayFrom ? isoDow(f.dayFrom) : 1],
+      until: f.until,
+    };
+  }
+  return {
+    freq: preset,
+    interval: 1,
+    weekdays: [f.dayFrom ? isoDow(f.dayFrom) : 1],
+    until: "",
+  };
+}
+
 // ---- Напоминания ---------------------------------------------------------------------
 
 /** Минут до начала. Весь день — до полуночи дня (−540 — в день в 9:00). */
@@ -180,6 +257,20 @@ export function reminderLabel(m: number, allDay: boolean): string {
   if (m % 60 === 0)
     return m === 60 ? "За час" : `За ${m / 60} ${plural(m / 60, "час", "часа", "часов")}`;
   return `За ${m} мин`;
+}
+
+/**
+ * Напоминание о событии на весь день: за N дней в час H. 0 дней — в день
+ * события (отрицательное число: −540 — в 9:00 того дня).
+ */
+export function allDayReminder(daysBefore: number, hour: number): number {
+  return daysBefore * 1440 - hour * 60;
+}
+
+/** Дни и час напоминания на весь день (обратное к allDayReminder). */
+export function allDayReminderParts(m: number): { days: number; hour: number } {
+  const days = m < 0 ? 0 : Math.ceil(m / 1440);
+  return { days, hour: Math.round((days * 1440 - m) / 60) };
 }
 
 // ---- Форма события -----------------------------------------------------------------
@@ -300,17 +391,83 @@ export function formRRule(f: EventForm): RRule | null {
   return r;
 }
 
-/** Проверка формы: текст ошибки или null. */
+export type EventFormField = "title" | "time" | "weekdays" | "until";
+
+/** Ошибки формы по полям (под полем, а не тостом). Пусто — можно сохранять. */
+export function formErrors(f: EventForm, tz: string): Partial<Record<EventFormField, string>> {
+  const out: Partial<Record<EventFormField, string>> = {};
+  if (!f.title.trim()) out.title = "Напишите название";
+  if (!f.dayFrom || (!f.allDay && (!f.timeFrom || !f.dayTo || !f.timeTo))) {
+    out.time = "Укажите дату и время";
+  } else {
+    const { start, end } = formTimes(f, tz);
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()))
+      out.time = "Укажите дату и время";
+    else if (end < start) out.time = "Окончание раньше начала";
+  }
+  if (f.freq === "weekly" && f.weekdays.length === 0) out.weekdays = "Выберите дни недели";
+  if (f.freq !== "none" && f.until && f.until < f.dayFrom)
+    out.until = "Повтор заканчивается раньше начала";
+  return out;
+}
+
+/** Порядок полей формы — фокус на первое проблемное. */
+export const FORM_FIELD_ORDER: EventFormField[] = ["title", "time", "weekdays", "until"];
+
+/** Проверка формы: текст первой ошибки или null. */
 export function formProblem(f: EventForm, tz: string): string | null {
-  if (!f.title.trim()) return "Напишите название";
-  if (!f.dayFrom || (!f.allDay && (!f.timeFrom || !f.dayTo || !f.timeTo)))
-    return "Укажите дату и время";
-  const { start, end } = formTimes(f, tz);
-  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return "Укажите дату и время";
-  if (end < start) return "Окончание раньше начала";
-  if (f.freq === "weekly" && f.weekdays.length === 0) return "Выберите дни недели";
-  if (f.until && f.until < f.dayFrom) return "Повтор заканчивается раньше начала";
-  return null;
+  const e = formErrors(f, tz);
+  const first = FORM_FIELD_ORDER.find((k) => e[k]);
+  return first ? e[first]! : null;
+}
+
+/**
+ * Время быстрого создания по нажатию на день месяца: сегодня — ближайший
+ * час рабочего дня (9:00–18:00), иначе — 10:00.
+ */
+export function quickSlotTime(day: string, tz: string, now = new Date()): string {
+  if (day !== localDay(now, tz)) return "10:00";
+  const h = Number(localTime(now, tz).slice(0, 2)) + 1;
+  if (h < 9) return "09:00";
+  if (h > 18) return "10:00";
+  return `${pad(h)}:00`;
+}
+
+/** «вт, 11 ноя · 10:00–11:00» — строка времени быстрого создания. */
+export function shortWhen(
+  f: Pick<EventForm, "allDay" | "dayFrom" | "dayTo" | "timeFrom" | "timeTo">,
+): string {
+  const fmt = (day: string) => {
+    const [y, m, d] = day.split("-").map(Number);
+    return new Intl.DateTimeFormat("ru-RU", { weekday: "short", day: "numeric", month: "short" })
+      .format(new Date(Date.UTC(y, m - 1, d, 12)))
+      .replace(".", "");
+  };
+  if (f.allDay) {
+    return f.dayTo && f.dayTo > f.dayFrom
+      ? `${fmt(f.dayFrom)} – ${fmt(f.dayTo)}, весь день`
+      : `${fmt(f.dayFrom)}, весь день`;
+  }
+  if (f.dayTo && f.dayTo !== f.dayFrom)
+    return `${fmt(f.dayFrom)}, ${f.timeFrom} – ${fmt(f.dayTo)}, ${f.timeTo}`;
+  return `${fmt(f.dayFrom)} · ${f.timeFrom}–${f.timeTo}`;
+}
+
+/** «2 приглашения ждут ответа». */
+export function invitesText(n: number): string {
+  return `${n} ${plural(n, "приглашение", "приглашения", "приглашений")} ${n % 10 === 1 && n % 100 !== 11 ? "ждёт" : "ждут"} ответа`;
+}
+
+/** Пустой период сетки: «Событий на этой неделе нет». */
+export function emptyPeriodText(view: string): string {
+  if (view === "timeGridDay") return "В этот день событий нет";
+  if (view === "dayGridMonth") return "В этом месяце событий нет";
+  return "Событий на этой неделе нет";
+}
+
+/** «Владивосток» из подписи пояса «Владивосток (МСК+7)». */
+export function tzCity(label: string): string {
+  return label.replace(/\s*\(.*\)\s*$/, "");
 }
 
 /**
@@ -359,7 +516,7 @@ const ERRORS: Record<string, string> = {
   cal_end_before_start: "Окончание раньше начала",
   cal_rrule_invalid: "Проверьте настройки повтора",
   cal_reminders_invalid: "Не больше 5 напоминаний",
-  cal_occurrence_not_found: "Этого повторения уже нет — обновите календарь",
+  cal_occurrence_not_found: "Этого события уже нет — обновите календарь",
   cal_access_forbidden: "Открыть календарь всей компании или этому подразделению вы не можете",
   cal_access_invalid: "Проверьте, кому открыт календарь",
   cal_personal_delete: "Личный календарь не удаляется",
@@ -376,26 +533,51 @@ export function calErrorText(e: unknown): string {
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-/** Параметры адреса «Календаря»: событие и повторение, настройки, «Ждут ответа». */
-export function calendarSearch(raw: Record<string, unknown>): {
+const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+export type CalendarSearchParams = {
   event?: string;
   at?: string;
+  /** Карточка открыта из «Ждут ответа» — после закрытия вернуться к списку. */
+  from?: "invites";
   settings?: string;
   invites?: boolean;
-} {
+  /** Перейти сеткой к дню (мини-месяц в меню). */
+  date?: string;
+  /** Новое событие (карточка сотрудника → «Встреча»). */
+  new?: boolean;
+  /** Кого пригласить в новое событие. */
+  with?: string;
+};
+
+const truthy = (v: unknown) => v === true || v === "1" || v === 1 || v === "true";
+
+/** Параметры адреса «Календаря»: событие и повторение, настройки, «Ждут ответа», день, новое. */
+export function calendarSearch(raw: Record<string, unknown>): CalendarSearchParams {
   const event = typeof raw.event === "string" && UUID_RE.test(raw.event) ? raw.event : undefined;
   const at =
     event && typeof raw.at === "string" && !Number.isNaN(Date.parse(raw.at)) ? raw.at : undefined;
+  const from = event && raw.from === "invites" ? ("invites" as const) : undefined;
   const settings =
     typeof raw.settings === "string" && (raw.settings === "new" || UUID_RE.test(raw.settings))
       ? raw.settings
       : undefined;
-  const invites =
-    raw.invites === true || raw.invites === "1" || raw.invites === 1 || raw.invites === "true";
+  const invites = truthy(raw.invites);
+  const date =
+    typeof raw.date === "string" && DAY_RE.test(raw.date) && !Number.isNaN(Date.parse(raw.date))
+      ? raw.date
+      : undefined;
+  const isNew = truthy(raw.new);
+  const withUser =
+    isNew && typeof raw.with === "string" && UUID_RE.test(raw.with) ? raw.with : undefined;
   return {
     ...(event ? { event } : {}),
     ...(at ? { at } : {}),
+    ...(from ? { from } : {}),
     ...(settings ? { settings } : {}),
     ...(invites ? { invites: true } : {}),
+    ...(date ? { date } : {}),
+    ...(isNew ? { new: true } : {}),
+    ...(withUser ? { with: withUser } : {}),
   };
 }

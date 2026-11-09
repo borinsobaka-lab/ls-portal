@@ -35,25 +35,21 @@ describe("справочник", () => {
     expect(matchPerson(person, "  ")).toBe(true);
   });
 
-  test("в сети и «был»", () => {
+  test("в сети и когда заходил — без рода", () => {
     const now = new Date("2026-11-07T15:00:00");
     expect(isOnline(new Date(now.getTime() - 60_000).toISOString(), now.getTime())).toBe(true);
     expect(isOnline(null)).toBe(false);
-    expect(lastSeenLabel(null, now)).toBe("не заходил");
+    expect(lastSeenLabel(null, now)).toBe("ещё не заходил(а)");
     expect(lastSeenLabel(new Date(now.getTime() - 30_000).toISOString(), now)).toBe("в сети");
     expect(lastSeenLabel(new Date(now.getTime() - 10 * 60_000).toISOString(), now)).toBe(
-      "был 10 мин назад",
+      "10 мин назад",
     );
     expect(lastSeenLabel(new Date("2026-11-07T09:05:00").toISOString(), now)).toBe(
-      "был сегодня в 09:05",
+      "сегодня в 09:05",
     );
-    expect(lastSeenLabel(new Date("2026-11-06T18:40:00").toISOString(), now)).toBe(
-      "был вчера в 18:40",
-    );
-    expect(lastSeenLabel(new Date("2026-03-03T12:00:00").toISOString(), now)).toBe("был 3 марта");
-    expect(lastSeenLabel(new Date("2025-03-03T12:00:00").toISOString(), now)).toBe(
-      "был 3 марта 2025",
-    );
+    expect(lastSeenLabel(new Date("2026-11-06T18:40:00").toISOString(), now)).toBe("вчера в 18:40");
+    expect(lastSeenLabel(new Date("2026-03-03T12:00:00").toISOString(), now)).toBe("3 марта");
+    expect(lastSeenLabel(new Date("2025-03-03T12:00:00").toISOString(), now)).toBe("3 марта 2025");
   });
 
   test("дерево подразделений", () => {

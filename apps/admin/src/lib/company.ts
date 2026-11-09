@@ -57,21 +57,21 @@ export function isOnline(lastSeen: string | null, now = Date.now()): boolean {
   return !!lastSeen && now - new Date(lastSeen).getTime() < ONLINE_MS;
 }
 
-/** «в сети», «был 5 мин назад», «был вчера в 18:40», «был 3 марта». */
+/** Без рода (аудитория в основном женская): «в сети», «5 мин назад», «вчера в 18:40», «3 марта». */
 export function lastSeenLabel(lastSeen: string | null, now = new Date()): string {
-  if (!lastSeen) return "не заходил";
+  if (!lastSeen) return "ещё не заходил(а)";
   const d = new Date(lastSeen);
   const diff = now.getTime() - d.getTime();
   if (diff < ONLINE_MS) return "в сети";
   const min = Math.floor(diff / 60_000);
-  if (min < 60) return `был ${min} мин назад`;
+  if (min < 60) return `${min} мин назад`;
   const hh = String(d.getHours()).padStart(2, "0");
   const mm = String(d.getMinutes()).padStart(2, "0");
   const sameDay = (a: Date, b: Date) => a.toDateString() === b.toDateString();
-  if (sameDay(d, now)) return `был сегодня в ${hh}:${mm}`;
+  if (sameDay(d, now)) return `сегодня в ${hh}:${mm}`;
   const yesterday = new Date(now);
   yesterday.setDate(now.getDate() - 1);
-  if (sameDay(d, yesterday)) return `был вчера в ${hh}:${mm}`;
+  if (sameDay(d, yesterday)) return `вчера в ${hh}:${mm}`;
   const months = [
     "января",
     "февраля",
@@ -87,7 +87,7 @@ export function lastSeenLabel(lastSeen: string | null, now = new Date()): string
     "декабря",
   ];
   const year = d.getFullYear() === now.getFullYear() ? "" : ` ${d.getFullYear()}`;
-  return `был ${d.getDate()} ${months[d.getMonth()]}${year}`;
+  return `${d.getDate()} ${months[d.getMonth()]}${year}`;
 }
 
 const norm = (s: string) => s.toLowerCase().replace(/ё/g, "е");
