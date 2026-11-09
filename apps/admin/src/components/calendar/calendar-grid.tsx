@@ -7,7 +7,7 @@
  * пояс из настроек портала, даже если у компьютера другой. Обратно (выбор
  * промежутка, перетаскивание) — `fromWallClock`.
  */
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import FullCalendar from "@fullcalendar/react";
 import type { DateSelectArg, EventChangeArg, EventClickArg, EventInput } from "@fullcalendar/core";
 import ruLocale from "@fullcalendar/core/locales/ru";
@@ -16,10 +16,18 @@ import interactionPlugin from "@fullcalendar/interaction";
 import listPlugin from "@fullcalendar/list";
 import timeGridPlugin from "@fullcalendar/timegrid";
 
-import { wallClock } from "@/lib/calendar/logic";
+import { wallClock, wallDay } from "@/lib/calendar/logic";
 import type { CalView } from "@/lib/calendar/types";
 
-export type GridApi = { prev: () => void; next: () => void; today: () => void };
+export type GridApi = {
+  prev: () => void;
+  next: () => void;
+  today: () => void;
+  /** Перейти к дню «2026-11-20». */
+  gotoDate: (day: string) => void;
+  /** День, вокруг которого сейчас сетка. */
+  getDate: () => string | null;
+};
 
 export default function CalendarGrid({
   view,
@@ -30,6 +38,9 @@ export default function CalendarGrid({
   onEventClick,
   onEventChange,
   apiRef,
+  initialDate,
+  noEventsText,
+  dayHeaderExtra,
 }: {
   view: CalView;
   tz: string;
@@ -39,6 +50,11 @@ export default function CalendarGrid({
   onEventClick: (arg: EventClickArg) => void;
   onEventChange: (arg: EventChangeArg) => void;
   apiRef: { current: GridApi | null };
+  /** Первый показанный день (адрес `?date=`). */
+  initialDate?: string;
+  noEventsText: string;
+  /** Под датой в шапке дня (часы) — например, кто отсутствует. */
+  dayHeaderExtra?: (day: string) => ReactNode;
 }) {
   const ref = useRef<FullCalendar>(null);
 
@@ -53,6 +69,11 @@ export default function CalendarGrid({
       prev: () => ref.current?.getApi().prev(),
       next: () => ref.current?.getApi().next(),
       today: () => ref.current?.getApi().today(),
+      gotoDate: (day: string) => ref.current?.getApi().gotoDate(day),
+      getDate: () => {
+        const api = ref.current?.getApi();
+        return api ? wallDay(api.getDate()) : null;
+      },
     };
     return () => {
       apiRef.current = null;
@@ -67,6 +88,7 @@ export default function CalendarGrid({
       timeZone="UTC"
       now={() => wallClock(new Date(), tz)}
       initialView={view}
+      initialDate={initialDate}
       headerToolbar={false}
       height="100%"
       firstDay={1}
@@ -81,7 +103,20 @@ export default function CalendarGrid({
       eventLongPressDelay={400}
       eventTimeFormat={{ hour: "2-digit", minute: "2-digit", hour12: false }}
       slotLabelFormat={{ hour: "2-digit", minute: "2-digit", hour12: false }}
-      noEventsText="Событий нет"
+      noEventsText={noEventsText}
+      dayHeaderContent={
+        dayHeaderExtra
+          ? (arg) =>
+              arg.view.type.startsWith("timeGrid") ? (
+                <span className="flex flex-col items-center">
+                  <span>{arg.text}</span>
+                  {dayHeaderExtra(wallDay(arg.date))}
+                </span>
+              ) : (
+                arg.text
+              )
+          : undefined
+      }
       events={events}
       datesSet={(arg) => onRange({ start: arg.start, end: arg.end, title: arg.view.title })}
       select={(arg) => {

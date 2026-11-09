@@ -4,7 +4,7 @@
  * сами), подписи повторов, напоминаний и времени события, форма события.
  */
 import { addDays, isoDow, localDay, localTime, plural, zoned } from "@/lib/tasks/logic";
-import type { CalColor, CalEvent, CalLevel, Response, RRule, RRuleFreq } from "./types";
+import type { CalColor, CalEvent, CalLevel, Calendar, Response, RRule, RRuleFreq } from "./types";
 
 export const CAL_COLORS: Record<CalColor, { label: string; solid: string }> = {
   blue: { label: "Синий", solid: "#3b82f6" },
@@ -31,6 +31,18 @@ export const LEVEL_LABEL: Record<CalLevel, string> = {
   manage: "Полный доступ",
 };
 
+/** Календари, куда человек может записывать события. */
+export function writableCalendars(calendars: Calendar[]): Calendar[] {
+  return calendars.filter((c) => c.level === "edit" || c.level === "manage");
+}
+
+/** Календарь нового события: выбранный, если в него можно писать, иначе личный. */
+export function defaultCalendarId(calendars: Calendar[], wanted?: string): string {
+  const writable = writableCalendars(calendars);
+  if (wanted && writable.some((c) => c.id === wanted)) return wanted;
+  return (calendars.find((c) => c.kind === "personal") ?? writable[0])?.id ?? "";
+}
+
 export const LEVEL_TIP =
   "«Просмотр» — видит события. «Добавление событий» — ещё создаёт и меняет события. «Полный доступ» — ещё меняет название, цвет и кому открыт календарь.";
 
@@ -40,6 +52,20 @@ export const RESPONSE_LABEL: Record<Response, string> = {
   declined: "Не придёт",
   maybe: "Возможно",
 };
+
+/** Ответ на приглашение — три варианта (карточка и «Ждут ответа»). */
+export const ANSWER_OPTIONS: { value: Exclude<Response, "pending">; label: string }[] = [
+  { value: "accepted", label: "Приду" },
+  { value: "maybe", label: "Возможно" },
+  { value: "declined", label: "Не приду" },
+];
+
+/** Тост после ответа: «Вы приняли приглашение «Планёрка»». */
+export function answerToast(r: Exclude<Response, "pending">, title: string): string {
+  if (r === "accepted") return `Вы приняли приглашение «${title}»`;
+  if (r === "maybe") return `Ответ «Возможно» на «${title}»`;
+  return `Вы отказались от «${title}»`;
+}
 
 // ---- Время ---------------------------------------------------------------------------
 

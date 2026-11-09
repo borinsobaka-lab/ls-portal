@@ -4144,8 +4144,8 @@ export function CalendarPageSkeleton() {
       <div className="flex h-[calc(100dvh-15rem)] min-h-[28rem] flex-col gap-3 max-md:h-[calc(100dvh-14rem)]">
         <ToolbarSkeleton search={false}>
           <div className="toolbar-full flex flex-1 items-center gap-2">
-            <Skeleton className="h-9 w-24 rounded-full" />
-            <Skeleton className="h-9 w-20 rounded-full" />
+            <Skeleton className="h-10 w-24 rounded-full" />
+            <Skeleton className="h-10 w-20 rounded-full" />
             <Skeleton className="h-6 w-56" />
           </div>
           <Skeleton className="toolbar-full h-10 w-72" />

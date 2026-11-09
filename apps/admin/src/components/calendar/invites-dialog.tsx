@@ -1,13 +1,13 @@
 /**
  * «Ждут ответа»: приглашения на предстоящие встречи без моего ответа —
- * «Приду» / «Не приду» прямо в списке, по строке — карточка встречи.
+ * «Приду / Возможно / Не приду» прямо в списке, по строке — карточка
+ * встречи (после неё — снова список). Открывается плашкой над сеткой.
  */
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Repeat } from "lucide-react";
 import { toast } from "sonner";
 
-import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogBody,
@@ -17,9 +17,17 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { InfoNote } from "@/components/ui/form-field";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 import { Skeleton } from "@/components/ui/skeleton";
 import { calInvitesQuery, respondEvent } from "@/lib/calendar/data";
-import { calErrorText, eventWhen, rruleText } from "@/lib/calendar/logic";
+import {
+  ANSWER_OPTIONS,
+  answerToast,
+  calErrorText,
+  eventWhen,
+  rruleText,
+} from "@/lib/calendar/logic";
+import type { Response } from "@/lib/calendar/types";
 import { usePeople } from "@/lib/chats/people";
 import { useTaskClock } from "@/lib/tasks/data";
 import { localDay, localTime } from "@/lib/tasks/logic";
@@ -64,12 +72,13 @@ function InvitesList({ onOpen }: { onOpen: (eventId: string) => void }) {
       </div>
     );
   }
-  if (!data?.length) return <InfoNote variant="empty">Все приглашения отвечены.</InfoNote>;
+  if (!data?.length) return <InfoNote variant="empty">Новых приглашений нет.</InfoNote>;
 
-  const answer = async (id: string, r: "accepted" | "declined") => {
+  const answer = async (id: string, title: string, r: Exclude<Response, "pending">) => {
     setBusy(id);
     try {
       await respondEvent(qc, id, r);
+      toast.success(answerToast(r, title));
     } catch (e) {
       toast.error(calErrorText(e));
     } finally {
@@ -106,23 +115,14 @@ function InvitesList({ onOpen }: { onOpen: (eventId: string) => void }) {
                 </span>
               </span>
             </button>
-            <div className="flex gap-1.5">
-              <Button
-                size="sm"
-                disabled={busy === i.id}
-                onClick={() => void answer(i.id, "accepted")}
-              >
-                Приду
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                disabled={busy === i.id}
-                onClick={() => void answer(i.id, "declined")}
-              >
-                Не приду
-              </Button>
-            </div>
+            <SegmentedControl
+              aria-label={`Ответ: ${i.title}`}
+              className="max-sm:w-full"
+              fullWidth
+              value={"" as Exclude<Response, "pending">}
+              onChange={(r) => busy !== i.id && void answer(i.id, i.title, r)}
+              options={ANSWER_OPTIONS}
+            />
           </li>
         );
       })}

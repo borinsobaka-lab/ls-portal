@@ -166,7 +166,8 @@ type Prefs = { hidden: string[]; layers: Record<CalLayer, boolean> };
 const PREFS_KEY = "calendar_prefs";
 const DEFAULT_PREFS: Prefs = {
   hidden: [],
-  layers: { tasks: true, birthdays: true, absences: true },
+  // Отсутствия по умолчанию скрыты: у руководителя они забивали строку «весь день».
+  layers: { tasks: true, birthdays: true, absences: false },
 };
 
 let prefs: Prefs | null = null;
