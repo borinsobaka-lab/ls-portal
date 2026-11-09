@@ -137,11 +137,27 @@ describe.skipIf(!url)("дни рождения и отсутствия (база
         "people_forbidden",
       );
       const [{ g }] = await tx`select people_birthday_get(${b}) as g`;
-      expect(g).toEqual({ day: "03-15", year: null, show_year: false, can_edit: false });
+      expect(g).toEqual({
+        day: "03-15",
+        year: null,
+        year_known: true,
+        show_year: false,
+        can_edit: false,
+      });
       // Руководитель подразделения правит и видит год.
       await as(tx, a);
       const [{ g: ga }] = await tx`select people_birthday_get(${b}) as g`;
       expect(ga).toMatchObject({ year: 1990, can_edit: true });
+
+      // Без года (2026-11-09): день и месяц, года и возраста нет ни у кого,
+      // «Показывать год» не включается; 29 февраля сохраняется.
+      await as(tx, b);
+      await tx`select people_birthday_save(${b}, '2024-02-29', true, false)`;
+      const [{ g: gy }] = await tx`select people_birthday_get(${b}) as g`;
+      expect(gy).toMatchObject({ day: "02-29", year: null, year_known: false, show_year: false });
+      await asServer(tx);
+      const [{ y }] = await tx`select extract(year from birth_date)::int as y from people_birthdays where user_id = ${b}`;
+      expect(y).toBe(2000);
     });
   });
 

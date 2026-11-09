@@ -113,6 +113,19 @@ describe.skipIf(!url)("уведомления портала (база)", () => 
       const [{ notif_mark_read: marked }] = await tx`select notif_mark_read(null)`;
       expect(marked).toBe(1);
       expect((await tx`select notif_unread_count() as n`)[0].n).toBe(0);
+      // «Отметить непрочитанным» (2026-11-09) — только своё.
+      const [{ notif_mark_unread: back }] = await tx`select notif_mark_unread(${[id]}::uuid[])`;
+      expect(back).toBe(1);
+      expect((await tx`select notif_unread_count() as n`)[0].n).toBe(1);
+      await asServer(tx);
+      const b = await staff(tx, "Петрова Вера");
+      await as(tx, b);
+      await tx`select notif_mark_read(null)`;
+      await as(tx, a);
+      await tx`select notif_mark_read(null)`;
+      await as(tx, b);
+      const [{ notif_mark_unread: other }] = await tx`select notif_mark_unread(${[id]}::uuid[])`;
+      expect(other).toBe(0);
     });
   });
 
