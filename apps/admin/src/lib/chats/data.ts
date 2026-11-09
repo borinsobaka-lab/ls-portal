@@ -425,6 +425,30 @@ export async function markAllRead(qc: QueryClient, chatIds: string[]) {
   ]);
 }
 
+/**
+ * Уведомления чата: «все» / «только упоминания» / выключены и «без звука» до
+ * времени (`chat_set_notify`). Список и счётчики — сразу.
+ */
+export async function setChatNotify(
+  qc: QueryClient,
+  chatId: string,
+  notify: ChatRow["notify"],
+  until: Date | null,
+) {
+  const muted_until = until ? until.toISOString() : null;
+  qc.setQueryData<ChatRow[]>(chatListQuery.queryKey, (rows) =>
+    rows?.map((c) => (c.id === chatId ? { ...c, notify, muted_until } : c)),
+  );
+  try {
+    await rpc("chat_set_notify", { p_chat: chatId, p_notify: notify, p_muted_until: muted_until });
+  } finally {
+    await Promise.all([
+      qc.invalidateQueries({ queryKey: ["chat_list"] }),
+      qc.invalidateQueries({ queryKey: ["chat_unread"] }),
+    ]);
+  }
+}
+
 export const openDirect = (userId: string) => rpc<string>("chat_open_direct", { p_user: userId });
 export const openSelf = () => rpc<string>("chat_open_self");
 export const createGroup = (title: string, members: string[], description?: string) =>

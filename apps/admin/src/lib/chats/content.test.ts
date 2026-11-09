@@ -313,7 +313,9 @@ describe("превью удалённого", () => {
 
   test("код базы без перевода — понятный текст", async () => {
     const { chatErrorText } = await import("./data");
-    expect(chatErrorText(new Error("chat_something_new"))).toBe("Не получилось. Попробуйте ещё раз");
+    expect(chatErrorText(new Error("chat_something_new"))).toBe(
+      "Не получилось. Попробуйте ещё раз",
+    );
     expect(chatErrorText(new Error("chat_forbidden"))).toBe("Нет доступа к этому чату");
     expect(chatErrorText(new Error("Failed to fetch"))).toBe("Failed to fetch");
   });

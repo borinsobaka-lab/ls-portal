@@ -416,7 +416,9 @@ export function previewOf(last: ChatPreview, loaded: ChatMessage[] | undefined):
     text: prev.text,
     forward: !!prev.forward,
     system:
-      prev.kind === "system" ? ((prev.content as { system?: ChatSystem } | null)?.system ?? null) : null,
+      prev.kind === "system"
+        ? ((prev.content as { system?: ChatSystem } | null)?.system ?? null)
+        : null,
   };
 }
 
