@@ -5,7 +5,7 @@
  */
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, Loader2, Users } from "lucide-react";
+import { Check, Loader2, Users, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { ChatAvatar } from "@/components/chats/chat-avatar";
@@ -42,18 +42,26 @@ import { cn } from "@/lib/utils";
 
 // ---- Выбор людей ----------------------------------------------------------------
 
+/**
+ * Выбор людей из справочника «Компании». Несколько — выбранные чипами над
+ * поиском (крестик убирает), с `onDone` внизу строка «Выбрано: N · Готово»
+ * (как в Telegram: видно, кого выбрали, и понятно, как закончить).
+ */
 export function PeoplePicker({
   selected,
   onToggle,
   exclude = [],
   single = false,
+  onDone,
 }: {
   selected: string[];
   onToggle: (id: string) => void;
   exclude?: string[];
   single?: boolean;
+  /** Кнопка «Готово» внизу (в выпадающем окне — закрыть его). */
+  onDone?: () => void;
 }) {
-  const { people, loading } = usePeople();
+  const { people, loading, name } = usePeople();
   const [q, setQ] = useState("");
   const list = useMemo(
     () => people.filter((p) => !exclude.includes(p.user_id) && matchPerson(p, q)).slice(0, 200),
@@ -61,6 +69,27 @@ export function PeoplePicker({
   );
   return (
     <div className="space-y-2">
+      {!single && selected.length > 0 && (
+        <div className="flex max-h-24 flex-wrap gap-1.5 overflow-y-auto">
+          {selected.map((uid) => (
+            <span
+              key={uid}
+              className="inline-flex max-w-full items-center gap-1 rounded-full bg-selected/10 py-0.5 pr-1 pl-2.5 text-sm"
+            >
+              <span className="truncate">{name(uid)}</span>
+              <button
+                type="button"
+                aria-label={`Убрать: ${name(uid)}`}
+                title="Убрать"
+                className="rounded-full p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+                onClick={() => onToggle(uid)}
+              >
+                <X className="size-3.5" />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
       <SearchInput value={q} onChange={setQ} placeholder="Имя, должность, отдел, город" autoFocus />
       <div className="max-h-80 overflow-y-auto rounded-md border">
         {loading ? (
@@ -68,7 +97,7 @@ export function PeoplePicker({
             <Loader2 className="size-4 animate-spin text-muted-foreground" />
           </div>
         ) : list.length === 0 ? (
-          <p className="p-4 text-center text-sm text-muted-foreground">Никого не нашли</p>
+          <p className="p-4 text-center text-sm text-muted-foreground">Ничего не найдено</p>
         ) : (
           list.map((p) => {
             const on = selected.includes(p.user_id);
@@ -108,6 +137,14 @@ export function PeoplePicker({
           })
         )}
       </div>
+      {onDone && !single && (
+        <div className="flex items-center justify-between gap-2 pt-1">
+          <span className="text-sm text-muted-foreground">Выбрано: {selected.length}</span>
+          <Button size="sm" onClick={onDone}>
+            Готово
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

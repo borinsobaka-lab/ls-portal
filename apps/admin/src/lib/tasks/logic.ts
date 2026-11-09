@@ -371,7 +371,7 @@ export function quickDeadlines(
       date: at(next),
     },
     { key: "week", label: "Конец недели", hint: `${shortDay(weekEnd)}, ${end}`, date: at(weekEnd) },
-    { key: "plus5", label: "Через неделю", hint: `${shortDay(plus5)}, ${end}`, date: at(plus5) },
+    { key: "plus5", label: "Через 5 рабочих дней", hint: `${shortDay(plus5)}, ${end}`, date: at(plus5) },
   ];
 }
 

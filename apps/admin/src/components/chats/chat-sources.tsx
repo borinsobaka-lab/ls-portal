@@ -5,6 +5,7 @@
  * и окно «Кто прочитал» с напоминанием. Права — у базы
  * (db/migrations/2026-11-08_zzzzz_chat_channels.sql).
  */
+import { UnitScopeFields } from "@/components/people/unit-scope-fields";
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Building2, Check, CheckCheck, Loader2, Plus, Settings2, X } from "lucide-react";
@@ -90,7 +91,7 @@ export function SourcesEditor({
         >
           <div className="flex items-center gap-2">
             {s.kind === "all" ? (
-              <span className="flex-1 text-sm font-medium">Вся компания — все люди портала</span>
+              <span className="flex-1 text-sm font-medium">Вся компания — все сотрудники</span>
             ) : (
               <Select value={s.unit_id ?? ""} onValueChange={(id) => set(i, { unit_id: id })}>
                 <SelectTrigger aria-label="Подразделение" className="flex-1">
@@ -123,24 +124,11 @@ export function SourcesEditor({
             </Button>
           </div>
           {s.kind === "unit" && (
-            <>
-              <SegmentedControl
-                aria-label="Кто из подразделения"
-                fullWidth
-                value={s.scope}
-                onChange={(scope) => set(i, { scope })}
-                options={[
-                  { value: "all", label: "Все сотрудники" },
-                  { value: "heads", label: "Руководители и заместители" },
-                ]}
-              />
-              <SwitchRow
-                title="И подразделения ниже"
-                tip={TIPS.sub}
-                checked={s.with_subunits}
-                onCheckedChange={(with_subunits) => set(i, { with_subunits })}
-              />
-            </>
+            <UnitScopeFields
+              scope={s.scope}
+              withSubunits={s.with_subunits}
+              onChange={(v) => set(i, { scope: v.scope, with_subunits: v.withSubunits })}
+            />
           )}
         </div>
       ))}
