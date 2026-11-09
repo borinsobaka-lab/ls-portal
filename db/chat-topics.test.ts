@@ -201,6 +201,14 @@ describe.skipIf(!url)("темы в группах (база)", () => {
       await asServer(tx);
       const [{ n }] = await tx`select portal_badge_count(${b}) as n`;
       expect(n).toBe(1);
+      // «Только упоминания» — тихий чат, как в списке портала (2026-11-09).
+      await as(tx, b);
+      await tx`select chat_set_notify(${g}, 'mentions')`;
+      const [{ s: sm }] = await tx`select chat_unread_summary() as s`;
+      expect(sm).toEqual({ chats: 0, muted: 1 });
+      await asServer(tx);
+      const [{ n: nm }] = await tx`select portal_badge_count(${b}) as n`;
+      expect(nm).toBe(0);
       // Тишина группы — тишина её тем.
       await as(tx, b);
       await tx`select chat_set_notify(${g}, 'none')`;
