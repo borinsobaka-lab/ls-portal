@@ -3,8 +3,14 @@
  * 2.16): окно «Отправить позже» (быстрые варианты и своё время), плашка и
  * список запланированных над полем ввода, окно «Новый опрос» и опрос в
  * сообщении. Схема — db/migrations/2026-11-08_zzzzzz_chat_scheduled_polls.sql.
+ *
+ * UI_REVIEW_CHATS_TASKS_CALENDAR.md, 3.10: время выбирается (быстрые
+ * варианты или «Своё время» общими полями даты и времени), подтверждение
+ * одно — «Запланировать»; удаление отложенного — с вопросом; у списков —
+ * «Закрыть».
  */
 import { useMemo, useState } from "react";
+import { useConfirm } from "@/components/confirm-dialog";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertCircle, BarChart3, Check, Clock, Loader2, Plus, Send, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
@@ -17,12 +23,16 @@ import {
   DialogContent,
   DialogDescription,
   DialogFooter,
+  DialogForm,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { DateField, TimeField } from "@/components/ui/date-field";
 import { FormField, SwitchRow } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
-import { scheduleOptions, scheduledLabel, toLocalInput } from "@/lib/chats/content";
+import { ListItemButton } from "@/components/ui/list-item-button";
+import { scheduleOptions, scheduledLabel } from "@/lib/chats/content";
+import { isoOf, pad } from "@/lib/day-format";
 import {
   chatErrorText,
   createPoll,
@@ -72,11 +82,29 @@ function ScheduleForm({
   onPick: (at: Date) => Promise<void> | void;
 }) {
   const quick = useMemo(() => scheduleOptions(new Date()), []);
-  const [value, setValue] = useState(() => toLocalInput(initial ?? quick[0].at));
+  // Выбранный вариант: номер быстрого или «своё» (по умолчанию — первый быстрый;
+  // у «Другого времени» — своё, с прежним временем).
+  const [choice, setChoice] = useState<number | "custom">(initial ? "custom" : 0);
+  const start = initial ?? quick[0].at;
+  const [day, setDay] = useState(() => isoOf(start));
+  const [time, setTime] = useState(() => `${pad(start.getHours())}:${pad(start.getMinutes())}`);
+  const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const pick = async (at: Date) => {
+  const chosen = (): Date | null => {
+    if (choice !== "custom") return quick[choice].at;
+    if (!day || !time) return null;
+    const [y, mo, d] = day.split("-").map(Number);
+    const [h, mi] = time.split(":").map(Number);
+    return new Date(y, mo - 1, d, h, mi);
+  };
+  const pick = async () => {
+    const at = chosen();
+    if (!at) {
+      setError("Выберите день и время");
+      return;
+    }
     if (!(at.getTime() > Date.now() + 30_000)) {
-      toast.error("Выберите время позже, чем через минуту");
+      setError("Выберите время позже, чем через минуту");
       return;
     }
     setBusy(true);
@@ -97,37 +125,77 @@ function ScheduleForm({
           Сообщение уйдёт само в выбранное время — даже если портал закрыт.
         </DialogDescription>
       </DialogHeader>
-      <DialogBody className="space-y-3">
-        <div className="grid gap-2">
-          {quick.map((q) => (
-            <Button
-              key={q.label}
+      <DialogForm onSubmit={() => void pick()}>
+        <DialogBody className="space-y-3">
+          <div className="space-y-1" role="radiogroup" aria-label="Когда отправить">
+            {quick.map((q, i) => (
+              <ListItemButton
+                key={q.label}
+                variant="outline"
+                role="radio"
+                aria-checked={choice === i}
+                active={choice === i}
+                onClick={() => {
+                  setChoice(i);
+                  setError(null);
+                }}
+              >
+                <Clock /> <span className="flex-1">{q.label}</span>
+                {choice === i && <Check />}
+              </ListItemButton>
+            ))}
+            <ListItemButton
               variant="outline"
-              className="justify-start"
-              disabled={busy}
-              onClick={() => void pick(q.at)}
+              role="radio"
+              aria-checked={choice === "custom"}
+              active={choice === "custom"}
+              onClick={() => {
+                setChoice("custom");
+                setError(null);
+              }}
             >
-              <Clock className="size-4" /> {q.label}
-            </Button>
-          ))}
-        </div>
-        <FormField label="Своё время" htmlFor="chat-schedule-at">
-          <Input
-            id="chat-schedule-at"
-            type="datetime-local"
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-          />
-        </FormField>
-      </DialogBody>
-      <DialogFooter>
-        <Button variant="outline" onClick={onClose}>
-          Отмена
-        </Button>
-        <Button disabled={busy || !value} onClick={() => void pick(new Date(value))}>
-          {busy && <Loader2 className="animate-spin" />} Запланировать
-        </Button>
-      </DialogFooter>
+              <Clock /> <span className="flex-1">Своё время</span>
+              {choice === "custom" && <Check />}
+            </ListItemButton>
+          </div>
+          {choice === "custom" && (
+            <FormField label="Своё время" htmlFor={null} error={error}>
+              <div className="grid grid-cols-[1fr_8rem] gap-2">
+                <DateField
+                  aria-label="День"
+                  value={day}
+                  min={isoOf(new Date())}
+                  onChange={(d) => {
+                    setDay(d);
+                    setError(null);
+                  }}
+                />
+                <TimeField
+                  value={time}
+                  step={15}
+                  onChange={(t) => {
+                    setTime(t);
+                    setError(null);
+                  }}
+                />
+              </div>
+            </FormField>
+          )}
+          {choice !== "custom" && error && (
+            <p role="alert" className="text-sm text-destructive">
+              {error}
+            </p>
+          )}
+        </DialogBody>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={busy}>
+            Отмена
+          </Button>
+          <Button type="submit" disabled={busy}>
+            {busy && <Loader2 className="animate-spin" />} Запланировать
+          </Button>
+        </DialogFooter>
+      </DialogForm>
     </>
   );
 }
@@ -165,15 +233,16 @@ export function ScheduledBar({
       )}
       <Dialog open={openList} onOpenChange={onOpenList}>
         <DialogContent className="sm:max-w-lg">
-          {openList && <ScheduledList items={data} />}
+          {openList && <ScheduledList items={data} onClose={() => onOpenList(false)} />}
         </DialogContent>
       </Dialog>
     </>
   );
 }
 
-function ScheduledList({ items }: { items: ChatScheduled[] }) {
+function ScheduledList({ items, onClose }: { items: ChatScheduled[]; onClose: () => void }) {
   const qc = useQueryClient();
+  const { confirm, confirmDialog } = useConfirm();
   const [moving, setMoving] = useState<ChatScheduled | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const act = async (id: string, run: () => Promise<unknown>, ok?: string) => {
@@ -208,7 +277,8 @@ function ScheduledList({ items }: { items: ChatScheduled[] }) {
             <div className="flex items-center gap-2 text-xs">
               {s.status === "failed" ? (
                 <span className="inline-flex items-center gap-1 font-medium text-destructive">
-                  <AlertCircle className="size-3.5" /> Не отправлено: {chatErrorText(s.error ?? "")}
+                  <AlertCircle className="size-3.5" /> Не отправлено:{" "}
+                  {s.error ? chatErrorText(s.error) : "не получилось отправить"}
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-1 text-muted-foreground">
@@ -239,7 +309,16 @@ function ScheduledList({ items }: { items: ChatScheduled[] }) {
                 variant="ghost"
                 className="text-destructive"
                 disabled={busy === s.id}
-                onClick={() => void act(s.id, () => deleteScheduled(qc, s))}
+                onClick={() =>
+                  void (async () => {
+                    const ok = await confirm({
+                      title: "Удалить отложенное сообщение?",
+                      description: "Оно не отправится. Текст пропадёт — вернуть нельзя.",
+                      confirmLabel: "Удалить",
+                    });
+                    if (ok) await act(s.id, () => deleteScheduled(qc, s), "Отложенное удалено");
+                  })()
+                }
               >
                 <Trash2 className="size-3.5" /> Удалить
               </Button>
@@ -247,13 +326,23 @@ function ScheduledList({ items }: { items: ChatScheduled[] }) {
           </div>
         ))}
       </DialogBody>
+      <DialogFooter>
+        <Button variant="outline" onClick={onClose}>
+          Закрыть
+        </Button>
+      </DialogFooter>
       <ScheduleDialog
         open={!!moving}
         title="Другое время"
         initial={moving ? new Date(moving.send_at) : undefined}
         onClose={() => setMoving(null)}
-        onPick={(at) => (moving ? rescheduleMessage(qc, moving, at) : undefined)}
+        onPick={async (at) => {
+          if (!moving) return;
+          await rescheduleMessage(qc, moving, at);
+          toast.success(`Перенесено: ${scheduledLabel(at.toISOString(), new Date())}`);
+        }}
       />
+      {confirmDialog}
     </>
   );
 }
@@ -286,6 +375,7 @@ function PollForm({ chatId, onClose }: { chatId: string; onClose: () => void }) 
   const [anonymous, setAnonymous] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [optionsError, setOptionsError] = useState<string | null>(null);
   const filled = options.map((o) => o.trim()).filter(Boolean);
   const submit = async () => {
     if (!question.trim()) {
@@ -293,11 +383,11 @@ function PollForm({ chatId, onClose }: { chatId: string; onClose: () => void }) 
       return;
     }
     if (filled.length < 2) {
-      toast.error("Нужно хотя бы два варианта");
+      setOptionsError("Нужно хотя бы два варианта");
       return;
     }
     if (new Set(filled.map((o) => o.toLowerCase())).size !== filled.length) {
-      toast.error("Варианты повторяются");
+      setOptionsError("Варианты повторяются — сделайте их разными");
       return;
     }
     setBusy(true);
@@ -334,7 +424,7 @@ function PollForm({ chatId, onClose }: { chatId: string; onClose: () => void }) 
             }}
           />
         </FormField>
-        <FormField label="Варианты" required htmlFor={null} hint="От 2 до 10">
+        <FormField label="Варианты" required htmlFor={null} hint="От 2 до 10" error={optionsError}>
           <div className="space-y-2">
             {options.map((o, i) => (
               <div key={i} className="flex items-center gap-2">
@@ -343,9 +433,10 @@ function PollForm({ chatId, onClose }: { chatId: string; onClose: () => void }) 
                   maxLength={100}
                   aria-label={`Вариант ${i + 1}`}
                   placeholder={`Вариант ${i + 1}`}
-                  onChange={(e) =>
-                    setOptions((x) => x.map((v, j) => (j === i ? e.target.value : v)))
-                  }
+                  onChange={(e) => {
+                    setOptions((x) => x.map((v, j) => (j === i ? e.target.value : v)));
+                    setOptionsError(null);
+                  }}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && i === options.length - 1 && options.length < 10) {
                       e.preventDefault();
@@ -359,6 +450,7 @@ function PollForm({ chatId, onClose }: { chatId: string; onClose: () => void }) 
                     size="icon"
                     className="size-8 shrink-0"
                     aria-label={`Убрать вариант ${i + 1}`}
+                    title="Убрать вариант"
                     onClick={() => setOptions((x) => x.filter((_, j) => j !== i))}
                   >
                     <X className="size-4" />
@@ -368,7 +460,7 @@ function PollForm({ chatId, onClose }: { chatId: string; onClose: () => void }) 
             ))}
             {options.length < 10 && (
               <Button variant="outline" size="sm" onClick={() => setOptions((x) => [...x, ""])}>
-                <Plus className="size-4" /> Вариант
+                <Plus className="size-4" /> Добавить вариант
               </Button>
             )}
           </div>

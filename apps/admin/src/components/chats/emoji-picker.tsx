@@ -140,7 +140,7 @@ export default function EmojiPicker({
               {found.map((it) => cell(it.emoji, it.words.trim().split(" ").slice(0, 3).join(" ")))}
             </div>
           ) : (
-            <p className="py-10 text-center text-sm text-muted-foreground">Ничего не нашлось</p>
+            <p className="py-10 text-center text-sm text-muted-foreground">Ничего не найдено</p>
           )
         ) : (
           groups.map((g) => (

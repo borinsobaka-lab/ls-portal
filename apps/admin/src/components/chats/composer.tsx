@@ -20,6 +20,14 @@
  * полем (системное меню «Вырезать / Копировать» встаёт над выделением и
  * закрывало её), шрифт поля — 16 px (иначе iPhone увеличивает страницу при
  * касании поля), «Кого упомянуть» — плашкой над полем во всю ширину.
+ *
+ * Проще для новичка (UI_REVIEW_CHATS_TASKS_CALENDAR.md, 3.4): с мышью
+ * скрепка сразу открывает выбор файла, «Создать опрос» — своя кнопка; на
+ * телефоне скрепка — меню «Фото и видео / Файл / Создать опрос». «Отправить
+ * позже» — часики у «Отправить» (правая кнопка по «Отправить» — ускоритель).
+ * Форматирование — и панелью над выделенным текстом (BubbleMenu TipTap, с
+ * мышью), и кнопкой «Т» в поле рядом с эмодзи; ссылка — окном «Адрес / Текст».
+ * Кнопки у поля на сенсорном экране — 44 px.
  */
 import {
   forwardRef,
@@ -32,6 +40,7 @@ import {
   useState,
 } from "react";
 import { EditorContent, useEditor, useEditorState, type Editor } from "@tiptap/react";
+import { BubbleMenu } from "@tiptap/react/menus";
 import StarterKit from "@tiptap/starter-kit";
 import Mention from "@tiptap/extension-mention";
 import { Placeholder } from "@tiptap/extensions";
@@ -41,6 +50,8 @@ import {
   ChevronUp,
   Clock,
   Code,
+  FileText,
+  ImageIcon,
   Italic,
   Link2,
   List,
@@ -67,6 +78,19 @@ import { toast } from "sonner";
 import { ScheduleDialog } from "@/components/chats/chat-extras";
 import { StaffAvatar } from "@/components/employee-photo";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogForm,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { FormField } from "@/components/ui/form-field";
+import { Input } from "@/components/ui/input";
+import { ListItemButton } from "@/components/ui/list-item-button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { docText, scheduledLabel } from "@/lib/chats/content";
 import { formatFileSize, startChatUpload, type ChatUpload } from "@/lib/chats/files";
@@ -143,6 +167,12 @@ const ACTIVE_MARKS = [
   "orderedList",
   "blockquote",
 ] as const;
+
+/** Кнопка у поля: 36 px с мышью, 44 px на сенсорном экране (3.4.5). */
+const FIELD_BUTTON = "mb-0.5 size-9 shrink-0 pointer-coarse:size-11";
+
+/** Ссылка в поле: что выделено и какой адрес уже стоит. */
+type LinkDraft = { href: string; text: string; selection: boolean };
 
 const draftKey = (chatId: string) => `chat-draft:${chatId}`;
 
@@ -221,6 +251,7 @@ export const Composer = forwardRef<
     onPoll,
   } = props;
   const [attachMenu, setAttachMenu] = useState(false);
+  const [linkDraft, setLinkDraft] = useState<LinkDraft | null>(null);
   const [scheduling, setScheduling] = useState(false);
   const longPress = useRef<{ timer: number | null; fired: boolean }>({ timer: null, fired: false });
   const [uploads, setUploads] = useState<Upload[]>([]);
@@ -234,6 +265,7 @@ export const Composer = forwardRef<
   candidatesRef.current = candidates;
   const sendRef = useRef<() => void>(() => {});
   const fileInput = useRef<HTMLInputElement>(null);
+  const mediaInput = useRef<HTMLInputElement>(null);
   const typingAt = useRef(0);
   const editingRef = useRef(editing);
   editingRef.current = editing;
@@ -667,13 +699,37 @@ export const Composer = forwardRef<
     editor.chain().insertContent(em).run();
   };
 
+  // Ссылка — окном портала с «Адрес» и «Текст» (вместо window.prompt, 3.4.3).
   const setLink = () => {
     if (!editor) return;
-    const prev = editor.getAttributes("link").href as string | undefined;
-    const url = window.prompt("Адрес ссылки", prev ?? "https://");
-    if (url === null) return;
-    if (url.trim() === "") editor.chain().focus().extendMarkRange("link").unsetLink().run();
-    else editor.chain().focus().extendMarkRange("link").setLink({ href: url.trim() }).run();
+    if (editor.isActive("link")) editor.chain().extendMarkRange("link").run();
+    const { from, to } = editor.state.selection;
+    setLinkDraft({
+      href: (editor.getAttributes("link").href as string | undefined) ?? "",
+      text: editor.state.doc.textBetween(from, to, " "),
+      selection: from !== to,
+    });
+  };
+  const applyLink = (href: string, text: string) => {
+    if (!editor || !linkDraft) return;
+    const chain = editor.chain().focus();
+    if (!href) {
+      chain.extendMarkRange("link").unsetLink().run();
+      return;
+    }
+    const url = /^[a-z][a-z0-9+.-]*:/i.test(href) ? href : `https://${href}`;
+    if (linkDraft.selection && text === linkDraft.text)
+      chain.extendMarkRange("link").setLink({ href: url }).run();
+    else
+      chain
+        .insertContent({
+          type: "text",
+          text: text || url,
+          marks: [{ type: "link", attrs: { href: url } }],
+        })
+        .unsetMark("link")
+        .insertContent(" ")
+        .run();
   };
 
   const tools = editor
@@ -730,6 +786,26 @@ export const Composer = forwardRef<
       ]
     : [];
 
+  const toolButton = (t: (typeof tools)[number], big: boolean) => (
+    <Button
+      key={t.label}
+      variant="ghost"
+      size="icon"
+      className={cn(
+        "size-8 shrink-0",
+        big && "pointer-coarse:size-10",
+        active?.[t.active] && "bg-muted text-chat-accent",
+      )}
+      aria-label={t.label}
+      title={t.label}
+      aria-pressed={!!active?.[t.active]}
+      {...noBlur}
+      onClick={t.run}
+    >
+      <t.icon className={cn("size-4", big && "pointer-coarse:size-5")} />
+    </Button>
+  );
+
   if (disabledReason) {
     return (
       <div className="border-t bg-background px-4 py-3 text-center text-sm text-muted-foreground">
@@ -759,7 +835,8 @@ export const Composer = forwardRef<
             variant="ghost"
             size="icon"
             className="size-7"
-            aria-label="Отменить"
+            aria-label={editing ? "Отменить правку" : "Отменить ответ"}
+            title={editing ? "Отменить правку" : "Отменить ответ"}
             {...noBlur}
             onClick={editing ? onCancelEdit : onCancelReply}
           >
@@ -787,6 +864,7 @@ export const Composer = forwardRef<
                 !u.done && !u.error && <Loader2 className="size-3.5 shrink-0 animate-spin" />
               )}
               {u.voice && <Mic className="size-3.5 shrink-0 text-chat-accent" />}
+              {u.error && <span className="sr-only">Ошибка: {u.error}</span>}
               <span className="truncate">
                 {u.voice ? `Голосовое ${formatVoiceTime(u.voice.duration)}` : u.name}
               </span>
@@ -817,6 +895,7 @@ export const Composer = forwardRef<
                 type="button"
                 className="rounded p-0.5 hover:bg-muted"
                 aria-label={`Убрать ${u.name}`}
+                title="Убрать файл"
                 {...noBlur}
                 onClick={() => removeUpload(u.key)}
               >
@@ -833,7 +912,28 @@ export const Composer = forwardRef<
               )}
             </span>
           ))}
+          {/* Текст ошибки — виден под файлами, не только в подсказке (3.4.6). */}
+          {uploads
+            .filter((u) => u.error)
+            .map((u) => (
+              <p key={`${u.key}-error`} className="w-full text-xs text-destructive">
+                {u.voice ? "Голосовое" : u.name}: {u.error}
+              </p>
+            ))}
         </div>
+      )}
+
+      {/* С мышью — панель над выделенным текстом (3.4.2). */}
+      {editor && !touch && (
+        <BubbleMenu
+          editor={editor}
+          appendTo={() => document.body}
+          options={{ strategy: "fixed", placement: "top" }}
+          shouldShow={({ from, to }) => from !== to}
+          className="z-50 flex gap-0.5 rounded-lg border bg-popover p-0.5 shadow-md"
+        >
+          {tools.slice(0, 6).map((t) => toolButton(t, false))}
+        </BubbleMenu>
       )}
 
       {/*
@@ -849,24 +949,7 @@ export const Composer = forwardRef<
             aria-label="Форматирование"
             className="mb-1 flex flex-wrap gap-0.5 pointer-coarse:order-last pointer-coarse:mt-1 pointer-coarse:mb-0 pointer-coarse:flex-nowrap pointer-coarse:overflow-x-auto pointer-coarse:[scrollbar-width:none]"
           >
-            {tools.map((t) => (
-              <Button
-                key={t.label}
-                variant="ghost"
-                size="icon"
-                className={cn(
-                  "size-8 shrink-0 pointer-coarse:size-10",
-                  active?.[t.active] && "bg-muted text-chat-accent",
-                )}
-                aria-label={t.label}
-                title={t.label}
-                aria-pressed={!!active?.[t.active]}
-                {...noBlur}
-                onClick={t.run}
-              >
-                <t.icon className="size-4 pointer-coarse:size-5" />
-              </Button>
-            ))}
+            {tools.map((t) => toolButton(t, true))}
           </div>
         )}
 
@@ -876,6 +959,17 @@ export const Composer = forwardRef<
             type="file"
             multiple
             hidden
+            onChange={(e) => {
+              addFiles(Array.from(e.target.files ?? []));
+              e.target.value = "";
+            }}
+          />
+          <input
+            ref={mediaInput}
+            type="file"
+            multiple
+            hidden
+            accept="image/*,video/*"
             onChange={(e) => {
               addFiles(Array.from(e.target.files ?? []));
               e.target.value = "";
@@ -912,48 +1006,77 @@ export const Composer = forwardRef<
               )}
             </div>
           )}
-          {!editing && !rec && (
-            <Popover open={attachMenu} onOpenChange={setAttachMenu}>
-              <PopoverTrigger asChild>
+          {!editing &&
+            !rec &&
+            (touch ? (
+              // Телефон: «Фото и видео», «Файл», «Создать опрос» (как Telegram).
+              <Popover open={attachMenu} onOpenChange={setAttachMenu}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={FIELD_BUTTON}
+                    aria-label="Прикрепить"
+                    title="Прикрепить"
+                    {...noBlur}
+                  >
+                    <Paperclip className="size-5" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent
+                  side="top"
+                  align="start"
+                  className="w-56 p-1"
+                  onOpenAutoFocus={(e) => e.preventDefault()}
+                >
+                  {(
+                    [
+                      ["Фото и видео", ImageIcon, () => mediaInput.current?.click()],
+                      ["Файл", FileText, () => fileInput.current?.click()],
+                      ...(onPoll ? ([["Создать опрос", BarChart3, onPoll]] as const) : []),
+                    ] as const
+                  ).map(([label, Icon, run]) => (
+                    <ListItemButton
+                      key={label}
+                      className="py-2"
+                      onClick={() => {
+                        setAttachMenu(false);
+                        run();
+                      }}
+                    >
+                      <Icon /> {label}
+                    </ListItemButton>
+                  ))}
+                </PopoverContent>
+              </Popover>
+            ) : (
+              <>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="mb-0.5 size-9 shrink-0"
-                  aria-label="Прикрепить"
-                  title="Файлы, опрос, отправить позже"
+                  className={FIELD_BUTTON}
+                  aria-label="Прикрепить файл"
+                  title="Прикрепить файл"
                   {...noBlur}
+                  onClick={() => fileInput.current?.click()}
                 >
                   <Paperclip className="size-5" />
                 </Button>
-              </PopoverTrigger>
-              <PopoverContent
-                side="top"
-                align="start"
-                className="w-56 p-1"
-                onOpenAutoFocus={(e) => e.preventDefault()}
-              >
-                {(
-                  [
-                    ["Файлы и фото", Paperclip, () => fileInput.current?.click()],
-                    ...(onPoll ? ([["Опрос", BarChart3, onPoll]] as const) : []),
-                    ...(onSchedule ? ([["Отправить позже…", Clock, openSchedule]] as const) : []),
-                  ] as const
-                ).map(([label, Icon, run]) => (
-                  <button
-                    key={label}
-                    type="button"
-                    className="flex w-full items-center gap-2 rounded-sm px-2 py-2 text-sm hover:bg-muted"
-                    onClick={() => {
-                      setAttachMenu(false);
-                      run();
-                    }}
+                {onPoll && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={FIELD_BUTTON}
+                    aria-label="Создать опрос"
+                    title="Создать опрос"
+                    {...noBlur}
+                    onClick={onPoll}
                   >
-                    <Icon className="size-4" /> {label}
-                  </button>
-                ))}
-              </PopoverContent>
-            </Popover>
-          )}
+                    <BarChart3 className="size-5" />
+                  </Button>
+                )}
+              </>
+            ))}
           {/* Поле — на ступень темнее muted (решение владельца 2026-11-08: на белом
               плохо видно); в фокусе — ещё чуть темнее. Эмодзи — в поле справа.
               Во время записи поле скрыто, но не размонтировано (TipTap). */}
@@ -966,12 +1089,27 @@ export const Composer = forwardRef<
             <div className="min-w-0 flex-1">
               <EditorContent editor={editor} />
             </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              className={cn(
+                "mb-0.5 size-9 shrink-0 text-muted-foreground hover:bg-transparent hover:text-foreground pointer-coarse:size-11",
+                toolbar && "text-foreground",
+              )}
+              aria-label="Форматирование"
+              title="Форматирование"
+              aria-pressed={toolbar}
+              {...noBlur}
+              onClick={() => setToolbar((v) => !v)}
+            >
+              <Type className="size-5" />
+            </Button>
             <Popover open={emojiOpen} onOpenChange={setEmojiOpen}>
               <PopoverTrigger asChild>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="mr-0.5 mb-0.5 size-9 shrink-0 text-muted-foreground hover:bg-transparent hover:text-foreground"
+                  className="mr-0.5 mb-0.5 size-9 shrink-0 text-muted-foreground hover:bg-transparent hover:text-foreground pointer-coarse:size-11"
                   aria-label="Эмодзи"
                   title="Эмодзи"
                   {...noBlur}
@@ -1001,18 +1139,18 @@ export const Composer = forwardRef<
               </PopoverContent>
             </Popover>
           </div>
-          {!rec && (
+          {/* «Отправить позже» — видимые часики, когда есть что отправить (3.4.1). */}
+          {!rec && onSchedule && !editing && !(empty && files.length === 0) && (
             <Button
               variant="ghost"
               size="icon"
-              className={cn("mb-0.5 size-9 shrink-0", toolbar && "bg-muted")}
-              aria-label="Форматирование"
-              title="Форматирование"
-              aria-pressed={toolbar}
+              className={cn(FIELD_BUTTON, "text-muted-foreground")}
+              aria-label="Отправить позже"
+              title="Отправить позже"
               {...noBlur}
-              onClick={() => setToolbar((v) => !v)}
+              onClick={openSchedule}
             >
-              <Type className="size-5" />
+              <Clock className="size-5" />
             </Button>
           )}
           {rec || (micOk && !editing && empty && files.length === 0 && !busy) ? (
@@ -1029,20 +1167,16 @@ export const Composer = forwardRef<
               <Button
                 size="icon"
                 className={cn(
-                  "mb-0.5 size-9 shrink-0 touch-none rounded-full select-none [-webkit-touch-callout:none]",
+                  "mb-0.5 size-9 shrink-0 touch-none rounded-full select-none [-webkit-touch-callout:none] pointer-coarse:size-11",
                   rec?.phase === "hold"
                     ? "scale-125 bg-red-500 text-white hover:bg-red-500"
                     : "bg-selected text-selected-foreground hover:bg-selected/90",
                 )}
-                aria-label={
-                  rec?.phase === "locked"
-                    ? "Отправить голосовое"
-                    : "Голосовое: удерживайте, чтобы записать"
-                }
+                aria-label={rec?.phase === "locked" ? "Отправить голосовое" : "Записать голосовое"}
                 title={
                   rec?.phase === "locked"
                     ? "Отправить голосовое"
-                    : "Удерживайте — запись; отпустите — отправить; влево — отмена; вверх — без рук"
+                    : "Записать голосовое (удерживайте)"
                 }
                 {...noBlur}
                 onPointerDown={micDown}
@@ -1060,15 +1194,9 @@ export const Composer = forwardRef<
           ) : (
             <Button
               size="icon"
-              className="mb-0.5 size-9 shrink-0 rounded-full bg-selected text-selected-foreground hover:bg-selected/90"
+              className="mb-0.5 size-9 shrink-0 rounded-full bg-selected text-selected-foreground hover:bg-selected/90 pointer-coarse:size-11"
               aria-label={editing ? "Сохранить" : "Отправить"}
-              title={
-                editing
-                  ? "Сохранить (Enter)"
-                  : onSchedule
-                    ? "Отправить (Enter) · правой кнопкой — отправить позже"
-                    : "Отправить (Enter)"
-              }
+              title={editing ? "Сохранить (Enter)" : "Отправить (Enter)"}
               disabled={busy}
               {...noBlur}
               onContextMenu={(e) => {
@@ -1136,6 +1264,9 @@ export const Composer = forwardRef<
                 }
           }
         >
+          <p className="px-2 pt-1 pb-1.5 text-xs text-muted-foreground">
+            Кого упомянуть: наберите @ или + и имя
+          </p>
           {suggest.items.map((c, i) => (
             <button
               key={c.id}
@@ -1162,8 +1293,70 @@ export const Composer = forwardRef<
           ))}
         </div>
       )}
+      <Dialog open={!!linkDraft} onOpenChange={(o) => !o && setLinkDraft(null)}>
+        <DialogContent className="sm:max-w-md">
+          {linkDraft && (
+            <LinkForm
+              draft={linkDraft}
+              onClose={() => setLinkDraft(null)}
+              onApply={(href, text) => {
+                setLinkDraft(null);
+                applyLink(href, text);
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 });
+
+/** Окно ссылки: адрес и текст (пусто в адресе — убрать ссылку). */
+function LinkForm({
+  draft,
+  onClose,
+  onApply,
+}: {
+  draft: LinkDraft;
+  onClose: () => void;
+  onApply: (href: string, text: string) => void;
+}) {
+  const [href, setHref] = useState(draft.href);
+  const [text, setText] = useState(draft.text);
+  return (
+    <>
+      <DialogHeader>
+        <DialogTitle>{draft.href ? "Изменить ссылку" : "Ссылка"}</DialogTitle>
+        <DialogDescription>
+          {draft.href
+            ? "Сотрите адрес, чтобы убрать ссылку."
+            : "Адрес сайта или документа и текст, который увидят в сообщении."}
+        </DialogDescription>
+      </DialogHeader>
+      <DialogForm onSubmit={() => onApply(href.trim(), text.trim())}>
+        <DialogBody className="space-y-4">
+          <FormField label="Адрес">
+            <Input
+              autoFocus
+              inputMode="url"
+              placeholder="https://"
+              value={href}
+              onChange={(e) => setHref(e.target.value)}
+            />
+          </FormField>
+          <FormField label="Текст" optional hint="Пусто — в сообщении будет сам адрес">
+            <Input value={text} onChange={(e) => setText(e.target.value)} />
+          </FormField>
+        </DialogBody>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Отмена
+          </Button>
+          <Button type="submit">{draft.href && !href.trim() ? "Убрать ссылку" : "Готово"}</Button>
+        </DialogFooter>
+      </DialogForm>
+    </>
+  );
+}
 
 export default Composer;

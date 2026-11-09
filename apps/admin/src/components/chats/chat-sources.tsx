@@ -1,8 +1,8 @@
 /**
  * Каналы и состав из оргструктуры (TASKS_CHATS_PLAN.md, этап 2: 2.3, 2.5,
  * 3.3): редактор источников состава (вся компания, подразделения), блок
- * «Состав из оргструктуры» в сведениях чата, «Прочитал» под постом канала
- * и окно «Кто прочитал» с напоминанием. Права — у базы
+ * «Кто в чате автоматически» в сведениях чата, «Прочитал» под постом канала
+ * и окно «Кто отметил «Прочитал»» с напоминанием. Права — у базы
  * (db/migrations/2026-11-08_zzzzz_chat_channels.sql).
  */
 import { UnitScopeFields } from "@/components/people/unit-scope-fields";
@@ -22,8 +22,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { InfoNote, SwitchRow } from "@/components/ui/form-field";
-import { SegmentedControl } from "@/components/ui/segmented-control";
+import { InfoNote } from "@/components/ui/form-field";
 import {
   Select,
   SelectContent,
@@ -40,15 +39,12 @@ import {
   useSourceOptions,
 } from "@/lib/chats/data";
 import { sourceText } from "@/lib/chats/content";
+import { usePeople } from "@/lib/chats/people";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { ChatMessage, ChatRow, ChatSource } from "@/lib/chats/types";
 import { companyStructureQuery, unitChildren } from "@/lib/company";
 import { formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
-
-const TIPS = {
-  scope: "Все сотрудники подразделения или только руководители и заместители.",
-  sub: "Люди подразделений ниже по оргструктуре тоже в чате.",
-};
 
 /** Подразделения деревом (с отступом), только разрешённые. */
 function useUnitOptions(allowed: string[]) {
@@ -77,6 +73,7 @@ export function SourcesEditor({
   onChange: (v: ChatSource[]) => void;
 }) {
   const opts = useSourceOptions();
+  const { people } = usePeople();
   const unitOptions = useUnitOptions(opts.units);
   const hasAll = value.some((s) => s.kind === "all");
   const set = (i: number, patch: Partial<ChatSource>) =>
@@ -118,6 +115,7 @@ export function SourcesEditor({
               size="icon"
               className="size-8 shrink-0"
               aria-label="Убрать"
+              title="Убрать"
               onClick={() => onChange(value.filter((_, j) => j !== i))}
             >
               <X className="size-4" />
@@ -132,6 +130,12 @@ export function SourcesEditor({
           )}
         </div>
       ))}
+      {hasAll && (
+        <InfoNote variant="info">
+          Канал увидят все сотрудники ({people.length} {peopleWord(people.length)}). Новые
+          сотрудники попадут сюда сами.
+        </InfoNote>
+      )}
       <div className="flex flex-wrap gap-2">
         {free && (
           <Button
@@ -166,7 +170,14 @@ export function SourcesEditor({
   );
 }
 
-/** «Состав из оргструктуры» в сведениях чата. */
+function peopleWord(n: number) {
+  const m10 = n % 10;
+  const m100 = n % 100;
+  if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return "человека";
+  return "человек";
+}
+
+/** «Кто в чате автоматически» в сведениях чата. */
 export function ChatSourcesBlock({ chat, open }: { chat: ChatRow; open: boolean }) {
   const { data } = useQuery({ ...chatSourcesQuery(chat.id), enabled: open });
   const opts = useSourceOptions();
@@ -177,7 +188,7 @@ export function ChatSourcesBlock({ chat, open }: { chat: ChatRow; open: boolean 
   return (
     <div className="space-y-2 border-b p-4">
       <div className="flex items-center gap-2">
-        <h3 className="text-sm font-semibold">Состав из оргструктуры</h3>
+        <h3 className="text-sm font-semibold">Кто в чате автоматически</h3>
         {canEdit && (
           <Button variant="ghost" size="sm" className="ml-auto" onClick={() => setEditing(true)}>
             <Settings2 className="size-4" /> {sources.length ? "Изменить" : "Привязать"}
@@ -200,7 +211,8 @@ export function ChatSourcesBlock({ chat, open }: { chat: ChatRow; open: boolean 
       )}
       {sources.length > 0 && (
         <p className="text-xs text-muted-foreground">
-          Участников отсюда добавляет и убирает оргструктура, вручную их не убрать.
+          Новые сотрудники подразделения попадают в чат сами, ушедшие — уходят. Вручную их не
+          убрать.
         </p>
       )}
       <SourcesDialog
@@ -248,7 +260,7 @@ function SourcesForm({
   return (
     <>
       <DialogHeader>
-        <DialogTitle>Состав из оргструктуры</DialogTitle>
+        <DialogTitle>Кто в чате автоматически</DialogTitle>
         <DialogDescription>
           Люди подразделений попадают в чат сами и уходят, когда уходят из подразделения.
         </DialogDescription>
@@ -332,7 +344,7 @@ export function AckBar({
   );
 }
 
-/** Кто отметил «Прочитал» и кто нет; «Напомнить» не отметившим. */
+/** Кто отметил «Прочитал» и кто нет; «Напомнить» не отметившим; «Закрыть». */
 export function AckDialog({
   message,
   onClose,
@@ -343,13 +355,13 @@ export function AckDialog({
   return (
     <Dialog open={!!message} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="sm:max-w-md">
-        {message && <AckBody key={message.id} message={message} />}
+        {message && <AckBody key={message.id} message={message} onClose={onClose} />}
       </DialogContent>
     </Dialog>
   );
 }
 
-function AckBody({ message }: { message: ChatMessage }) {
+function AckBody({ message, onClose }: { message: ChatMessage; onClose: () => void }) {
   const qc = useQueryClient();
   const { data, isPending } = useQuery(ackListQuery(message.id));
   const [tab, setTab] = useState<"pending" | "acked">("pending");
@@ -361,22 +373,22 @@ function AckBody({ message }: { message: ChatMessage }) {
   return (
     <>
       <DialogHeader>
-        <DialogTitle>Кто прочитал</DialogTitle>
+        <DialogTitle>Кто отметил «Прочитал»</DialogTitle>
         <DialogDescription className="line-clamp-2">
           {message.text || "Сообщение"}
         </DialogDescription>
       </DialogHeader>
       <DialogBody className="space-y-3">
-        <SegmentedControl
-          aria-label="Список"
-          fullWidth
-          value={tab}
-          onChange={setTab}
-          options={[
-            { value: "pending", label: `Ещё нет · ${pending.length}` },
-            { value: "acked", label: `Прочитали · ${acked.length}` },
-          ]}
-        />
+        <Tabs value={tab} onValueChange={(v) => setTab(v as "pending" | "acked")}>
+          <TabsList className="w-full">
+            <TabsTrigger value="pending" className="flex-1">
+              Ещё нет · {pending.length}
+            </TabsTrigger>
+            <TabsTrigger value="acked" className="flex-1">
+              Прочитали · {acked.length}
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
         {isPending ? (
           <Loader2 className="mx-auto size-5 animate-spin text-muted-foreground" />
         ) : (
@@ -405,10 +417,13 @@ function AckBody({ message }: { message: ChatMessage }) {
       </DialogBody>
       <DialogFooter className="items-center">
         {data?.reminded_at && (
-          <span className="mr-auto text-xs text-muted-foreground">
+          <span className="mr-auto text-xs text-muted-foreground max-sm:w-full">
             Напоминали {formatDateTime(data.reminded_at)}
           </span>
         )}
+        <Button variant="outline" onClick={onClose}>
+          Закрыть
+        </Button>
         <Button
           variant="outline"
           disabled={busy || pending.length === 0 || remindedRecently}
