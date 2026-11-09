@@ -4,17 +4,23 @@
  * срока» — по поясу человека, задачи переезжают сами. Перетаскивание
  * карточки в колонку меняет срок (конец рабочего дня, рабочие дни
  * производственного календаря); исполнитель — с причиной (правило срока).
- * На телефоне — «Перенести» у карточки.
+ * На телефоне — «Перенести срок» у карточки. «Позже» — выбор даты; в
+ * «Просрочены» не переносят (колонка не принимает карточку). Роли — общий
+ * набор `ROLE_TABS`, вид — переключатель «Список · Сроки · Мой план»
+ * (UI_REVIEW_CHATS_TASKS_CALENDAR.md, 4.6).
  */
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { CalendarClock, ListChecks, Plus } from "lucide-react";
+import { CalendarClock, ListChecks, Loader2, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 import { AdminShell } from "@/components/admin-shell";
-import { TaskCard } from "@/components/tasks/task-card";
+import { DeadlinePicker } from "@/components/tasks/deadline-picker";
 import { NewTaskDialog } from "@/components/tasks/task-form";
-import { DeadlineText, PersonLine, UrgentMark } from "@/components/tasks/task-bits";
+import { TaskMenu } from "@/components/tasks/task-menu";
+import { TaskSheet } from "@/components/tasks/task-table";
+import { TasksViewTabs } from "@/components/tasks/tasks-views";
+import { DeadlineText, PersonLine, TaskStatusChip, UrgentMark } from "@/components/tasks/task-bits";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -27,10 +33,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { FormField } from "@/components/ui/form-field";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { TableToolbar } from "@/components/table-toolbar";
-import { SegmentedControl } from "@/components/ui/segmented-control";
-import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { CountBadge } from "@/components/ui/status-chip";
@@ -49,17 +52,12 @@ import {
   formatMoment,
   taskPerms,
   type ColumnKey,
+  type WorkCalendar,
 } from "@/lib/tasks/logic";
 import type { RoleTab, TaskRow } from "@/lib/tasks/types";
 import { cn } from "@/lib/utils";
 
-const ROLES: { value: RoleTab; label: string }[] = [
-  { value: "do", label: "Делаю" },
-  { value: "assigned", label: "Поручил" },
-  { value: "all", label: "Все мои" },
-];
-
-type Move = { task: TaskRow; to: ColumnKey; deadline: Date | null };
+type Move = { task: TaskRow; deadline: Date | null };
 
 export function DeadlinesBoard({
   role,
@@ -75,15 +73,30 @@ export function DeadlinesBoard({
   const qc = useQueryClient();
   const { tz, workdayEnd } = useTaskClock();
   const calendar = useWorkCalendar(tz);
-  const { data, isPending } = useTaskList({ role }, 2);
+  const [pages, setPages] = useState(1);
+  const { data, isPending, isFetching } = useTaskList({ role }, pages);
   const [creating, setCreating] = useState(false);
   const [over, setOver] = useState<ColumnKey | null>(null);
   const [drag, setDrag] = useState<TaskRow | null>(null);
   const [reasonFor, setReasonFor] = useState<Move | null>(null);
+  const [pickFor, setPickFor] = useState<TaskRow | null>(null);
   const now = new Date();
   const rows = data?.rows ?? [];
   const byColumn = new Map<ColumnKey, TaskRow[]>(COLUMNS.map((c) => [c.key, []]));
   for (const t of rows) byColumn.get(deadlineColumn(t.deadline, now, tz))!.push(t);
+
+  const setDeadline = (t: TaskRow, deadline: Date | null) => {
+    if ((deadline?.toISOString() ?? null) === t.deadline) return;
+    if (taskPerms(t).deadline === "reason") {
+      setReasonFor({ task: t, deadline });
+      return;
+    }
+    void updateTask(qc, t, { deadline: deadline?.toISOString() ?? null })
+      .then(() =>
+        toast.success(`#${t.number}: срок — ${formatMoment(deadline?.toISOString(), tz)}`),
+      )
+      .catch((e) => toast.error(taskErrorText(e)));
+  };
 
   const move = (t: TaskRow, to: ColumnKey) => {
     const perms = taskPerms(t);
@@ -95,21 +108,14 @@ export function DeadlinesBoard({
       toast.info("Убрать срок может только постановщик");
       return;
     }
-    const deadline = columnDeadline(to, new Date(), tz, workdayEnd, calendar);
+    if (to === "overdue") return;
+    const deadline =
+      to === "later" ? undefined : columnDeadline(to, new Date(), tz, workdayEnd, calendar);
     if (deadline === undefined) {
-      toast.info(
-        to === "overdue" ? "В просроченные не переносят" : "Точную дату — в карточке задачи",
-      );
+      setPickFor(t);
       return;
     }
-    if (deadline?.toISOString() === t.deadline) return;
-    if (perms.deadline === "reason") {
-      setReasonFor({ task: t, to, deadline });
-      return;
-    }
-    void updateTask(qc, t, { deadline: deadline?.toISOString() ?? null }).catch((e) =>
-      toast.error(taskErrorText(e)),
-    );
+    setDeadline(t, deadline);
   };
 
   return (
@@ -122,24 +128,27 @@ export function DeadlinesBoard({
       }
     >
       <div className="space-y-3">
-        <TableToolbar
-          tabs={
-            <SegmentedControl
-              aria-label="Чьи задачи"
-              value={role}
-              onChange={onRole}
-              options={ROLES}
-            />
-          }
-        />
+        <TableToolbar tabs={<TasksViewTabs view="deadlines" role={role} onRole={onRole} />}>
+          <p className="toolbar-full mr-auto px-1 text-sm text-muted-foreground">
+            Перетащите карточку в колонку — срок изменится. На телефоне — «⋯» у карточки.
+          </p>
+          {data?.hasMore && (
+            <Button variant="outline" disabled={isFetching} onClick={() => setPages((p) => p + 1)}>
+              {isFetching && <Loader2 className="animate-spin" />}
+              Показать ещё задачи
+            </Button>
+          )}
+        </TableToolbar>
         <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-2">
           {COLUMNS.map((col) => {
             const list = byColumn.get(col.key) ?? [];
+            const noDrop = col.key === "overdue";
             return (
               <div
                 key={col.key}
+                title={noDrop ? "В просроченные не переносят" : undefined}
                 onDragOver={(e) => {
-                  if (!drag) return;
+                  if (!drag || noDrop) return;
                   e.preventDefault();
                   setOver(col.key);
                 }}
@@ -153,6 +162,7 @@ export function DeadlinesBoard({
                 className={cn(
                   "flex w-64 shrink-0 flex-col rounded-lg border bg-background transition-colors",
                   over === col.key && "border-chat-accent bg-chat-accent-soft",
+                  drag && noDrop && "bg-muted/60 opacity-70",
                 )}
               >
                 <div className="flex items-center gap-2 px-3 py-2">
@@ -188,6 +198,7 @@ export function DeadlinesBoard({
                             setOver(null);
                           }}
                           onMove={(to) => move(t, to)}
+                          onPick={() => setPickFor(t)}
                         />
                       ))}
                 </div>
@@ -196,15 +207,25 @@ export function DeadlinesBoard({
           })}
         </div>
       </div>
-      <Sheet open={!!task} onOpenChange={(o) => !o && onTask(undefined)}>
-        <SheetContent className="w-full overflow-y-auto p-4 sm:max-w-5xl sm:p-6">
-          <SheetTitle className="sr-only">Задача #{task}</SheetTitle>
-          <SheetDescription className="sr-only">Карточка задачи</SheetDescription>
-          {task && <TaskCard number={task} onClose={() => onTask(undefined)} />}
-        </SheetContent>
-      </Sheet>
-      <NewTaskDialog open={creating} onClose={() => setCreating(false)} />
+      <TaskSheet
+        number={task}
+        onClose={() => onTask(undefined)}
+        onOpen={onTask}
+        list={COLUMNS.flatMap((c) => (byColumn.get(c.key) ?? []).map((t) => t.number))}
+      />
+      <NewTaskDialog open={creating} onClose={() => setCreating(false)} onOpenTask={onTask} />
       <ReasonDialog move={reasonFor} tz={tz} onClose={() => setReasonFor(null)} />
+      <PickDialog
+        task={pickFor}
+        tz={tz}
+        workdayEnd={workdayEnd}
+        calendar={calendar}
+        onPick={(t, iso) => {
+          setPickFor(null);
+          setDeadline(t, iso ? new Date(iso) : null);
+        }}
+        onClose={() => setPickFor(null)}
+      />
     </AdminShell>
   );
 }
@@ -216,6 +237,7 @@ function Card({
   onDragStart,
   onDragEnd,
   onMove,
+  onPick,
 }: {
   task: TaskRow;
   tz: string;
@@ -223,8 +245,8 @@ function Card({
   onDragStart: () => void;
   onDragEnd: () => void;
   onMove: (to: ColumnKey) => void;
+  onPick: () => void;
 }) {
-  const [open, setOpen] = useState(false);
   const perms = taskPerms(task);
   return (
     <div
@@ -240,56 +262,99 @@ function Card({
         perms.deadline && "cursor-grab active:cursor-grabbing",
       )}
     >
-      <button type="button" onClick={onOpen} className="block w-full text-left">
-        <span className="flex items-start gap-1.5">
-          {task.unseen && <span className="mt-1.5 size-2 shrink-0 rounded-full bg-chat-accent" />}
-          <span className="min-w-0 font-medium break-words">{task.title}</span>
-        </span>
-        <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-          <span>#{task.number}</span>
-          <DeadlineText task={task} tz={tz} />
-          {task.check_total > 0 && (
-            <span className="inline-flex items-center gap-0.5">
-              <ListChecks className="size-3.5" />
-              {task.check_done}/{task.check_total}
-            </span>
-          )}
-        </span>
-      </button>
+      <div className="flex items-start gap-1">
+        <button type="button" onClick={onOpen} className="min-w-0 flex-1 text-left">
+          <span className={cn("block break-words", task.unseen ? "font-semibold" : "font-medium")}>
+            {task.title}
+            {task.unseen && <span className="sr-only"> (есть новое)</span>}
+          </span>
+          <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+            <span>#{task.number}</span>
+            <DeadlineText task={task} tz={tz} />
+            {task.check_total > 0 && (
+              <span
+                className="inline-flex items-center gap-0.5"
+                title={`${task.check_done} из ${task.check_total} пунктов чек-листа`}
+              >
+                <ListChecks className="size-3.5" aria-hidden />
+                {task.check_done}/{task.check_total}
+              </span>
+            )}
+          </span>
+        </button>
+        {perms.deadline && (
+          <TaskMenu
+            label="Перенести срок"
+            reveal
+            className="-mt-1 -mr-1"
+            items={[
+              { heading: "Перенести срок" },
+              ...COLUMNS.filter((c) => c.key !== "overdue" && c.key !== "later")
+                .filter((c) => c.key !== "none" || perms.boss)
+                .map((c) => ({ label: c.title, run: () => onMove(c.key) })),
+              { label: "Выбрать дату…", icon: CalendarClock, run: onPick },
+            ]}
+          />
+        )}
+      </div>
       <div className="mt-2 flex items-center gap-2">
         <PersonLine id={assigneeOf(task)} size="xs" className="min-w-0 flex-1 text-xs" />
         {task.urgent && <UrgentMark />}
-        {perms.deadline && (
-          <Popover open={open} onOpenChange={setOpen}>
-            <PopoverTrigger asChild>
-              <button
-                type="button"
-                aria-label="Перенести срок"
-                title="Перенести срок"
-                className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
-              >
-                <CalendarClock className="size-4" />
-              </button>
-            </PopoverTrigger>
-            <PopoverContent align="end" className="w-52 p-1">
-              {COLUMNS.filter((c) => c.key !== "overdue" && c.key !== "later").map((c) => (
-                <button
-                  key={c.key}
-                  type="button"
-                  className="block w-full rounded px-2.5 py-1.5 text-left text-sm hover:bg-muted"
-                  onClick={() => {
-                    setOpen(false);
-                    onMove(c.key);
-                  }}
-                >
-                  {c.title}
-                </button>
-              ))}
-            </PopoverContent>
-          </Popover>
-        )}
+        <TaskStatusChip status={task.status} />
       </div>
     </div>
+  );
+}
+
+/** Новый срок датой — перенос в «Позже» или «Выбрать дату…». */
+function PickDialog({
+  task,
+  tz,
+  workdayEnd,
+  calendar,
+  onPick,
+  onClose,
+}: {
+  task: TaskRow | null;
+  tz: string;
+  workdayEnd: string;
+  calendar: WorkCalendar;
+  onPick: (t: TaskRow, iso: string | null) => void;
+  onClose: () => void;
+}) {
+  return (
+    <Dialog open={!!task} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="flex flex-col gap-0 p-0 sm:max-w-md">
+        {task && (
+          <>
+            <DialogHeader className="border-b px-4 py-4 sm:px-6">
+              <DialogTitle>Новый срок</DialogTitle>
+              <DialogDescription>
+                #{task.number} {task.title}
+              </DialogDescription>
+            </DialogHeader>
+            <DialogBody>
+              <FormField label="Срок" htmlFor="deadlines-pick">
+                <DeadlinePicker
+                  id="deadlines-pick"
+                  value={task.deadline}
+                  onChange={(iso) => onPick(task, iso)}
+                  tz={tz}
+                  workdayEnd={workdayEnd}
+                  calendar={calendar}
+                  allowClear={taskPerms(task).boss}
+                />
+              </FormField>
+            </DialogBody>
+            <DialogFooter>
+              <Button variant="outline" onClick={onClose}>
+                Отмена
+              </Button>
+            </DialogFooter>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -305,7 +370,14 @@ function ReasonDialog({
   return (
     <Dialog open={!!move} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="flex flex-col gap-0 p-0 sm:max-w-md">
-        {move && <ReasonForm key={move.task.id + move.to} move={move} tz={tz} onClose={onClose} />}
+        {move && (
+          <ReasonForm
+            key={move.task.id + String(move.deadline?.getTime())}
+            move={move}
+            tz={tz}
+            onClose={onClose}
+          />
+        )}
       </DialogContent>
     </Dialog>
   );

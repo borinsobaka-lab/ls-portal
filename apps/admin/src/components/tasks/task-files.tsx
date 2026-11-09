@@ -2,17 +2,23 @@
  * Файлы задачи (план, 4.6, боль № 10): отдельным блоком плиткой с числом в
  * заголовке — не теряются; картинки — превью. Загрузка — с докачкой
  * (lib/resumable-upload.ts, бакет task-files, папка задачи), затем
- * task_file_add. Убрать — кто загрузил или постановщик.
+ * task_file_add. Картинка по нажатию — на весь экран (как в базе знаний),
+ * документ — скачивается; у плитки «⋯» — «Скачать», «Убрать из задачи» (с
+ * подтверждением; кто загрузил или постановщик).
  */
 import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { FileText, Loader2, Paperclip, RotateCw, WifiOff, X } from "lucide-react";
+import { Download, FileText, Loader2, Paperclip, RotateCw, Trash2, WifiOff, X } from "lucide-react";
 import { toast } from "sonner";
 
+import { useConfirm } from "@/components/confirm-dialog";
+import { KbImageLightbox, type LightboxImage } from "@/components/kb/image-lightbox";
+import { TaskMenu } from "@/components/tasks/task-menu";
 import { Button } from "@/components/ui/button";
 import {
   downloadStorageFile,
   formatFileSize,
+  signedFileUrl,
   startResumableUpload,
   useSignedFileUrl,
   type ResumableUpload,
@@ -38,6 +44,8 @@ export function TaskFiles({
   const input = useRef<HTMLInputElement>(null);
   const handles = useRef(new Map<string, ResumableUpload>());
   const [uploads, setUploads] = useState<Upload[]>([]);
+  const [viewer, setViewer] = useState<{ images: LightboxImage[]; index: number } | null>(null);
+  const { confirm, confirmDialog } = useConfirm();
 
   useEffect(() => {
     const map = handles.current;
@@ -63,6 +71,33 @@ export function TaskFiles({
       });
       handles.current.set(key, h);
     }
+  };
+
+  const isImage = (f: TaskFile) => /^image\//.test(f.mime);
+  const view = async (f: TaskFile) => {
+    try {
+      const images = task.files.filter(isImage);
+      const urls = await Promise.all(images.map((x) => signedFileUrl(TASK_BUCKET, x.path)));
+      setViewer({
+        images: images.map((x, i) => ({ src: urls[i], name: x.name })),
+        index: images.findIndex((x) => x.id === f.id),
+      });
+    } catch (e) {
+      toast.error(String(e));
+    }
+  };
+  const download = (f: TaskFile) =>
+    void downloadStorageFile(TASK_BUCKET, f).catch((e) => toast.error(String(e)));
+  const remove = async (f: TaskFile) => {
+    const ok = await confirm({
+      title: `Убрать файл «${f.name}»?`,
+      description: "Файл пропадёт из задачи у всех участников.",
+      confirmLabel: "Убрать",
+    });
+    if (!ok) return;
+    void taskAction(qc, "task_file_delete", { p_id: f.id })
+      .then(() => toast.success("Файл убран"))
+      .catch((e) => toast.error(taskErrorText(e)));
   };
 
   if (!task.files.length && !canWork) return null;
@@ -118,13 +153,10 @@ export function TaskFiles({
             <FileTile
               key={f.id}
               file={f}
+              onOpen={() => (isImage(f) ? void view(f) : download(f))}
+              onDownload={() => download(f)}
               onRemove={
-                canRemoveAll || (canWork && f.uploaded_by === me)
-                  ? () =>
-                      void taskAction(qc, "task_file_delete", { p_id: f.id }).catch((e) =>
-                        toast.error(taskErrorText(e)),
-                      )
-                  : undefined
+                canRemoveAll || (canWork && f.uploaded_by === me) ? () => void remove(f) : undefined
               }
             />
           ))}
@@ -185,22 +217,38 @@ export function TaskFiles({
           ))}
         </div>
       )}
+      <KbImageLightbox
+        images={viewer?.images ?? []}
+        index={viewer?.index ?? null}
+        protect={false}
+        onIndex={(index) => setViewer((v) => (v ? { ...v, index } : v))}
+        onClose={() => setViewer(null)}
+      />
+      {confirmDialog}
     </section>
   );
 }
 
-function FileTile({ file, onRemove }: { file: TaskFile; onRemove?: () => void }) {
+function FileTile({
+  file,
+  onOpen,
+  onDownload,
+  onRemove,
+}: {
+  file: TaskFile;
+  onOpen: () => void;
+  onDownload: () => void;
+  onRemove?: () => void;
+}) {
   const image = /^image\//.test(file.mime);
   const { data: url } = useSignedFileUrl(TASK_BUCKET, image ? file.path : null);
   return (
     <div className="group relative h-24 overflow-hidden rounded-lg border bg-background">
       <button
         type="button"
-        title={`Скачать «${file.name}»`}
+        title={image ? `Открыть «${file.name}»` : `Скачать «${file.name}»`}
         className="flex size-full flex-col text-left"
-        onClick={() =>
-          void downloadStorageFile(TASK_BUCKET, file).catch((e) => toast.error(String(e)))
-        }
+        onClick={onOpen}
       >
         {image && url ? (
           <img
@@ -219,16 +267,20 @@ function FileTile({ file, onRemove }: { file: TaskFile; onRemove?: () => void })
           <span className="ml-1 text-muted-foreground">{formatFileSize(file.size)}</span>
         </span>
       </button>
-      {onRemove && (
-        <button
-          type="button"
-          aria-label={`Убрать файл «${file.name}»`}
-          className="absolute top-1 right-1 rounded bg-background/90 p-0.5 opacity-0 shadow-xs group-hover:opacity-100 focus:opacity-100"
-          onClick={onRemove}
-        >
-          <X className="size-3.5" />
-        </button>
-      )}
+      <TaskMenu
+        label={`Файл «${file.name}»: действия`}
+        reveal
+        className="absolute top-1 right-1 size-7 bg-background/90 shadow-xs hover:bg-background"
+        items={[
+          { label: "Скачать", icon: Download, run: onDownload },
+          ...(onRemove
+            ? [
+                "separator" as const,
+                { label: "Убрать из задачи", icon: Trash2, danger: true, run: onRemove },
+              ]
+            : []),
+        ]}
+      />
     </div>
   );
 }
