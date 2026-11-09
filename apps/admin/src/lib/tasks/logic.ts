@@ -6,6 +6,8 @@
  */
 import type { StatusTone } from "@/components/ui/status-chip-styles";
 
+import type { SortGetters } from "@/lib/table-sort";
+
 import { dayKind, type DayKind } from "./work-calendar";
 import type {
   DeadlineRule,
@@ -17,6 +19,7 @@ import type {
   TaskFilters,
   TaskRole,
   TaskRow,
+  TaskSort,
   TaskStatus,
 } from "./types";
 
@@ -59,10 +62,11 @@ export const ROLE_LABEL: Record<TaskRole, string> = {
   parent: "Участник родительской задачи",
 };
 
+/** Тип проекта; в базе «project» — подпись «Инициатива» (разбор интерфейса, 2.2). */
 export const PROJECT_KIND_LABEL: Record<ProjectKind, string> = {
   department: "Отдел",
   city: "Город",
-  project: "Проект",
+  project: "Инициатива",
 };
 
 export const PROJECT_ROLE_LABEL: Record<ProjectRole, string> = {
@@ -71,10 +75,11 @@ export const PROJECT_ROLE_LABEL: Record<ProjectRole, string> = {
   member: "Участник",
 };
 
+/** «Исполнитель меняет срок: Свободно / С причиной / Нельзя». */
 export const DEADLINE_RULE_LABEL: Record<DeadlineRule, string> = {
-  free: "Исполнитель меняет срок свободно",
-  reason: "Исполнитель меняет срок с причиной",
-  forbid: "Срок меняет только постановщик",
+  free: "Свободно",
+  reason: "С причиной",
+  forbid: "Нельзя",
 };
 
 /** Цвета проектов — спокойные, читаются белым текстом и точкой в меню. */
@@ -119,8 +124,19 @@ export const ROLE_TABS: { key: RoleTab; title: string; hint: string }[] = [
   { key: "help", title: "Помогаю", hint: "Я соисполнитель" },
   { key: "assigned", title: "Поручил", hint: "Я постановщик, исполнитель — другой" },
   { key: "watch", title: "Наблюдаю", hint: "Я наблюдатель" },
-  { key: "all", title: "Все", hint: "Все мои задачи" },
+  { key: "all", title: "Все мои", hint: "Все задачи с моим участием" },
 ];
+
+/** Представления одних и тех же задач — переключатель на странице. */
+export const TASK_VIEWS = [
+  { key: "list", title: "Список", url: "/tasks" },
+  { key: "deadlines", title: "Сроки", url: "/tasks/deadlines" },
+  { key: "plan", title: "Мой план", url: "/tasks/plan" },
+] as const;
+export type TaskView = (typeof TASK_VIEWS)[number]["key"];
+
+/** Пресет меню «Сегодня»: делаю, срок — сегодня. */
+export const TODAY_PRESET: TaskFilters = { role: "do", deadline: "today" };
 
 export const DEADLINE_FILTERS: { key: NonNullable<TaskFilters["deadline"]>; title: string }[] = [
   { key: "overdue", title: "Просрочены" },
@@ -371,7 +387,12 @@ export function quickDeadlines(
       date: at(next),
     },
     { key: "week", label: "Конец недели", hint: `${shortDay(weekEnd)}, ${end}`, date: at(weekEnd) },
-    { key: "plus5", label: "Через 5 рабочих дней", hint: `${shortDay(plus5)}, ${end}`, date: at(plus5) },
+    {
+      key: "plus5",
+      label: "Через 5 рабочих дней",
+      hint: `${shortDay(plus5)}, ${end}`,
+      date: at(plus5),
+    },
   ];
 }
 
@@ -475,7 +496,9 @@ export function eventText(e: TaskEvent, name: (id: string) => string, tz: string
     case "urgent":
       return d.to ? "отметил(а) срочной" : "снял(а) срочность";
     case "requires_review":
-      return d.to ? "включил(а) «Требует проверки»" : "выключил(а) «Требует проверки»";
+      return d.to
+        ? "включил(а) «Принять работу после завершения»"
+        : "выключил(а) «Принять работу после завершения»";
     case "deadline":
       return `срок: ${formatMoment(s("from") || null, tz)} → ${formatMoment(s("to") || null, tz)}`;
     case "status": {
@@ -535,7 +558,9 @@ export function eventText(e: TaskEvent, name: (id: string) => string, tz: string
         .join("; ");
     }
     case "result_required":
-      return d.to ? "включил(а) «Нужен результат»" : "выключил(а) «Нужен результат»";
+      return d.to
+        ? "включил(а) «Требовать отчёт о результате»"
+        : "выключил(а) «Требовать отчёт о результате»";
     default:
       return e.kind;
   }
@@ -693,4 +718,159 @@ export function cleanLists(lists: DraftList[]): DraftList[] {
       items: l.items.filter((i) => i.text.trim()).map((i) => ({ ...i, text: i.text.trim() })),
     }))
     .filter((l) => l.items.length > 0);
+}
+
+// ---- Разбор интерфейса (UI_REVIEW_CHATS_TASKS_CALENDAR.md, 2026-11-09) ----------------
+
+/** Фильтры отличаются от умолчаний (вкладка «Все мои» без фильтров) — их можно сохранить. */
+export function filtersDiffer(f: TaskFilters): boolean {
+  return (
+    Object.keys(cleanFilters({ ...f, role: f.role === "all" ? undefined : f.role })).length > 0
+  );
+}
+
+/** Сколько фильтров спрятано за кнопкой «Фильтры (N)». */
+export function hiddenFilterCount(f: TaskFilters): number {
+  return [
+    f.creator,
+    f.project,
+    f.tag,
+    f.deadline === "range",
+    f.cfrom || f.cto,
+    f.sort === "urgent",
+    f.mine,
+    f.all,
+  ].filter(Boolean).length;
+}
+
+/**
+ * Порядок списка с сервера по колонке сортировки: «№» и «Задача» — новые
+ * первыми, остальные — по сроку; «Срочные — первыми» важнее.
+ */
+export function serverSort(column: string | null | undefined, urgent: boolean): TaskSort {
+  if (urgent) return "urgent";
+  return column === "number" || column === "title" ? "created" : "deadline";
+}
+
+export type QuickComplete = { label: string; needsResult: boolean; openSubtasks: number };
+
+/**
+ * Кружок «выполнить» в строке списка: можно ли завершить отсюда и что
+ * спросить по дороге (отчёт о результате, открытые подзадачи). У задачи с
+ * «Принять работу после завершения» исполнитель отправляет на проверку.
+ */
+export function quickComplete(
+  t: Pick<
+    TaskRow,
+    | "my_roles"
+    | "status"
+    | "requires_review"
+    | "result_required"
+    | "has_result"
+    | "subtasks_total"
+    | "subtasks_done"
+  >,
+): QuickComplete | null {
+  const a = taskPerms(t).actions.find((x) => x.action === "complete");
+  if (!a) return null;
+  return {
+    label: a.label,
+    needsResult: t.result_required && !t.has_result,
+    openSubtasks: Math.max(0, t.subtasks_total - t.subtasks_done),
+  };
+}
+
+/** Почему срок не меняется — подпись под сроком в карточке. */
+export function deadlineLockHint(
+  t: Pick<TaskRow, "my_roles"> & { deadline_rule?: DeadlineRule; project_id?: string | null },
+): string {
+  if (t.my_roles.includes("assignee") && t.deadline_rule === "forbid")
+    return t.project_id
+      ? "В этом проекте срок меняет только постановщик"
+      : "Срок этой задачи меняет только постановщик";
+  return "Срок меняет постановщик";
+}
+
+/** «Задача #12 поставлена» / «Поставлено 3 задачи». */
+export function createdText(numbers: number[]): string {
+  return numbers.length === 1
+    ? `Задача #${numbers[0]} поставлена`
+    : `Поставлено ${numbers.length} ${plural(numbers.length, "задача", "задачи", "задач")}`;
+}
+
+/** Расписание регулярной задачи — подписи выбора. */
+export const RECURRENCE_FREQS: { value: RecurrenceRule["freq"]; label: string }[] = [
+  { value: "daily", label: "Каждый день" },
+  { value: "workdays", label: "По рабочим дням" },
+  { value: "weekly", label: "По дням недели" },
+  { value: "monthly", label: "Каждый месяц" },
+  { value: "after_close", label: "Через N дней после закрытия прежней" },
+];
+
+/** Черновик расписания в форме (числа — строками полей). */
+export type RuleDraft = {
+  freq: RecurrenceRule["freq"];
+  weekdays: number[];
+  monthday: string;
+  afterDays: string;
+};
+
+/** Черновик из правила; без правила — по дням недели, сегодняшний день. */
+export function ruleDraft(rule?: RecurrenceRule | null, today = new Date()): RuleDraft {
+  const dow = today.getDay() === 0 ? 7 : today.getDay();
+  return {
+    freq: rule?.freq ?? "weekly",
+    weekdays: rule?.freq === "weekly" ? [...rule.weekdays] : [dow],
+    monthday: String(rule?.freq === "monthly" ? rule.monthday : today.getDate()),
+    afterDays: String(rule?.freq === "after_close" ? rule.after_days : 1),
+  };
+}
+
+/** Правило из черновика; ошибка — null. */
+export function buildRule(d: RuleDraft): RecurrenceRule | null {
+  if (d.freq === "weekly")
+    return d.weekdays.length ? { freq: "weekly", weekdays: [...d.weekdays].sort() } : null;
+  if (d.freq === "monthly") {
+    const n = Number(d.monthday);
+    return Number.isInteger(n) && n >= 1 && n <= 31 ? { freq: "monthly", monthday: n } : null;
+  }
+  if (d.freq === "after_close") {
+    const n = Number(d.afterDays);
+    return d.afterDays.trim() !== "" && Number.isInteger(n) && n >= 0 && n <= 365
+      ? { freq: "after_close", after_days: n }
+      : null;
+  }
+  return { freq: d.freq };
+}
+
+/**
+ * Срок шаблона «через N рабочих дней» от `from` до `to` — обратное к
+ * work_add_days базы (и `templateDeadline`): выходной `from` сначала
+ * сдвигается на ближайший рабочий.
+ */
+export function workdaysBetween(from: string, to: string, cal: WorkCalendar): number {
+  let n = 0;
+  for (let d = nextWorkingDay(from, cal); d < to && n < 365; ) {
+    d = addDays(d, 1);
+    if (isWorking(d, cal)) n++;
+  }
+  return n;
+}
+
+/** Сортировка таблицы задач по колонкам (внутри загруженных строк). */
+export function taskSortGetters(name: (id: string) => string): SortGetters<TaskRow> {
+  return {
+    number: (t) => t.number,
+    title: (t) => t.title,
+    deadline: (t) => (t.deadline ? new Date(t.deadline) : null),
+    assignee: (t) => {
+      const id = assigneeOf(t);
+      return id ? name(id) : null;
+    },
+    creator: (t) => {
+      const id = creatorOf(t);
+      return id ? name(id) : null;
+    },
+    status: (t) => STATUS_ORDER.indexOf(t.status),
+  };
 }

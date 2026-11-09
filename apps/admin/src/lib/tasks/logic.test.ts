@@ -68,7 +68,12 @@ describe("быстрые сроки по рабочим дням", () => {
   test("четверг: сегодня, завтра (пт), конец недели (пт), через неделю (чт)", () => {
     const now = new Date("2026-11-12T09:00:00Z"); // чт 12:00 МСК
     const q = quickDeadlines(now, MSK, "18:00:00", noCal);
-    expect(q.map((x) => x.label)).toEqual(["Сегодня", "Завтра", "Конец недели", "Через 5 рабочих дней"]);
+    expect(q.map((x) => x.label)).toEqual([
+      "Сегодня",
+      "Завтра",
+      "Конец недели",
+      "Через 5 рабочих дней",
+    ]);
     expect(q.map((x) => x.date.toISOString())).toEqual([
       "2026-11-12T15:00:00.000Z",
       "2026-11-13T15:00:00.000Z",
@@ -331,5 +336,119 @@ describe("теги", () => {
         MSK,
       ),
     ).toBe("добавил(а) теги: #Казань; убрал(а) теги: #VK");
+  });
+});
+
+describe("разбор интерфейса", () => {
+  test("фильтры: отличие от умолчаний и счётчик «Фильтры (N)»", async () => {
+    const { filtersDiffer, hiddenFilterCount, TODAY_PRESET } = await import("./logic");
+    expect(filtersDiffer({})).toBe(false);
+    expect(filtersDiffer({ role: "all" })).toBe(false);
+    expect(filtersDiffer({ role: "do" })).toBe(true);
+    expect(filtersDiffer({ done: false, q: "" })).toBe(false);
+    expect(filtersDiffer(TODAY_PRESET)).toBe(true);
+    expect(hiddenFilterCount({ q: "x", status: ["new"], assignee: "a" })).toBe(0);
+    expect(
+      hiddenFilterCount({ creator: "a", deadline: "range", cfrom: "2026-01-01", sort: "urgent" }),
+    ).toBe(4);
+    expect(hiddenFilterCount({ deadline: "today", sort: "created" })).toBe(0);
+  });
+
+  test("порядок с сервера по колонке", async () => {
+    const { serverSort } = await import("./logic");
+    expect(serverSort(null, false)).toBe("deadline");
+    expect(serverSort("number", false)).toBe("created");
+    expect(serverSort("title", false)).toBe("created");
+    expect(serverSort("status", false)).toBe("deadline");
+    expect(serverSort("number", true)).toBe("urgent");
+  });
+
+  test("кружок «выполнить»: проверка, отчёт, подзадачи", async () => {
+    const { quickComplete } = await import("./logic");
+    const base = {
+      status: "in_progress" as const,
+      requires_review: false,
+      result_required: false,
+      has_result: false,
+      subtasks_total: 0,
+      subtasks_done: 0,
+    };
+    expect(quickComplete({ ...base, my_roles: ["assignee"] })?.label).toBe("Завершить");
+    expect(quickComplete({ ...base, my_roles: ["assignee"], requires_review: true })?.label).toBe(
+      "На проверку",
+    );
+    expect(quickComplete({ ...base, my_roles: ["creator"], requires_review: true })?.label).toBe(
+      "Завершить",
+    );
+    expect(quickComplete({ ...base, my_roles: ["watcher"] })).toBeNull();
+    expect(quickComplete({ ...base, my_roles: ["coassignee"] })).toBeNull();
+    expect(quickComplete({ ...base, my_roles: ["assignee"], status: "review" })).toBeNull();
+    const q = quickComplete({
+      ...base,
+      my_roles: ["assignee"],
+      result_required: true,
+      subtasks_total: 3,
+      subtasks_done: 1,
+    });
+    expect(q).toEqual({ label: "Завершить", needsResult: true, openSubtasks: 2 });
+  });
+
+  test("подпись закрытого срока", async () => {
+    const { deadlineLockHint } = await import("./logic");
+    expect(deadlineLockHint({ my_roles: ["watcher"] })).toBe("Срок меняет постановщик");
+    expect(
+      deadlineLockHint({ my_roles: ["assignee"], deadline_rule: "forbid", project_id: "p" }),
+    ).toBe("В этом проекте срок меняет только постановщик");
+  });
+
+  test("тост после постановки", async () => {
+    const { createdText } = await import("./logic");
+    expect(createdText([12])).toBe("Задача #12 поставлена");
+    expect(createdText([1, 2, 3])).toBe("Поставлено 3 задачи");
+    expect(createdText([1, 2, 3, 4, 5])).toBe("Поставлено 5 задач");
+  });
+
+  test("расписание: черновик и правило", async () => {
+    const { buildRule, ruleDraft } = await import("./logic");
+    const wed = new Date(2026, 10, 11);
+    const d = ruleDraft(null, wed);
+    expect(d).toEqual({ freq: "weekly", weekdays: [3], monthday: "11", afterDays: "1" });
+    expect(buildRule(d)).toEqual({ freq: "weekly", weekdays: [3] });
+    expect(buildRule({ ...d, weekdays: [5, 1] })).toEqual({ freq: "weekly", weekdays: [1, 5] });
+    expect(buildRule({ ...d, weekdays: [] })).toBeNull();
+    expect(buildRule({ ...d, freq: "monthly", monthday: "32" })).toBeNull();
+    expect(buildRule({ ...d, freq: "monthly", monthday: "31" })).toEqual({
+      freq: "monthly",
+      monthday: 31,
+    });
+    expect(buildRule({ ...d, freq: "after_close", afterDays: "" })).toBeNull();
+    expect(buildRule({ ...d, freq: "after_close", afterDays: "0" })).toEqual({
+      freq: "after_close",
+      after_days: 0,
+    });
+    expect(buildRule({ ...d, freq: "workdays" })).toEqual({ freq: "workdays" });
+    expect(ruleDraft({ freq: "monthly", monthday: 5 }, wed).monthday).toBe("5");
+  });
+
+  test("рабочих дней до срока — обратное к сроку шаблона", async () => {
+    const { workdaysBetween, templateDeadline, localDay } = await import("./logic");
+    // Пятница 13.11.2026 → вторник 17.11: пн, вт.
+    expect(workdaysBetween("2026-11-13", "2026-11-17", noCal)).toBe(2);
+    expect(workdaysBetween("2026-11-13", "2026-11-13", noCal)).toBe(0);
+    // Суббота → понедельник: 0 (суббота сдвигается на понедельник).
+    expect(workdaysBetween("2026-11-14", "2026-11-16", noCal)).toBe(0);
+    const now = new Date("2026-11-14T09:00:00Z");
+    for (const target of ["2026-11-16", "2026-11-18", "2026-11-24"]) {
+      const n = workdaysBetween(localDay(now, MSK), target, noCal);
+      const d = templateDeadline(now, MSK, "18:00", noCal, n);
+      expect(localDay(d!, MSK)).toBe(target);
+    }
+  });
+
+  test("подписи: «Все мои», «Инициатива», правило срока", async () => {
+    const { ROLE_TABS, PROJECT_KIND_LABEL, DEADLINE_RULE_LABEL } = await import("./logic");
+    expect(ROLE_TABS.find((t) => t.key === "all")?.title).toBe("Все мои");
+    expect(PROJECT_KIND_LABEL.project).toBe("Инициатива");
+    expect(Object.values(DEADLINE_RULE_LABEL)).toEqual(["Свободно", "С причиной", "Нельзя"]);
   });
 });
