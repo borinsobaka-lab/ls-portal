@@ -64,7 +64,7 @@ import {
   type ChatWindow,
 } from "@/lib/chats/data";
 import { useFolderItems } from "@/lib/chats/folder-items";
-import { FOLDER_HINT, folderFilter, type FolderKey } from "@/lib/chats/folders";
+import { FOLDER_HINT, folderFilter, MAX_FOLDERS, type FolderKey } from "@/lib/chats/folders";
 import { muteMenuItem } from "@/lib/chats/mute-menu";
 import { shortName, usePeople } from "@/lib/chats/people";
 import { mergeTopics, sortChats } from "@/lib/chats/topics";
@@ -252,12 +252,16 @@ export function ChatList({
               ),
           };
         }),
-        {
-          label: "Новая папка…",
-          icon: FolderPlus,
-          separatorBefore: folders.length > 0,
-          onSelect: () => setEditingFolder({ chat_ids: [chat.id] }),
-        },
+        ...(folders.length < MAX_FOLDERS
+          ? [
+              {
+                label: "Новая папка…",
+                icon: FolderPlus,
+                separatorBefore: folders.length > 0,
+                onSelect: () => setEditingFolder({ chat_ids: [chat.id] }),
+              },
+            ]
+          : []),
       ],
     });
     return items;
