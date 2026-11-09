@@ -1,7 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Mail, Phone } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Loader2, Mail, MessageCircle, Phone } from "lucide-react";
+import { toast } from "sonner";
 
 import { AdminShell } from "@/components/admin-shell";
 import { CompanyPeoplePageSkeleton } from "@/components/page-skeletons";
@@ -10,8 +11,7 @@ import { PersonCardDialog } from "@/components/people/person-card";
 import { DataPagination, usePagination } from "@/components/data-pagination";
 import { TableSkeletonRows } from "@/components/skeletons";
 import { TableToolbar, ToolbarReset, ToolbarSearch } from "@/components/table-toolbar";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -28,6 +28,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { MEMBER_ROLE_LABEL, USER_TYPE_LABEL, USER_TYPES } from "@/lib/access/logic";
+import type { UserType } from "@/lib/access/types";
+import { useStaffProfile } from "@/hooks/use-staff-profile";
+import { chatErrorText, openDirect } from "@/lib/chats/data";
 import { PORTAL_NAME } from "@/lib/brand";
 import {
   companyPeopleQuery,
@@ -44,9 +47,10 @@ import { cn } from "@/lib/utils";
  * «Компания» → «Сотрудники» (TASKS_CHATS_PLAN.md, веха 1; бриф 8.3, боль
  * № 42): все действующие люди портала — поиск по имени, почте, телефону,
  * должности, подразделению, клубу и городу; фильтры по должности (как в
- * Платруме), подразделению (с подразделениями ниже), типу, «в сети».
- * Строка — карточка сотрудника. Партнёры видят друг друга (решение
- * владельца 2026-11-07).
+ * Платруме), подразделению (с подразделениями ниже), категории, «в сети»
+ * (чип). Служебных учётных записей в справочнике нет. Строка — карточка
+ * сотрудника, иконка в конце — «Написать». Партнёры видят друг друга
+ * (решение владельца 2026-11-07).
  */
 export const Route = createFileRoute("/_authenticated/company/")({
   head: () => ({ meta: [{ title: `Сотрудники — ${PORTAL_NAME}` }] }),
@@ -56,9 +60,13 @@ export const Route = createFileRoute("/_authenticated/company/")({
 
 const ALL = "all";
 const NONE = "none";
+/** Категории справочника — без служебных учётных записей. */
+const CATEGORIES = USER_TYPES.filter((t): t is Exclude<UserType, "service"> => t !== "service");
 
 function CompanyPeoplePage() {
-  const { data: people = [], isPending } = useQuery(companyPeopleQuery);
+  const { data: everyone = [], isPending } = useQuery(companyPeopleQuery);
+  const people = useMemo(() => everyone.filter((p) => p.user_type !== "service"), [everyone]);
+  const { data: me } = useStaffProfile();
   const { data: units = [] } = useQuery(companyStructureQuery);
   const [search, setSearch] = useState("");
   const [position, setPosition] = useState(ALL);
@@ -152,24 +160,27 @@ function CompanyPeoplePage() {
             </SelectContent>
           </Select>
           <Select value={type} onValueChange={setType}>
-            <SelectTrigger className="w-48" aria-label="Тип">
+            <SelectTrigger className="w-48" aria-label="Категория">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={ALL}>Все типы</SelectItem>
-              {USER_TYPES.map((t) => (
+              <SelectItem value={ALL}>Все категории</SelectItem>
+              {CATEGORIES.map((t) => (
                 <SelectItem key={t} value={t}>
                   {USER_TYPE_LABEL[t]}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
-          <div className="flex h-10 items-center gap-2 px-1">
-            <Switch id="online-only" checked={onlineOnly} onCheckedChange={setOnlineOnly} />
-            <Label htmlFor="online-only" className="cursor-pointer whitespace-nowrap">
-              В сети{onlineCount ? ` · ${onlineCount}` : ""}
-            </Label>
-          </div>
+          <Button
+            variant={onlineOnly ? "secondary" : "outline"}
+            aria-pressed={onlineOnly}
+            title={onlineOnly ? "Показать всех" : "Только те, кто сейчас в сети"}
+            onClick={() => setOnlineOnly(!onlineOnly)}
+          >
+            <span aria-hidden className="size-2 rounded-full bg-emerald-500" />В сети
+            {onlineCount ? ` · ${onlineCount}` : ""}
+          </Button>
           <ToolbarReset
             active={filtersActive}
             onReset={() => {
@@ -190,15 +201,18 @@ function CompanyPeoplePage() {
                 <TableHead>Подразделение</TableHead>
                 <TableHead>Клубы и города</TableHead>
                 <TableHead>Контакты</TableHead>
-                <TableHead>Статус</TableHead>
+                <TableHead>В сети</TableHead>
+                <TableHead className="w-12">
+                  <span className="sr-only">Написать</span>
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isPending ? (
-                <TableSkeletonRows rows={8} columns={5} />
+                <TableSkeletonRows rows={8} columns={6} />
               ) : pg.paged.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="py-10 text-center text-muted-foreground">
+                  <TableCell colSpan={6} className="py-10 text-center text-muted-foreground">
                     {people.length === 0 ? "Пока никого нет." : "Никого не нашли."}
                   </TableCell>
                 </TableRow>
@@ -306,6 +320,11 @@ function CompanyPeoplePage() {
                           {lastSeenLabel(p.last_seen_at)}
                         </span>
                       </TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        {p.user_id !== me?.id && (
+                          <WriteIcon userId={p.user_id} name={p.full_name} />
+                        )}
+                      </TableCell>
                     </TableRow>
                   );
                 })
@@ -317,5 +336,35 @@ function CompanyPeoplePage() {
       </div>
       <PersonCardDialog userId={openId} onClose={() => setOpenId(null)} />
     </AdminShell>
+  );
+}
+
+/** «Написать» в строке — личный чат с человеком. */
+function WriteIcon({ userId, name }: { userId: string; name: string }) {
+  const navigate = useNavigate();
+  const qc = useQueryClient();
+  const [busy, setBusy] = useState(false);
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      aria-label={`Написать: ${name}`}
+      title="Написать"
+      disabled={busy}
+      onClick={async () => {
+        setBusy(true);
+        try {
+          const chatId = await openDirect(userId);
+          await qc.invalidateQueries({ queryKey: ["chat_list"] });
+          void navigate({ to: "/chats/$chatId", params: { chatId } });
+        } catch (e) {
+          toast.error(chatErrorText(e));
+        } finally {
+          setBusy(false);
+        }
+      }}
+    >
+      {busy ? <Loader2 className="animate-spin" /> : <MessageCircle />}
+    </Button>
   );
 }

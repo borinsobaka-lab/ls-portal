@@ -3945,10 +3945,10 @@ export function CompanyPeoplePageSkeleton() {
   return (
     <ShellSkeleton title="Сотрудники">
       <div className="space-y-3">
-        <ToolbarSkeleton controls={["w-48", "w-48", "w-48", "w-24"]} />
+        <ToolbarSkeleton controls={["w-48", "w-48", "w-48", { label: "В сети" }]} />
         <TableCardSkeleton
           pagination
-          headers={["Сотрудник", "Подразделение", "Клубы и города", "Контакты", "Статус"]}
+          headers={["Сотрудник", "Подразделение", "Клубы и города", "Контакты", "В сети", ""]}
         />
       </div>
     </ShellSkeleton>
@@ -4009,23 +4009,30 @@ export function CompanyAbsencesPageSkeleton() {
   );
 }
 
+/** Дерево подразделений «Структуры» (и в самой странице, пока грузится). */
+export function CompanyStructureTreeSkeleton() {
+  return (
+    <div className="space-y-2">
+      {Array.from({ length: 4 }, (_, i) => (
+        <div key={i} className={cn("rounded-lg border bg-background p-4", i > 0 && "ml-5")}>
+          <Skeleton className="h-5 w-48" />
+          <div className="mt-3 flex gap-4">
+            <Skeleton className="h-7 w-40 rounded-full" />
+            <Skeleton className="h-7 w-36 rounded-full" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 /** «Компания» → «Структура» (/company/structure): подразделения карточками. */
 export function CompanyStructurePageSkeleton() {
   return (
     <ShellSkeleton title="Структура компании">
       <div className="space-y-3">
-        <ToolbarSkeleton controls={["w-32", "w-32"]} />
-        <div className="space-y-2">
-          {Array.from({ length: 4 }, (_, i) => (
-            <div key={i} className={cn("rounded-lg border bg-background p-4", i > 0 && "ml-5")}>
-              <Skeleton className="h-5 w-48" />
-              <div className="mt-3 flex gap-4">
-                <Skeleton className="h-7 w-40 rounded-full" />
-                <Skeleton className="h-7 w-36 rounded-full" />
-              </div>
-            </div>
-          ))}
-        </div>
+        <ToolbarSkeleton controls={[{ label: "Свернуть все" }]} />
+        <CompanyStructureTreeSkeleton />
       </div>
     </ShellSkeleton>
   );

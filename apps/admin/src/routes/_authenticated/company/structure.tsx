@@ -1,15 +1,20 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronDown, ChevronRight, Loader2 } from "lucide-react";
+import { ChevronDown, ChevronRight, ChevronUp } from "lucide-react";
 
 import { AdminShell } from "@/components/admin-shell";
-import { CompanyStructurePageSkeleton } from "@/components/page-skeletons";
+import {
+  CompanyStructurePageSkeleton,
+  CompanyStructureTreeSkeleton,
+} from "@/components/page-skeletons";
 import { PersonChip } from "@/components/people/person-card";
 import { TableToolbar, ToolbarSearch } from "@/components/table-toolbar";
 import { Button } from "@/components/ui/button";
 import { StatusChip } from "@/components/ui/status-chip";
+import { useAdminAccess } from "@/hooks/use-admin-access";
 import { MEMBER_ROLE_LABEL } from "@/lib/access/logic";
+import { hasRight } from "@/lib/admin-access";
 import { PORTAL_NAME } from "@/lib/brand";
 import {
   companyPeopleQuery,
@@ -41,6 +46,8 @@ function CompanyStructurePage() {
   const { data: people = [] } = useQuery(companyPeopleQuery);
   const [search, setSearch] = useState("");
   const [closed, setClosed] = useState<Set<string>>(new Set());
+  const access = useAdminAccess();
+  const canManage = hasRight(access, "structure.manage");
 
   const byId = useMemo(() => new Map(people.map((p) => [p.user_id, p])), [people]);
   const children = useMemo(() => unitChildren(units), [units]);
@@ -84,27 +91,31 @@ function CompanyStructurePage() {
             onChange={setSearch}
             placeholder="Подразделение или сотрудник"
           />
-          <Button variant="outline" onClick={() => setClosed(new Set())}>
-            Раскрыть все
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() =>
-              setClosed(new Set(units.filter((u) => children.has(u.id)).map((u) => u.id)))
-            }
-          >
-            Свернуть все
-          </Button>
+          {closed.size > 0 ? (
+            <Button variant="outline" onClick={() => setClosed(new Set())}>
+              <ChevronDown /> Раскрыть все
+            </Button>
+          ) : (
+            <Button
+              variant="outline"
+              disabled={units.length === 0}
+              onClick={() =>
+                setClosed(new Set(units.filter((u) => children.has(u.id)).map((u) => u.id)))
+              }
+            >
+              <ChevronUp /> Свернуть все
+            </Button>
+          )}
         </TableToolbar>
 
         {isPending ? (
-          <div className="flex h-40 items-center justify-center text-sm text-muted-foreground">
-            <Loader2 className="mr-2 size-4 animate-spin" /> Загружаем…
-          </div>
+          <CompanyStructureTreeSkeleton />
         ) : roots.length === 0 ? (
           <div className="rounded-lg border bg-background p-8 text-center text-sm text-muted-foreground">
-            Оргструктуру ещё не завели. Её ведут в «Управлении» → «Пользователи и роли» →
-            «Оргструктура».
+            Оргструктуру ещё не завели.
+            {canManage
+              ? " Её ведут в «Управлении» → «Пользователи и роли» → «Оргструктура»."
+              : " Когда её заполнят, здесь появятся отделы и кто за что отвечает."}
           </div>
         ) : (
           <div className="space-y-2">

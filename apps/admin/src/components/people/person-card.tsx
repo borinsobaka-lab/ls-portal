@@ -1,13 +1,17 @@
 /**
  * Человек портала: аватарка и имя, по нажатию — карточка сотрудника
  * (решение владельца 2026-10-27). Одинаково в упоминаниях «@», у автора
- * статьи и в списках людей. Данные — lib/people.ts.
+ * статьи и в списках людей. В карточке — «Написать», «Задача» (поставить
+ * ему задачу) и «Встреча» (новое событие календаря с ним), отсутствие
+ * сейчас или ближайшее. Данные — lib/people.ts.
  */
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import {
   Building2,
   Cake,
+  CalendarDays,
   CalendarOff,
+  CheckSquare,
   Copy,
   Loader2,
   Mail,
@@ -21,15 +25,21 @@ import { toast } from "sonner";
 
 import { StaffAvatar } from "@/components/employee-photo";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useStaffProfile } from "@/hooks/use-staff-profile";
 import { chatErrorText, openDirect } from "@/lib/chats/data";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { StatusChip } from "@/components/ui/status-chip";
 import { MEMBER_ROLE_LABEL, USER_TYPE_LABEL } from "@/lib/access/logic";
 import { CLUB_ROLE_LABEL, usePersonCard, usePersonShort } from "@/lib/people";
-import { absenceOn, absenceText, dayMonth } from "@/lib/people-calendar";
+import { absenceOn, absenceText, addDaysISO, dayMonth } from "@/lib/people-calendar";
 import { birthdayQuery, useAbsences, useTodayISO } from "@/lib/people-calendar-data";
 import { cn } from "@/lib/utils";
+
+// Форма задачи — только по «Задача»: карточка есть почти везде, тянуть форму в каждый раздел незачем.
+const NewTaskDialog = lazy(() =>
+  import("@/components/tasks/task-form").then((m) => ({ default: m.NewTaskDialog })),
+);
 
 /** Нажимаемая обёртка: по нажатию — карточка сотрудника. */
 export function PersonButton({
@@ -127,9 +137,22 @@ function PersonCardBody({ userId, onClose }: { userId: string; onClose: () => vo
   const { data: card, isLoading } = usePersonCard(userId);
   if (isLoading) {
     return (
-      <div className="flex h-48 items-center justify-center text-sm text-muted-foreground">
+      <div>
         <DialogTitle className="sr-only">Сотрудник</DialogTitle>
-        <Loader2 className="mr-2 size-4 animate-spin" /> Загружаем…
+        <div className="flex flex-col items-center gap-3 border-b bg-muted/40 px-6 pt-8 pb-5">
+          <Skeleton className="size-20 rounded-full" />
+          <Skeleton className="h-5 w-40" />
+          <Skeleton className="h-4 w-32" />
+          <div className="flex gap-2">
+            <Skeleton className="h-10 w-28 rounded-full" />
+            <Skeleton className="h-10 w-24 rounded-full" />
+            <Skeleton className="h-10 w-24 rounded-full" />
+          </div>
+        </div>
+        <div className="space-y-4 px-6 py-5">
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-16 w-full" />
+        </div>
       </div>
     );
   }
@@ -159,7 +182,7 @@ function PersonCardBody({ userId, onClose }: { userId: string; onClose: () => vo
             {card.blocked ? "Заблокирован" : "Нет доступа к порталу"}
           </StatusChip>
         )}
-        {card.active && !card.blocked && <WriteButton userId={userId} onDone={onClose} />}
+        {card.active && !card.blocked && <PersonActions userId={userId} onDone={onClose} />}
       </div>
       <div className="space-y-4 px-6 py-5 text-sm">
         {(card.email || card.phone) && (
@@ -189,7 +212,11 @@ function PersonCardBody({ userId, onClose }: { userId: string; onClose: () => vo
             {card.clubs
               .filter((c) => !card.owned_clubs.includes(c.name))
               .map((c) => (
-                <Line key={c.name} label={c.name} value={CLUB_ROLE_LABEL[c.role]} />
+                <Line
+                  key={c.name}
+                  label={c.name}
+                  value={c.role === "owner" ? "Собственник" : CLUB_ROLE_LABEL[c.role]}
+                />
               ))}
           </Section>
         )}
@@ -205,10 +232,10 @@ function PersonCardBody({ userId, onClose }: { userId: string; onClose: () => vo
   );
 }
 
-/** «В отпуске до 15 ноября», «День рождения — 12 ноября». */
+/** «В отпуске до 15 ноября» (или ближайшее за месяц), «День рождения — 12 ноября». */
 function PersonStatusLine({ userId }: { userId: string }) {
   const today = useTodayISO();
-  const absence = absenceOn(useAbsences(), userId, today);
+  const absence = absenceOn(useAbsences(), userId, today, addDaysISO(today, 30));
   const { data: bd } = useQuery(birthdayQuery(userId));
   if (!absence && !bd?.day) return null;
   return (
@@ -227,32 +254,61 @@ function PersonStatusLine({ userId }: { userId: string }) {
   );
 }
 
-/** «Написать» — личный чат с человеком (чаты портала). */
-function WriteButton({ userId, onDone }: { userId: string; onDone: () => void }) {
+/**
+ * Действия карточки: «Написать» — личный чат, «Задача» — поставить задачу
+ * этому человеку, «Встреча» — новое событие календаря с ним.
+ */
+function PersonActions({ userId, onDone }: { userId: string; onDone: () => void }) {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { data: me } = useStaffProfile();
   const [busy, setBusy] = useState(false);
+  const [taskOpen, setTaskOpen] = useState(false);
+  const self = me?.id === userId;
   return (
-    <Button
-      disabled={busy}
-      onClick={async () => {
-        setBusy(true);
-        try {
-          const chatId = await openDirect(userId);
-          await qc.invalidateQueries({ queryKey: ["chat_list"] });
-          onDone();
-          void navigate({ to: "/chats/$chatId", params: { chatId } });
-        } catch (e) {
-          toast.error(chatErrorText(e));
-        } finally {
-          setBusy(false);
-        }
-      }}
-    >
-      {busy ? <Loader2 className="animate-spin" /> : <MessageCircle />}
-      {me?.id === userId ? "Избранное" : "Написать"}
-    </Button>
+    <div className="flex flex-wrap justify-center gap-2">
+      <Button
+        disabled={busy}
+        onClick={async () => {
+          setBusy(true);
+          try {
+            const chatId = await openDirect(userId);
+            await qc.invalidateQueries({ queryKey: ["chat_list"] });
+            onDone();
+            void navigate({ to: "/chats/$chatId", params: { chatId } });
+          } catch (e) {
+            toast.error(chatErrorText(e));
+          } finally {
+            setBusy(false);
+          }
+        }}
+      >
+        {busy ? <Loader2 className="animate-spin" /> : <MessageCircle />}
+        {self ? "Избранное" : "Написать"}
+      </Button>
+      {!self && (
+        <>
+          <Button variant="outline" title="Поставить задачу" onClick={() => setTaskOpen(true)}>
+            <CheckSquare /> Задача
+          </Button>
+          <Button
+            variant="outline"
+            title="Новое событие в календаре с этим сотрудником"
+            onClick={() => {
+              onDone();
+              void navigate({ to: "/calendar", search: { new: true, with: userId } });
+            }}
+          >
+            <CalendarDays /> Встреча
+          </Button>
+          {taskOpen && (
+            <Suspense fallback={null}>
+              <NewTaskDialog open onClose={() => setTaskOpen(false)} initialAssignee={userId} />
+            </Suspense>
+          )}
+        </>
+      )}
+    </div>
   );
 }
 
@@ -267,7 +323,7 @@ function Section({
 }) {
   return (
     <section>
-      <h3 className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase">
+      <h3 className="mb-1.5 flex items-center gap-1.5 text-sm font-semibold text-muted-foreground">
         {Icon && <Icon className="size-3.5" />}
         {title}
       </h3>
