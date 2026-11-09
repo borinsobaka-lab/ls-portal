@@ -25,6 +25,8 @@ export type BirthdayInfo = {
   year: number | null;
   show_year: boolean;
   can_edit: boolean;
+  /** false — год не указан (день рождения без года, 2026-11-09). */
+  year_known?: boolean;
 };
 
 export const ABSENCE_KIND_LABEL: Record<AbsenceKind, string> = {

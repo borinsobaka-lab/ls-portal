@@ -93,6 +93,19 @@ export function useMarkNotifRead() {
   );
 }
 
+/** Вернуть в непрочитанные (кружок у прочитанной строки ленты). */
+export function useMarkNotifUnread() {
+  const queryClient = useQueryClient();
+  return useCallback(
+    async (ids: string[]) => {
+      if (ids.length === 0) return;
+      await unwrap(supabase.rpc("notif_mark_unread", { p_ids: ids }));
+      await queryClient.invalidateQueries({ queryKey: [KEY] });
+    },
+    [queryClient],
+  );
+}
+
 export const portalSettingsQuery = queryOptions({
   queryKey: ["portal_user_settings"],
   queryFn: async () => (await unwrap<PortalSettings>(supabase.rpc("portal_settings_get")))!,

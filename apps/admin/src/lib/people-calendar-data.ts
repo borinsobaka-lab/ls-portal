@@ -65,8 +65,14 @@ export async function saveBirthday(
   userId: string,
   date: string | null,
   showYear: boolean,
+  yearKnown = true,
 ) {
-  await rpc("people_birthday_save", { p_user: userId, p_date: date, p_show_year: showYear });
+  await rpc("people_birthday_save", {
+    p_user: userId,
+    p_date: date,
+    p_show_year: showYear && yearKnown,
+    p_year_known: yearKnown,
+  });
   await Promise.all([
     qc.invalidateQueries({ queryKey: ["people_birthday", userId] }),
     qc.invalidateQueries({ queryKey: ["people_birthdays"] }),

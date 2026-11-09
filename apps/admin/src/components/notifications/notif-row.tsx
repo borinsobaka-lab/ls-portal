@@ -37,12 +37,15 @@ export function NotifRow({
   item,
   onOpen,
   onMarkRead,
+  onMarkUnread,
   compact = false,
 }: {
   item: NotifItem;
   onOpen: (item: NotifItem) => void;
   /** Точка «не прочитано» — отметить прочитанным без перехода. */
   onMarkRead?: (item: NotifItem) => void;
+  /** Вернуть в непрочитанные (пустой кружок у прочитанной строки). */
+  onMarkUnread?: (item: NotifItem) => void;
   compact?: boolean;
 }) {
   const unread = !item.read_at;
@@ -118,6 +121,16 @@ export function NotifRow({
           onClick={() => onMarkRead(item)}
         >
           <span className="size-2.5 rounded-full bg-destructive group-hover/dot:ring-4 group-hover/dot:ring-destructive/20" />
+        </button>
+      ) : !unread && onMarkUnread ? (
+        <button
+          type="button"
+          aria-label="Отметить непрочитанным"
+          title="Отметить непрочитанным"
+          className="group/dot mt-2 mr-1 flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-full hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          onClick={() => onMarkUnread(item)}
+        >
+          <span className="size-2.5 rounded-full border border-muted-foreground/40 opacity-0 group-hover/dot:opacity-100 group-focus-visible/dot:opacity-100 pointer-coarse:opacity-100" />
         </button>
       ) : (
         <span aria-hidden className="mt-2 mr-1 size-8 shrink-0" />

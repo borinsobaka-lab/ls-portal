@@ -12,6 +12,7 @@ import { SegmentedControl } from "@/components/ui/segmented-control";
 import { PORTAL_NAME } from "@/lib/brand";
 import {
   useMarkNotifRead,
+  useMarkNotifUnread,
   useNotifFeed,
   useNotifUnread,
   type NotifItem,
@@ -46,6 +47,7 @@ function NotificationsPage() {
   const feed = useNotifFeed(filter === "unread");
   const unread = useNotifUnread();
   const markRead = useMarkNotifRead();
+  const markUnread = useMarkNotifUnread();
   const navigate = useNavigate();
   const { tz } = useTaskClock();
   const items = useMemo(() => feed.data?.pages.flat() ?? [], [feed.data]);
@@ -109,6 +111,7 @@ function NotificationsPage() {
                       item={item}
                       onOpen={openItem}
                       onMarkRead={(i) => void markRead([i.id])}
+                      onMarkUnread={(i) => void markUnread([i.id])}
                     />
                   ))}
                 </div>

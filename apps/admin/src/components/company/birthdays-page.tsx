@@ -204,7 +204,11 @@ function MyBirthday({ userId, onEdit }: { userId: string; onEdit: () => void }) 
             <Skeleton className="mt-1 h-4 w-48" />
           ) : data?.day ? (
             `${dayMonth(data.day)}${data.year && data.show_year ? ` ${data.year}` : ""}${
-              data.show_year ? "" : " · год видите только вы"
+              data.year_known === false
+                ? " · без года"
+                : data.show_year
+                  ? ""
+                  : " · год видите только вы"
             }`
           ) : (
             "Не указан — коллеги не узнают, когда поздравить"
@@ -247,11 +251,11 @@ function BirthdayForm({ target, onClose }: { target: string | "pick"; onClose: (
       userId={userId}
       onUser={target === "pick" ? setUserId : undefined}
       loading={!!userId && isPending}
-      initialDate={data?.day && data.year ? `${data.year}-${data.day}` : ""}
+      initialDate={data?.day ? `${data.year ?? ""}-${data.day}` : ""}
       initialShowYear={data?.show_year ?? false}
       hasDate={!!data?.day}
       onClose={onClose}
-      onSave={(date, showYear) => saveBirthday(qc, userId!, date, showYear)}
+      onSave={(date, showYear, yearKnown) => saveBirthday(qc, userId!, date, showYear, yearKnown)}
     />
   );
 }
@@ -275,7 +279,7 @@ function BirthdayFields({
   initialShowYear: boolean;
   hasDate: boolean;
   onClose: () => void;
-  onSave: (date: string | null, showYear: boolean) => Promise<void>;
+  onSave: (date: string | null, showYear: boolean, yearKnown: boolean) => Promise<void>;
 }) {
   const [y0, m0, d0] = initialDate ? initialDate.split("-") : ["", "", ""];
   const [day, setDay] = useState(d0 ? String(Number(d0)) : "");
@@ -293,9 +297,9 @@ function BirthdayFields({
       const e: typeof errors = {};
       if (!userId) e.user = "Выберите сотрудника";
       if (!day || !month) e.date = "Выберите день и месяц";
-      const y = Number(year);
-      if (!year) e.year = "Укажите год";
-      else if (!Number.isInteger(y) || y < 1900 || y > thisYear) e.year = "Проверьте год";
+      // Без года — 2000-й (високосный): база хранит так «год не указан».
+      const y = year ? Number(year) : 2000;
+      if (year && (!Number.isInteger(y) || y < 1900 || y > thisYear)) e.year = "Проверьте год";
       else if (day && month && Number(day) > daysIn(Number(month), y)) e.date = "Такого дня нет";
       if (Object.keys(e).length) {
         setErrors(e);
@@ -305,7 +309,7 @@ function BirthdayFields({
     }
     setBusy(true);
     try {
-      await onSave(value, showYear);
+      await onSave(value, showYear && !!year, !!year);
       toast.success(value ? "Сохранено" : "Дата убрана");
       onClose();
     } catch (e) {
@@ -387,10 +391,10 @@ function BirthdayFields({
             </FormField>
             <FormField
               label="Год"
-              required
+              optional
               htmlFor="birthday-year"
               error={errors.year}
-              hint="Год нужен, чтобы сохранить дату. Коллеги его не увидят, пока не включите «Показывать год и возраст»."
+              hint="Можно не указывать. Коллеги не увидят год, пока не включите «Показывать год и возраст»."
             >
               <Input
                 id="birthday-year"
@@ -408,7 +412,8 @@ function BirthdayFields({
             <SwitchRow
               title="Показывать год и возраст"
               tip={TIPS.year}
-              checked={showYear}
+              disabled={!year}
+              checked={showYear && !!year}
               onCheckedChange={setShowYear}
             />
           </>
