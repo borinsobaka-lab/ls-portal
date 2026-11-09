@@ -4031,25 +4031,58 @@ export function CompanyStructurePageSkeleton() {
   );
 }
 
-/** «Уведомления» (/notifications): лента. */
+/** Лента «Уведомлений»: заголовок дня и строки с аватаркой (и в самой странице). */
+export function NotificationsFeedSkeleton() {
+  return (
+    <div className="rounded-xl border bg-background p-1.5">
+      <Skeleton className="mx-3 mt-2 mb-1 h-3.5 w-20" />
+      <div className="divide-y">
+        {Array.from({ length: 6 }, (_, i) => (
+          <div key={i} className="flex items-start gap-3 px-3 py-3">
+            <Skeleton className="size-9 rounded-full" />
+            <div className="flex-1 space-y-1.5">
+              <Skeleton className="h-4 w-1/3" />
+              <Skeleton className="h-4 w-2/3" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** «Уведомления» (/notifications): «Все / Непрочитанные», «Не беспокоить», лента. */
 export function NotificationsPageSkeleton() {
   return (
     <ShellSkeleton title="Уведомления">
       <div className="mx-auto max-w-3xl space-y-4">
-        <ToolbarSkeleton search={false} tabs={<TabsSkeleton labels={["Все", "Непрочитанные"]} />} />
-        <div className="divide-y rounded-xl border bg-background p-1.5">
-          {Array.from({ length: 6 }, (_, i) => (
-            <div key={i} className="flex items-start gap-3 px-3 py-3">
-              <Skeleton className="size-9 rounded-full" />
-              <div className="flex-1 space-y-1.5">
-                <Skeleton className="h-4 w-1/3" />
-                <Skeleton className="h-4 w-2/3" />
-              </div>
+        <ToolbarSkeleton
+          search={false}
+          tabs={
+            <div className="flex items-center gap-2">
+              <TabsSkeleton labels={["Все", "Непрочитанные"]} />
+              <Skeleton className="ml-auto h-10 w-44 rounded-full" />
             </div>
-          ))}
-        </div>
+          }
+        />
+        <NotificationsFeedSkeleton />
       </div>
     </ShellSkeleton>
+  );
+}
+
+/** Карточки настроек уведомлений с подписями (и в самой странице, пока грузятся настройки). */
+export function NotificationSettingsCardsSkeleton({ titles }: { titles: string[] }) {
+  return (
+    <>
+      {titles.map((title) => (
+        <div key={title} className="space-y-3 rounded-xl border bg-background p-6">
+          <p className="text-lg leading-none font-semibold">{title}</p>
+          <Skeleton className="h-4 w-full max-w-md" />
+          <Skeleton className="h-10 w-48" />
+        </div>
+      ))}
+    </>
   );
 }
 
@@ -4058,13 +4091,14 @@ export function NotificationSettingsPageSkeleton() {
   return (
     <ShellSkeleton title="Настройки уведомлений">
       <div className="mx-auto max-w-3xl space-y-4">
-        {Array.from({ length: 4 }, (_, i) => (
-          <div key={i} className="space-y-3 rounded-xl border bg-background p-6">
-            <Skeleton className="h-5 w-56" />
-            <Skeleton className="h-4 w-full max-w-md" />
-            <Skeleton className="h-10 w-48" />
-          </div>
-        ))}
+        <NotificationSettingsCardsSkeleton
+          titles={[
+            "Уведомления на этом устройстве",
+            "Отключить на время",
+            "Тихие часы",
+            "Что и куда присылать",
+          ]}
+        />
       </div>
     </ShellSkeleton>
   );

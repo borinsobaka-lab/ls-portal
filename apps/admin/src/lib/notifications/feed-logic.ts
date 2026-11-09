@@ -72,3 +72,28 @@ export function untilMorning(tz: string, now = new Date()): Date {
   const day = localTime(now, tz) < "09:00" ? today : addDays(today, 1);
   return zoned(day, "09:00", tz);
 }
+
+const MONTHS = [
+  "января",
+  "февраля",
+  "марта",
+  "апреля",
+  "мая",
+  "июня",
+  "июля",
+  "августа",
+  "сентября",
+  "октября",
+  "ноября",
+  "декабря",
+];
+
+/** «до 21:00» или «до 12 ноября, 09:00» — в поясе человека. */
+export function dndUntilText(iso: string, tz: string, now = new Date()): string {
+  const d = new Date(iso);
+  const day = localDay(d, tz);
+  const time = localTime(d, tz);
+  if (day === localDay(now, tz)) return `до ${time}`;
+  const [, m, dd] = day.split("-").map(Number);
+  return `до ${dd} ${MONTHS[m - 1]}, ${time}`;
+}
