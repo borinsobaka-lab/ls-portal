@@ -25,7 +25,6 @@ import { Input } from "@/components/ui/input";
 import { scheduleOptions, scheduledLabel, toLocalInput } from "@/lib/chats/content";
 import {
   chatErrorText,
-  closePoll,
   createPoll,
   deleteScheduled,
   rescheduleMessage,
@@ -394,8 +393,11 @@ function PollForm({ chatId, onClose }: { chatId: string; onClose: () => void }) 
   );
 }
 
-/** Опрос в сообщении: выбор, результаты, «Отозвать голос», «Закрыть опрос». */
-export function PollView({ m, canManage }: { m: ChatMessage; canManage: boolean }) {
+/**
+ * Опрос в сообщении: выбор, результаты, «Отозвать голос». «Закрыть опрос» —
+ * в меню сообщения, с подтверждением (UI_REVIEW, 3.10).
+ */
+export function PollView({ m }: { m: ChatMessage }) {
   const qc = useQueryClient();
   const { name, person } = usePeople();
   const poll = m.poll!;
@@ -523,16 +525,7 @@ export function PollView({ m, canManage }: { m: ChatMessage; canManage: boolean 
             Отозвать голос
           </button>
         )}
-        {canManage && !poll.closed && (
-          <button
-            type="button"
-            className="hover:text-foreground hover:underline"
-            disabled={busy}
-            onClick={() => void run(closePoll(qc, m))}
-          >
-            Закрыть опрос
-          </button>
-        )}
+
         {busy && <Loader2 className="size-3.5 animate-spin" />}
       </div>
     </div>

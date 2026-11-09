@@ -190,7 +190,8 @@ export const Composer = forwardRef<
     replyTo: ChatMessage | null;
     editing: ChatMessage | null;
     authorName: (id: string | null) => string;
-    disabledReason?: string | null;
+    /** Писать нельзя — текст вместо поля (может быть со ссылкой). */
+    disabledReason?: React.ReactNode;
     onCancelReply: () => void;
     onCancelEdit: () => void;
     onSend: (msg: ComposerSend) => Promise<void> | void;
