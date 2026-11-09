@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { UnitScopeFields } from "@/components/people/unit-scope-fields";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2, X } from "lucide-react";
 import { toast } from "sonner";
@@ -299,20 +300,14 @@ function AccessEditor({
                   />
                   {type === "unit" && (
                     <div className="space-y-2 rounded-md border p-3">
-                      <SegmentedControl
-                        aria-label="Кому в подразделении"
-                        fullWidth
-                        value={heads ? "heads" : "all"}
-                        onChange={(v) => setHeads(v === "heads")}
-                        options={[
-                          { value: "all", label: "Всем сотрудникам" },
-                          { value: "heads", label: "Руководителям" },
-                        ]}
+                      <UnitScopeFields
+                        scope={heads ? "heads" : "all"}
+                        withSubunits={subunits}
+                        onChange={(v) => {
+                          setHeads(v.scope === "heads");
+                          setSubunits(v.withSubunits);
+                        }}
                       />
-                      <CheckboxOption checked={subunits} onCheckedChange={setSubunits}>
-                        И в подразделениях ниже
-                      </CheckboxOption>
-                      <p className="text-xs text-muted-foreground">{TIPS.unit}</p>
                     </div>
                   )}
                   <SearchableCombobox
