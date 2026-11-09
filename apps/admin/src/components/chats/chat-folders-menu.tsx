@@ -1,23 +1,19 @@
 /**
- * Меню раздела «Чаты» в боковой панели — папки (бриф 2.6, боль № 27):
- * «Все чаты», «Личные», «Группы» и свои папки с числом чатов с
- * непрочитанным; правой кнопкой — «Прочитать всё» (Д.3), у своей —
- * «Изменить» и «Удалить»; внизу — «Новая папка». Папка — в адресе `?f=`.
+ * Меню раздела «Чаты» в боковой панели — папки (бриф 2.6, боль № 27;
+ * UI_REVIEW_CHATS_TASKS_CALENDAR.md, 2.3 и 3.7): системные папки — всегда
+ * (пустая объясняет, что сюда попадает), свои папки и «Новая папка». Те же
+ * папки — строкой чипов над списком чатов (`ChatFolderChips` в
+ * `chat-list.tsx`). У папки — «⋯» (при наведении, на сенсорном экране —
+ * всегда) и то же правой кнопкой: «Отметить всё прочитанным», у своей —
+ * «Изменить» и «Удалить папку». Папка — в адресе `?f=`.
  */
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { CheckCheck, Pencil, Trash2 } from "lucide-react";
 
+import { ChatContextMenu, ChatMoreMenu, type ChatMenuItem } from "@/components/chats/action-menu";
 import { FolderDialog } from "@/components/chats/dialogs";
 import { useConfirm } from "@/components/confirm-dialog";
-import {
-  ContextMenu,
-  ContextMenuContent,
-  ContextMenuItem,
-  ContextMenuSeparator,
-  ContextMenuTrigger,
-} from "@/components/ui/context-menu";
 import {
   AddFolder,
   Calendar,
@@ -36,22 +32,10 @@ import {
   SIDEBAR_NAV_LINK_CLASS,
 } from "@/components/sidebar-nav";
 import { SidebarContent, SidebarMenuItem } from "@/components/ui/sidebar";
-import {
-  chatErrorText,
-  chatFoldersQuery,
-  chatRpc,
-  markAllRead,
-  useChatList,
-} from "@/lib/chats/data";
-import {
-  folderFilter,
-  folderUnread,
-  isChannel,
-  SYSTEM_FOLDERS,
-  type FolderKey,
-} from "@/lib/chats/folders";
-import { mergeTopics } from "@/lib/chats/topics";
+import { useFolderItems, type FolderItem } from "@/lib/chats/folder-items";
+import { MAX_FOLDERS, type FolderKey } from "@/lib/chats/folders";
 import type { ChatFolder } from "@/lib/chats/types";
+import { cn } from "@/lib/utils";
 
 // Иконки — Solar, как во всех меню второго уровня (`sidebar-nav.tsx`).
 const ICONS = {
@@ -65,110 +49,88 @@ const ICONS = {
 } as const;
 
 export function ChatFoldersMenu({ onNavigate }: { onNavigate?: () => void }) {
-  const qc = useQueryClient();
-  const { data: all = [] } = useChatList();
-  // Темы — в строке своей группы: папки и счётчики считают группу один раз.
-  const chats = useMemo(() => mergeTopics(all), [all]);
-  const { data: folders = [] } = useQuery(chatFoldersQuery);
+  const { items, folders, readAll, removeFolder } = useFolderItems();
   const { confirm, confirmDialog } = useConfirm();
   const [editing, setEditing] = useState<Partial<ChatFolder> | null>(null);
   const location = useRouterState({ select: (s) => s.location });
   const current = ((location.search as { f?: string }).f ?? "all") as FolderKey;
   const chatPath = location.pathname.startsWith("/chats/") ? location.pathname : "/chats";
 
-  // «Задачи» — когда есть хоть одно обсуждение задачи.
-  const hasTaskChats = chats.some((c) => c.kind === "task");
-  const hasProjectChats = chats.some((c) => c.kind === "project");
-  const hasEventChats = chats.some((c) => c.kind === "event");
-  const hasChannels = chats.some(isChannel);
-  const items: { key: FolderKey; title: string; folder?: ChatFolder }[] = [
-    ...SYSTEM_FOLDERS.filter(
-      (f) =>
-        (f.key !== "task" || hasTaskChats || current === "task") &&
-        (f.key !== "project" || hasProjectChats || current === "project") &&
-        (f.key !== "event" || hasEventChats || current === "event") &&
-        (f.key !== "channel" || hasChannels || current === "channel"),
-    ),
-    ...folders.map((f) => ({ key: f.id, title: f.title, folder: f })),
-  ];
-
-  const readAll = (key: FolderKey) => {
-    const groups = new Set(chats.filter(folderFilter(key, folders)).map((c) => c.id));
-    const ids = all
-      .filter((c) => groups.has(c.id) || (c.parent_id && groups.has(c.parent_id)))
-      .map((c) => c.id);
-    void markAllRead(qc, ids).catch((e) => toast.error(chatErrorText(e)));
-  };
-
   const remove = async (f: ChatFolder) => {
     const ok = await confirm({
       title: `Удалить папку «${f.title}»?`,
       description: "Чаты останутся — пропадёт только папка.",
-      confirmLabel: "Удалить",
+      confirmLabel: "Удалить папку",
     });
-    if (!ok) return;
-    try {
-      await chatRpc("chat_folder_delete", { p_id: f.id });
-      await qc.invalidateQueries({ queryKey: ["chat_folders"] });
-    } catch (e) {
-      toast.error(chatErrorText(e));
-    }
+    if (ok) await removeFolder(f);
   };
+
+  const menu = (it: FolderItem): ChatMenuItem[] => [
+    ...(it.unread > 0
+      ? [{ label: "Отметить всё прочитанным", icon: CheckCheck, onSelect: () => readAll(it.key) }]
+      : []),
+    ...(it.folder
+      ? [
+          { label: "Изменить", icon: Pencil, onSelect: () => setEditing(it.folder!) },
+          {
+            label: "Удалить папку",
+            icon: Trash2,
+            destructive: true,
+            separatorBefore: it.unread > 0,
+            onSelect: () => void remove(it.folder!),
+          },
+        ]
+      : []),
+  ];
 
   return (
     <SidebarContent aria-label="Папки чатов" className="sidebar-scroll gap-1">
       <SidebarNavGroup id="chats-folders" label="Папки">
         {items.map((it) => {
-          const unread = folderUnread(chats, folderFilter(it.key, folders));
           const icon = ICONS[it.key as keyof typeof ICONS] ?? Folder;
           const active = current === it.key;
+          const actions = menu(it);
           return (
-            <ContextMenu key={it.key}>
-              <ContextMenuTrigger asChild>
-                <SidebarMenuItem>
-                  <SidebarNavButton active={active}>
-                    <Link
-                      to={chatPath}
-                      search={it.key === "all" ? {} : { f: it.key }}
-                      onClick={onNavigate}
-                      className={SIDEBAR_NAV_LINK_CLASS}
-                    >
-                      <SidebarNavContent
-                        icon={icon}
-                        active={active}
-                        title={it.title}
-                        badge={unread}
-                      />
-                    </Link>
-                  </SidebarNavButton>
-                </SidebarMenuItem>
-              </ContextMenuTrigger>
-              <ContextMenuContent className="w-48">
-                <ContextMenuItem onSelect={() => readAll(it.key)}>Прочитать всё</ContextMenuItem>
-                {it.folder && (
-                  <>
-                    <ContextMenuSeparator />
-                    <ContextMenuItem onSelect={() => setEditing(it.folder!)}>
-                      Изменить
-                    </ContextMenuItem>
-                    <ContextMenuItem
-                      className="text-destructive"
-                      onSelect={() => void remove(it.folder!)}
-                    >
-                      Удалить папку
-                    </ContextMenuItem>
-                  </>
-                )}
-              </ContextMenuContent>
-            </ContextMenu>
+            <ChatContextMenu key={it.key} items={actions}>
+              <SidebarMenuItem className="group/row">
+                <SidebarNavButton active={active}>
+                  <Link
+                    to={chatPath}
+                    search={it.key === "all" ? {} : { f: it.key }}
+                    onClick={onNavigate}
+                    className={cn(SIDEBAR_NAV_LINK_CLASS, actions.length > 0 && "pr-8")}
+                  >
+                    <SidebarNavContent
+                      icon={icon}
+                      active={active}
+                      title={it.title}
+                      badge={it.unread}
+                    />
+                  </Link>
+                </SidebarNavButton>
+                <ChatMoreMenu
+                  items={actions}
+                  label={`Действия с папкой «${it.title}»`}
+                  reveal="row"
+                  align="start"
+                  triggerClassName="absolute top-0.5 right-0.5 text-white/60 hover:bg-white/10 hover:text-white"
+                />
+              </SidebarMenuItem>
+            </ChatContextMenu>
           );
         })}
         <SidebarMenuItem>
-          <SidebarNavButton active={false} className="text-white/70">
-            <button type="button" onClick={() => setEditing({})}>
-              <SidebarNavContent icon={AddFolder} active={false} title="Новая папка" />
-            </button>
-          </SidebarNavButton>
+          {folders.length < MAX_FOLDERS ? (
+            <SidebarNavButton active={false} className="text-white/70">
+              <button type="button" onClick={() => setEditing({})}>
+                <SidebarNavContent icon={AddFolder} active={false} title="Новая папка" />
+              </button>
+            </SidebarNavButton>
+          ) : (
+            <p className="px-2 py-1.5 text-xs text-white/50">
+              Папок уже {MAX_FOLDERS} — больше нельзя. Удалите ненужную, чтобы завести новую.
+            </p>
+          )}
         </SidebarMenuItem>
       </SidebarNavGroup>
       <FolderDialog folder={editing} onClose={() => setEditing(null)} />

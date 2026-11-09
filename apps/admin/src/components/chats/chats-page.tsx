@@ -9,13 +9,14 @@
  */
 import { useState, useSyncExternalStore } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { MessagesSquare } from "lucide-react";
+import { ArrowLeft, MessagesSquare } from "lucide-react";
 
 import { AdminShell } from "@/components/admin-shell";
 import { ChatInfo } from "@/components/chats/chat-info";
 import { ChatList } from "@/components/chats/chat-list";
 import { ChatView } from "@/components/chats/chat-view";
 import { TopicsPane } from "@/components/chats/topics-pane";
+import { Button } from "@/components/ui/button";
 import { useStaffProfile } from "@/hooks/use-staff-profile";
 import { chatTitle } from "@/lib/chats/content";
 import { useChatList } from "@/lib/chats/data";
@@ -69,6 +70,9 @@ export function ChatsPage({
   const topicsOnly = !!group && chat?.id === group.id && !general && !focusSeq && !wide;
   const infoChat = group ?? chat;
   const search = folder === "all" ? {} : { f: folder };
+  // Открыт несуществующий или чужой чат: на телефоне не тупик — шапка
+  // портала на месте и «К списку» (UI_REVIEW, 3.1.12).
+  const notFound = !!chatId && !chat && !isPending;
 
   const open = (id: string, seq?: number, g?: boolean) =>
     navigate({
@@ -84,7 +88,7 @@ export function ChatsPage({
       : chatTitle(chat, name);
 
   return (
-    <AdminShell title={title} fill hideHeaderOnMobile={!!chatId}>
+    <AdminShell title={title} fill hideHeaderOnMobile={!!chat}>
       <div className="flex h-full min-h-0">
         <div
           className={cn(
@@ -93,7 +97,20 @@ export function ChatsPage({
             group && "lg:max-xl:w-80",
           )}
         >
-          {me && <ChatList activeId={group?.id ?? chatId} folder={folder} me={me} onOpen={open} />}
+          {me && (
+            <ChatList
+              activeId={group?.id ?? chatId}
+              folder={folder}
+              me={me}
+              onOpen={open}
+              onFolder={(key) => {
+                const next = key === "all" ? {} : { f: key };
+                void (chat
+                  ? navigate({ to: "/chats/$chatId", params: { chatId: chat.id }, search: next })
+                  : navigate({ to: "/chats", search: next }));
+              }}
+            />
+          )}
         </div>
         {group && me && (wide || topicsOnly) && (
           <TopicsPane
@@ -127,10 +144,15 @@ export function ChatsPage({
               <div className="flex h-full flex-col items-center justify-center gap-3 p-6 text-center text-muted-foreground">
                 <MessagesSquare className="size-10 opacity-40" />
                 <p className="text-sm">
-                  {chatId && !isPending
+                  {notFound
                     ? "Чат не найден или вас в нём нет."
                     : "Выберите чат слева или начните новый."}
                 </p>
+                {notFound && (
+                  <Button variant="outline" onClick={() => navigate({ to: "/chats", search })}>
+                    <ArrowLeft /> К списку чатов
+                  </Button>
+                )}
               </div>
             )}
           </div>
@@ -138,6 +160,7 @@ export function ChatsPage({
         {infoChat && me && (
           <ChatInfo
             chat={infoChat}
+            topic={chat?.kind === "topic" ? chat : null}
             me={me}
             open={infoOpen}
             onClose={() => setInfoOpen(false)}

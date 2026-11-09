@@ -2,8 +2,9 @@
  * Темы группы (TASKS_CHATS_PLAN.md, этап 2, Д.5 — «как в Telegram»): колонка
  * рядом с перепиской. «Общая» — сама группа (прежняя переписка), ниже темы:
  * открытые, свежие сверху, закрытые — ниже с замком. У темы — цвет,
- * непрочитанное, последнее сообщение; «⋯» — переименовать, цвет, закрыть /
- * открыть, звук, удалить (автор темы и админы группы). «Новая тема» — админам
+ * непрочитанное, последнее сообщение; «⋯» (и правой кнопкой) — «Без звука ▸»
+ * как у чата, «Изменить» (название и цвет), закрыть / открыть, удалить
+ * (автор темы и админы группы). «Новая тема» — админам
  * или всем, если так настроено в группе. Схема —
  * db/migrations/2026-11-08_zzzzzzzzzzzzz_chat_topics.sql.
  */
@@ -15,19 +16,17 @@ import {
   BellOff,
   Check,
   Hash,
-  Info,
   Loader2,
   LockKeyhole,
   LockOpen,
   MessagesSquare,
-  MoreHorizontal,
   Pencil,
   Plus,
   Trash2,
-  Volume2,
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { ChatContextMenu, ChatMoreMenu, type ChatMenuItem } from "@/components/chats/action-menu";
 import { ChatAvatar } from "@/components/chats/chat-avatar";
 import { useConfirm } from "@/components/confirm-dialog";
 import { Button } from "@/components/ui/button";
@@ -43,9 +42,16 @@ import {
 } from "@/components/ui/dialog";
 import { FormField } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { chatTime, chatTitle, systemText } from "@/lib/chats/content";
-import { chatErrorText, chatRpc, createTopic, deleteTopic, updateTopic } from "@/lib/chats/data";
+import {
+  chatTime,
+  chatTitle,
+  isMuted,
+  muteLabel,
+  systemText,
+  unreadLabel,
+} from "@/lib/chats/content";
+import { chatErrorText, createTopic, deleteTopic, updateTopic } from "@/lib/chats/data";
+import { muteMenuItem } from "@/lib/chats/mute-menu";
 import { shortName, usePeople } from "@/lib/chats/people";
 import {
   canCreateTopic,
@@ -57,12 +63,6 @@ import {
 } from "@/lib/chats/topics";
 import type { ChatRow } from "@/lib/chats/types";
 import { cn } from "@/lib/utils";
-
-const MENU_ITEM =
-  "flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm hover:bg-muted";
-
-const isMuted = (c: ChatRow) =>
-  c.notify === "none" || (!!c.muted_until && new Date(c.muted_until) > new Date());
 
 export function TopicsPane({
   group,
@@ -104,6 +104,7 @@ export function TopicsPane({
         <button
           type="button"
           onClick={onInfo}
+          title="Сведения о группе"
           className="flex min-w-0 flex-1 items-center gap-2.5 rounded-md px-1 text-left"
         >
           <ChatAvatar chat={group} title={title} size="sm" />
@@ -114,9 +115,6 @@ export function TopicsPane({
             </span>
           </span>
         </button>
-        <Button variant="ghost" size="icon" aria-label="Сведения о группе" onClick={onInfo}>
-          <Info className="size-5" />
-        </Button>
       </header>
 
       <div className="min-h-0 flex-1 space-y-0.5 overflow-y-auto p-2">
@@ -136,7 +134,8 @@ export function TopicsPane({
             active={activeId === t.id}
             me={me}
             onOpen={() => onOpen(t.id)}
-            menu={<TopicMenu topic={t} group={group} me={me} onEdit={() => setEditing(t)} />}
+            group={group}
+            onEdit={() => setEditing(t)}
           />
         ))}
         {topics.length === 0 && (
@@ -179,7 +178,8 @@ function TopicRow({
   active,
   me,
   onOpen,
-  menu,
+  group,
+  onEdit,
 }: {
   chat: ChatRow;
   label: string;
@@ -187,12 +187,17 @@ function TopicRow({
   active: boolean;
   me: string;
   onOpen: () => void;
-  menu?: React.ReactNode;
+  /** Тема (не «Общая»): её группа и «Изменить» — для меню. */
+  group?: ChatRow;
+  onEdit?: () => void;
 }) {
   const { name } = usePeople();
+  const menu = useTopicMenu(chat, group ?? null, me, onEdit);
   const last = chat.last_message;
   const preview = !last
-    ? "Нет сообщений"
+    ? general
+      ? "Сообщения вне тем"
+      : "Нет сообщений"
     : last.kind === "system"
       ? systemText(last.system, last.author_id, (id) => name(id))
       : last.deleted
@@ -201,178 +206,150 @@ function TopicRow({
   const muted = isMuted(chat);
   const color = topicColor(chat.settings?.color);
   return (
-    <div
-      className={cn(
-        "group/topic relative flex items-center rounded-lg transition-colors",
-        active ? "bg-selected/8" : "hover:bg-muted",
-      )}
-    >
-      <button
-        type="button"
-        onClick={onOpen}
-        className="flex min-w-0 flex-1 items-center gap-2.5 px-2.5 py-2 text-left"
+    <ChatContextMenu items={menu.items}>
+      <div
+        className={cn(
+          "group/row relative flex items-center rounded-lg transition-colors",
+          active ? "bg-selected/8" : "hover:bg-muted",
+        )}
       >
-        <span
-          className="flex size-9 shrink-0 items-center justify-center rounded-full"
-          style={general ? undefined : { backgroundColor: `${color}22`, color }}
+        <button
+          type="button"
+          onClick={onOpen}
+          className="flex min-w-0 flex-1 items-center gap-2.5 px-2.5 py-2 text-left"
         >
-          {general ? (
-            <MessagesSquare className="size-[18px] text-muted-foreground" />
-          ) : (
-            <Hash className="size-[18px]" />
-          )}
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="flex items-center gap-1.5">
-            <span
-              className={cn(
-                "min-w-0 flex-1 truncate",
-                chat.unread ? "font-semibold" : "font-medium",
-              )}
-            >
-              {label}
-            </span>
-            {chat.settings?.closed && (
-              <LockKeyhole
-                className="size-3.5 shrink-0 text-muted-foreground"
-                aria-label="Закрыта"
-              />
+          <span
+            className="flex size-9 shrink-0 items-center justify-center rounded-full"
+            style={general ? undefined : { backgroundColor: `${color}22`, color }}
+          >
+            {general ? (
+              <MessagesSquare className="size-[18px] text-muted-foreground" />
+            ) : (
+              <Hash className="size-[18px]" />
             )}
-            {muted && !general && <BellOff className="size-3.5 shrink-0 text-muted-foreground" />}
-            <span className="shrink-0 text-xs text-muted-foreground">
-              {chatTime(chat.last_message_at ?? chat.created_at)}
-            </span>
           </span>
-          <span className="mt-0.5 flex items-center gap-1.5">
-            <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">{preview}</span>
-            {chat.mentions > 0 && (
-              <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-selected text-selected-foreground">
-                <AtSign className="size-3" />
-              </span>
-            )}
-            {chat.unread > 0 && (
+          <span className="min-w-0 flex-1">
+            <span className="flex items-center gap-1.5">
               <span
                 className={cn(
-                  "min-w-5 shrink-0 rounded-full px-1.5 text-center text-xs leading-5 font-semibold text-white",
-                  muted ? "bg-muted-foreground" : "bg-destructive",
+                  "min-w-0 flex-1 truncate",
+                  chat.unread ? "font-semibold" : "font-medium",
                 )}
               >
-                {chat.unread > 99 ? "99+" : chat.unread}
+                {label}
               </span>
-            )}
+              {chat.settings?.closed && (
+                <span title="Тема закрыта: пишут только администраторы" className="shrink-0">
+                  <LockKeyhole
+                    className="size-3.5 text-muted-foreground"
+                    aria-label="Тема закрыта"
+                  />
+                </span>
+              )}
+              {muted && !general && (
+                <span title={muteLabel(chat)} className="shrink-0">
+                  <BellOff
+                    className="size-3.5 text-muted-foreground"
+                    aria-label={muteLabel(chat)}
+                  />
+                </span>
+              )}
+              <span className="shrink-0 text-xs text-muted-foreground">
+                {chatTime(chat.last_message_at ?? chat.created_at)}
+              </span>
+            </span>
+            <span className="mt-0.5 flex items-center gap-1.5">
+              <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
+                {preview}
+              </span>
+              {chat.mentions > 0 && (
+                <span
+                  className="flex size-5 shrink-0 items-center justify-center rounded-full bg-chat-accent text-chat-accent-foreground"
+                  title="Вас упомянули"
+                >
+                  <AtSign className="size-3" aria-label="Вас упомянули" />
+                </span>
+              )}
+              {chat.unread > 0 && (
+                <span
+                  className={cn(
+                    "min-w-5 shrink-0 rounded-full px-1.5 text-center text-xs leading-5 font-semibold",
+                    muted
+                      ? "bg-muted-foreground/70 text-white"
+                      : "bg-chat-accent text-chat-accent-foreground",
+                  )}
+                >
+                  {unreadLabel(chat.unread)}
+                </span>
+              )}
+            </span>
           </span>
-        </span>
-      </button>
-      {menu}
-    </div>
+        </button>
+        <ChatMoreMenu
+          items={menu.items}
+          label={`Действия с темой «${label}»`}
+          reveal="row"
+          triggerClassName="mr-1"
+        />
+        {menu.confirmDialog}
+      </div>
+    </ChatContextMenu>
   );
 }
 
-function TopicMenu({
-  topic,
-  group,
-  me,
-  onEdit,
-}: {
-  topic: ChatRow;
-  group: ChatRow;
-  me: string;
-  onEdit: () => void;
-}) {
+/** Меню темы: звук (как у чата), «Изменить», закрыть / открыть, удалить. */
+function useTopicMenu(
+  topic: ChatRow,
+  group: ChatRow | null,
+  me: string,
+  onEdit?: () => void,
+): { items: ChatMenuItem[]; confirmDialog: React.ReactNode } {
   const qc = useQueryClient();
-  const [open, setOpen] = useState(false);
   const { confirm, confirmDialog } = useConfirm();
+  if (!group) return { items: [], confirmDialog };
   const manage = canManageTopic(topic, group, me);
-  const muted = isMuted(topic);
-  const run = async (fn: () => Promise<unknown>) => {
-    setOpen(false);
+  const run = async (fn: () => Promise<unknown>, ok?: string) => {
     try {
       await fn();
+      if (ok) toast.success(ok);
     } catch (e) {
       toast.error(chatErrorText(e));
     }
   };
-  return (
-    <>
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="mr-1 size-8 shrink-0 opacity-100 md:opacity-0 md:group-hover/topic:opacity-100 md:data-[state=open]:opacity-100"
-            aria-label={`Действия с темой «${topic.title}»`}
-          >
-            <MoreHorizontal className="size-4" />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent align="end" className="w-56 p-1">
-          <button
-            type="button"
-            className={MENU_ITEM}
-            onClick={() =>
-              void run(async () => {
-                await chatRpc("chat_set_notify", {
-                  p_chat: topic.id,
-                  p_notify: muted ? "all" : "none",
-                  p_muted_until: null,
-                });
-                await qc.invalidateQueries({ queryKey: ["chat_list"] });
-                await qc.invalidateQueries({ queryKey: ["chat_unread"] });
-              })
-            }
-          >
-            {muted ? <Volume2 className="size-4" /> : <BellOff className="size-4" />}
-            {muted ? "Включить звук" : "Без звука"}
-          </button>
-          {manage && (
-            <>
-              <button
-                type="button"
-                className={MENU_ITEM}
-                onClick={() => {
-                  setOpen(false);
-                  onEdit();
-                }}
-              >
-                <Pencil className="size-4" /> Название и цвет
-              </button>
-              <button
-                type="button"
-                className={MENU_ITEM}
-                onClick={() =>
-                  void run(() => updateTopic(qc, topic.id, { closed: !topic.settings?.closed }))
-                }
-              >
-                {topic.settings?.closed ? (
-                  <LockOpen className="size-4" />
-                ) : (
-                  <LockKeyhole className="size-4" />
-                )}
-                {topic.settings?.closed ? "Открыть тему" : "Закрыть тему"}
-              </button>
-              <button
-                type="button"
-                className={cn(MENU_ITEM, "text-destructive")}
-                onClick={() =>
-                  void run(async () => {
-                    const ok = await confirm({
-                      title: `Удалить тему «${topic.title}»?`,
-                      description: "Её сообщения и файлы удалятся у всех участников группы.",
-                      confirmLabel: "Удалить",
-                    });
-                    if (ok) await deleteTopic(qc, topic.id);
-                  })
-                }
-              >
-                <Trash2 className="size-4" /> Удалить тему
-              </button>
-            </>
-          )}
-        </PopoverContent>
-      </Popover>
-      {confirmDialog}
-    </>
-  );
+  const items: ChatMenuItem[] = [muteMenuItem(qc, topic)];
+  if (manage) {
+    if (onEdit) items.push({ label: "Изменить", icon: Pencil, onSelect: onEdit });
+    items.push({
+      label: topic.settings?.closed ? "Открыть тему" : "Закрыть тему",
+      icon: topic.settings?.closed ? LockOpen : LockKeyhole,
+      onSelect: () =>
+        void run(
+          () => updateTopic(qc, topic.id, { closed: !topic.settings?.closed }),
+          topic.settings?.closed
+            ? "Тема открыта: писать могут все"
+            : "Тема закрыта: пишут только администраторы",
+        ),
+    });
+    items.push({
+      label: "Удалить тему",
+      icon: Trash2,
+      destructive: true,
+      separatorBefore: true,
+      onSelect: () =>
+        void run(async () => {
+          const ok = await confirm({
+            title: `Удалить тему «${topic.title}»?`,
+            description: "Её сообщения и файлы удалятся у всех участников группы.",
+            confirmLabel: "Удалить тему",
+          });
+          if (ok) {
+            await deleteTopic(qc, topic.id);
+            toast.success("Тема удалена");
+          }
+        }),
+    });
+  }
+  return { items, confirmDialog };
 }
 
 /** Новая тема или её название и цвет. */
@@ -419,11 +396,12 @@ function TopicForm({
   const [title, setTitle] = useState(topic?.title ?? "");
   const [color, setColor] = useState(topic?.settings?.color ?? "blue");
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   return (
     <DialogForm
       onSubmit={async () => {
         if (!title.trim()) {
-          toast.error("Напишите название темы");
+          setError("Напишите название темы");
           return;
         }
         setBusy(true);
@@ -443,7 +421,7 @@ function TopicForm({
       }}
     >
       <DialogHeader>
-        <DialogTitle>{topic ? "Тема" : "Новая тема"}</DialogTitle>
+        <DialogTitle>{topic ? "Изменить тему" : "Новая тема"}</DialogTitle>
         <DialogDescription>
           {topic
             ? "Название и цвет видят все участники группы."
@@ -451,14 +429,17 @@ function TopicForm({
         </DialogDescription>
       </DialogHeader>
       <DialogBody className="space-y-4 px-0">
-        <FormField label="Название" required htmlFor="topic-title">
+        <FormField label="Название" required htmlFor="topic-title" error={error}>
           <Input
             id="topic-title"
             autoFocus
             maxLength={100}
             value={title}
             placeholder="Например: Отчёты, Акции, Вопросы по 1С"
-            onChange={(e) => setTitle(e.target.value)}
+            onChange={(e) => {
+              setTitle(e.target.value);
+              setError(null);
+            }}
           />
         </FormField>
         <FormField label="Цвет" htmlFor={null}>

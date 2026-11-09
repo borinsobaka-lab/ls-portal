@@ -29,16 +29,18 @@ import {
   BellOff,
   FolderOpen,
   Info,
+  List,
   ListChecks,
   Loader2,
-  MoreHorizontal,
   Pin,
+  PinOff,
   Search,
   Video,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { ChatMoreMenu, type ChatMenuItem } from "@/components/chats/action-menu";
 import { ChatAvatar } from "@/components/chats/chat-avatar";
 import { PollDialog, ScheduledBar } from "@/components/chats/chat-extras";
 import { AckDialog } from "@/components/chats/chat-sources";
@@ -47,16 +49,33 @@ import { MessageItem, type MessageActions } from "@/components/chats/message-ite
 import type { ComposerHandle, ComposerSend, MentionCandidate } from "@/components/chats/composer";
 import { useConfirm } from "@/components/confirm-dialog";
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { SearchInput } from "@/components/ui/search-input";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { callErrorText } from "@/lib/chats/call-logic";
 import { activeChatCallQuery, startCall, useActiveCall } from "@/lib/chats/calls";
 import { useChatCallsEnabled } from "@/lib/chats/calls-config";
-import { chatTitle, dayLabel, sameDay, snippetParts, timeOf } from "@/lib/chats/content";
+import {
+  chatTitle,
+  dayLabel,
+  isMuted,
+  muteLabel,
+  sameDay,
+  snippetParts,
+  timeOf,
+} from "@/lib/chats/content";
 import {
   ackMessage,
   chatErrorText,
+  closePoll,
   chatMembersQuery,
   chatPinnedQuery,
   chatWindowQuery,
@@ -77,6 +96,7 @@ import {
   type LocalMessage,
 } from "@/lib/chats/data";
 import { CHAT_BUCKET } from "@/lib/chats/files";
+import { applyNotify, muteMenuItem } from "@/lib/chats/mute-menu";
 import { usePeople } from "@/lib/chats/people";
 import { joinTypingChannel } from "@/lib/chats/realtime";
 import { onChatEvent, useRealtimeConnected } from "@/lib/chats/realtime-state";
@@ -92,9 +112,14 @@ const NewTaskDialog = lazy(() =>
 
 const GROUP_GAP_MS = 5 * 60_000;
 
-/** Пункт меню «⋯» шапки чата на телефоне — как в меню сообщения. */
-const HEADER_MENU_ITEM =
-  "flex w-full items-center gap-2 rounded-sm px-2 py-2 text-left text-sm hover:bg-muted";
+/** Группа от стольких участников — «Позвонить всем N участникам?» (3.2.2). */
+const CALL_CONFIRM_FROM = 6;
+
+/** Одноразовая подсказка на сенсорном экране (3.3.1). */
+const TOUCH_HINT_KEY = "chat_touch_hint_seen";
+
+const isTouch = () =>
+  typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches;
 
 export function ChatView({
   chat,
@@ -139,8 +164,20 @@ export function ChatView({
   });
   const [calling, setCalling] = useState(false);
   const inThisCall = !!myCall && myCall.chatId === chat.id;
-  const callNow = async () => {
+  const callNow = async (join = false) => {
     if (calling) return;
+    if (
+      !join &&
+      chat.kind !== "direct" &&
+      chat.member_count >= CALL_CONFIRM_FROM &&
+      !(await confirm({
+        title: `Позвонить всем ${chat.member_count} участникам?`,
+        description: "Звонок придёт каждому участнику группы — у всех зазвонит портал.",
+        confirmLabel: "Позвонить",
+        destructive: false,
+      }))
+    )
+      return;
     setCalling(true);
     try {
       await startCall(qc, chat.id);
@@ -168,7 +205,7 @@ export function ChatView({
   const [pinIndex, setPinIndex] = useState(0);
   const [typing, setTyping] = useState<Record<string, number>>({});
   const [searchOpen, setSearchOpen] = useState(false);
-  const [headerMenu, setHeaderMenu] = useState(false);
+  const [pinsOpen, setPinsOpen] = useState(false);
   const [dragging, setDragging] = useState(false);
   // Граница «Новые сообщения» — какой была при открытии чата.
   const [readMark] = useState(chat.last_read_seq);
@@ -363,6 +400,22 @@ export function ChatView({
       ch.leave();
     };
   }, [live, chat.id]);
+  // Один раз на телефоне — как вызвать меню сообщения и ответить свайпом.
+  const hasMessages = messages.length > 0;
+  useEffect(() => {
+    if (!hasMessages || !isTouch()) return;
+    try {
+      if (window.localStorage.getItem(TOUCH_HINT_KEY)) return;
+      window.localStorage.setItem(TOUCH_HINT_KEY, "1");
+    } catch {
+      return;
+    }
+    toast("Удерживайте сообщение — появятся действия", {
+      description: "Чтобы ответить, проведите по сообщению вправо.",
+      duration: 8000,
+    });
+  }, [hasMessages]);
+
   // Меня убрали из группы (или её удалили) — к списку чатов.
   useEffect(
     () =>
@@ -431,7 +484,19 @@ export function ChatView({
       copyLink: (m) =>
         void navigator.clipboard
           .writeText(`${window.location.origin}/chats/${m.chat_id}?m=${m.seq}`)
-          .then(() => toast.success("Ссылка скопирована")),
+          .then(() => toast.success("Ссылка на сообщение скопирована")),
+      closePoll: async (m) => {
+        const ok = await confirm({
+          title: "Закрыть опрос?",
+          description: "Голосовать больше не смогут, итоги останутся. Открыть снова нельзя.",
+          confirmLabel: "Закрыть опрос",
+        });
+        if (ok)
+          void closePoll(qc, m).then(
+            () => toast.success("Опрос закрыт"),
+            (e: unknown) => toast.error(chatErrorText(e)),
+          );
+      },
       forward: (m) => setForwarding([m]),
       task: (m) => setTaskFrom(m),
       ack: (m) => void ackMessage(qc, m).catch((e) => toast.error(chatErrorText(e))),
@@ -523,11 +588,61 @@ export function ChatView({
             : ""
           : chat.kind === "topic"
             ? `Тема в «${group?.title ?? "группе"}»${topicClosed ? " · закрыта" : ""}`
-            : `${group ? "Общая тема · " : ""}${chat.member_count} ${plural(chat.member_count, "участник", "участника", "участников")}`;
-  const muted =
-    chat.notify !== "all" || (chat.muted_until && new Date(chat.muted_until) > new Date());
+            : `${group ? "Общая · " : ""}${chat.member_count} ${plural(chat.member_count, "участник", "участника", "участников")}`;
+  const muted = chat.kind !== "self" && isMuted(chat);
   const pins = pinned.data ?? [];
   const pin = pins[pinIndex % Math.max(pins.length, 1)];
+
+  // «⋯» шапки: поиск и сведения (на телефоне других кнопок нет), задача /
+  // проект / встреча, без звука, закреплённые.
+  const headerMenu: ChatMenuItem[] = [
+    {
+      label: searchOpen ? "Закрыть поиск" : "Поиск в чате",
+      icon: Search,
+      onSelect: () => setSearchOpen((v) => !v),
+    },
+    { label: "Сведения о чате", icon: Info, onSelect: onInfo },
+    ...(chat.kind === "project" && chat.settings?.project_id
+      ? [
+          {
+            label: "Задачи проекта",
+            icon: FolderOpen,
+            onSelect: () =>
+              void navigate({
+                to: "/tasks/projects/$projectId",
+                params: { projectId: chat.settings.project_id! },
+              }),
+          },
+        ]
+      : []),
+    ...(chat.kind === "event" && chat.settings?.event_id
+      ? [
+          {
+            label: "Встреча в календаре",
+            icon: CalendarDays,
+            onSelect: () =>
+              void navigate({ to: "/calendar", search: { event: chat.settings.event_id! } }),
+          },
+        ]
+      : []),
+    ...(chat.kind === "task" && chat.settings?.task_number
+      ? [
+          {
+            label: `Задача #${chat.settings.task_number}`,
+            icon: ListChecks,
+            onSelect: () =>
+              void navigate({
+                to: "/tasks/$number",
+                params: { number: String(chat.settings.task_number) },
+              }),
+          },
+        ]
+      : []),
+    ...(chat.kind === "self" ? [] : [{ ...muteMenuItem(qc, chat), separatorBefore: true }]),
+    ...(pins.length > 0
+      ? [{ label: "Все закреплённые", icon: Pin, onSelect: () => setPinsOpen(true) }]
+      : []),
+  ];
 
   return (
     <div
@@ -551,8 +666,8 @@ export function ChatView({
       {/*
         На телефоне (до md) справа — только звонок и «⋯»: поиск, сведения и
         переход к задаче / проекту — в меню «⋯», чтобы имени собеседника
-        оставалось больше места (решение владельца 2026-11-08). С md — как
-        было, отдельными кнопками.
+        оставалось больше места (решение владельца 2026-11-08). С md — поиск и
+        сведения отдельными кнопками; «⋯» — на любой ширине, в нём «Без звука».
       */}
       <header className="flex shrink-0 items-center gap-1 border-b bg-background px-2 py-2 sm:px-3 md:h-16 md:gap-2 md:py-0">
         <Button
@@ -560,6 +675,7 @@ export function ChatView({
           size="icon"
           className={group ? "lg:hidden" : "md:hidden"}
           aria-label={group ? "К темам группы" : "К списку чатов"}
+          title={group ? "К темам группы" : "К списку чатов"}
           onClick={onBack}
         >
           <ArrowLeft className="size-5" />
@@ -567,19 +683,12 @@ export function ChatView({
         <button
           type="button"
           onClick={onInfo}
+          title="Сведения о чате"
           className="flex min-w-0 flex-1 items-center gap-3 rounded-md text-left"
         >
           <ChatAvatar chat={chat} title={title} size="sm" />
           <span className="min-w-0">
-            <span className="flex items-center gap-1.5">
-              <span className="truncate font-semibold">{title}</span>
-              {muted && (
-                <BellOff
-                  className="size-3.5 shrink-0 text-muted-foreground"
-                  aria-label="Без звука"
-                />
-              )}
-            </span>
+            <span className="block truncate font-semibold">{title}</span>
             <span
               className={cn(
                 "block truncate text-xs",
@@ -590,6 +699,19 @@ export function ChatView({
             </span>
           </span>
         </button>
+        {muted && (
+          // Значок «без звука» — кнопка: нажать — звук включится (3.2.1).
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className="shrink-0 text-muted-foreground"
+            aria-label={`${muteLabel(chat)}. Включить звук`}
+            title={`${muteLabel(chat)} — нажмите, чтобы включить звук`}
+            onClick={() => applyNotify(qc, chat, "all", null)}
+          >
+            <BellOff className="size-4" />
+          </Button>
+        )}
         {chat.kind === "project" && chat.settings?.project_id && (
           <Button variant="ghost" size="sm" asChild className="text-chat-accent max-md:hidden">
             <Link to="/tasks/projects/$projectId" params={{ projectId: chat.settings.project_id }}>
@@ -615,18 +737,19 @@ export function ChatView({
           </Button>
         )}
         {callsEnabled && (
-          // С md — зелёная кнопка с подписью, на телефоне — круглая зелёная
-          // с иконкой: подпись занимала шапку (решения владельца 2026-11-08).
+          // Зелёный контур с подписью «Позвонить» (с md), на телефоне — иконка
+          // камеры: «Отправить» остаётся главной кнопкой экрана (3.2.2).
           <Button
+            variant="outline"
             size="sm"
-            className="shrink-0 bg-emerald-600 text-white hover:bg-emerald-700 max-md:size-10 max-md:px-0"
-            aria-label={inThisCall ? "Вы в звонке" : "Видеозвонок"}
-            title={inThisCall ? "Вы уже в этом звонке" : "Начать видеозвонок"}
+            className="shrink-0 border-emerald-600/60 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 max-md:size-10 max-md:border-0 max-md:px-0"
+            aria-label={inThisCall ? "Вы в звонке" : "Позвонить"}
+            title={inThisCall ? "Вы уже в этом звонке" : "Позвонить по видео"}
             disabled={calling || inThisCall}
             onClick={() => void callNow()}
           >
             {calling ? <Loader2 className="animate-spin" /> : <Video />}
-            <span className="max-md:hidden">{inThisCall ? "Вы в звонке" : "Видеозвонок"}</span>
+            <span className="max-md:hidden">{inThisCall ? "Вы в звонке" : "Позвонить"}</span>
           </Button>
         )}
         <Button
@@ -650,80 +773,11 @@ export function ChatView({
         >
           <Info className="size-5" />
         </Button>
-        <Popover open={headerMenu} onOpenChange={setHeaderMenu}>
-          <PopoverTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="shrink-0 md:hidden"
-              aria-label="Ещё"
-              title="Ещё"
-            >
-              <MoreHorizontal className="size-5" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent align="end" className="w-56 p-1">
-            <button
-              type="button"
-              className={HEADER_MENU_ITEM}
-              onClick={() => {
-                setHeaderMenu(false);
-                setSearchOpen((v) => !v);
-              }}
-            >
-              <Search className="size-4" />
-              {searchOpen ? "Закрыть поиск" : "Поиск в чате"}
-            </button>
-            <button
-              type="button"
-              className={HEADER_MENU_ITEM}
-              onClick={() => {
-                setHeaderMenu(false);
-                onInfo();
-              }}
-            >
-              <Info className="size-4" />
-              Сведения о чате
-            </button>
-            {chat.kind === "project" && chat.settings?.project_id && (
-              <Link
-                to="/tasks/projects/$projectId"
-                params={{ projectId: chat.settings.project_id }}
-                className={HEADER_MENU_ITEM}
-                onClick={() => setHeaderMenu(false)}
-              >
-                <FolderOpen className="size-4" />
-                Задачи проекта
-              </Link>
-            )}
-            {chat.kind === "event" && chat.settings?.event_id && (
-              <Link
-                to="/calendar"
-                search={{ event: chat.settings.event_id }}
-                className={HEADER_MENU_ITEM}
-                onClick={() => setHeaderMenu(false)}
-              >
-                <CalendarDays className="size-4" />
-                Встреча в календаре
-              </Link>
-            )}
-            {chat.kind === "task" && chat.settings?.task_number && (
-              <Link
-                to="/tasks/$number"
-                params={{ number: String(chat.settings.task_number) }}
-                className={HEADER_MENU_ITEM}
-                onClick={() => setHeaderMenu(false)}
-              >
-                <ListChecks className="size-4" />
-                Задача #{chat.settings.task_number}
-              </Link>
-            )}
-          </PopoverContent>
-        </Popover>
+        <ChatMoreMenu items={headerMenu} label="Ещё" triggerClassName="size-10" />
       </header>
 
       {callsEnabled && liveCall.data && !inThisCall && (
-        <div className="flex shrink-0 items-center gap-3 border-b bg-emerald-50 px-4 py-2 text-sm text-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-100">
+        <div className="flex shrink-0 items-center gap-3 border-b bg-emerald-50 px-4 py-2 text-sm text-emerald-900">
           <Video className="size-4 shrink-0" />
           <span className="min-w-0 flex-1 truncate">
             Идёт видеозвонок
@@ -732,15 +786,21 @@ export function ChatView({
               return n ? ` · в звонке ${n}` : "";
             })()}
           </span>
-          <Button
-            size="sm"
-            className="bg-emerald-600 text-white hover:bg-emerald-700"
-            disabled={calling || !liveCall.data.ready}
-            onClick={() => void callNow()}
-          >
-            {calling && <Loader2 className="animate-spin" />}
-            Присоединиться
-          </Button>
+          {liveCall.data.ready ? (
+            <Button
+              size="sm"
+              className="bg-emerald-600 text-white hover:bg-emerald-700"
+              disabled={calling}
+              onClick={() => void callNow(true)}
+            >
+              {calling && <Loader2 className="animate-spin" />}
+              Присоединиться
+            </Button>
+          ) : (
+            <span className="inline-flex shrink-0 items-center gap-1.5 text-xs text-emerald-800">
+              <Loader2 className="size-3.5 animate-spin" /> Комната создаётся…
+            </span>
+          )}
         </div>
       )}
 
@@ -754,25 +814,38 @@ export function ChatView({
       )}
 
       {pin && (
-        <button
-          type="button"
-          onClick={() => {
-            void jump(pin.seq);
-            setPinIndex((i) => i + 1);
-          }}
-          className="flex shrink-0 items-center gap-3 border-b bg-background px-4 py-2 text-left hover:bg-muted/50"
-        >
-          <Pin className="size-4 shrink-0 text-chat-accent" />
-          <span className="min-w-0 flex-1">
-            <span className="block text-xs font-medium text-chat-accent">
-              Закреплённое
-              {pins.length > 1 ? ` ${(pinIndex % pins.length) + 1} из ${pins.length}` : ""}
+        <div className="flex shrink-0 items-center border-b bg-background pr-2">
+          <button
+            type="button"
+            onClick={() => {
+              void jump(pin.seq);
+              setPinIndex((i) => i + 1);
+            }}
+            title="К закреплённому сообщению"
+            className="flex min-w-0 flex-1 items-center gap-3 px-4 py-2 text-left hover:bg-muted/50"
+          >
+            <Pin className="size-4 shrink-0 text-chat-accent" />
+            <span className="min-w-0 flex-1">
+              <span className="block text-xs font-medium text-chat-accent">
+                Закреплённое
+                {pins.length > 1 ? ` ${(pinIndex % pins.length) + 1} из ${pins.length}` : ""}
+              </span>
+              <span className="block truncate text-sm">
+                {pin.text || attachmentsLabel(pin.attachments)}
+              </span>
             </span>
-            <span className="block truncate text-sm">
-              {pin.text || attachmentsLabel(pin.attachments)}
-            </span>
-          </span>
-        </button>
+          </button>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className="shrink-0 text-muted-foreground"
+            aria-label="Все закреплённые"
+            title="Все закреплённые"
+            onClick={() => setPinsOpen(true)}
+          >
+            <List className="size-4" />
+          </Button>
+        </div>
       )}
 
       <div className="relative flex min-h-0 flex-1 flex-col">
@@ -789,7 +862,9 @@ export function ChatView({
             <div className="flex h-full items-center justify-center p-6 text-center text-sm text-muted-foreground">
               {chat.kind === "self"
                 ? "Пишите сюда заметки и пересылайте важное — видите только вы."
-                : "Сообщений пока нет. Напишите первым!"}
+                : group && chat.id === group.id
+                  ? "Сюда пишут то, что не относится к темам."
+                  : "Сообщений пока нет. Напишите первым!"}
             </div>
           ) : (
             <>
@@ -870,6 +945,7 @@ export function ChatView({
           size="icon"
           className="absolute right-4 bottom-24 z-20 size-10 rounded-full bg-background shadow-md"
           aria-label="К последним сообщениям"
+          title="К последним сообщениям"
           onClick={() => void toLatest()}
         >
           <ArrowDown className="size-5" />
@@ -900,13 +976,22 @@ export function ChatView({
           editing={editing}
           authorName={(id) => name(id)}
           disabledReason={
-            canPost
-              ? null
-              : chat.settings?.channel
-                ? "Это канал: пишут администраторы, вы отмечаете «Прочитал»"
-                : topicClosed
-                  ? "Тема закрыта: пишут только администраторы"
-                  : "В этой группе пишут только администраторы"
+            canPost ? null : (
+              <>
+                {chat.settings?.channel
+                  ? "Это канал: писать могут только администраторы."
+                  : topicClosed
+                    ? "Тема закрыта: писать могут только администраторы."
+                    : "В этой группе пишут только администраторы."}{" "}
+                <button
+                  type="button"
+                  className="font-medium text-foreground underline-offset-2 hover:underline"
+                  onClick={onInfo}
+                >
+                  Кто администратор
+                </button>
+              </>
+            )
           }
           onCancelReply={() => setReplyTo(null)}
           onCancelEdit={() => setEditing(null)}
@@ -940,6 +1025,23 @@ export function ChatView({
       <ReceiptsDialog message={receipts} onClose={() => setReceipts(null)} />
       <AckDialog message={acksOf} onClose={() => setAcksOf(null)} />
       <PollDialog chatId={chat.id} open={pollOpen} onClose={() => setPollOpen(false)} />
+      <PinnedDialog
+        open={pinsOpen}
+        pins={pins}
+        canPin={canPin}
+        name={name}
+        onClose={() => setPinsOpen(false)}
+        onJump={(seq) => {
+          setPinsOpen(false);
+          void jump(seq);
+        }}
+        onUnpin={(m) =>
+          void pinMessage(qc, m, false).then(
+            () => toast.success("Сообщение откреплено"),
+            (e: unknown) => toast.error(chatErrorText(e)),
+          )
+        }
+      />
       {confirmDialog}
     </div>
   );
@@ -981,7 +1083,13 @@ function InChatSearch({
           autoFocus
           wrapperClassName="flex-1"
         />
-        <Button variant="ghost" size="icon" aria-label="Закрыть поиск" onClick={onClose}>
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="Закрыть поиск"
+          title="Закрыть поиск"
+          onClick={onClose}
+        >
           <X className="size-5" />
         </Button>
       </div>
@@ -990,7 +1098,7 @@ function InChatSearch({
           {isFetching && data.length === 0 ? (
             <Loader2 className="mx-auto my-3 size-4 animate-spin text-muted-foreground" />
           ) : data.length === 0 ? (
-            <p className="py-3 text-center text-sm text-muted-foreground">Ничего не нашли</p>
+            <p className="py-3 text-center text-sm text-muted-foreground">Ничего не найдено</p>
           ) : (
             data.map((h) => (
               <button
@@ -1022,5 +1130,69 @@ function InChatSearch({
         </div>
       )}
     </div>
+  );
+}
+
+/** «Все закреплённые» (3.2.4, как в Telegram): перейти к сообщению или открепить. */
+function PinnedDialog({
+  open,
+  pins,
+  canPin,
+  name,
+  onClose,
+  onJump,
+  onUnpin,
+}: {
+  open: boolean;
+  pins: ChatMessage[];
+  canPin: boolean;
+  name: (id: string | null) => string;
+  onClose: () => void;
+  onJump: (seq: number) => void;
+  onUnpin: (m: ChatMessage) => void;
+}) {
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Все закреплённые</DialogTitle>
+          <DialogDescription>Нажмите на сообщение, чтобы перейти к нему.</DialogDescription>
+        </DialogHeader>
+        <DialogBody className="space-y-2">
+          {pins.length === 0 && (
+            <p className="py-6 text-center text-sm text-muted-foreground">Закреплённых нет</p>
+          )}
+          {pins.map((m) => (
+            <div key={m.id} className="flex items-start gap-2 rounded-lg border p-2">
+              <button
+                type="button"
+                onClick={() => onJump(m.seq)}
+                className="min-w-0 flex-1 rounded-md px-1 text-left hover:bg-muted/50"
+              >
+                <span className="flex justify-between gap-2 text-xs text-muted-foreground">
+                  <span className="truncate font-medium">{name(m.author_id)}</span>
+                  <span className="shrink-0">
+                    {dayLabel(m.created_at)}, {timeOf(m.created_at)}
+                  </span>
+                </span>
+                <span className="line-clamp-2 text-sm">
+                  {m.text || attachmentsLabel(m.attachments)}
+                </span>
+              </button>
+              {canPin && (
+                <Button size="sm" variant="outline" onClick={() => onUnpin(m)}>
+                  <PinOff /> Открепить
+                </Button>
+              )}
+            </div>
+          ))}
+        </DialogBody>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Закрыть
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

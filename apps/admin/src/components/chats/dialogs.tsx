@@ -1,7 +1,7 @@
 /**
- * Окна чатов: «Кто прочитал», «Переслать», новый личный чат, группа, чат
- * подразделения и канал,
- * папка (название и чаты), выбор людей с поиском.
+ * Окна чатов: «Кто прочитал», «Переслать», «Написать сотруднику», группа, чат
+ * подразделения и канал, папка (название и чаты), выбор людей с поиском.
+ * Ошибки заполнения — под полями, не тостами (UI_REVIEW, 3.6).
  */
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -17,6 +17,7 @@ import {
   DialogContent,
   DialogDescription,
   DialogFooter,
+  DialogForm,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -217,6 +218,8 @@ function NewChatForm({
         : [],
   );
   const [busy, setBusy] = useState(false);
+  const [titleError, setTitleError] = useState<string | null>(null);
+  const [sourcesError, setSourcesError] = useState<string | null>(null);
 
   const openWith = async (id: string) => {
     setBusy(true);
@@ -234,11 +237,11 @@ function NewChatForm({
 
   const create = async () => {
     if (!title.trim()) {
-      toast.error(mode === "channel" ? "Укажите название канала" : "Укажите название");
+      setTitleError(mode === "channel" ? "Укажите название канала" : "Укажите название");
       return;
     }
     if (mode === "unit" && !sources.some((x) => x.kind === "unit")) {
-      toast.error("Выберите подразделение");
+      setSourcesError("Выберите подразделение");
       return;
     }
     setBusy(true);
@@ -267,12 +270,19 @@ function NewChatForm({
     return (
       <>
         <DialogHeader>
-          <DialogTitle>Новый личный чат</DialogTitle>
-          <DialogDescription>Выберите, кому написать.</DialogDescription>
+          <DialogTitle>Написать сотруднику</DialogTitle>
+          <DialogDescription>
+            Выберите, кому написать, — откроется личная переписка.
+          </DialogDescription>
         </DialogHeader>
         <DialogBody>
           <PeoplePicker selected={[]} single onToggle={(id) => !busy && void openWith(id)} />
         </DialogBody>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={busy}>
+            Отмена
+          </Button>
+        </DialogFooter>
       </>
     );
   }
@@ -283,60 +293,74 @@ function NewChatForm({
         <DialogTitle>{text.title}</DialogTitle>
         <DialogDescription>{text.description}</DialogDescription>
       </DialogHeader>
-      <DialogBody className="space-y-4">
-        <FormField label="Название" required>
-          <Input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            maxLength={100}
-            placeholder={text.placeholder}
-          />
-        </FormField>
-        {mode !== "group" && (
-          <>
-            <FormField label="Описание" optional>
-              <Textarea
-                rows={2}
-                maxLength={1000}
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-              />
-            </FormField>
-            <FormField
-              label="Состав из оргструктуры"
-              required={mode === "unit"}
-              hint={
-                mode === "channel" ? "Можно оставить пустым и добавить людей вручную" : undefined
+      <DialogForm onSubmit={() => void create()}>
+        <DialogBody className="space-y-4">
+          <FormField label="Название" required error={titleError}>
+            <Input
+              value={title}
+              onChange={(e) => {
+                setTitle(e.target.value);
+                setTitleError(null);
+              }}
+              maxLength={100}
+              placeholder={text.placeholder}
+            />
+          </FormField>
+          {mode !== "group" && (
+            <>
+              <FormField label="Описание" optional>
+                <Textarea
+                  rows={2}
+                  maxLength={1000}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                />
+              </FormField>
+              <FormField
+                label="Кто в чате автоматически"
+                required={mode === "unit"}
+                hint={
+                  mode === "channel"
+                    ? "Можно оставить пустым и добавить людей вручную"
+                    : "Новые сотрудники подразделения попадут в чат сами"
+                }
+                error={sourcesError}
+                htmlFor={null}
+              >
+                <SourcesEditor
+                  value={sources}
+                  onChange={(v) => {
+                    setSources(v);
+                    setSourcesError(null);
+                  }}
+                />
+              </FormField>
+            </>
+          )}
+          <FormField
+            label={`${mode === "group" ? "Участники" : "Ещё участники вручную"}${
+              selected.length ? ` · ${selected.length}` : ""
+            }`}
+            optional={mode !== "group"}
+            htmlFor={null}
+          >
+            <PeoplePicker
+              selected={selected}
+              onToggle={(id) =>
+                setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]))
               }
-              htmlFor={null}
-            >
-              <SourcesEditor value={sources} onChange={setSources} />
-            </FormField>
-          </>
-        )}
-        <FormField
-          label={`${mode === "group" ? "Участники" : "Ещё участники вручную"}${
-            selected.length ? ` · ${selected.length}` : ""
-          }`}
-          optional={mode !== "group"}
-          htmlFor={null}
-        >
-          <PeoplePicker
-            selected={selected}
-            onToggle={(id) =>
-              setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]))
-            }
-          />
-        </FormField>
-      </DialogBody>
-      <DialogFooter>
-        <Button variant="outline" onClick={onClose}>
-          Отмена
-        </Button>
-        <Button disabled={busy} onClick={() => void create()}>
-          {busy && <Loader2 className="animate-spin" />} {text.submit}
-        </Button>
-      </DialogFooter>
+            />
+          </FormField>
+        </DialogBody>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={busy}>
+            Отмена
+          </Button>
+          <Button type="submit" disabled={busy}>
+            {busy && <Loader2 className="animate-spin" />} {text.submit}
+          </Button>
+        </DialogFooter>
+      </DialogForm>
     </>
   );
 }
@@ -365,6 +389,7 @@ export function AddMembersDialog({
         qc.invalidateQueries({ queryKey: ["chat_members", chatId] }),
         qc.invalidateQueries({ queryKey: ["chat_list"] }),
       ]);
+      toast.success(selected.length > 1 ? `Добавлено: ${selected.length}` : "Участник добавлен");
       setSelected([]);
       onClose();
     } catch (e) {
@@ -449,6 +474,11 @@ export function ReceiptsDialog({
             <p className="text-sm text-muted-foreground">Пока никто не прочитал.</p>
           )}
         </DialogBody>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Закрыть
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
@@ -491,11 +521,16 @@ export function ForwardDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Переслать</DialogTitle>
-          <DialogDescription>Выберите чаты — можно несколько.</DialogDescription>
+          <DialogDescription>
+            Выберите чаты — можно несколько, не больше {FORWARD_MAX}.
+          </DialogDescription>
         </DialogHeader>
         <DialogBody className="space-y-2">
           <SearchInput value={q} onChange={setQ} placeholder="Поиск чата" autoFocus />
           <div className="max-h-80 overflow-y-auto rounded-md border">
+            {list.length === 0 && (
+              <p className="p-4 text-center text-sm text-muted-foreground">Ничего не найдено</p>
+            )}
             {list.map((c) => {
               const t = chatTitle(c, name);
               const on = to.includes(c.id);
@@ -503,9 +538,13 @@ export function ForwardDialog({
                 <button
                   key={c.id}
                   type="button"
-                  onClick={() =>
-                    setTo((s) => (on ? s.filter((x) => x !== c.id) : [...s, c.id].slice(0, 20)))
-                  }
+                  onClick={() => {
+                    if (!on && to.length >= FORWARD_MAX) {
+                      toast.info(`Можно выбрать не больше ${FORWARD_MAX} чатов`);
+                      return;
+                    }
+                    setTo((s) => (on ? s.filter((x) => x !== c.id) : [...s, c.id]));
+                  }}
                   className={cn(
                     "flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-muted",
                     on && "bg-muted",
@@ -532,12 +571,15 @@ export function ForwardDialog({
           </Button>
           <Button disabled={busy || to.length === 0} onClick={() => void send()}>
             {busy && <Loader2 className="animate-spin" />} Переслать
+            {to.length ? ` (${to.length})` : ""}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 }
+
+const FORWARD_MAX = 20;
 
 // ---- Папка ----------------------------------------------------------------------
 
@@ -572,11 +614,14 @@ function FolderForm({
   const [ids, setIds] = useState<string[]>(folder.chat_ids ?? []);
   const [q, setQ] = useState("");
   const [busy, setBusy] = useState(false);
-  const list = chats.filter((c: ChatRow) => chatMatches(chatTitle(c, name), q));
+  const [error, setError] = useState<string | null>(null);
+  const list = chats.filter(
+    (c: ChatRow) => c.kind !== "topic" && chatMatches(chatTitle(c, name), q),
+  );
 
   const save = async () => {
     if (!title.trim()) {
-      toast.error("Укажите название папки");
+      setError("Укажите название папки");
       return;
     }
     setBusy(true);
@@ -587,6 +632,7 @@ function FolderForm({
         p_chat_ids: ids,
       });
       await qc.invalidateQueries({ queryKey: ["chat_folders"] });
+      toast.success(folder.id ? "Папка сохранена" : `Папка «${title.trim()}» создана`);
       onClose();
     } catch (e) {
       toast.error(chatErrorText(e));
@@ -598,68 +644,75 @@ function FolderForm({
   return (
     <>
       <DialogHeader>
-        <DialogTitle>{folder.id ? "Папка" : "Новая папка"}</DialogTitle>
+        <DialogTitle>{folder.id ? "Изменить папку" : "Новая папка"}</DialogTitle>
         <DialogDescription>Название и чаты, которые в неё входят.</DialogDescription>
       </DialogHeader>
-      <DialogBody className="space-y-4">
-        <FormField label="Название" required>
-          <Input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            maxLength={40}
-            placeholder="Например, Партнёры"
-          />
-        </FormField>
-        <FormField label={`Чаты${ids.length ? ` · ${ids.length}` : ""}`} htmlFor={null}>
-          <div className="space-y-2">
-            <SearchInput value={q} onChange={setQ} placeholder="Поиск чата" />
-            <div className="max-h-72 overflow-y-auto rounded-md border">
-              {list.length === 0 ? (
-                <p className="flex items-center justify-center gap-2 p-4 text-sm text-muted-foreground">
-                  <Users className="size-4" /> Чатов нет
-                </p>
-              ) : (
-                list.map((c) => {
-                  const t = chatTitle(c, name);
-                  const on = ids.includes(c.id);
-                  return (
-                    <button
-                      key={c.id}
-                      type="button"
-                      onClick={() =>
-                        setIds((s) => (on ? s.filter((x) => x !== c.id) : [...s, c.id]))
-                      }
-                      className={cn(
-                        "flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-muted",
-                        on && "bg-muted",
-                      )}
-                    >
-                      <ChatAvatar chat={c} title={t} size="sm" />
-                      <span className="min-w-0 flex-1 truncate text-sm">{t}</span>
-                      <span
+      <DialogForm onSubmit={() => void save()}>
+        <DialogBody className="space-y-4">
+          <FormField label="Название" required error={error}>
+            <Input
+              value={title}
+              autoFocus={!folder.id}
+              onChange={(e) => {
+                setTitle(e.target.value);
+                setError(null);
+              }}
+              maxLength={40}
+              placeholder="Например, Партнёры"
+            />
+          </FormField>
+          <FormField label={`Чаты${ids.length ? ` · ${ids.length}` : ""}`} htmlFor={null}>
+            <div className="space-y-2">
+              <SearchInput value={q} onChange={setQ} placeholder="Поиск чата" />
+              <div className="max-h-72 overflow-y-auto rounded-md border">
+                {list.length === 0 ? (
+                  <p className="flex items-center justify-center gap-2 p-4 text-sm text-muted-foreground">
+                    <Users className="size-4" /> Ничего не найдено
+                  </p>
+                ) : (
+                  list.map((c) => {
+                    const t = chatTitle(c, name);
+                    const on = ids.includes(c.id);
+                    return (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() =>
+                          setIds((s) => (on ? s.filter((x) => x !== c.id) : [...s, c.id]))
+                        }
                         className={cn(
-                          "flex size-5 shrink-0 items-center justify-center rounded-full border",
-                          on && "border-selected bg-selected text-selected-foreground",
+                          "flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-muted",
+                          on && "bg-muted",
                         )}
                       >
-                        {on && <Check className="size-3.5" />}
-                      </span>
-                    </button>
-                  );
-                })
-              )}
+                        <ChatAvatar chat={c} title={t} size="sm" />
+                        <span className="min-w-0 flex-1 truncate text-sm">{t}</span>
+                        <span
+                          className={cn(
+                            "flex size-5 shrink-0 items-center justify-center rounded-full border",
+                            on && "border-selected bg-selected text-selected-foreground",
+                          )}
+                        >
+                          {on && <Check className="size-3.5" />}
+                        </span>
+                      </button>
+                    );
+                  })
+                )}
+              </div>
             </div>
-          </div>
-        </FormField>
-      </DialogBody>
-      <DialogFooter>
-        <Button variant="outline" onClick={onClose}>
-          Отмена
-        </Button>
-        <Button disabled={busy} onClick={() => void save()}>
-          {busy && <Loader2 className="animate-spin" />} Сохранить
-        </Button>
-      </DialogFooter>
+          </FormField>
+        </DialogBody>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={busy}>
+            Отмена
+          </Button>
+          <Button type="submit" disabled={busy}>
+            {busy && <Loader2 className="animate-spin" />}{" "}
+            {folder.id ? "Сохранить" : "Создать папку"}
+          </Button>
+        </DialogFooter>
+      </DialogForm>
     </>
   );
 }

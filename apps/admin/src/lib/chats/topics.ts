@@ -5,6 +5,7 @@
  * (`mergeTopics`: непрочитанное — сумма, последнее сообщение — самое свежее
  * с названием темы), сами темы — в колонке тем открытой группы.
  */
+import { isMuted } from "./content";
 import type { ChatRow } from "./types";
 
 export const TOPIC_COLORS: Record<string, { label: string; hex: string }> = {
@@ -37,9 +38,6 @@ export function topicsOf<T extends ChatRow>(chats: T[], groupId: string): T[] {
     });
 }
 
-const loud = (c: Pick<ChatRow, "notify" | "muted_until">, now: Date) =>
-  c.notify !== "none" && !(c.muted_until && new Date(c.muted_until) > now);
-
 /**
  * Строки для списка чатов: без тем; у группы с темами непрочитанное и
  * упоминания — с темами (темы без звука — не в счёт), последнее сообщение
@@ -64,7 +62,7 @@ export function mergeTopics(chats: ChatRow[], now = new Date()): ChatRow[] {
       let last = c.last_message;
       let lastTopic: string | null = null;
       for (const t of topics) {
-        if (loud(t, now)) unread += t.unread;
+        if (!isMuted(t, now)) unread += t.unread;
         mentions += t.mentions;
         if (t.last_message_at && (!lastAt || t.last_message_at > lastAt)) {
           lastAt = t.last_message_at;

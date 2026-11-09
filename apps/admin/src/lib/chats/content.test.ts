@@ -163,7 +163,7 @@ describe("каналы и состав из оргструктуры", () => {
   test("подписи источников и системной строки", async () => {
     const { sourceText, systemText } = await import("./content");
     expect(sourceText({ kind: "all", unit_id: null, scope: "all", with_subunits: true })).toBe(
-      "Вся компания — все люди портала",
+      "Вся компания — все сотрудники",
     );
     expect(
       sourceText({
@@ -233,5 +233,90 @@ describe("отложенные сообщения и адрес", () => {
     });
     expect(chatsSearch({ f: "project" })).toEqual({ f: "project" });
     expect(chatsSearch({ f: "bad folder" })).toEqual({});
+  });
+});
+
+describe("без звука", () => {
+  const now = new Date(2026, 10, 9, 10, 0);
+  const row = (notify: "all" | "mentions" | "none", muted_until: string | null = null) => ({
+    notify,
+    muted_until,
+  });
+  const later = new Date(2026, 10, 9, 11, 0).toISOString();
+  const earlier = new Date(2026, 10, 9, 9, 0).toISOString();
+
+  test("один признак «заглушен»: не «все» или тишина до времени в будущем", async () => {
+    const { isMuted } = await import("./content");
+    expect(isMuted(row("all"), now)).toBe(false);
+    // «Только упоминания» — тоже без звука (раньше список видел только none).
+    expect(isMuted(row("mentions"), now)).toBe(true);
+    expect(isMuted(row("none"), now)).toBe(true);
+    expect(isMuted(row("all", later), now)).toBe(true);
+    expect(isMuted(row("all", earlier), now)).toBe(false);
+  });
+
+  test("подменю «Без звука»: на время — с прежними уведомлениями, навсегда — выключены", async () => {
+    const { muteOptions } = await import("./content");
+    const opts = muteOptions("all", now);
+    expect(opts.map((o) => o.label)).toEqual(["На 1 час", "На 8 часов", "На 2 дня", "Навсегда"]);
+    expect(opts[0].until?.getTime()).toBe(now.getTime() + 3_600_000);
+    expect(opts[1].until?.getTime()).toBe(now.getTime() + 8 * 3_600_000);
+    expect(opts[2].until?.getTime()).toBe(now.getTime() + 2 * 86_400_000);
+    expect(opts.slice(0, 3).every((o) => o.notify === "all")).toBe(true);
+    expect(opts[3]).toMatchObject({ notify: "none", until: null });
+    // «Только упоминания» сохраняется: время вышло — снова только упоминания.
+    expect(muteOptions("mentions", now)[0].notify).toBe("mentions");
+    expect(muteOptions("none", now)[0].notify).toBe("all");
+  });
+
+  test("настройка и подписи", async () => {
+    const { muteLabel, notifyChoice, untilLabel } = await import("./content");
+    expect(notifyChoice(row("all"), now)).toBe("all");
+    expect(notifyChoice(row("mentions"), now)).toBe("mentions");
+    expect(notifyChoice(row("all", later), now)).toBe("none");
+    expect(notifyChoice(row("mentions", earlier), now)).toBe("mentions");
+    expect(untilLabel(new Date(2026, 10, 9, 18, 40), now)).toBe("до 18:40");
+    expect(untilLabel(new Date(2026, 10, 10, 9, 5), now)).toBe("до завтра, 09:05");
+    expect(untilLabel(new Date(2026, 10, 12, 9, 0), now)).toBe("до 12 нояб., 09:00");
+    expect(muteLabel(row("all", later), now)).toBe("Без звука до 11:00");
+    expect(muteLabel(row("none"), now)).toBe("Без звука");
+    expect(muteLabel(row("mentions"), now)).toBe("Только упоминания");
+    expect(muteLabel(row("all"), now)).toBe("");
+  });
+
+  test("папка не считает чаты «только упоминания» и заглушенные на время", async () => {
+    const { folderFilter, folderUnread } = await import("./folders");
+    const chats = [
+      { id: "a", kind: "direct", unread: 1, notify: "all", muted_until: null },
+      { id: "b", kind: "group", unread: 1, notify: "mentions", muted_until: null },
+      { id: "c", kind: "group", unread: 1, notify: "all", muted_until: later },
+    ] as never[];
+    expect(folderUnread(chats, folderFilter("all", []), now)).toBe(1);
+  });
+});
+
+describe("превью удалённого", () => {
+  test("предыдущее сообщение из загруженной переписки", async () => {
+    const { previewOf } = await import("./content");
+    const last = { seq: 3, author_id: "a", kind: "text" as const, text: "", deleted: true };
+    const msg = (seq: number, text: string, deleted = false) =>
+      ({ id: `m${seq}`, seq, author_id: "b", kind: "text", text, deleted, content: null }) as never;
+    expect(previewOf(last, [msg(1, "раз"), msg(2, "два"), msg(3, "", true)])).toMatchObject({
+      seq: 2,
+      text: "два",
+    });
+    // Переписка не загружена — «Сообщение удалено».
+    expect(previewOf(last, undefined)).toBe(last);
+    const alive = { ...last, deleted: false, text: "привет" };
+    expect(previewOf(alive, undefined)).toBe(alive);
+  });
+
+  test("код базы без перевода — понятный текст", async () => {
+    const { chatErrorText } = await import("./data");
+    expect(chatErrorText(new Error("chat_something_new"))).toBe(
+      "Не получилось. Попробуйте ещё раз",
+    );
+    expect(chatErrorText(new Error("chat_forbidden"))).toBe("Нет доступа к этому чату");
+    expect(chatErrorText(new Error("Failed to fetch"))).toBe("Failed to fetch");
   });
 });

@@ -5,12 +5,15 @@
  * правой кнопке, долгому нажатию и кнопке «⋯» при наведении (бриф 2.8,
  * 2.10, 2.12, 2.13). На сенсорном экране пузырь не выделяется и без
  * системного меню (`.chat-touch-menu`): долгое нажатие открывает только наше
- * меню, текст — «Скопировать текст».
+ * меню, текст — «Скопировать текст»; свайп вправо — «Ответить», как в
+ * Telegram (UI_REVIEW_CHATS_TASKS_CALENDAR.md, 3.3). В реакциях — «+»: любое
+ * эмодзи из общего окна.
  */
-import { memo, useState, type ReactNode } from "react";
+import { lazy, memo, Suspense, useRef, useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import {
   AlertCircle,
+  BarChart3,
   Check,
   CheckCheck,
   Copy,
@@ -22,6 +25,7 @@ import {
   Pencil,
   Pin,
   PinOff,
+  Plus,
   RefreshCw,
   Reply,
   CheckSquare,
@@ -42,11 +46,20 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { QUICK_REACTIONS, systemText, tasksWord, timeOf } from "@/lib/chats/content";
 import { isLocal } from "@/lib/chats/data";
 import type { ChatDoc, ChatMessage, ChatSystem } from "@/lib/chats/types";
 import { cn } from "@/lib/utils";
+
+const EmojiPicker = lazy(() => import("@/components/chats/emoji-picker"));
+
+/** Свайп вправо дальше этого — «Ответить». */
+const SWIPE_REPLY_PX = 64;
+
+const coarse = () =>
+  typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches;
 
 export type MessageActions = {
   reply: (m: ChatMessage) => void;
@@ -61,6 +74,8 @@ export type MessageActions = {
   acks: (m: ChatMessage) => void;
   pin: (m: ChatMessage, on: boolean) => void;
   receipts: (m: ChatMessage) => void;
+  /** «Закрыть опрос» — с подтверждением (3.10). */
+  closePoll: (m: ChatMessage) => void;
   edit: (m: ChatMessage) => void;
   remove: (m: ChatMessage) => void;
   jump: (seq: number) => void;
@@ -95,7 +110,7 @@ function menuItems(p: Props): MenuItem[] {
   const items: MenuItem[] = [{ label: "Ответить", icon: Reply, run: () => actions.reply(m) }];
   if (m.text)
     items.push({ label: "Скопировать текст", icon: Copy, run: () => actions.copyText(m) });
-  items.push({ label: "Ссылка на сообщение", icon: Link2, run: () => actions.copyLink(m) });
+  items.push({ label: "Скопировать ссылку", icon: Link2, run: () => actions.copyLink(m) });
   items.push({ label: "Переслать", icon: Forward, run: () => actions.forward(m) });
   if (m.kind === "text")
     items.push({ label: "Поставить задачу", icon: CheckSquare, run: () => actions.task(m) });
@@ -106,6 +121,8 @@ function menuItems(p: Props): MenuItem[] {
         : { label: "Закрепить", icon: Pin, run: () => actions.pin(m, true) },
     );
   if (mine) items.push({ label: "Кто прочитал", icon: Eye, run: () => actions.receipts(m) });
+  if (m.poll && !m.poll.closed && p.canManage)
+    items.push({ label: "Закрыть опрос", icon: BarChart3, run: () => actions.closePoll(m) });
   if (mine && m.kind === "text" && !m.poll)
     items.push({ label: "Изменить", icon: Pencil, run: () => actions.edit(m) });
   if (p.canDelete)
@@ -237,10 +254,96 @@ function Quote({ children, onClick }: { children: ReactNode; onClick?: () => voi
 export const MessageItem = memo(function MessageItem(p: Props) {
   const { m, me, first, showAuthor, readByOthers, highlighted, name, avatar, actions } = p;
   const [menuOpen, setMenuOpen] = useState(false);
+  // Окно эмодзи: из «⋯» — тем же окном, из контекстного меню — у пузыря.
+  const [menuEmoji, setMenuEmoji] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const row = useRef<HTMLDivElement>(null);
+  const swipe = useRef<{ x: number; y: number; dx: number; horizontal: boolean | null } | null>(
+    null,
+  );
   if (m.kind === "system") return <SystemLine m={m} name={name} onJump={actions.jump} />;
   const mine = m.author_id === me;
   const items = menuItems(p);
   const local = isLocal(m) ? m.local : null;
+  const canReply = items.length > 0;
+
+  // Свайп вправо — ответить (только палец, только по горизонтали).
+  const setShift = (dx: number) => {
+    if (!row.current) return;
+    row.current.style.transform = dx ? `translateX(${dx}px)` : "";
+    row.current.style.transition = dx ? "none" : "transform 150ms ease-out";
+  };
+  const onTouchStart = (e: React.TouchEvent) => {
+    if (!canReply || e.touches.length !== 1) return;
+    swipe.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, dx: 0, horizontal: null };
+  };
+  const onTouchMove = (e: React.TouchEvent) => {
+    const t = swipe.current;
+    if (!t) return;
+    const dx = e.touches[0].clientX - t.x;
+    const dy = e.touches[0].clientY - t.y;
+    if (t.horizontal === null && (Math.abs(dx) > 8 || Math.abs(dy) > 8))
+      t.horizontal = Math.abs(dx) > Math.abs(dy) && dx > 0;
+    if (!t.horizontal) return;
+    t.dx = Math.max(0, Math.min(dx, SWIPE_REPLY_PX + 24));
+    setShift(t.dx);
+  };
+  const onTouchEnd = () => {
+    const t = swipe.current;
+    swipe.current = null;
+    if (!t) return;
+    setShift(0);
+    if (t.horizontal && t.dx >= SWIPE_REPLY_PX) {
+      navigator.vibrate?.(10);
+      actions.reply(m);
+    }
+  };
+
+  const reactionsRow = (onPick: (e: string) => void, onMore: () => void, asMenu: boolean) => (
+    <div className="mb-1 flex justify-between gap-0.5 border-b px-1 pb-1">
+      {QUICK_REACTIONS.map((e) =>
+        asMenu ? (
+          <ContextMenuItem key={e} className="p-1 text-lg" onSelect={() => onPick(e)}>
+            {e}
+          </ContextMenuItem>
+        ) : (
+          <button
+            key={e}
+            type="button"
+            className="rounded p-1 text-lg hover:bg-muted"
+            onClick={() => onPick(e)}
+          >
+            {e}
+          </button>
+        ),
+      )}
+      {asMenu ? (
+        <ContextMenuItem
+          className="p-1.5"
+          aria-label="Другая реакция"
+          title="Другая реакция"
+          onSelect={onMore}
+        >
+          <Plus className="size-4" />
+        </ContextMenuItem>
+      ) : (
+        <button
+          type="button"
+          className="rounded p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+          aria-label="Другая реакция"
+          title="Другая реакция"
+          onClick={onMore}
+        >
+          <Plus className="size-4" />
+        </button>
+      )}
+    </div>
+  );
+  const emojiFallback = (
+    <div className="flex h-[min(380px,60dvh)] items-center justify-center">
+      <Loader2 className="size-5 animate-spin text-muted-foreground" />
+    </div>
+  );
 
   const bubble = (
     <div
@@ -262,10 +365,16 @@ export const MessageItem = memo(function MessageItem(p: Props) {
         </PersonButton>
       )}
       {m.forward && (
-        <div className="mb-1 text-xs text-muted-foreground">
+        <Link
+          to="/chats/$chatId"
+          params={{ chatId: m.forward.chat_id }}
+          search={{ m: m.forward.seq }}
+          title="Открыть исходное сообщение"
+          className="mb-1 block text-xs text-muted-foreground hover:text-foreground hover:underline"
+        >
           <Forward className="mr-1 inline size-3" />
           Переслано от <span className="font-medium">{name(m.forward.author_id)}</span>
-        </div>
+        </Link>
       )}
       {m.reply && (
         <Quote onClick={() => actions.jump(m.reply!.seq)}>
@@ -285,7 +394,7 @@ export const MessageItem = memo(function MessageItem(p: Props) {
             </div>
           )}
           {m.poll ? (
-            <PollView m={m} canManage={p.canManage} />
+            <PollView m={m} />
           ) : (
             m.text && <MessageContent doc={m.content as ChatDoc | null} text={m.text} mine={mine} />
           )}
@@ -329,11 +438,18 @@ export const MessageItem = memo(function MessageItem(p: Props) {
         )}
       </div>
       {items.length > 0 && (
-        <Popover open={menuOpen} onOpenChange={setMenuOpen}>
+        <Popover
+          open={menuOpen}
+          onOpenChange={(o) => {
+            setMenuOpen(o);
+            if (!o) setMenuEmoji(false);
+          }}
+        >
           <PopoverTrigger asChild>
             <button
               type="button"
               aria-label="Действия с сообщением"
+              title="Действия с сообщением"
               className={cn(
                 "absolute top-1 flex size-7 items-center justify-center rounded-full border bg-background text-muted-foreground opacity-0 shadow-sm transition-opacity group-hover/msg:opacity-100 focus-visible:opacity-100 max-md:hidden",
                 mine ? "-left-9" : "-right-9",
@@ -343,39 +459,50 @@ export const MessageItem = memo(function MessageItem(p: Props) {
               <MoreHorizontal className="size-4" />
             </button>
           </PopoverTrigger>
-          <PopoverContent align={mine ? "end" : "start"} className="w-56 p-1">
-            <div className="mb-1 flex justify-between gap-0.5 border-b px-1 pb-1">
-              {QUICK_REACTIONS.map((e) => (
-                <button
-                  key={e}
-                  type="button"
-                  className="rounded p-1 text-lg hover:bg-muted"
-                  onClick={() => {
+          <PopoverContent
+            align={mine ? "end" : "start"}
+            className={cn(menuEmoji ? "w-[min(22rem,calc(100vw-1rem))] p-0" : "w-64 p-1")}
+          >
+            {menuEmoji ? (
+              <Suspense fallback={emojiFallback}>
+                <EmojiPicker
+                  autoFocus
+                  onPick={(e) => {
                     setMenuOpen(false);
+                    setMenuEmoji(false);
                     actions.react(m, e);
                   }}
-                >
-                  {e}
-                </button>
-              ))}
-            </div>
-            {items.map((it) => (
-              <button
-                key={it.label}
-                type="button"
-                onClick={() => {
-                  setMenuOpen(false);
-                  it.run();
-                }}
-                className={cn(
-                  "flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm hover:bg-muted",
-                  it.destructive && "text-destructive",
+                />
+              </Suspense>
+            ) : (
+              <>
+                {reactionsRow(
+                  (e) => {
+                    setMenuOpen(false);
+                    actions.react(m, e);
+                  },
+                  () => setMenuEmoji(true),
+                  false,
                 )}
-              >
-                <it.icon className="size-4" />
-                {it.label}
-              </button>
-            ))}
+                {items.map((it) => (
+                  <button
+                    key={it.label}
+                    type="button"
+                    onClick={() => {
+                      setMenuOpen(false);
+                      it.run();
+                    }}
+                    className={cn(
+                      "flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm hover:bg-muted",
+                      it.destructive && "text-destructive",
+                    )}
+                  >
+                    <it.icon className="size-4" />
+                    {it.label}
+                  </button>
+                ))}
+              </>
+            )}
           </PopoverContent>
         </Popover>
       )}
@@ -384,8 +511,13 @@ export const MessageItem = memo(function MessageItem(p: Props) {
 
   return (
     <div
+      ref={row}
       id={`msg-${m.seq}`}
       data-seq={m.seq}
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+      onTouchCancel={onTouchEnd}
       className={cn(
         "flex gap-2 px-3 sm:px-4",
         first ? "mt-2" : "mt-0.5",
@@ -418,57 +550,64 @@ export const MessageItem = memo(function MessageItem(p: Props) {
           // в касании пункта — иначе iPhone не покажет клавиатуру (модальное
           // меню держало фокус у себя). После закрытия фокус никуда не
           // переводим — его ставит само действие.
-          <ContextMenu modal={false}>
-            <ContextMenuTrigger asChild>{bubble}</ContextMenuTrigger>
-            <ContextMenuContent className="w-56" onCloseAutoFocus={(e) => e.preventDefault()}>
-              <div className="mb-1 flex justify-between gap-0.5 border-b px-1 pb-1">
-                {QUICK_REACTIONS.map((e) => (
-                  <ContextMenuItem
-                    key={e}
-                    className="p-1 text-lg"
-                    onSelect={() => actions.react(m, e)}
-                  >
-                    {e}
-                  </ContextMenuItem>
-                ))}
-              </div>
-              {items.map((it, i) => (
-                <div key={it.label}>
-                  {it.destructive && i > 0 && <ContextMenuSeparator />}
-                  <ContextMenuItem
-                    onSelect={it.run}
-                    className={cn(
-                      "gap-2",
-                      it.destructive && "text-destructive focus:text-destructive",
+          <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
+            <PopoverAnchor asChild>
+              <div className="max-w-full">
+                <ContextMenu modal={false}>
+                  <ContextMenuTrigger asChild>{bubble}</ContextMenuTrigger>
+                  <ContextMenuContent className="w-56" onCloseAutoFocus={(e) => e.preventDefault()}>
+                    {reactionsRow(
+                      (e) => actions.react(m, e),
+                      () => setPickerOpen(true),
+                      true,
                     )}
-                  >
-                    <it.icon className="size-4" />
-                    {it.label}
-                  </ContextMenuItem>
-                </div>
-              ))}
-            </ContextMenuContent>
-          </ContextMenu>
+                    {items.map((it, i) => (
+                      <div key={it.label}>
+                        {it.destructive && i > 0 && <ContextMenuSeparator />}
+                        <ContextMenuItem
+                          onSelect={it.run}
+                          className={cn(
+                            "gap-2",
+                            it.destructive && "text-destructive focus:text-destructive",
+                          )}
+                        >
+                          <it.icon className="size-4" />
+                          {it.label}
+                        </ContextMenuItem>
+                      </div>
+                    ))}
+                  </ContextMenuContent>
+                </ContextMenu>
+              </div>
+            </PopoverAnchor>
+            <PopoverContent
+              align={mine ? "end" : "start"}
+              className="w-[min(22rem,calc(100vw-1rem))] p-0"
+            >
+              <Suspense fallback={emojiFallback}>
+                <EmojiPicker
+                  autoFocus={!coarse()}
+                  onPick={(e) => {
+                    setPickerOpen(false);
+                    actions.react(m, e);
+                  }}
+                />
+              </Suspense>
+            </PopoverContent>
+          </Popover>
         ) : (
           bubble
         )}
         <ReactionsRow m={m} me={me} name={name} onReact={(e) => actions.react(m, e)} />
         {local === "failed" && (
-          <div className="mt-1 flex gap-3 text-xs">
-            <button
-              type="button"
-              className="inline-flex items-center gap-1 text-destructive hover:underline"
-              onClick={() => actions.retry(m)}
-            >
-              <RefreshCw className="size-3" /> Повторить
-            </button>
-            <button
-              type="button"
-              className="text-muted-foreground hover:underline"
-              onClick={() => actions.discard(m)}
-            >
+          <div className="mt-1 flex items-center gap-2">
+            <span className="text-xs text-destructive">Не отправлено</span>
+            <Button size="sm" variant="outline" onClick={() => actions.retry(m)}>
+              <RefreshCw /> Повторить
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => actions.discard(m)}>
               Удалить
-            </button>
+            </Button>
           </div>
         )}
       </div>

@@ -5,9 +5,12 @@
  * - входящий звонок — окно «Принять / Отклонить» со звуком, пока у
  *   человека открыта вкладка портала (заголовок вкладки мигает);
  * - мой звонок — окно с конференцией Kinescope Speak (iframe по ссылке
- *   комнаты): во весь экран или свёрнуто в угол, «Открыть в новой вкладке»,
- *   «Закрыть звонок». Пока никто не ответил — гудки. Раз в 20 с — «я в звонке»
- *   (иначе база через 75 с считает, что человек вышел).
+ *   комнаты): во весь экран или свёрнуто в угол (на телефоне — плашкой
+ *   «Идёт звонок · Вернуться» сверху, как в iOS: окно в углу закрывало поле
+ *   ввода), «Открыть в новой вкладке», «Завершить» (личный) / «Выйти из
+ *   звонка» (группа). Входящий — «Принять / Отклонить / Позже». Пока никто не
+ *   ответил — гудки. Раз в 20 с — «я в звонке» (иначе база через 75 с
+ *   считает, что человек вышел).
  *
  * Логика и данные — lib/chats/calls.ts, схема — 2026-11-08_zzz_chat_calls.sql.
  */
@@ -159,12 +162,20 @@ function IncomingCall({ me }: { me: string }) {
       }}
     >
       <DialogContent
-        className="p-6 sm:max-w-sm"
+        // Крестика нет — вместо него явная «Позже» (UI_REVIEW, 3.9).
+        className="p-6 sm:max-w-sm [&>button:last-child]:hidden"
         onEscapeKeyDown={(e) => e.preventDefault()}
         onPointerDownOutside={(e) => e.preventDefault()}
         onInteractOutside={(e) => e.preventDefault()}
       >
-        <IncomingBody call={call} me={me} busy={busy} onAccept={accept} onDecline={decline} />
+        <IncomingBody
+          call={call}
+          me={me}
+          busy={busy}
+          onAccept={accept}
+          onDecline={decline}
+          onLater={() => setDismissed((ids) => [...ids, call.id])}
+        />
       </DialogContent>
     </Dialog>
   );
@@ -176,12 +187,14 @@ function IncomingBody({
   busy,
   onAccept,
   onDecline,
+  onLater,
 }: {
   call: CallJson;
   me: string;
   busy: "accept" | "decline" | null;
   onAccept: () => void;
   onDecline: () => void;
+  onLater: () => void;
 }) {
   const { name } = usePeople();
   const title = useCallTitle(call, me);
@@ -220,6 +233,12 @@ function IncomingBody({
           Принять
         </Button>
       </div>
+      <Button variant="ghost" className="w-full" disabled={!!busy} onClick={onLater}>
+        Позже
+      </Button>
+      <p className="-mt-2 text-xs text-muted-foreground">
+        Звонок останется в чате — присоединитесь, пока он идёт.
+      </p>
     </div>
   );
 }
@@ -313,6 +332,7 @@ function CallFrame({ active, me }: { active: ActiveCall; me: string }) {
   };
 
   const min = active.minimized;
+  const endLabel = call && call.chat_kind !== "direct" ? "Выйти из звонка" : "Завершить";
   return (
     <div
       role="dialog"
@@ -320,7 +340,11 @@ function CallFrame({ active, me }: { active: ActiveCall; me: string }) {
       className={cn(
         "fixed z-50 flex flex-col overflow-hidden bg-neutral-950 text-white shadow-2xl",
         min
-          ? "right-3 bottom-3 h-56 w-[min(22rem,calc(100vw-1.5rem))] rounded-xl sm:right-5 sm:bottom-5"
+          ? cn(
+              "right-3 bottom-3 h-56 w-[min(22rem,calc(100vw-1.5rem))] rounded-xl sm:right-5 sm:bottom-5",
+              // Телефон: плашка сверху во всю ширину, конференция работает дальше.
+              "max-sm:inset-x-0 max-sm:top-0 max-sm:right-0 max-sm:bottom-auto max-sm:h-auto max-sm:w-full max-sm:rounded-none max-sm:bg-emerald-700 max-sm:pt-[env(safe-area-inset-top)]",
+            )
           : "inset-0",
       )}
     >
@@ -344,15 +368,31 @@ function CallFrame({ active, me }: { active: ActiveCall; me: string }) {
             </span>
           )}
           <span className="min-w-0">
-            <span className="block truncate text-sm font-semibold">{title}</span>
+            <span className="block truncate text-sm font-semibold">
+              {min && <span className="sm:hidden">Идёт звонок · </span>}
+              {title}
+            </span>
             <span className="block truncate text-xs text-white/60">{status}</span>
           </span>
         </button>
+        {min && (
+          <Button
+            size="sm"
+            variant="outline"
+            className="shrink-0 border-white/40 bg-transparent text-white hover:bg-white/10 hover:text-white sm:hidden"
+            onClick={() => patchActiveCall({ minimized: false, external: false })}
+          >
+            Вернуться
+          </Button>
+        )}
         {!active.external && (
           <Button
             variant="ghost"
             size="icon"
-            className="text-white hover:bg-white/10 hover:text-white max-sm:size-9"
+            className={cn(
+              "text-white hover:bg-white/10 hover:text-white max-sm:size-9",
+              min && "max-sm:hidden",
+            )}
             aria-label="Открыть в новой вкладке"
             title="Открыть в новой вкладке"
             onClick={openExternal}
@@ -363,7 +403,10 @@ function CallFrame({ active, me }: { active: ActiveCall; me: string }) {
         <Button
           variant="ghost"
           size="icon"
-          className="text-white hover:bg-white/10 hover:text-white max-sm:size-9"
+          className={cn(
+            "text-white hover:bg-white/10 hover:text-white max-sm:size-9",
+            min && "max-sm:hidden",
+          )}
           aria-label={min ? "Развернуть" : "Свернуть"}
           title={min ? "Развернуть" : "Свернуть"}
           onClick={() => patchActiveCall({ minimized: !min })}
@@ -377,16 +420,16 @@ function CallFrame({ active, me }: { active: ActiveCall; me: string }) {
           variant="destructive"
           size={min ? "icon" : "default"}
           className={cn("shrink-0", min ? "max-sm:size-9" : "max-sm:h-9 max-sm:px-3")}
-          aria-label="Закрыть звонок"
-          title="Закрыть звонок"
+          aria-label={endLabel}
+          title={endLabel}
           disabled={leaving}
           onClick={() => void leave()}
         >
           {leaving ? <Loader2 className="animate-spin" /> : <PhoneOff />}
-          {!min && "Закрыть звонок"}
+          {!min && endLabel}
         </Button>
       </div>
-      <div className="relative min-h-0 flex-1 bg-black">
+      <div className={cn("relative min-h-0 flex-1 bg-black", min && "max-sm:h-0 max-sm:flex-none")}>
         {active.external ? (
           <div className="flex h-full flex-col items-center justify-center gap-3 p-4 text-center text-sm text-white/70">
             <p>Звонок открыт в отдельной вкладке.</p>
