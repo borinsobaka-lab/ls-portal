@@ -4118,6 +4118,11 @@ export function ChatsPageSkeleton() {
       <div className="-m-3 flex h-[calc(100%+1.5rem)] min-h-96 sm:-m-4 sm:h-[calc(100%+2rem)] lg:-m-6 lg:h-[calc(100%+3rem)]">
         <div className="w-full space-y-1 border-r bg-background p-2 md:w-80 lg:w-96">
           <Skeleton className="mb-2 h-10 w-full" />
+          <div className="flex gap-1.5 border-b pb-2">
+            {["w-14", "w-20", "w-20", "w-16"].map((w, i) => (
+              <Skeleton key={i} className={`h-8 ${w} rounded-full`} />
+            ))}
+          </div>
           {Array.from({ length: 8 }, (_, i) => (
             <div key={i} className="flex items-center gap-3 px-2.5 py-2">
               <Skeleton className="size-11 rounded-full" />
@@ -4140,9 +4145,15 @@ export function TasksPageSkeleton() {
     <ShellSkeleton title="Задачи" actions={["w-36"]}>
       <div className="space-y-3">
         <ToolbarSkeleton
-          controls={["w-44", "w-40", "w-48", "w-36", "w-28"]}
+          controls={["w-40", "w-40", "w-36", "w-48", "w-28"]}
           tabs={
-            <TabsSkeleton labels={["Делаю", "Помогаю", "Поручил", "Наблюдаю", "Все"]} active={4} />
+            <div className="flex items-center gap-3">
+              <TabsSkeleton labels={["Список", "Сроки", "Мой план"]} />
+              <TabsSkeleton
+                labels={["Делаю", "Помогаю", "Поручил", "Наблюдаю", "Все мои"]}
+                active={4}
+              />
+            </div>
           }
         />
         <TableCardSkeleton
@@ -4158,7 +4169,10 @@ export function TasksPlanPageSkeleton() {
   return (
     <ShellSkeleton title="Мой план" actions={["w-36"]}>
       <div className="space-y-3">
-        <ToolbarSkeleton search={false}>
+        <ToolbarSkeleton
+          search={false}
+          tabs={<TabsSkeleton labels={["Список", "Сроки", "Мой план"]} active={2} />}
+        >
           <Skeleton className="toolbar-full mr-auto h-4 w-96 max-w-full" />
           <Skeleton className="h-10 w-40 rounded-full" />
           <Skeleton className="h-10 w-28 rounded-full" />
@@ -4211,7 +4225,12 @@ export function TasksDeadlinesPageSkeleton() {
       <div className="space-y-3">
         <ToolbarSkeleton
           search={false}
-          tabs={<TabsSkeleton labels={["Делаю", "Поручил", "Все мои"]} />}
+          tabs={
+            <div className="flex items-center gap-3">
+              <TabsSkeleton labels={["Список", "Сроки", "Мой план"]} active={1} />
+              <TabsSkeleton labels={["Делаю", "Помогаю", "Поручил", "Наблюдаю", "Все мои"]} />
+            </div>
+          }
         />
         <div className="flex gap-3 overflow-hidden">
           {Array.from({ length: 5 }, (_, i) => (
