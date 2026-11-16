@@ -28,6 +28,7 @@ Base40, AGENT_TASKS.md) с решениями владельца от 2026-10-26
 | Бэкапы                | S3 Selectel, холодный класс, Санкт-Петербург (`ru-1`), бакет `ls-portal-backups`                             |
 | Почта с кодом         | `noreply@ladyfitpro.ru`, почтовый хостинг reg.ru, SMTP `mail.hosting.reg.ru:465` (SSL)                  |
 | Репозиторий           | `github.com/borinsobaka-lab/ls-portal`, ветка `main`                                                         |
+| Стенд «Аналитики»     | `https://analytics.ladyfitpro.ru` + API `analytics-api.ladyfitpro.ru`, тот же сервер, своя база (шаг 18)       |
 
 **Заняты, не трогать:** в зоне `ladyfitpro.ru` — `@`, `www`, MX и прочие
 существующие записи (сайт и почта компании). Прежний домен портала —
@@ -543,6 +544,122 @@ Kinescope Speak (https://docs.kinescope.ru/api/speak/), у собеседник�
    15 секунд, `PUSH_WORKER=off` — на другом сервере). Запись и расшифровка
    звонков выключены.
 
+### 18. Тестовый стенд «Аналитики» (решение владельца 2026-11-16)
+
+Отдельный портал для разработчика аналитики: его правки до Pull Request
+(ANALYTICS_CONTRIBUTING.md). **Тот же сервер**, но своя база, свои ключи и
+свои адреса — с рабочим порталом стенд ничего не делит:
+
+| Что          | Адрес                                  | Откуда                                                     |
+| ------------ | -------------------------------------- | ---------------------------------------------------------- |
+| Портал стенда | `https://analytics.ladyfitpro.ru`     | форк разработчика, ветка `stand`                            |
+| API стенда   | `https://analytics-api.ladyfitpro.ru`  | облегчённый Supabase `deploy/stand/supabase-stand.yml`     |
+
+Облегчённый Supabase — только база, вход, API и файлы (без Studio,
+Realtime, логов, функций): у контейнеров пределы памяти, вместе с
+порталом стенда — около 1,3 ГБ (замер 2026-11-16: база 160 МБ, файлы 130,
+Kong 85, API 35, вход 10, портал ~400). Без Realtime чаты стенда обновляются
+опросом; в консоли браузера — 404 на `/realtime/v1/websocket`, это нормально.
+
+**Перед началом.** На сервере (Coolify → Servers → localhost → Terminal
+или SSH): `free -h` — в колонке `available` не меньше 2 ГБ, `df -h /` —
+свободно не меньше 15 ГБ. Памяти меньше — сначала swap на 4 ГБ (один раз):
+
+```
+fallocate -l 4G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile && echo '/swapfile none swap sw 0 0' >> /etc/fstab
+```
+
+или увеличить память сервера в Selectel (тот же сервер, новая
+конфигурация). Сборки — по одной (шаг 4): деплой стенда (~5 минут)
+задерживает деплой рабочего портала, если они совпали.
+
+1. **DNS** (reg.ru, зона `ladyfitpro.ru`): две A-записи → `<IP>` сервера —
+   `analytics` и `analytics-api`.
+2. **Отдельная сеть.** Coolify → Servers → localhost → **Destinations** →
+   + Add → Docker network, имя `ls-stand`. Стенд — только в ней: код из
+   форка не проверен владельцем, и из сети рабочего портала (`coolify`) он
+   не должен видеть рабочую базу и служебные контейнеры Supabase.
+3. **Проект** Coolify «Стенд аналитики» → + New → **Docker Compose
+   Empty**, destination — `ls-stand`. Вставить целиком
+   `deploy/stand/supabase-stand.yml` из `main`.
+   - Домен контейнера `stand-kong` — `https://analytics-api.ladyfitpro.ru`.
+   - Включить **Connect To Predefined Network** (сеть `ls-stand`: в неё же
+     встанет портал стенда).
+   - Environment Variables: `PORTAL_URL` = `https://analytics.ladyfitpro.ru`,
+     `SEND_EMAIL_HOOK_SECRET` — новый: `echo "v1,whsec_$(openssl rand -base64 32)"`
+     (в менеджер паролей; тот же — у портала стенда в п. 4).
+   - Ключи `SERVICE_PASSWORD_JWT`, `SERVICE_PASSWORD_POSTGRES`,
+     `SERVICE_SUPABASEANON_KEY`, `SERVICE_SUPABASESERVICE_KEY` Coolify
+     создаёт сам (как у рабочего Supabase) — проверить, что не пустые. Пустые
+     — на сервере `bash make-keys.sh` (`deploy/stand/make-keys.sh`) и вставить
+     три строки, пароль Postgres — `openssl rand -hex 24`.
+   - Deploy. Все пять контейнеров — «running», у `stand-db`, `stand-auth`,
+     `stand-storage`, `stand-kong` — «healthy». Записать имя контейнера базы
+     `stand-db-…` — дальше `<stand-db>`.
+4. **Портал стенда.** В том же проекте + New → **Public Repository** →
+   `https://github.com/<логин разработчика>/ls-portal`, ветка **`stand`**,
+   destination — `ls-stand`. Build Pack — Dockerfile, Base Directory `/`,
+   Dockerfile `/apps/admin/Dockerfile`, порт `3000`, домен
+   `https://analytics.ladyfitpro.ru`, Watch Paths `apps/admin/**` и `db/**`.
+   Advanced → Resource Limits → память **1536 MB** (обработка 1С
+   большой выгрузки — до ~1 ГБ).
+   Переменные (ключи — из п. 3, почта — **та же**, что у рабочего портала,
+   шаг 8):
+
+   | Переменная                      | Тип            | Значение                                                          |
+   | ------------------------------- | -------------- | ----------------------------------------------------------------- |
+   | `VITE_SUPABASE_URL`             | Build Variable | `https://analytics-api.ladyfitpro.ru`                             |
+   | `VITE_SUPABASE_PUBLISHABLE_KEY` | Build Variable | `SERVICE_SUPABASEANON_KEY` стенда                                 |
+   | `VITE_STAND`                    | Build Variable | `true` (метка «Тестовый стенд» на экране и «· стенд» в названии)  |
+   | `APP_SUPABASE_SERVICE_KEY`      | секрет         | `SERVICE_SUPABASESERVICE_KEY` стенда                              |
+   | `DATABASE_URL`                  | секрет         | `postgres://postgres:<SERVICE_PASSWORD_POSTGRES>@<stand-db>:5432/postgres` |
+   | `ADMIN_APP_URL`                 |                | `https://analytics.ladyfitpro.ru`                                 |
+   | `SEND_EMAIL_HOOK_SECRET`        | секрет         | из п. 3                                                           |
+   | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM` | | как у рабочего портала                          |
+   | `MAIL_FROM_NAME`                |                | `LadyFitPro · стенд`                                              |
+   | `ANALYTICS_SECRETS_KEY`         | секрет         | **новый** `openssl rand -base64 32` (не рабочий)                  |
+
+   Ключи рабочего портала (`APP_SUPABASE_SERVICE_KEY`, `ANALYTICS_SECRETS_KEY`,
+   Kinescope, AI) сюда **не копировать**.
+   Deploy. На пустой базе мигратор собирает схему сам («пустая база —
+   собираю старую схему», затем миграции, «выполнено: N»), затем —
+   «healthy».
+5. **Проверка изоляции.** Портал стенда → Terminal:
+   `getent hosts <имя контейнера рабочей базы supabase-db-…>` — пусто
+   (рабочая база из стенда не видна). Если адрес нашёлся — стенд не в сети
+   `ls-stand`: остановить его и пересоздать в ней.
+6. **Автообновление из форка.** Портал стенда → Webhooks → Manual Git
+   Webhooks → GitHub: задать **GitHub Webhook Secret** (`openssl rand -hex 20`)
+   и скопировать адрес. Передать разработчику адрес и секрет: он
+   добавляет их в своём форке (Settings → Webhooks → Add webhook: Payload
+   URL — адрес, Content type — `application/json`, Secret — секрет, «Just
+   the push event»). Дальше каждый push в ветку `stand` форка сам
+   пересобирает стенд.
+7. **Первые администраторы.** Стенд → `stand-db` → Terminal → `psql -U postgres`
+   → вставить текст `deploy/first-superadmin.sql` со своей почтой и именем
+   (блок «Поменять»), Enter — в конце строка с почтой и `t`. Повторить с
+   почтой разработчика аналитики: на стенде он — суперадминистратор (свои
+   люди, роли и подключения; на рабочем портале — только права «Аналитики»).
+   Войти в `https://analytics.ladyfitpro.ru` по коду из письма (вкладка
+   «Почта»): сверху оранжевая полоса, внизу — «Тестовый стенд — не рабочий
+   портал».
+
+**Что можно и нельзя на стенде** (то же — в ANALYTICS_CONTRIBUTING.md):
+данные стенда — свои (выгрузки 1С, подключения), рабочий портал их не
+видит. Задачи с внешним действием (Telegram партнёрам, Google-таблицы,
+публикации VK) на стенде включать только с тестовыми чатами, таблицами и
+группами. Сборщик оснований FitBase — не на той же учётной записи FitBase,
+что у рабочего портала (переключали бы клуб друг другу). VK Callback стенда
+— ещё один сервер у тестовой группы, не у рабочих.
+
+**Сбросить базу стенда** (миграцию на стенде поправили, а не добавили новым
+файлом, или нужны пустые данные): стенд → остановить оба ресурса →
+Storages Supabase стенда → удалить `stand-db-data` и `stand-storage-data` →
+Deploy Supabase стенда, затем портала стенда, снова п. 7. Всё на стенде
+теряется; рабочий портал не затрагивается.
+
+**Бэкапы стенда не нужны** (тестовые данные): шаг 10 его не касается.
+
 ## Отчёт владельцу
 
 - Сервер: конфигурация, линейка, регион, IP, цена в месяц.
@@ -554,6 +671,8 @@ Kinescope Speak (https://docs.kinescope.ru/api/speak/), у собеседник�
 - Смоук-тест — по пунктам шага 13.
 - Realtime для чатов (шаг 16): соединение 101, политики, лимиты тенанта.
 - Задачи (шаг 16, п. 6): `work_calendar_years` заполнена.
+- Стенд «Аналитики» (шаг 18): `free -h` до и после, изоляция (п. 5),
+  вход на стенд, веб-хук передан разработчику.
 - Где сохранены пароли и ключи, 2FA по каждому сервису.
 - Подтверждение, что на Hetzner и в существующих записях reg.ru (сайт,
   MX, занятые поддомены) ничего не менялось.

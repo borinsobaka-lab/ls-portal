@@ -17,6 +17,7 @@ import { isStaleChunkError } from "@/lib/update-check";
 import { resetQueriesForUser } from "@/lib/query";
 import { KB_THEME_BOOT } from "@/lib/kb/theme";
 import { supabase } from "@/integrations/supabase/client";
+import { StandBadge } from "@/components/stand-badge";
 import { PORTAL_NAME, PORTAL_TITLE } from "@/lib/brand";
 
 function NotFoundComponent() {
@@ -196,6 +197,7 @@ function RootComponent() {
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
       <UpdateBanner />
+      <StandBadge />
       <Toaster richColors position="top-right" />
     </QueryClientProvider>
   );

@@ -31,6 +31,8 @@ shadcn/radix, пакетный менеджер — bun.
   чтение статей, поиск, тест Академии теми же запросами, что портал;
   `cleanup.sql` — убрать всё после прогона); `backup-storage.sh` — ежедневный
   архив файлов Supabase Storage в S3 (бэкап базы их не содержит);
+  `stand/` — тестовый стенд «Аналитики» (облегчённый Supabase для Coolify и
+  `make-keys.sh`, DEPLOY.md, шаг 18);
   `telegram-gateway/worker.js` — Cloudflare Worker, шлюз Telegram для
   «Контроля бюджетов» «Аналитики» (DEPLOY.md); `fitbase-session/` —
   помощник входа FitBase на компьютере владельца (Python + Playwright:
@@ -146,6 +148,16 @@ shadcn/radix, пакетный менеджер — bun.
   зачем нужно: сделает сторона владельца.
 - Версию портала не повышаешь, в `main` не мержишь — это делает сторона
   владельца при приёме.
+- **Тестовый стенд** (`https://analytics.ladyfitpro.ru`, DEPLOY.md, шаг 18)
+  собирается из ветки `stand` форка. «Выложи на стенд» — после тех же
+  проверок, что перед Pull Request: `git push --force origin HEAD:stand`
+  (ветка стенда — копия текущей задачи; стенд пересоберётся сам через
+  5–10 минут). Push в `stand` не пропустили — открой в форке Pull Request
+  своей ветки в `stand` и слей его (или скажи разработчику, как это сделать
+  на GitHub). Миграцию, уже выложенную на стенд, не правишь — новый файл.
+  На стенде у разработчика своя база и свои подключения; внешние действия
+  (Telegram, Google-таблицы, VK) там — только с тестовыми чатами, таблицами
+  и группами.
 - Перед Pull Request: `cd apps/admin && bunx tsc --noEmit && bun run lint
   && bun run test`, схема и тесты базы (`bash db/test/build-schema.sh <url>`,
   `TEST_SCHEMA_DATABASE_URL=<url> bun test db`) и проверка путей:
@@ -168,7 +180,13 @@ shadcn/radix, пакетный менеджер — bun.
 ## Деплой
 
 Selectel, один облачный сервер (Coolify + self-hosted Supabase + портал),
-ветка `main` этого репозитория. Шаги и переменные — **DEPLOY.md**. Контекст
+ветка `main` этого репозитория. На том же сервере — **тестовый стенд
+«Аналитики»** (решение владельца 2026-11-16, DEPLOY.md, шаг 18):
+`analytics.ladyfitpro.ru`, портал из ветки `stand` форка разработчика
+аналитики (`VITE_STAND=true` — метка «Тестовый стенд», `lib/brand.ts`,
+`components/stand-badge.tsx`), облегчённый Supabase
+`deploy/stand/supabase-stand.yml` (база, вход, API, файлы; пределы памяти)
+в отдельной сети Coolify `ls-stand` — рабочая база из стенда не видна. Шаги и переменные — **DEPLOY.md**. Контекст
 сборки Docker — корень репозитория, Dockerfile портала —
 `/apps/admin/Dockerfile`, Watch Paths — `apps/admin/**`, `db/**`.
 

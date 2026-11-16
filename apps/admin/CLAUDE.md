@@ -121,6 +121,10 @@ AI-переменные (`AI_GATEWAY_*`, `AI_CHAT_MODEL`, `AI_TRANSCRIBE_MODEL`)
 «Аналитика» (DEPLOY.md, шаг 15): `ANALYTICS_SECRETS_KEY` (шифрование ключей
 интеграций), `ANALYTICS_JOBS=off` — не выполнять её фоновые задачи на этом
 сервере.
+Тестовый стенд «Аналитики» (DEPLOY.md, шаг 18) — та же сборка с
+`VITE_STAND=true`: «· стенд» в названии (`IS_STAND` в `lib/brand.ts`) и
+метка `components/stand-badge.tsx` (оранжевая полоса сверху, «Тестовый
+стенд» внизу; нажатия не перехватывает).
 
 Бренд портала — **LadyFitPro** (ребрендинг 2026-11-01, домен ladyfitpro.ru:
 в портале материалы брендов франшизы Lady Stretch и Lady Jump;
