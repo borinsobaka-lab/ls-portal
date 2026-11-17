@@ -600,7 +600,9 @@ fallocate -l 4G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /
    `https://github.com/<логин разработчика>/ls-portal`, ветка **`stand`**,
    destination — `ls-stand`. Build Pack — Dockerfile, Base Directory `/`,
    Dockerfile `/apps/admin/Dockerfile`, порт `3000`, домен
-   `https://analytics.ladyfitpro.ru`, Watch Paths `apps/admin/**` и `db/**`.
+   `https://analytics.ladyfitpro.ru`, Watch Paths `apps/admin/**` и `db/**`
+   (у публичного репозитория в Coolify 4.7 этого поля нет — тогда стенд
+   пересобирается при любом обновлении ветки `stand`, это нормально).
    Advanced → Resource Limits → память **1536 MB** (обработка 1С
    большой выгрузки — до ~1 ГБ).
    Переменные (ключи — из п. 3, почта — **та же**, что у рабочего портала,
@@ -624,12 +626,22 @@ fallocate -l 4G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /
    Deploy. На пустой базе мигратор собирает схему сам («пустая база —
    собираю старую схему», затем миграции, «выполнено: N»), затем —
    «healthy».
-5. **Проверка изоляции.** Портал стенда → Terminal:
-   `getent hosts <имя контейнера рабочей базы supabase-db-…>` — пусто
-   (рабочая база из стенда не видна). Если адрес нашёлся — стенд не в сети
-   `ls-stand`: остановить его и пересоздать в ней.
+5. **Проверка изоляции** — изнутри контейнера стенда, не с самого сервера
+   (на сервере имена контейнеров не находятся вовсе, проверка там ничего не
+   доказывает). Терминал сервера:
+   - `docker ps --format '{{.Names}}\t{{.Networks}}' | sort` — у портала
+     стенда и пяти `stand-…` в колонке сетей только `ls-stand`, у рабочего
+     портала и `supabase-…` — без `ls-stand` (у `coolify-proxy` — обе
+     сети, так и должно быть);
+   - `docker exec <контейнер портала стенда> getent hosts <stand-db>` —
+     адрес есть;
+   - `docker exec <контейнер портала стенда> getent hosts <supabase-db-…>`
+     (рабочая база) — пусто.
+   Рабочая база нашлась или у стенда сеть `coolify` — остановить портал
+   стенда и пересоздать его в сети `ls-stand`.
 6. **Автообновление из форка.** Портал стенда → Webhooks → Manual Git
-   Webhooks → GitHub: задать **GitHub Webhook Secret** (`openssl rand -hex 20`)
+   Webhooks → GitHub: задать **GitHub Webhook Secret** (`openssl rand -hex 20`;
+   Coolify мог уже создать свой — подойдёт и он)
    и скопировать адрес. Передать разработчику адрес и секрет: он
    добавляет их в своём форке (Settings → Webhooks → Add webhook: Payload
    URL — адрес, Content type — `application/json`, Secret — секрет, «Just
