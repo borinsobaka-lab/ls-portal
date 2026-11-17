@@ -630,9 +630,11 @@ fallocate -l 4G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /
    (на сервере имена контейнеров не находятся вовсе, проверка там ничего не
    доказывает). Терминал сервера:
    - `docker ps --format '{{.Names}}\t{{.Networks}}' | sort` — у портала
-     стенда и пяти `stand-…` в колонке сетей только `ls-stand`, у рабочего
-     портала и `supabase-…` — без `ls-stand` (у `coolify-proxy` — обе
-     сети, так и должно быть);
+     стенда только `ls-stand`; у пяти `stand-…` — `ls-stand` и внутренняя
+     сеть самого сервиса (её Coolify заводит каждому Docker Compose, в ней
+     только эти пять); `coolify` у стенда нет ни у кого. У рабочего портала
+     и `supabase-…` нет `ls-stand`. У `coolify-proxy` — все сети, так и
+     должно быть;
    - `docker exec <контейнер портала стенда> getent hosts <stand-db>` —
      адрес есть;
    - `docker exec <контейнер портала стенда> getent hosts <supabase-db-…>`
